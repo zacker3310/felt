@@ -2,6 +2,7 @@
 
 8-ball and 9-ball pool in one HTML file. Two players on one device, or you against the CPU.
 No libraries, no network, works offline.
+Play at **https://zacker3310.github.io/felt/**.
 
 ## Play
 

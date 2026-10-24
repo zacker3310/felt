@@ -55,7 +55,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 ## Shipping contract
 
 Trunk-based: commit to `main` and push when `npm test` and `npm run lint` are green. CI runs both
-on every push. Not hosted yet; GitHub Pages would be a separate, approved step.
+on every push. Pushing `main` also deploys GitHub Pages (public repo, served from `main` root):
+https://zacker3310.github.io/felt/. Check the live page with
+`FELT_URL=https://zacker3310.github.io/felt/index.html node tests/run-all.cjs --only boot-check,play-check`.
 
 ## Method
 

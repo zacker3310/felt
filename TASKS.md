@@ -13,4 +13,3 @@ Indicators: `I`ntent `S`pec `P`lan `B`uild `V`erify `D`eploy `W`atch
 ## Later (not started)
 
 - Side english, a difficulty setting for the CPU, push-out in 9-ball, called pockets in 8-ball.
-- Hosting on GitHub Pages (needs Zac's go-ahead).

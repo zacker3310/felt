@@ -1,0 +1,17 @@
+{
+  "name": "felt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "8-ball and 9-ball pool. One HTML file, hand-rolled deterministic physics, works offline.",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node tests/run-all.cjs",
+    "lint": "node tests/lint.cjs",
+    "serve": "python3 -m http.server 4173"
+  },
+  "devDependencies": {
+    "eslint": "10.11.0",
+    "playwright-core": "1.63.0"
+  }
+}

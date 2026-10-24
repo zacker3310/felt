@@ -1,0 +1,9 @@
+node_modules
+tests/shots/
+.claude/settings.local.json
+.DS_Store
+
+# build loop: keep artifacts, drop run output
+.buildloop/tla/logs/
+.buildloop/tla/verdict.json
+.buildloop/**/states/

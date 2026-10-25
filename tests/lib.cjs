@@ -14,13 +14,13 @@ function done() {
   console.log(`\n${p}/${results.length} passed`);
   process.exit(p === results.length ? 0 : 1);
 }
-async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false } = {}) {
+async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1 } = {}) {
   const pw = require('playwright-core');
   const browser = await pw.chromium.launch({
     executablePath: process.env.CHROMIUM || pw.chromium.executablePath(),
     args: ['--autoplay-policy=no-user-gesture-required'],
   });
-  const page = await browser.newPage({ viewport, hasTouch });
+  const page = await browser.newPage({ viewport, hasTouch, isMobile, deviceScaleFactor });
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('pageerror', e => errors.push(String(e)));

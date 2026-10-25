@@ -217,7 +217,7 @@ async function tableChecks(page, tag) {
     felt.start('8'); game.breakShot = false;
     for (const b of game.balls) b.on = b.n === 5;
     Object.assign(game.balls.find(b => b.n === 5), { x: TL * 0.8, y: TW * 0.7 });
-    game.balls[0].on = false; game.inHand = 'table'; state = 'place'; placeAt = [TL * 0.4, TW * 0.4];
+    game.balls[0].on = false; game.inHand = 'table'; state = 'aim'; placeAt = [TL * 0.4, TW * 0.4];
     const s = toScreen(TL * 0.4, TW * 0.4), rp = BALL_R * view.k, now = performance.now();
     /* round the ball, clear of its red dot */
     const ring = () => Math.max(...__px([0, 1, 2, 3, 4, 5].map(k => [s[0] + Math.cos(k) * rp * 0.6, s[1] + Math.sin(k) * rp * 0.6])).map(__lum));

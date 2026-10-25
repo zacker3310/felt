@@ -93,7 +93,7 @@ const pngInfo = src => fetch(src).then(async r => {
   if (off) {
     await page.click('#play8');
     await page.waitForTimeout(200);
-    check('and a game starts offline', await page.evaluate(() => felt.state === 'place' && felt.game.balls.length === 16));
+    check('and a game starts offline', await page.evaluate(() => felt.state === 'aim' && felt.game.inHand === 'kitchen' && felt.game.balls.length === 16));
   }
   await page.context().setOffline(false);
 

@@ -18,11 +18,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
   await page.click('#play9');
   await page.waitForTimeout(200);
-  const inHand = async () => {
-    if ((await page.evaluate(() => felt.state)) !== 'place') return;
-    const p = await page.evaluate(() => felt.toScreen(0.4, 0.3));
-    await page.mouse.click(p[0], p[1]);
-  };
+  /* ball in hand: put the cue ball somewhere predictable (the hook moves it as a drag would) */
+  const inHand = () => page.evaluate(() => { if (felt.game.inHand) felt.place(0.4, 0.3); });
 
   /* 1. ball in hand: click a kitchen spot to place the cue ball */
   const at = await page.evaluate(() => felt.toScreen(HEAD_X - 0.2, TW / 2 + 0.1));

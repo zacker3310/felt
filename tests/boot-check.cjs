@@ -23,8 +23,8 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
   await page.click('#play8');
   await page.waitForTimeout(200);
-  const e = await page.evaluate(() => ({ s: felt.state, kind: felt.game.kind, balls: felt.game.balls.length, menu: getComputedStyle(menu).display }));
-  check('8-ball starts: 16 balls, cue ball in hand in the kitchen', e.kind === '8' && e.balls === 16 && e.s === 'place' && e.menu === 'none', JSON.stringify(e));
+  const e = await page.evaluate(() => ({ s: felt.state, hand: felt.game.inHand, kind: felt.game.kind, balls: felt.game.balls.length, menu: getComputedStyle(menu).display }));
+  check('8-ball starts: 16 balls, cue ball in hand in the kitchen', e.kind === '8' && e.balls === 16 && e.s === 'aim' && e.hand === 'kitchen' && e.menu === 'none', JSON.stringify(e));
   check('game targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
   check('game text is 4.5:1 or better', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
   const lit = await page.evaluate(() => {

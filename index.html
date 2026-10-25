@@ -1728,6 +1728,10 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0) {
   }
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.drawImage(S.shade, X - S.c * k, Y - S.c * k, S.shade.width * k, S.shade.height * k);
+  /* the 8 is near black: a light rim keeps its outline at 3:1 on the brightest cloth and in the
+     dark tray and pockets (#c4c4c4: 3.4:1 on the brightest cloth, about 7:1 on the tray;
+     render-check measures both) */
+  if (n === 8) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
   if (dark > 0) { g.fillStyle = `rgba(0,0,0,${dark})`; g.beginPath(); g.arc(X, Y, r + 0.5, 0, Math.PI * 2); g.fill(); }
   g.globalAlpha = 1;
 }
@@ -1740,12 +1744,15 @@ function drawShadow(X, Y, r, alpha = 1) {
 
 /* ---- 4c. pots, the tray and hit effects ---- */
 /* onPot (called by frame() for each ball that leaves the table): the ball runs on into the drop
-   it fell in, shrinking and darkening under the rim, then rolls into the tray. The tray is a
-   slot along the outside of the screen-bottom rail, sized to the gap layout() leaves below the
-   table (a gap of 2.2 ball radii plus 10 px fits it); with no gap it lies over the rail's outer
-   edge. It shows the potted object balls in pot order. */
-const POT_MS = 420;
+   it fell in, shrinking and darkening under the rim, then rises out of the pocket and travels
+   to its slot in the tray. Both legs run at felt.speed. The tray goes in view.tray, the band
+   layout() reserves for it outside the table (CSS px), with the balls sized from its height.
+   Without one it is a slot along the outside of the screen-bottom rail, sized to the gap below
+   the table (2.2 ball radii plus 10 px fits it), or over the rail's outer edge with no gap. It
+   shows the potted object balls in pot order. */
+const POT_MS = 420, FLY_MS = 480;
 let pots = [], trayList = [], effects = [];
+const potMs = () => POT_MS / felt.speed, flyMs = () => FLY_MS / felt.speed;
 function onPot(n, k, from, now) {
   pots = pots.filter(p => p.n !== n);
   pots.push({ n, k, from: [from[0], from[1]], t: now });
@@ -1753,6 +1760,13 @@ function onPot(n, k, from, now) {
 function trayGeom() {
   const st = document.getElementById('stage');
   stageBox = st ? st.getBoundingClientRect() : null;
+  const V = view.tray;
+  if (V && V.w > 0 && V.h > 0) {
+    /* 15 balls fit the band's width; as tall as its height allows */
+    const gap = 2, pad = Math.max(2, Math.min(5, V.h * 0.1)), r = Math.max(3, Math.min(V.h / 2 - pad, (V.w - 2 * pad - 14 * gap) / 30));
+    const step = 2 * r + gap, w = Math.min(V.w, 15 * step - gap + 2 * pad), h = 2 * r + 2 * pad;
+    return { x: V.x + (V.w - w) / 2, y: V.y + (V.h - h) / 2, w, h, r, pad, step };
+  }
   const H = stageBox ? stageBox.bottom : table.height / dpr, rb = BALL_R * view.k;
   const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL);
   const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]), gap = H - y1;
@@ -1762,14 +1776,15 @@ function trayGeom() {
   return { x: (x0 + x1) / 2 - w / 2, y, w, h, r, pad, step };
 }
 function drawPots(now) {
+  const dur = potMs();
   pots = pots.filter(p => {
-    if (now - p.t < POT_MS) return true;
-    if (p.n !== 0) { trayList = trayList.filter(e => e.n !== p.n); trayList.push({ n: p.n, t: now }); }
+    if (now - p.t < dur) return true;
+    if (p.n !== 0) { trayList = trayList.filter(e => e.n !== p.n); trayList.push({ n: p.n, t: now, k: p.k }); }
     return false;
   });
   const rb = BALL_R * view.k * dpr;
   for (const p of pots) {
-    const u = (now - p.t) / POT_MS, P = POCKETS[p.k], m = 1 - (1 - Math.min(1, u / 0.5)) ** 2, sink = ease(0.15, 1, u);
+    const u = (now - p.t) / dur, P = POCKETS[p.k], m = 1 - (1 - Math.min(1, u / 0.5)) ** 2, sink = ease(0.15, 1, u);
     const x = p.from[0] + (P[0] - p.from[0]) * m, y = p.from[1] + (P[1] - p.from[1]) * m, s = toScreen(x, y);
     ctx.save();
     tableXform(ctx);
@@ -1786,13 +1801,20 @@ function drawTray(now) {
   const off = src.filter(b => !b.on && b.n !== 0).map(b => b.n);
   trayList = trayList.filter(e => off.includes(e.n));
   for (const n of off) if (!falling.includes(n) && !trayList.some(e => e.n === n)) trayList.push({ n, t: 0 });
-  const end = T.x + T.w - T.pad - T.r, cy = T.y + T.h / 2;
+  const cy = T.y + T.h / 2, rb = BALL_R * view.k, fly = [];
   trayList.forEach((e, i) => {
-    const to = T.x + T.pad + T.r + i * T.step, u = e.t ? ease(0, 1, (now - e.t) / 650) : 1, x = end + (to - end) * u;
-    const m = rotate(TRAY_TILT, [0, 1, 0], (to - x) / T.r);
-    drawShadow(x * dpr, cy * dpr, T.r * dpr, 0.7);
-    drawBall(e.n, x * dpr, cy * dpr, T.r * dpr, axesOf(m, true));
+    const to = T.x + T.pad + T.r + i * T.step, u = e.t && e.k >= 0 ? (now - e.t) / flyMs() : 1;
+    if (u < 1) { fly.push([e, to, u]); return; }
+    drawShadow(to * dpr, cy * dpr, T.r * dpr, 0.7);
+    drawBall(e.n, to * dpr, cy * dpr, T.r * dpr, axesOf(TRAY_TILT, true));
   });
+  /* in flight from the pocket: it comes up out of the dark at the size it sank to, arcs over
+     the rail and grows (or shrinks) to the tray's size, turning as it goes */
+  for (const [e, to, u] of fly) {
+    const P = toScreen(POCKETS[e.k][0], POCKETS[e.k][1]), m = ease(0, 1, u), lift = Math.sin(Math.PI * m) * Math.min(40, Math.abs(cy - P[1]) * 0.3 + 10);
+    const x = P[0] + (to - P[0]) * m, y = P[1] + (cy - P[1]) * m - lift, r = rb * 0.68 + (T.r - rb * 0.68) * m;
+    drawBall(e.n, x * dpr, y * dpr, r * dpr, axesOf(rotate(TRAY_TILT, [0, 1, 0], -(1 - m) * 6), true), 1, 0.88 * (1 - ease(0, 0.35, u)));
+  }
 }
 /* onHits (called by frame() with tab.hits before they are drained): hits carry no position, so
    the contacts are found from where balls were last frame and where they are now. Ball-ball:
@@ -1931,61 +1953,170 @@ function cutLine(pts, len) {
   }
   return out;
 }
-/* The aim guide: the cue ball's line to a ghost ball where it first touches something, the
-   object ball's line to where it goes, and the cue ball's path after contact, which leaves along
-   the tangent line and bends forward with follow or back with draw. settings.guide: 'full' runs
-   the lines out, 'short' keeps the ghost ball and short stubs, 'off' draws nothing. */
+/* The shot preview. The paths come from the physics itself: the same newTable, strike and
+   stepTable a shot runs, on a copy of the balls, so follow, draw, stun, squirt and throw show
+   as they will play at the power the shot will have. It runs until the cue ball has gone
+   lens[0] past its first contact (ball or cushion) and the first object ball has gone lens[1],
+   dropped, slowed to a crawl or turned off its line (a cushion or another ball), or PV_CAP
+   steps. Only balls that can matter are copied: those near the aim line, within reach of the
+   cue ball after contact, or near the object ball's line, widened for squirt and throw (a kick,
+   with no ball on the aim line, copies them all). It is resumable: each frame runs it for at
+   most PV_BUDGET ms, so a slow device or a cluster of moving balls finishes the paths over a
+   few frames instead of dropping one. Never touches game or tab.
+   The state: { cue, obj } polylines (cue from its first contact), first, crossed (the cue ball
+   was past the head string before it touched a ball), cuePot / objPot (pocket or -1), objHit
+   (it turned off its line), cueStop (it came to rest inside the horizon), done. */
+const PV_CAP = 4800;              /* steps: 4 s of table time, whatever the power */
+const PV_SLOW = 0.03;             /* m/s: a ball this slow has under 5 mm to go, so its path is done */
+const PV_GAP = 0.01;              /* polyline points at least this far apart */
+const PV_BUDGET = 1.5;            /* ms of simulation per frame */
+const PV_FULL = [0.7, 2.0], PV_SHORT = [0.2, 0.2];   /* cue path past contact, object path: 'full' and 'short' */
+function previewStart(ang, pw, sp, h, lens) {
+  const R = BALL_R, c = game.balls.find(b => b.n === 0), dx = Math.cos(ang), dy = Math.sin(ang);
+  let balls = game.balls.filter(b => b.on);
+  if (h.kind === 'ball') {
+    const o = h.ball, gx = c.x + dx * h.t, gy = c.y + dy * h.t, nx = (o.x - gx) / (2 * R), ny = (o.y - gy) / (2 * R);
+    balls = balls.filter(b => {
+      if (b.n === 0 || b.n === o.n) return true;
+      const a = (b.x - c.x) * dx + (b.y - c.y) * dy, d = Math.abs((b.y - c.y) * dx - (b.x - c.x) * dy);
+      if (a > -2 * R && a < h.t + 2 * R && d < 2 * R + 0.02 + 0.03 * a) return true;
+      if (Math.hypot(b.x - gx, b.y - gy) < lens[0] + 3 * R) return true;
+      const oa = (b.x - o.x) * nx + (b.y - o.y) * ny, od = Math.abs((b.y - o.y) * nx - (b.x - o.x) * ny);
+      return oa > 0 && oa < lens[1] + 2 * R && od < 2 * R + 0.02 + 0.06 * oa;
+    });
+  }
+  /* until it nears a ball only the cue ball moves, and a pair apart is a no-op in stepTable, so
+     it runs alone (cheap, and step for step the same) while its clearance to every other ball
+     is more than it can cover; then its state moves into the full copy. Its speed can grow
+     while follow or draw takes, but never past v + R w. */
+  const full = newTable(balls), solo = strike(newTable(balls.filter(b => b.n === 0)), ang, pw, sp);
+  const S = { lens, full, solo, others: full.balls.filter(b => b.n !== 0), tab: solo, ball: solo.balls[0], safe: 0, s: 0,
+    ev: false, cueDone: false, cl: 0, o: null, objDone: true, ol: 0, odx: 0, ody: 0,
+    cue: [], obj: null, first: null, crossed: c.x > HEAD_X, cuePot: -1, objPot: -1, objHit: false, cueStop: false, done: false };
+  return S;
+}
+function previewRun(S, ms) {
+  const R = BALL_R, lens = S.lens, t0 = performance.now();
+  const add = (p, x, y, gap) => { const q = p[p.length - 1]; if (Math.hypot(x - q[0], y - q[1]) >= gap) p.push([x, y]); };
+  while (!S.done) {
+    if ((S.s & 31) === 0 && performance.now() - t0 > ms) return S;
+    let cue = S.ball;
+    if (S.tab === S.solo && cue.on) {
+      if (S.safe <= 0) {
+        let gap = Infinity;
+        for (const b of S.others) gap = Math.min(gap, Math.hypot(b.x - cue.x, b.y - cue.y) - 2 * R);
+        const vm = Math.hypot(cue.vx, cue.vy) + R * Math.hypot(cue.wx, cue.wy);
+        S.safe = vm > 0 ? Math.floor((gap - 0.002) / (vm * SIM_DT)) : PV_CAP;
+        if (S.safe < 1) { const fc = S.full.balls.find(b => b.n === 0); Object.assign(fc, cue); S.tab = S.full; S.ball = cue = fc; }
+      }
+      S.safe--;
+    }
+    const tab = S.tab, o = S.o, was = tab.first, evWas = S.ev, px = cue.x, py = cue.y, ox = o && o.x, oy = o && o.y, live = stepTable(tab);
+    S.s++;
+    if (was === null && cue.on) {
+      if (cue.x > HEAD_X) S.crossed = true;
+      if (!S.ev && (tab.first !== null || tab.hits.some(k => k[0] === 'rail' || k[0] === 'jaw'))) { S.ev = true; S.cue.push([cue.x, cue.y]); }
+      if (tab.first !== null) {
+        S.first = tab.first;
+        S.o = tab.balls.find(b => b.n === tab.first);
+        S.obj = [[S.o.x, S.o.y]]; S.objDone = false;
+      }
+    }
+    tab.hits.length = 0;
+    if (!S.cueDone) {
+      if (!cue.on) {
+        S.cueDone = true; S.cuePot = tab.pocketOf[0];
+        if (S.ev) S.cue.push(POCKETS[S.cuePot].slice());
+      } else if (evWas) {
+        S.cl += Math.hypot(cue.x - px, cue.y - py);
+        const stop = Math.hypot(cue.vx, cue.vy) < PV_SLOW;
+        if (stop || S.cl >= lens[0]) { S.cueDone = true; S.cueStop = stop; S.cue.push([cue.x, cue.y]); } else add(S.cue, cue.x, cue.y, PV_GAP);
+      }
+    }
+    if (o && !S.objDone) {
+      if (!o.on) { S.objDone = true; S.objPot = tab.pocketOf[o.n]; S.obj.push(POCKETS[S.objPot].slice()); }
+      else {
+        const v = Math.hypot(o.vx, o.vy);
+        S.ol += Math.hypot(o.x - ox, o.y - oy);
+        if (!S.odx && !S.ody && v > 0) { S.odx = o.vx / v; S.ody = o.vy / v; }
+        const turned = v > PV_SLOW && (S.odx * o.vx + S.ody * o.vy) / v < 0.94;   /* about 20 degrees */
+        if (turned || v < PV_SLOW || S.ol >= lens[1]) { S.objDone = true; S.objHit = turned; S.obj.push([o.x, o.y]); } else add(S.obj, o.x, o.y, 3 * PV_GAP);
+      }
+    }
+    if (!live || S.s >= PV_CAP || (S.cueDone && S.objDone && (tab.first !== null || !cue.on))) S.done = true;
+  }
+  return S;
+}
+/* the preview for this aim, power, spin and layout, restarted only when one of them changes
+   and otherwise carried on where the last frame left it. The power is the one the shot will
+   have: the stroke's, the CPU's plan, the live pull, else the marked power a Space press would
+   shoot. previewMs keeps the cost of the last frames that ran it. */
+let preview = null;
+const previewMs = [];
+function shotPreview(ang, h, full, budget = PV_BUDGET) {
+  const pw = state === 'stroke' && stroke ? stroke.power : state === 'thinking' && cpuPlan ? cpuPlan.power : pull ? power : markPower;
+  const sp = spinOf(cueSpin), lens = full ? PV_FULL : PV_SHORT;
+  let key = `${ang}|${pw}|${sp.x}|${sp.y}|${lens[0]}`;
+  for (const b of game.balls) key += b.on ? `|${b.x},${b.y}` : '|-';
+  if (preview && preview.key === key && preview.done) return preview;
+  const t0 = performance.now();
+  if (!preview || preview.key !== key) { preview = previewStart(ang, clamp(pw, 0, 1), sp, h, lens); preview.key = key; }
+  previewRun(preview, budget);
+  previewMs.push(performance.now() - t0);
+  if (previewMs.length > 240) previewMs.shift();
+  return preview;
+}
+/* a polyline without its first stretch of length d (to start it at a ball's edge) */
+function trimStart(pts, d) {
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (l > d) return [[a[0] + (b[0] - a[0]) * d / l, a[1] + (b[1] - a[1]) * d / l], ...pts.slice(i)];
+    d -= l;
+  }
+  return [];
+}
+/* The aim guide: the cue ball's line to a ghost ball where it first touches something (pure
+   geometry, so it sits where the aim says), then the preview's paths: the object ball's solid
+   line to where it goes and the cue ball's dashed path after contact. The ghost ring turns
+   ILLEGAL when the preview's first contact is not a legal target, touches nothing, or (ball in
+   hand in the kitchen) comes before the cue ball has crossed the head string; a cue ball the
+   preview pots ends its path in ILLEGAL with a ring on the pocket. settings.guide: 'full' runs
+   the paths out, 'short' keeps the ghost ball and short stubs, 'off' draws nothing. */
 function guide(c, ang) {
   const mode = settings.guide;
   if (mode === 'off') return;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
-  const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t;
-  const legal = h.kind !== 'ball' || legalTargets(game).includes(h.ball.n) || (game.kind === '8' && game.breakShot);
+  const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
+  const first = P.first === null ? null : game.balls.find(b => b.n === P.first);
+  const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
+  const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed;
+  /* a preview still running with no contact yet says nothing either way */
+  const legal = first ? !wrong && !kitchen : !P.done;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], 'rgba(255,255,255,0.5)', 1.25);
   guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
-  if (h.kind === 'pocket') { guideRing(POCKETS[h.k][0], POCKETS[h.k][1], POCKET_R[h.k] * view.k, ILLEGAL, 2); return; }
-  if (h.kind === 'rail') {
-    if (full) {
-      const dn = dx * h.nx + dy * h.ny, rx = dx - 2 * dn * h.nx, ry = dy - 2 * dn * h.ny, o = aimTrace(gx, gy, rx, ry, [0], 0.3);
-      strokeLine([[gx + rx * R, gy + ry * R], [gx + rx * o.t, gy + ry * o.t]], 'rgba(255,255,255,0.4)', 1.25, [4, 5]);
-    }
-    return;
-  }
-  if (h.kind !== 'ball') return;
-  const b = h.ball;
-  if (!legal) { guideRing(b.x, b.y, rp + 3, ILLEGAL, 2); return; }
-  let nx = b.x - gx, ny = b.y - gy;
-  const L = Math.hypot(nx, ny);
-  nx /= L; ny /= L;
-  const cos = Math.max(0, dx * nx + dy * ny);
+  if (first && !legal) guideRing(first.x, first.y, rp + 3, ILLEGAL, 2);
   /* the object ball */
-  const o = aimTrace(b.x, b.y, nx, ny, [0, b.n], full ? 3 : 0.06 + 0.12 * cos), ox = b.x + nx * o.t, oy = b.y + ny * o.t;
-  if (o.t > R) strokeLine([[b.x + nx * R, b.y + ny * R], [ox, oy]], 'rgba(255,255,255,0.9)', 2);
-  if (o.kind === 'pocket') guideRing(POCKETS[o.k][0], POCKETS[o.k][1], POCKET_R[o.k] * view.k * 0.8, 'rgba(255,255,255,0.7)', 1.5);
-  else if (full && o.kind !== 'none') guideRing(ox, oy, rp, 'rgba(255,255,255,0.35)', 1.25);
-  /* the cue ball after contact */
-  const e = clamp(cueSpin.y, -1, 1), tx = dx - nx * cos, ty = dy - ny * cos, tl = Math.hypot(tx, ty), far = full ? 0.55 : 0.12;
-  let pts = null;
-  if (tl < 0.06) {
-    if (Math.abs(e) > 0.05) {
-      const s = Math.sign(e), q = aimTrace(gx, gy, nx * s, ny * s, [0, b.n], far * Math.abs(e));
-      pts = [[gx, gy], [gx + nx * s * q.t, gy + ny * s * q.t]];
-    }
-  } else {
-    const ux = tx / tl, uy = ty / tl;
-    let fx = tx + 0.8 * e * cos * nx, fy = ty + 0.8 * e * cos * ny;
-    const fl = Math.hypot(fx, fy), bend = 0.04 + 0.2 * Math.abs(e) * cos;
-    fx /= fl; fy /= fl;
-    const p1 = [gx + ux * bend, gy + uy * bend], p2 = [p1[0] + fx * bend, p1[1] + fy * bend];
-    pts = [];
-    for (let i = 0; i <= 10; i++) { const u = i / 10, a = (1 - u) * (1 - u), m = 2 * u * (1 - u), z = u * u; pts.push([a * gx + m * p1[0] + z * p2[0], a * gy + m * p1[1] + z * p2[1]]); }
-    const q = aimTrace(p2[0], p2[1], fx, fy, [0, b.n], far);
-    pts.push([p2[0] + fx * q.t, p2[1] + fy * q.t]);
-    pts = cutLine(pts, far);
+  if (legal && P.obj && P.obj.length > 1) {
+    const o = trimStart(P.obj, R), end = P.obj[P.obj.length - 1];
+    if (o.length > 1) strokeLine(o, 'rgba(255,255,255,0.9)', 2);
+    if (P.objPot >= 0) guideRing(POCKETS[P.objPot][0], POCKETS[P.objPot][1], POCKET_R[P.objPot] * view.k * 0.8, 'rgba(255,255,255,0.7)', 1.5);
+    else if (full && P.objHit) guideRing(end[0], end[1], rp, 'rgba(255,255,255,0.35)', 1.25);
   }
-  if (pts) strokeLine(pts, 'rgba(255,255,255,0.55)', 1.5, [5, 5]);
+  /* the cue ball after contact, and where it stops if that is inside the horizon */
+  if (P.cue.length > 1) {
+    strokeLine(P.cue, 'rgba(255,255,255,0.55)', 1.5, [5, 5]);
+    const end = P.cue[P.cue.length - 1];
+    if (full && P.cueStop) guideRing(end[0], end[1], rp, 'rgba(255,255,255,0.3)', 1.25);
+    if (P.cuePot >= 0) {
+      let tail = P.cue.slice().reverse(), len = 0;
+      for (let i = 1; i < tail.length; i++) len += Math.hypot(tail[i][0] - tail[i - 1][0], tail[i][1] - tail[i - 1][1]);
+      tail = cutLine(tail, Math.min(len, 0.1));
+      strokeLine(tail, ILLEGAL, 2);
+    }
+  }
+  if (P.cuePot >= 0) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, ILLEGAL, 2);
 }
 
 /* ---- 4e. the cue ---- */
@@ -2087,7 +2218,8 @@ function draw(now) {
   drawPots(now);
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
-  if (state === 'place' || (state === 'aim' && game.inHand)) drawPlace(now);
+  /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
+  if ((state === 'place' || (state === 'aim' && game.inHand)) && !pots.some(p => p.n === 0)) drawPlace(now);
   drawFx(now);
   /* the cue: pulled back by power while aiming, driven through during the stroke, carried a few
      centimetres on and faded as the shot starts, then gone while anything rolls */

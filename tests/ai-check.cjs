@@ -9,8 +9,9 @@
    9 ft table checks that every level still finishes there, and another on generous pockets.
    suggestAim, the human's starting aim (and the CPU's mouth data under it), is checked on both
    tables with both pocket styles. */
-/* Bumper pool: every pairing of levels finishes, hard beats easy over 12 games, budgets,
-   determinism, the struck ball is the CPU's own, auto aim's pick. */
+/* Bumper pool, on the rectangle and the octagon: every pairing of levels finishes, hard beats
+   easy over 12 games, budgets, determinism, the struck ball is the CPU's own, auto aim's pick
+   (and on the octagon a bank off a slanted cushion). */
 'use strict';
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const os = require('os');
@@ -42,10 +43,10 @@ function play(kind, levels, seed, first, mult = 1000) {
 }
 
 if (!isMainThread) {
-  parentPort.postMessage(workerData.map(j => { S.setTable(j.size || '7'); S.setPockets(j.pockets || 'regulation'); return Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult)); }));
+  parentPort.postMessage(workerData.map(j => { S.setTable('bumper', j.shape || 'octagon'); S.setTable(j.size || '7'); S.setPockets(j.pockets || 'regulation'); return Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult)); }));
   return;
 }
-const { check, done } = require('./lib.cjs');
+const { check, done } = require('./lib.cjs'), check0 = check;
 
 /* games, spread over worker threads */
 function playAll(jobs) {
@@ -107,15 +108,19 @@ function layouts(count) {
     jobs.push({ kind, seed: 60 + i, levels, hard: -4, first: i % 2, size: i === 4 ? '9' : '7', pockets: 'generous' });
   /* bumper pool (red always opens, so the seats swap instead): hard against easy over 12 games,
      every level against itself and medium against hard; all must finish */
-  for (let i = 0; i < 12; i++) jobs.push({ kind: 'bumper', seed: 80 + i, levels: i % 2 ? ['easy', 'hard'] : ['hard', 'easy'], hard: -5, bump: i % 2, first: 0 });
-  for (const [i, levels] of [['easy', 'easy'], ['medium', 'medium'], ['hard', 'hard'], ['medium', 'hard'], ['hard', 'medium'], ['easy', 'medium']].entries())
-    jobs.push({ kind: 'bumper', seed: 100 + i, levels, hard: -6, first: 0 });
+  const SHAPES = [['rect', -5, -6], ['octagon', -7, -8]];
+  for (const [shape, he, all] of SHAPES) {
+    for (let i = 0; i < 12; i++) jobs.push({ kind: 'bumper', shape, seed: 80 + i, levels: i % 2 ? ['easy', 'hard'] : ['hard', 'easy'], hard: he, bump: i % 2, first: 0 });
+    for (const [i, levels] of [['easy', 'easy'], ['medium', 'medium'], ['hard', 'hard'], ['medium', 'hard'], ['hard', 'medium'], ['easy', 'medium']].entries())
+      jobs.push({ kind: 'bumper', shape, seed: 100 + i, levels, hard: all, first: 0 });
+  }
   const t0 = Date.now(), games = await playAll(jobs), ms = Date.now() - t0;
-  {
-    const he = games.filter(r => r.hard === -5), wins = he.filter(r => r.winner === r.bump).length, all = [...he, ...games.filter(r => r.hard === -6)];
-    check('bumper pool: every pairing of levels finishes, within 200 shots, every shot well-formed', all.length === 18 && all.every(r => r.winner !== null && r.bad === 0 && r.shots <= 200),
+  for (const [shape, h, a] of SHAPES) {
+    const T = shape === 'rect' ? 'bumper pool' : 'bumper pool (octagon)';
+    const he = games.filter(r => r.hard === h), wins = he.filter(r => r.winner === r.bump).length, all = [...he, ...games.filter(r => r.hard === a)];
+    check(`${T}: every pairing of levels finishes, within 200 shots, every shot well-formed`, all.length === 18 && all.every(r => r.winner !== null && r.bad === 0 && r.shots <= 200),
       all.map(r => `${r.levels.join('-')}:${r.shots}`).join(' '));
-    check('bumper pool: hard beats easy over 12 seeded games (seats alternate)', wins >= 9, `hard won ${wins}/12, ${(he.reduce((a, r) => a + r.shots, 0) / he.length).toFixed(1)} shots a game`);
+    check(`${T}: hard beats easy over 12 seeded games (seats alternate)`, wins >= 9, `hard won ${wins}/12, ${(he.reduce((a, r) => a + r.shots, 0) / he.length).toFixed(1)} shots a game`);
   }
 
   for (const kind of ['8', '9']) {
@@ -340,7 +345,9 @@ function layouts(count) {
   S.setTable('7'); S.setPockets('regulation');
 
   /* bumper pool: budget, determinism, the struck ball is the shooter's, and auto aim's pick */
-  {
+  for (const shape of ['rect', 'octagon']) {
+    S.setTable('bumper', shape);
+    const check = (name, ok, info) => check0(shape === 'rect' ? name : name.replace(/^bumper/, 'bumper octagon'), ok, info);
     const g = S.newGame('bumper');
     for (const l of LEVELS) {
       const it = S.cpuSearch(g, 9, l);
@@ -359,6 +366,32 @@ function layouts(count) {
     near.balls.find(b => b.n === 32).on = false;
     const got = S.judge(near, S.simulateShot(near.balls, S.cpuShot(near, 2, 'hard')));
     check('bumper hard: pots a marked ball with a clear line to the cup', got.verdict.potted.includes(21) && !got.verdict.foul, JSON.stringify(got.verdict));
+    if (shape === 'octagon') {
+      /* banks on any cushion angle: each mirror reflects the cup across its bank line (BALL_R
+         inside the nose), so the line to it meets that line at equal angles. And auto aim, over a
+         grid of lone marked balls, picks one-cushion banks off the four slanted noses where the
+         straight line is shut, and most of them pot when simulated at an ordinary speed. */
+      const T = S.POCKETS[1], R = S.BALL_R, L = S.BED_LINES;
+      const mirrors = S.bumperBanks(T).every(([mx, my, k]) => {
+        const [nx, ny, c] = L[k], dT = nx * T[0] + ny * T[1] - c - R, dM = nx * mx + ny * my - c - R;
+        return Math.abs(dT + dM) < 1e-12 && Math.abs((mx - T[0]) * ny - (my - T[1]) * nx) < 1e-12;
+      });
+      const first = (x, y, a) => { const dx = Math.cos(a), dy = Math.sin(a); let best = 9, k = -1; L.forEach((l, i) => { const den = l[0] * dx + l[1] * dy; if (den >= 0) return; const t = (l[2] + R - l[0] * x - l[1] * y) / den; if (t > 0 && t < best) { best = t; k = i; } }); return k; };
+      let n = 0, pot = 0;
+      for (let x = 0.1; x < 1; x += 0.05) for (let y = 0.1; y < 1; y += 0.05) {
+        const g = Object.assign(S.newGame('bumper'), { opening: 0 });
+        for (const b of g.balls) if (b.n !== 21) b.on = false;
+        if (!S.bumperFree(g.balls.filter(b => b.n !== 21), x, y, 21)) continue;
+        Object.assign(g.balls.find(b => b.n === 21), { x, y });
+        const sa = S.suggestAim(g);
+        if (!sa || Math.abs(sa.angle - Math.atan2(T[1] - y, T[0] - x)) < 1e-9 || first(x, y, sa.angle) % 2 === 0) continue;
+        n++;
+        const r = S.simulateShot(g.balls, { angle: sa.angle, power: S.powerFor(1.2 + 0.8 * Math.hypot(x - T[0], y - T[1])), spin: 0, ball: 21 });
+        if (r.pocketOf[21] === 1) pot++;
+      }
+      check('bumper: a cushion mirror on every one of the eight angles; auto aim banks off the slanted noses and those banks pot',
+        S.bumperBanks(T).length === 8 && mirrors && n >= 40 && pot >= 0.75 * n, `${n} slanted banks picked, ${pot} pot`);
+    }
     S.setTable('7');
   }
 

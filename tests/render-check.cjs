@@ -554,9 +554,9 @@ async function tableChecks(page, tag) {
   for (const [w, h] of [[440, 956], [956, 440]]) {
     const b = await open('', { viewport: { width: w, height: h }, hasTouch: true, deviceScaleFactor: 3 });
     await b.page.evaluate(HELPERS);
-    for (const cloth of ['green', 'red']) {
-      const r = await b.page.evaluate(cloth => {
-        settings.cloth = cloth; felt.start('bumper'); layout();
+    for (const [cloth, shape] of [['green', 'rect'], ['red', 'rect'], ['green', 'octagon'], ['red', 'octagon']]) {
+      const r = await b.page.evaluate(([cloth, shape]) => {
+        settings.cloth = cloth; settings.bumperTable = shape; felt.start('bumper'); layout();
         const ch = cloth === 'red' ? 0 : 1, W = table.width, px1 = 1 / view.k;
         const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
         const img = tableImg.getContext('2d').getImageData(0, 0, W, table.height).data;
@@ -573,6 +573,16 @@ async function tableChecks(page, tag) {
         const frame = Math.max(...cups.flat().map(i => Math.max(...[0, 1, 2].map(j => Math.abs(d[i * 4 + j] - img[i * 4 + j])))));
         const bed = __lum(rgb(img, at(TL / 2, 0.08)));
         const posts = BUMPERS.map(([x, y]) => ({ cap: __lum(rgb(img, at(x, y + BUMPER_R * 0.3))), ring: __lum(rgb(img, at(x - BUMPER_R * 0.85, y))) }));
+        /* the octagon's mushrooms: the cap (a point off the lamp's hot spot and the knob) and the
+           ring, coloured by side, each told apart from the cloth beside it */
+        const side = q => Math.abs(q[0] - TL / 2) > 1e-6 ? (q[0] < TL / 2 ? 0 : 1) : (q[1] < TW / 2 ? 0 : 1);
+        const red = c => c[0] - Math.max(c[1], c[2]);
+        const mush = BUMPERS.map(q => { const c = rgb(img, at(q[0] - BUMPER_R * 0.5, q[1] + BUMPER_R * 0.15)), cl = rgb(img, at(q[0], q[1] + BUMPER_R * 2.2)); const rg = rgb(img, at(q[0] + BUMPER_R * 0.9, q[1])), con = (a, b) => (Math.max(__lum(a), __lum(b)) + 0.05) / (Math.min(__lum(a), __lum(b)) + 0.05);
+          return { side: side(q), cap: c, red: red(c), lum: __lum(c), cloth: cl, d: Math.max(...[0, 1, 2].map(j => Math.abs(c[j] - cl[j]))), ring: rg, best: Math.max(con(c, cl), con(rg, cl)) }; });
+        /* eight (or four) rubbers: the middle of each nose band is rubber-coloured, darker than
+           nothing and not wood: rubber over cloth, between the nose and the rubber's back */
+        const rubbers = CUSHION_POLYS.map(([ea, pa, pb, eb]) => { const x = (pa[0] + pb[0] + ea[0] + eb[0]) / 4, y = (pa[1] + pb[1] + ea[1] + eb[1]) / 4, c = rgb(img, at(x, y)); return { c, g: green(c) }; });
+        const woodAt = (() => { const P = CUSHION_POLYS[0], ex = (P[0][0] + P[3][0]) / 2, ey = (P[0][1] + P[3][1]) / 2, bx = (P[1][0] + P[2][0]) / 2, by = (P[1][1] + P[2][1]) / 2, l = Math.hypot(ex - bx, ey - by); return rgb(img, at(ex + (ex - bx) / l * 0.02, ey + (ey - by) / l * 0.02)); })();
         /* the marked ball's spots: pixels far whiter than the red around them, against an unmarked red ball */
         const white = n => {
           const o = game.balls.find(q => q.n === n), s = toScreen(o.x, o.y), rp = BALL_R * view.k * dpr * 0.8;
@@ -584,15 +594,26 @@ async function tableChecks(page, tag) {
           }
           return c;
         };
-        return { art, frame, bed, posts, spot: white(21) - white(22), view: [TL, TW, view.portrait], n: POCKETS.length, b: BUMPERS.length };
-      }, cloth);
-      const tag = `bumper ${w}x${h} dpr 3, ${cloth} cloth`;
-      check(`${tag}: the table is the bumper table (two cups, twelve posts)`, r.n === 2 && r.b === 12 && Math.abs(r.view[0] - 1.219) < 1e-9, JSON.stringify(r.view));
-      check(`${tag}: both cups are dark through and never cloth-coloured`, r.art.every(p => p.n > 300 && p.lum < 0.05 && p.cloth < 20), JSON.stringify(r.art));
+        return { art, frame, bed, posts, mush, rubbers, wood: woodAt, ballPx: felt.ballPx, spot: white(21) - white(22), view: [TL, TW, view.portrait], n: POCKETS.length, b: BUMPERS.length, cush: CUSHION_POLYS.length };
+      }, [cloth, shape]);
+      const oct = shape === 'octagon', tag = `bumper ${oct ? 'octagon ' : ''}${w}x${h} dpr 3, ${cloth} cloth`;
+      check(`${tag}: the table is the ${shape} bumper table (two cups, twelve posts${oct ? ', eight rubbers' : ''})`,
+        r.n === 2 && r.b === 12 && Math.abs(r.view[0] - (oct ? 1.016 : 1.219)) < 1e-9 && r.cush === (oct ? 8 : 4) && (!oct || r.view[2] === h > w), JSON.stringify({ view: r.view, ballPx: r.ballPx }));
+      check(`${tag}: every rubber is painted cloth-coloured (${r.cush} of them), not wood`,
+        r.rubbers.length === r.cush && r.rubbers.every(q => q.g > 8 && Math.max(...[0, 1, 2].map(j => Math.abs(q.c[j] - r.wood[j]))) > 25), JSON.stringify({ rubbers: r.rubbers.slice(0, 3), wood: r.wood }));
+      check(`${tag}: both cups are dark through and never cloth-coloured`, r.art.every(p => p.n > (oct ? 200 : 300) && p.lum < 0.05 && p.cloth < 20), JSON.stringify(r.art));
       check(`${tag}: a frame (balls, no cue over it) paints nothing inside a cup`, r.frame <= 2, String(r.frame));
-      check(`${tag}: every post is drawn: a bright cap in a dark rubber ring, apart from the cloth`, r.posts.every(p => p.cap > 0.15 && p.ring < 0.03 && p.ring < r.bed * 0.6), JSON.stringify({ bed: r.bed, posts: r.posts.slice(0, 3) }));
+      if (!oct) check(`${tag}: every post is drawn: a bright cap in a dark rubber ring, apart from the cloth`, r.posts.every(p => p.cap > 0.15 && p.ring < 0.03 && p.ring < r.bed * 0.6), JSON.stringify({ bed: r.bed, posts: r.posts.slice(0, 3) }));
+      else {
+        const reds = r.mush.filter(m => m.side === 0), whites = r.mush.filter(m => m.side === 1);
+        check(`${tag}: the mushroom bumpers are coloured by side: six red caps on red's half, six white on white's, each apart from the cloth (3:1 on the red cloth, by cap or ring)`,
+          reds.length === 6 && whites.length === 6 && reds.every(m => m.red > 90 && m.lum < 0.35) && whites.every(m => m.lum > 0.5 && Math.abs(m.red) < 40) && r.mush.every(m => m.d > 30 || m.best >= 3)
+          && (cloth !== 'red' || r.mush.every(m => m.best >= 3)),
+          JSON.stringify({ red: reds.slice(0, 2), white: whites.slice(0, 2) }));
+      }
       check(`${tag}: the marked red ball shows its white spot (an unmarked red has none)`, r.spot > 40, String(r.spot));
     }
+    await b.page.evaluate(() => { settings.bumperTable = 'octagon'; });
     check(`bumper ${w}x${h}: no console errors`, b.errors.length === 0, b.errors.join(' | '));
     await b.browser.close();
   }

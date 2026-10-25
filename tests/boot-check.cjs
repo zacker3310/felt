@@ -18,6 +18,10 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
+  /* the Bumper control in the Table section: Octagon and Rectangle, 44 px each, the octagon pressed by default */
+  const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent }; }));
+  check('menu: the Bumper table control (Octagon, Rectangle) in the Table section, 44 px targets, the octagon by default',
+    bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Bumper') && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify(bt));
   /* the Pockets control in the Table section: two 44 px choices, regulation pressed by default */
   const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed') }; }));
   check('menu: Pockets, Regulation / Generous, 44 px each, regulation by default', pk[0].t === 'Regulation' && pk[1].t === 'Generous' && pk.every(b => b.w >= 44 && b.h >= 44)

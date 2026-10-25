@@ -3,7 +3,7 @@
    cases that hang on the bed (foot spot, head string, placement, re-spotting) run on both the
    7 ft and the 9 ft table. */
 'use strict';
-const { check, done } = require('./lib.cjs');
+const { check, done } = require('./lib.cjs'), check0 = check;
 const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 const R = S.BALL_R;
@@ -206,8 +206,11 @@ eachTable(T => {
     && wall.every(b => b === w9 || Math.hypot(b.x - w9.x, b.y - w9.y) >= 2 * R - 1e-9), JSON.stringify({ x: w9.x, n: wall.length }));
 });
 
-/* ---- bumper pool: one case per rule (How to play and judgeBumper say the same) ---- */
-{
+/* ---- bumper pool: one case per rule (How to play and judgeBumper say the same), on both
+   bumper tables (the rules do not change with the shape) ---- */
+for (const shape of ['octagon', 'rect']) {
+  S.setTable('bumper', shape);
+  const check = (name, ok, info) => check0(shape === 'rect' ? name : name.replace(/^bumper/, 'bumper octagon'), ok, info);
   const g0 = S.newGame('bumper');
   const M = S.B_MARK, by = (g, n) => g.balls.find(b => b.n === n);
   /* a hand-built result: `potted` dropped in `cups` ({ n: cup index, -1 off the table }), cue = the struck ball */
@@ -218,7 +221,7 @@ eachTable(T => {
   const play = (over = {}) => Object.assign(S.newGame('bumper'), { opening: 0, openPot: [false, false] }, over);
   const left = (g, p) => g.balls.filter(b => b.on && (b.n >= 30 ? 1 : 0) === p).length;
   check('bumper: a new game is on the bumper table, 5 red and 5 white, red opens with the marked ball',
-    S.TABLE === 'bumper' && g0.balls.length === 10 && g0.opening === 1 && g0.turn === 0 && g0.striker === M[0] && S.POCKETS.length === 2 && S.BUMPERS.length === 12 && g0.inHand === null);
+    S.TABLE === 'bumper' && S.BUMPER_SHAPE === shape && g0.balls.length === 10 && g0.opening === 1 && g0.turn === 0 && g0.striker === M[0] && S.POCKETS.length === 2 && S.BUMPERS.length === 12 && g0.inHand === null);
   check('bumper: the starting balls are on free spots (clear of posts, cups and each other)', g0.balls.every(b => S.bumperFree(g0.balls, b.x, b.y, b.n)));
   /* 1. the opening */
   const a = S.judge(g0, bres(g0));
@@ -235,6 +238,12 @@ eachTable(T => {
   check('bumper opening: neither potted: the marked ball nearer its far cup shoots first', near.turn === 1 && far.turn === 0, JSON.stringify([near.turn, far.turn]));
   const wf = S.judge(a, bres(a, { potted: [M[1]], cups: { [M[1]]: 1 } }));
   check("bumper opening: a foul on white's opening gives red the table", wf.verdict.foul && wf.turn === 0 && by(wf, M[1]).on);
+  /* red fouls on the opening by potting a white: white's marked ball drops as the penalty, so
+     white's opening shot is with any of its balls (not a foul for a ball that is not there) */
+  const rf = S.judge(g0, bres(g0, { potted: [33], cups: { 33: 0 } }));
+  const wo = S.judge(rf, bres(rf, { cue: rf.striker }));
+  check("bumper opening: after red's foul drops white's marked ball, white opens with another of its own, no foul",
+    rf.verdict.dropped === M[1] && rf.opening === 2 && rf.striker > M[1] && JSON.stringify(S.bumperStrikers(rf)) === JSON.stringify([32, 34, 35]) && !wo.verdict.foul && wo.opening === 0, JSON.stringify({ s: rf.striker, f: wo.verdict.foul }));
   const um = S.judge(g0, bres(g0, { cue: 22 }));
   check('bumper opening: striking any ball but the marked one is a foul', !!um.verdict.foul && /opening/.test(um.verdict.foul));
   /* 2. pots and the turn */

@@ -928,7 +928,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     await kp.evaluate(() => { localStorage.clear(); settings.cpu = false; settings.autoAim = true; });
     await kp.click('#playB');
     await kp.waitForTimeout(300);
-    const s0 = await kp.evaluate(() => ({ kind: felt.game.kind, st: felt.state, striker: felt.striker, table: felt.table, chip: document.querySelector('.pchip.on .pb').textContent, chipName: turnChip.dataset.name, hint: felt.hint, sub: bannerSub.textContent }));
+    const s0 = await kp.evaluate(() => ({ shape: settings.bumperTable, cush: CUSH.length, TL, kind: felt.game.kind, st: felt.state, striker: felt.striker, table: felt.table, chip: document.querySelector('.pchip.on .pb').textContent, chipName: turnChip.dataset.name, hint: felt.hint, sub: bannerSub.textContent }));
     check('bumper: the menu card starts a bumper game on the bumper table, red to open with the marked ball, auto aim on it',
       s0.kind === 'bumper' && s0.st === 'aim' && s0.striker === 21 && s0.table === 'bumper' && s0.chip === '5' && s0.hint && s0.hint.n === 21 && s0.hint.k === 1 && /marked ball/.test(s0.sub), JSON.stringify(s0));
     const tdrag = async (from, to, n = 6) => {
@@ -1006,6 +1006,30 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     await kp.evaluate(() => { settings.cpu = false; felt.start('8'); });
     const back = await kp.evaluate(() => ({ table: felt.table, n: POCKETS.length, b: BUMPERS.length }));
     check('bumper: an 8-ball game after it is back on the pool table', back.table === '7' && back.n === 6 && back.b === 0, JSON.stringify(back));
+    /* the bumper table's shape: the octagon by default (the game above ran on it), a menu control
+       picks the rectangle, and the choice survives a reload; on each, a bar shot byte for byte */
+    check('bumper: the default bumper table is the octagon (eight cushions, 40 in across the flats)', s0.shape === 'octagon' && s0.cush === 8 && Math.abs(s0.TL - 1.016) < 1e-9, JSON.stringify(s0));
+    await kp.evaluate(() => { felt.start('bumper'); showMenu(); });
+    const ctl = await kp.evaluate(() => ({ shown: !!btOct.getClientRects().length && !!btRect.getClientRects().length, oct: btOct.getAttribute('aria-pressed') }));
+    await kp.click('#btRect');
+    const rs = await kp.evaluate(() => { const was = TL; felt.start('bumper'); return { was, s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, kind: felt.game.kind, pressed: btRect.getAttribute('aria-pressed') }; });
+    check('bumper: the menu\'s Bumper control picks the rectangle (stored; a game in progress keeps its table, the next bumper game is on it)',
+      Math.abs(rs.was - 1.016) < 1e-9 &&
+      ctl.shown && ctl.oct === 'true' && rs.s === 'rect' && rs.ls === 'rect' && Math.abs(rs.TL - 1.219) < 1e-9 && rs.cush === 4 && rs.kind === 'bumper' && rs.pressed === 'true', JSON.stringify({ ctl, rs }));
+    await kp.reload();
+    await kp.waitForFunction(() => window.booted === true);
+    const rl = await kp.evaluate(() => { felt.start('bumper'); felt.speed = 40; return { s: settings.bumperTable, TL, cush: CUSH.length, btn: btRect.getAttribute('aria-pressed') }; });
+    check('bumper: the rectangle choice survives a reload and a new bumper game is on it', rl.s === 'rect' && Math.abs(rl.TL - 1.219) < 1e-9 && rl.cush === 4 && rl.btn === 'true', JSON.stringify(rl));
+    const o4 = await barShot(0.3);
+    check('bumper rectangle: a bar shot, live equal to simulateShot byte for byte', o4.same && o4.ball === 21, JSON.stringify(o4));
+    await settled(kp);
+    await kp.evaluate(() => showMenu());
+    await kp.click('#btOct');
+    const ob = await kp.evaluate(() => { felt.start('bumper'); felt.speed = 40; return { s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, st: felt.state }; });
+    const o5 = await barShot(0.45);
+    check('bumper octagon: back on the octagon from the menu, a game starts and a bar shot rolls live equal to simulateShot byte for byte',
+      ob.s === 'octagon' && ob.ls === 'octagon' && ob.cush === 8 && ob.st === 'aim' && o5.same && o5.ball === 21, JSON.stringify({ ob, o5 }));
+    await settled(kp);
     check('bumper: no console errors', k.errors.length === 0, k.errors.join(' | '));
     await k.browser.close();
   }

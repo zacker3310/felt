@@ -14,8 +14,9 @@
    on them too, while regulation stays exactly what it was. The rest is ball physics, run on the
    default 7 ft table in metres; the power curve, whose roll-outs are longer than a 7 ft table,
    is measured on the 9 ft table so its distances are free rolls, not rail bounces. */
-/* Bumper pool (section 10): its table through setTable, posts, cups, the front pair's block,
-   determinism and the fuzz on its geometry. */
+/* Bumper pool (section 10): its tables through setTable (the rectangle and the octagon: the
+   octagon's eight gapless noses, mitred rubbers and corners), posts, cups, the front pair's block,
+   determinism and the fuzz on each geometry. */
 'use strict';
 const { check, done } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
@@ -591,19 +592,63 @@ eachTable(T => {
   check('crossed is in resultOf, and a fresh table has not crossed', 'crossed' in S.resultOf(S.newTable([cueAt(0.3, 0.6)])) && S.newTable([cueAt(0.3, 0.6)]).crossed === false);
 }
 
-/* 10. bumper pool: the table through the same machinery (setTable('bumper')), posts as rubber
-   cylinders, cups in the bed, and the fuzz on that geometry */
-{
-  S.setTable('bumper');
+/* 10. bumper pool: the table through the same machinery (setTable('bumper', shape)), posts as rubber
+   cylinders, cups in the bed, and the fuzz on that geometry, on the rectangle and the octagon */
+for (const shape of ['rect', 'octagon']) {
+  S.setTable('bumper', shape);
+  const oct = shape === 'octagon', tag = `bumper ${shape}`;
   const cy = S.TW / 2, BR = S.BUMPER_R, CUPS = S.POCKETS;
   const sh = (balls, angle, power, spin = 0, ball) => S.simulateShot(balls, { angle, power, spin, ball });
-  check('bumper table: 33 x 48 in bed, four gapless noses, two cups on the long string, twelve posts',
-    Math.abs(S.TL - 1.219) < 1e-9 && Math.abs(S.TW - 0.838) < 1e-9 && S.CUSH.length === 4 && S.CUSHION_POLYS.length === 4 && CUPS.length === 2 && S.POCKET_R.length === 2
-    && S.BUMPERS.length === 12 && CUPS.every(p => p[1] === cy) && Math.abs(CUPS[0][0] - S.CUP_IN) < 1e-9 && Math.abs(S.TL - CUPS[1][0] - S.CUP_IN) < 1e-9);
+  /* the bed as inward lines from the noses (CUSH runs clockwise round the bed) */
+  const lines = S.CUSH.map(([ax, ay, bx, by]) => { const l = Math.hypot(bx - ax, by - ay), nx = (ay - by) / l, ny = (bx - ax) / l; return [nx, ny, nx * ax + ny * ay]; });
+  const inside = (x, y) => Math.min(...lines.map(l => l[0] * x + l[1] * y - l[2]));
   const noses = S.CUSH.reduce((a, s) => a + Math.hypot(s[2] - s[0], s[3] - s[1]), 0);
-  check('bumper table: the noses run the whole perimeter (no pocket gaps)', Math.abs(noses - 2 * (S.TL + S.TW)) < 1e-9);
+  if (!oct) {
+    check('bumper table: 33 x 48 in bed, four gapless noses, two cups on the long string, twelve posts',
+      S.BUMPER_SHAPE === 'rect' && Math.abs(S.TL - 1.219) < 1e-9 && Math.abs(S.TW - 0.838) < 1e-9 && S.CUSH.length === 4 && S.CUSHION_POLYS.length === 4 && CUPS.length === 2 && S.POCKET_R.length === 2
+      && S.BUMPERS.length === 12 && CUPS.every(p => p[1] === cy) && Math.abs(CUPS[0][0] - S.CUP_IN) < 1e-9 && Math.abs(S.TL - CUPS[1][0] - S.CUP_IN) < 1e-9 && S.BED_LINES === null);
+    check('bumper table: the noses run the whole perimeter (no pocket gaps)', Math.abs(noses - 2 * (S.TL + S.TW)) < 1e-9);
+  } else {
+    const F = S.OCTA_F, side = F * (Math.SQRT2 - 1);
+    check('bumper octagon: a regular octagon 40 in across the flats, eight equal noses, two cups on the long string, twelve posts',
+      S.BUMPER_SHAPE === 'octagon' && Math.abs(F - 1.016) < 1e-9 && S.TL === F && S.TW === F && S.CUSH.length === 8 && S.CUSHION_POLYS.length === 8 && CUPS.length === 2
+      && S.CUSH.every(s => Math.abs(Math.hypot(s[2] - s[0], s[3] - s[1]) - side) < 1e-9) && S.BUMPERS.length === 12
+      && CUPS.every(p => p[1] === cy) && Math.abs(CUPS[0][0] - S.OCTA_CUP_IN) < 1e-9 && Math.abs(S.TL - CUPS[1][0] - S.OCTA_CUP_IN) < 1e-9,
+      `flats ${F} m, nose ${side.toFixed(4)} m`);
+    /* closed: each nose starts where the last ended; convex, every corner turning 45 degrees */
+    const closed = S.CUSH.every((s, i) => { const n = S.CUSH[(i + 1) % 8]; return Math.hypot(n[0] - s[2], n[1] - s[3]) < 1e-12; });
+    const turns = S.CUSH.map((s, i) => { const n = S.CUSH[(i + 1) % 8], a1 = Math.atan2(s[3] - s[1], s[2] - s[0]), a2 = Math.atan2(n[3] - n[1], n[2] - n[0]); return ((a2 - a1) / DEG + 540) % 360 - 180; });
+    check('bumper octagon: the noses close the bed with no gaps, every corner a 45 degree turn (135 inside)',
+      closed && turns.every(t => Math.abs(t - 45) < 1e-9) && Math.abs(noses - 8 * side) < 1e-9, JSON.stringify(turns.map(t => +t.toFixed(6))));
+    /* mitred rubbers: neighbours share the nose corner and the back corner, the back CUSH_W behind
+       both noses' lines (so the joint is on the corner's bisector), and the nose is the cushion */
+    const Q = S.CUSHION_POLYS;
+    const mitred = Q.every((q, i) => {
+      const n = Q[(i + 1) % 8], l = lines[i], ln = lines[(i + 1) % 8], bk = q[3];
+      const dl = -(l[0] * bk[0] + l[1] * bk[1] - l[2]), dn = -(ln[0] * bk[0] + ln[1] * bk[1] - ln[2]);
+      return Math.hypot(q[2][0] - n[1][0], q[2][1] - n[1][1]) < 1e-12 && Math.hypot(q[3][0] - n[0][0], q[3][1] - n[0][1]) < 1e-12
+        && Math.abs(dl - S.CUSH_W) < 1e-9 && Math.abs(dn - S.CUSH_W) < 1e-9 && Math.hypot(q[1][0] - S.CUSH[i][0], q[1][1] - S.CUSH[i][1]) < 1e-12;
+    });
+    check('bumper octagon: eight rubbers meet in mitres (shared corners, the joint on the bisector, CUSH_W deep)', mitred);
+    check('bumper octagon: the sim\'s bed lines are the noses', S.BED_LINES.length === 8 && S.BED_LINES.every((l, i) => l.every((v, j) => Math.abs(v - lines[i][j]) < 1e-12)));
+    /* a ball passes between every post and the nearest cushion, and the posts and cups are on the bed */
+    const room = Math.min(...S.BUMPERS.map(q => inside(q[0], q[1]))), cupIn = Math.min(...CUPS.map(p => inside(p[0], p[1])));
+    check('bumper octagon: posts and cups well inside the bed (a ball passes between a post and any cushion)', room > BR + 2 * R + 0.005 && cupIn > S.CUP_R + 2 * R, `post ${room.toFixed(3)} m, cup ${cupIn.toFixed(3)} m in`);
+    /* the mitred corners: straight into each corner, soft, hard and with english, the ball comes
+       back out of it, never through it or into the rubber */
+    const corner = [];
+    for (let i = 0; i < 8; i++) for (const [v, sp] of [[2, 0], [6, { x: 0.8, y: 0 }], [8.5, { x: -0.8, y: 0.5 }]]) {
+      const vx = S.CUSH[i][0], vy = S.CUSH[i][1], from = [S.TL / 2 + (vx - S.TL / 2) * 0.55, S.TW / 2 + (vy - S.TW / 2) * 0.55 + 0.01];
+      const t = S.strike(S.newTable([S.newBall(21, from[0], from[1])], 21), Math.atan2(vy - from[1], vx - from[0]), P(v), sp);
+      let worst = 9;
+      while (S.stepTable(t)) { const b = t.balls[0]; if (b.on) worst = Math.min(worst, inside(b.x, b.y)); }
+      const b = t.balls[0];
+      if (t.pocketOf[21] === -1 || t.escaped || worst < R - 1e-6 || !Number.isFinite(b.x + b.y)) corner.push({ i, v, worst, on: b.on, esc: t.escaped });
+    }
+    check('bumper octagon: straight into each of the eight corners (soft, hard, with english) the ball comes back, never through or into the rubber', corner.length === 0, JSON.stringify(corner.slice(0, 3)));
+  }
   const pair = S.BUMPERS.filter(q => Math.abs(q[0] - CUPS[0][0]) < 0.12);
-  check('bumper table: each cup has a pair of posts in front, too close together for a ball to pass between',
+  check(`${tag}: each cup has a pair of posts in front, too close together for a ball to pass between`,
     pair.length === 2 && Math.hypot(pair[0][0] - pair[1][0], pair[0][1] - pair[1][1]) - 2 * BR < 2 * R && pair.every(q => q[0] > CUPS[0][0]));
   /* a post: straight on, the ball comes back; off centre it is turned away */
   /* the diamond's post nearest the top cushion, hit from the middle of the table */
@@ -613,14 +658,15 @@ eachTable(T => {
     while (S.stepTable(t)) { for (const h of t.hits) kinds[h[0]] = 1; t.hits.length = 0; const b = t.balls[0]; minGap = Math.min(minGap, Math.hypot(b.x - post[0], b.y - post[1]) - R - BR); if (b.vy > 0) break; }
     return { vx: t.balls[0].vx, vy: t.balls[0].vy, kinds, minGap };
   })();
-  check('bumper post: a ball sent straight at a post rebounds straight back, a rail-like hit, never inside it', back.vy > 0.3 && Math.abs(back.vx) < 1e-9 && back.kinds.rail && back.minGap > -1e-6, JSON.stringify(back));
+  check(`${tag} post: a ball sent straight at a post rebounds straight back, a rail-like hit, never inside it`, back.vy > 0.3 && Math.abs(back.vx) < 1e-9 && back.kinds.rail && back.minGap > -1e-6, JSON.stringify(back));
   const glance = (() => {
     const t = S.strike(S.newTable([S.newBall(21, post[0] + 0.03, cy)], 21), -Math.PI / 2, P(1.2), 0);
     while (S.stepTable(t) && !t.hits.some(h => h[0] === 'rail'));
-    for (let i = 0; i < 20; i++) S.stepTable(t);
+    /* a few steps on: the octagon's diamond is close enough that it could reach the next post in 20 */
+    for (let i = 0; i < 4; i++) S.stepTable(t);
     return t.balls[0];
   })();
-  check('bumper post: an off-centre hit turns the ball off to its side', glance.vx > 0.2, JSON.stringify({ vx: glance.vx, vy: glance.vy }));
+  check(`${tag} post: an off-centre hit turns the ball off to its side`, glance.vx > 0.2, JSON.stringify({ vx: glance.vx, vy: glance.vy }));
   /* the cups: a ball rolled over the middle drops, one past the edge does not; a fast ball skates
      over the lip a slow one falls in at */
   /* rolled from behind cup 1 (the end rail side: the posts guard its front) toward the middle;
@@ -631,34 +677,36 @@ eachTable(T => {
     return { potted: t.potted, pocketOf: t.pocketOf, up: t.balls[0].on };
   };
   const mid = roll(cy - 0.03, 0.8), miss = roll(cy + S.CUP_R + R * 0.6, 0.8);
-  check('bumper cup: rolled across the middle it drops into that cup', mid.potted[0] === 21 && mid.pocketOf[21] === 1, JSON.stringify(mid.potted));
-  check('bumper cup: rolled past outside the hole it stays up', miss.potted.length === 0);
+  check(`${tag} cup: rolled across the middle it drops into that cup`, mid.potted[0] === 21 && mid.pocketOf[21] === 1, JSON.stringify(mid.potted));
+  check(`${tag} cup: rolled past outside the hole it stays up`, miss.potted.length === 0);
   const edge = cy + S.CUP_R - S.CUP_LIP * 0.5, fast = roll(edge, 3), slow = (() => {
-    const t = S.newTable([S.newBall(21, CUPS[1][0] + 0.1, edge)], 21);
+    const t = S.newTable([S.newBall(21, CUPS[1][0] + (oct ? 0.08 : 0.1), edge)], 21);
     Object.assign(t.balls[0], { vx: -0.25, wy: 0.25 / R });
     while (S.stepTable(t));
     return S.resultOf(t);
   })();
-  check('bumper cup: over the lip a fast ball skates across, a slow one drops', fast.up && slow.potted[0] === 21, JSON.stringify([fast.potted, slow.potted]));
+  check(`${tag} cup: over the lip a fast ball skates across, a slow one drops`, fast.up && slow.potted[0] === 21, JSON.stringify([fast.potted, slow.potted]));
   const rest = S.newTable([S.newBall(22, CUPS[0][0] + S.CUP_R - 0.002, cy)]);
   Object.assign(rest.balls[0], { vx: 0.005, wy: -0.005 / R });
   while (S.stepTable(rest));
-  check('bumper cup: a ball dying with its centre over the hole drops', !rest.balls[0].on && rest.pocketOf[22] === 0);
+  check(`${tag} cup: a ball dying with its centre over the hole drops`, !rest.balls[0].on && rest.pocketOf[22] === 0);
   /* no straight-in from the front: down the long string at the cup, the pair stops it */
   let blocked = 0;
-  for (const v of [0.6, 1, 1.6, 2.5, 4]) if (!sh([S.newBall(31, S.TL / 2 - 0.05, cy + 0.0001 * v)].map(b => Object.assign(b, { x: CUPS[0][0] + 0.25 })), Math.PI, P(v), 0, 31).potted.length) blocked++;
-  check('bumper cup: the pair in front blocks a shot straight in from the front', blocked === 5, String(blocked));
+  for (const v of [0.6, 1, 1.6, 2.5, 4]) if (!sh([S.newBall(31, S.TL / 2 - 0.05, cy + 0.0001 * v)].map(b => Object.assign(b, { x: CUPS[0][0] + (oct ? 0.15 : 0.25) })), Math.PI, P(v), 0, 31).potted.length) blocked++;
+  check(`${tag} cup: the pair in front blocks a shot straight in from the front`, blocked === 5, String(blocked));
   /* determinism */
   const lay = () => S.newGame('bumper').balls;
   const d1 = JSON.stringify(sh(lay(), 0.7, 0.45, { x: 0.3, y: -0.4 }, 21)), d2 = JSON.stringify(sh(lay(), 0.7, 0.45, { x: 0.3, y: -0.4 }, 21));
-  check('bumper: the same shot gives the same JSON, and the struck ball is the one named', d1 === d2 && JSON.parse(d1).cue === 21);
+  check(`${tag}: the same shot gives the same JSON, and the struck ball is the one named`, d1 === d2 && JSON.parse(d1).cue === 21 && S.TABLE === 'bumper' && S.BUMPER_SHAPE === shape);
+  check(`${tag}: the starting balls are on the bed, clear of posts, cups and each other`, lay().every((b, i, a) => S.bumperFree(a, b.x, b.y, b.n) && inside(b.x, b.y) >= R));
   /* fuzz: scattered layouts (clear of posts and cups), any ball struck any way, aimed at balls,
-     posts and cups too. Nothing NaN, off the bed, in a cushion or a post, overlapping, escaped, or timed out. */
-  const rnd = S.rng(41);
+     posts, cups and the bed's corners too. Nothing NaN, off the bed, in a cushion or a post,
+     overlapping, escaped, or timed out. */
+  const rnd = S.rng(oct ? 43 : 41);
   const audit = (t, i) => {
     const on = t.balls.filter(b => b.on);
     const nan = t.balls.some(b => !Number.isFinite(b.x + b.y + b.vx + b.vy + b.wx + b.wy + b.wz));
-    const off = on.filter(b => b.x < R - 1e-6 || b.x > S.TL - R + 1e-6 || b.y < R - 1e-6 || b.y > S.TW - R + 1e-6).length;
+    const off = on.filter(b => inside(b.x, b.y) < R - 1e-6).length;
     const inPost = on.filter(b => S.BUMPERS.some(q => Math.hypot(b.x - q[0], b.y - q[1]) < R + BR - 1e-6)).length;
     let overlap = 0;
     for (let a = 0; a < on.length; a++) for (let c = a + 1; c < on.length; c++) overlap = Math.max(overlap, 2 * R - Math.hypot(on[a].x - on[c].x, on[a].y - on[c].y));
@@ -674,9 +722,11 @@ eachTable(T => {
     return out;
   };
   let bad = [], hits = 0, pots = 0, fast2 = 0;
-  for (let i = 0; i < 300; i++) {
+  const N = oct ? 400 : 300;
+  for (let i = 0; i < N; i++) {
     const balls = scatter(2 + Math.floor(rnd() * 9)), c = balls[Math.floor(rnd() * balls.length)];
-    const goal = rnd() < 0.35 ? balls[Math.floor(rnd() * balls.length)] : rnd() < 0.5 ? { x: S.BUMPERS[i % 12][0], y: S.BUMPERS[i % 12][1] } : rnd() < 0.5 ? { x: CUPS[i % 2][0], y: CUPS[i % 2][1] } : null;
+    const goal = rnd() < 0.35 ? balls[Math.floor(rnd() * balls.length)] : rnd() < 0.5 ? { x: S.BUMPERS[i % 12][0], y: S.BUMPERS[i % 12][1] }
+      : rnd() < 0.5 ? { x: CUPS[i % 2][0], y: CUPS[i % 2][1] } : rnd() < 0.5 ? { x: S.CUSH[i % S.CUSH.length][0], y: S.CUSH[i % S.CUSH.length][1] } : null;
     const ang = goal && goal !== c ? Math.atan2(goal.y - c.y, goal.x - c.x) + (rnd() - 0.5) * 0.08 : rnd() * 2 * Math.PI;
     const t = S.strike(S.newTable(balls, c.n), ang, rnd(), rnd() < 0.5 ? 0 : { x: rnd() * 2 - 1, y: rnd() * 2 - 1 });
     while (S.stepTable(t)) { for (const h of t.hits) if (h[0] === 'rail') hits++; t.hits.length = 0; for (const b of t.balls) if (Math.hypot(b.vx, b.vy) * S.SIM_DT > 0.0071) fast2++; }
@@ -684,10 +734,10 @@ eachTable(T => {
     const a = audit(t, i);
     if (a) bad.push(a);
   }
-  check('bumper: 300 fuzzed shots on bumper geometry: no NaN, escape, ball in a cushion or post, overlap or timeout',
-    bad.length === 0 && hits > 300 && pots > 20 && fast2 === 0, `rail/post hits ${hits}, pots ${pots}, bad: ` + JSON.stringify(bad.slice(0, 3)));
-  S.setTable('7');
-  check('bumper: back on a pool table every pool global is rebuilt and the posts are gone', S.BUMPERS.length === 0 && S.POCKETS.length === 6 && S.CUSH.length === 18 && Math.abs(S.TL - 1.981) < 1e-9);
+  check(`${tag}: ${N} fuzzed shots on bumper geometry: no NaN, escape, ball in a cushion or post, overlap or timeout`,
+    bad.length === 0 && hits > N && pots > 20 && fast2 === 0, `rail/post hits ${hits}, pots ${pots}, bad: ` + JSON.stringify(bad.slice(0, 3)));
 }
+S.setTable('7');
+check('bumper: back on a pool table every pool global is rebuilt and the posts are gone', S.BUMPERS.length === 0 && S.POCKETS.length === 6 && S.CUSH.length === 18 && Math.abs(S.TL - 1.981) < 1e-9 && S.BED_LINES === null);
 
 done();

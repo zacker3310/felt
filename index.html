@@ -423,6 +423,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <div class="seg" role="group" aria-label="Pockets, from the next game"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div>
         <span class="label">Cloth</span>
         <div class="seg" role="group" aria-label="Cloth colour"><button id="clGreen" aria-pressed="true">Green</button><button id="clRed" aria-pressed="false">Red</button></div>
+        <span class="label">Bumper</span>
+        <div class="seg" role="group" aria-label="Bumper pool table, from the next bumper game"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div>
       </div>
       <div class="sect">Aim and sound</div>
       <div class="opts">
@@ -456,7 +458,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
           <dt>Opening</dt><dd>Red shoots the marked ball, then white. Whoever potted theirs shoots next (red if both); if neither did, the one nearer the far cup. A foul on white's opening gives red the table.</dd>
           <dt>Turn</dt><dd>Pot one of yours in the far cup and you go again; otherwise the turn passes.</dd>
           <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
-          <dt>Win</dt><dd>The first with all five down. Table size and pockets are for 8-ball and 9-ball; the cloth colour applies to all three.</dd>
+          <dt>Win</dt><dd>The first with all five down. Table size and pockets are for 8-ball and 9-ball, the bumper table (the classic octagon, or the rectangle) for bumper pool; the cloth colour applies to all three.</dd>
         </dl>
       </details>
       <p class="diag" id="diag"></p>
@@ -579,6 +581,13 @@ const RACK_GAP = 0.0002;
 const BUMPER_SIZE = [1.219, 0.838];
 const BUMPER_R = 0.0254;
 const CUP_IN = 0.15, CUP_R = 0.041, CUP_LIP = 0.006, CUP_V = 1;
+/* The octagonal bumper table (the classic one, BUMPER_SHAPE 'octagon', the default): a regular
+   octagon 40 in (1.016 m) across the flats between the cushion noses, the bed of the common 48 in
+   octagonal game table (48 in over the rails, about 2 in of cushion and 2 in of wood each side).
+   Eight cushions meet in mitres; the cups sit OCTA_CUP_IN in from two opposite flats on the long
+   string; the twelve posts keep the rectangle's plan (OCTA_POSTS: the diamond's half length and
+   half width), shortened along the string to the octagon's shorter run between the cups. */
+const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre */
@@ -641,8 +650,13 @@ let MOUTHS, RUBBERS, CUSH, CUSHION_POLYS, POCKET_R, POCKET_AIM, POCKETS, CPU_MOU
 /* the bumper table's posts, [x, y] centres of radius BUMPER_R; empty on a pool table. POOL_TABLE
    is the last pool size set, which a pool game goes back to after a bumper game. */
 let BUMPERS = [], POOL_TABLE = '7';
+/* the bumper table's shape, 'octagon' or 'rect' (setTable('bumper', shape)), and on the octagon
+   the bed's edges as inward lines [nx, ny, c] (a centre at (x, y) is d = nx x + ny y - c inside
+   that cushion's nose line); null on the rectangle and the pool tables, which use the box test */
+let BUMPER_SHAPE = 'octagon', BED_LINES = null;
 /* one rebuild from TABLE and POCKETS_STYLE, so setTable and setPockets compose in either order */
 function buildTable() {
+  BED_LINES = null;
   if (TABLE === 'bumper') { buildBumper(); return; }
   BUMPERS = [];
   const st = POCKET_STYLES[POCKETS_STYLE];
@@ -665,8 +679,10 @@ function buildTable() {
 }
 /* size '7' or '9' (anything else is '7'), or 'bumper' (1g). Ball, mouths, jaws, shelf and cushions are the same on
    both; only the bed changes, with the head string and foot spot at a quarter from each end.
-   Never mid-game: a game's balls keep their coordinates. Returns the size set. */
-function setTable(size) {
+   shape, when given, sets the bumper table's shape ('rect', anything else 'octagon') for this and
+   every later bumper table. Never mid-game: a game's balls keep their coordinates. Returns the size set. */
+function setTable(size, shape) {
+  if (shape !== undefined) BUMPER_SHAPE = shape === 'rect' ? 'rect' : 'octagon';
   TABLE = size === 'bumper' ? 'bumper' : (POOL_TABLE = String(size) === '9' ? '9' : '7');
   buildTable();
   return TABLE;
@@ -879,7 +895,7 @@ function stepTable(tab) {
     /* bumper pool: the posts and the cups in the open bed (1g) */
     if (BUMPERS.length && !still(b) && bumperStep(tab, b)) continue;
     /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
-    if (b.x < lo || b.x > TL - lo || b.y < edge || b.y > TW - edge) {
+    if (BED_LINES ? !bedIn(b.x, b.y, lo) : b.x < lo || b.x > TL - lo || b.y < edge || b.y > TW - edge) {
       for (let k = 0; k < CUSH.length; k++) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
         if (v) {
@@ -890,7 +906,7 @@ function stepTable(tab) {
       }
       /* the drop: a centre over a hole, or past the nose line (only a mouth lets it get there).
          A centre off the bed and nowhere near a mouth means something got through: pot it. */
-      const off = b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
+      const off = BED_LINES ? !bedIn(b.x, b.y, 0) : b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
       let hole = -1, near = -1, nd = Infinity;
       for (let k = 0; k < POCKETS.length; k++) {
         const p = POCKETS[k], dx = b.x - p[0], dy = b.y - p[1], d2 = dx * dx + dy * dy;
@@ -1587,8 +1603,9 @@ function suggestAim(g) {
    rail, POCKETS and POCKET_AIM the two cup centres (a cup has no mouth: its aim point is its
    centre), POCKET_R their radii, CPU_MOUTH_N the way in from the table's middle, and BUMPERS the
    twelve posts. Player 0 (red) sets up at the x = 0 end and shoots at cup 1, player 1 (white) the
-   other way round. */
+   other way round. BUMPER_SHAPE picks the octagon (buildOcta) or the rectangle. */
 function buildBumper() {
+  if (BUMPER_SHAPE === 'octagon') { buildOcta(); return; }
   [TL, TW] = BUMPER_SIZE;
   HEAD_X = TL / 2; FOOT = [TL / 2, TW / 2];
   const c = CUSH_W, cx = TL / 2, cy = TW / 2, a = 0.19, b = 0.15;
@@ -1604,6 +1621,42 @@ function buildBumper() {
     [cx - a / 2, cy - b / 2], [cx + a / 2, cy - b / 2], [cx - a / 2, cy + b / 2], [cx + a / 2, cy + b / 2]];
   /* each cup's pair: 7 cm in front of it, 10 cm apart centre to centre (a 4.9 cm gap: a ball is 5.7) */
   for (const [px, s] of [[CUP_IN, 1], [TL - CUP_IN, -1]]) BUMPERS.push([px + s * 0.07, cy - 0.05], [px + s * 0.07, cy + 0.05]);
+}
+/* the octagon d outside the nose line (d = 0: the noses), clockwise from the top flat's left end,
+   in the bed's TL x TW box (OCTA_F square): each flat is (sqrt 2 - 1) of the width across flats */
+function octagon(d) {
+  const c = OCTA_F / 2, h = c + d, t = h * (Math.SQRT2 - 1);
+  return [[c - t, c - h], [c + t, c - h], [c + h, c - t], [c + h, c + t], [c + t, c + h], [c - t, c + h], [c - h, c + t], [c - h, c - t]];
+}
+/* the octagonal table: the same globals as the rectangle. CUSH is the eight noses end to end (each
+   ends where the next begins: no gaps), CUSHION_POLYS the eight rubbers back to the wood, meeting
+   in mitres on the corners' bisectors, BED_LINES the noses as inward lines. The posts and cups
+   are the rectangle's plan: the diamond round the middle (OCTA_POSTS) and a pair 7 cm in front of
+   each cup, 10 cm apart, OCTA_CUP_IN from the end flats. */
+function buildOcta() {
+  TL = TW = OCTA_F;
+  HEAD_X = TL / 2; FOOT = [TL / 2, TW / 2];
+  const N = octagon(0), E = octagon(CUSH_W), cx = TL / 2, cy = TW / 2, [a, b] = OCTA_POSTS;
+  MOUTHS = []; RUBBERS = [];
+  CUSH = N.map((p, i) => [p[0], p[1], N[(i + 1) % 8][0], N[(i + 1) % 8][1]]);
+  CUSHION_POLYS = N.map((p, i) => [E[i], p, N[(i + 1) % 8], E[(i + 1) % 8]].map(q => q.slice()));
+  BED_LINES = CUSH.map(([ax, ay, bx, by]) => { const l = Math.hypot(bx - ax, by - ay), nx = (ay - by) / l, ny = (bx - ax) / l; return [nx, ny, nx * ax + ny * ay]; });
+  POCKETS = [[OCTA_CUP_IN, cy], [TL - OCTA_CUP_IN, cy]];
+  POCKET_R = [CUP_R, CUP_R];
+  POCKET_AIM = POCKETS.map(p => p.slice());
+  CPU_MOUTH_N = [[1, 0], [-1, 0]];
+  BUMPERS = [[cx - a, cy], [cx + a, cy], [cx, cy - b], [cx, cy + b],
+    [cx - a / 2, cy - b / 2], [cx + a / 2, cy - b / 2], [cx - a / 2, cy + b / 2], [cx + a / 2, cy + b / 2]];
+  for (const [px, s] of [[OCTA_CUP_IN, 1], [TL - OCTA_CUP_IN, -1]]) BUMPERS.push([px + s * 0.07, cy - 0.05], [px + s * 0.07, cy + 0.05]);
+}
+/* on the octagon: (x, y) is at least d inside every cushion's nose line */
+const bedIn = (x, y, d) => BED_LINES.every(l => l[0] * x + l[1] * y - l[2] >= d);
+/* the cup T seen in each cushion's mirror: the line a ball's centre banks off (BALL_R inside the
+   nose) reflects T to [mx, my]; k is the cushion (CUSH[k]). The rectangle's four in its own order. */
+function bumperBanks(T) {
+  const R = BALL_R;
+  if (!BED_LINES) return [[2 * R - T[0], T[1]], [2 * (TL - R) - T[0], T[1]], [T[0], 2 * R - T[1]], [T[0], 2 * (TW - R) - T[1]]];
+  return BED_LINES.map(([nx, ny, c], k) => { const d = 2 * (nx * T[0] + ny * T[1] - c - R); return [T[0] - d * nx, T[1] - d * ny, k]; });
 }
 /* one step of a moving ball against the posts and the cups; true when it dropped. A post is a
    rubber cylinder: the cushion's own impulse model along the line of centres. */
@@ -1631,7 +1684,8 @@ const B_BALLS = [[21, 22, 23, 24, 25], [31, 32, 33, 34, 35]], B_MARK = [21, 31];
 const bOwner = n => n >= 30 ? 1 : 0;
 /* where a player's five start, marked ball first: it on the long string in front of their own
    cup's posts, two beside the cup and two out wide */
-const bStart = p => [[0.31, TW / 2], [0.1, TW / 2 - 0.17], [0.1, TW / 2 + 0.17], [0.26, TW / 2 - 0.22], [0.26, TW / 2 + 0.22]].map(([x, y]) => [p ? TL - x : x, y]);
+const bStart = p => (BED_LINES ? [[0.26, TW / 2], [0.09, TW / 2 - 0.17], [0.09, TW / 2 + 0.17], [0.25, TW / 2 - 0.24], [0.25, TW / 2 + 0.24]]
+  : [[0.31, TW / 2], [0.1, TW / 2 - 0.17], [0.1, TW / 2 + 0.17], [0.26, TW / 2 - 0.22], [0.26, TW / 2 + 0.22]]).map(([x, y]) => [p ? TL - x : x, y]);
 function bumperRack() {
   const out = [];
   for (const p of [0, 1]) bStart(p).forEach(([x, y], i) => out.push(newBall(B_BALLS[p][i], x, y)));
@@ -1644,14 +1698,16 @@ function bumperGame() {
   return { kind: 'bumper', balls: bumperRack(), turn: 0, groups: [null, null], open: false, breakShot: false, inHand: null, fouls: [0, 0], winner: null,
     shots: 0, dry: 0, verdict: null, opening: 1, openPot: [false, false], striker: B_MARK[0] };
 }
-/* the balls player p may strike: the marked ball on an opening shot, else any of their own */
+/* the balls player p may strike: the marked ball on an opening shot (while it is up: a foul on
+   red's opening can drop white's for them), else any of their own */
+const bMarkUp = (balls, p) => balls.some(b => b.n === B_MARK[p] && b.on);
 function bumperStrikers(g, p = g.turn) {
-  if (g.opening) return [B_MARK[p]];
+  if (g.opening && bMarkUp(g.balls, p)) return [B_MARK[p]];
   return g.balls.filter(b => b.on && bOwner(b.n) === p).map(b => b.n);
 }
 /* a ball may stand at (x, y): on the bed, clear of the posts and the cups, touching no ball but `skip` */
 function bumperFree(balls, x, y, skip) {
-  if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
+  if (BED_LINES ? !bedIn(x, y, BALL_R) : !(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
   if (BUMPERS.some(p => Math.hypot(p[0] - x, p[1] - y) < BALL_R + BUMPER_R + 0.002)) return false;
   if (POCKETS.some((p, k) => Math.hypot(p[0] - x, p[1] - y) < POCKET_R[k] + BALL_R)) return false;
   return balls.every(b => b.n === skip || !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R);
@@ -1707,7 +1763,7 @@ function judgeBumper(g, r) {
   const struck = r.cue === undefined ? g.striker : r.cue, kept = [], back = [], gave = [];
   let foul = null, markDown = !g.balls.some(b => b.n === mark && b.on);
   if (struck === null || struck === undefined || bOwner(struck) !== me || !g.balls.some(b => b.n === struck && b.on)) foul = 'struck a ball not your own';
-  else if (g.opening && struck !== mark) foul = 'the opening shot is the marked ball';
+  else if (g.opening && struck !== mark && !markDown) foul = 'the opening shot is the marked ball';
   for (const x of r.potted) {
     const k = pk[x];
     if (k === undefined || k < 0) { foul = foul || 'a ball left the table'; back.push(x); }
@@ -1735,7 +1791,7 @@ function judgeBumper(g, r) {
   n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
   n.winner = win; n.inHand = null;
   n.turn = win !== null ? me : turn;
-  n.striker = win !== null ? null : n.opening ? B_MARK[n.turn] : bumperStriker(n, n.turn);
+  n.striker = win !== null ? null : n.opening && bMarkUp(n.balls, n.turn) ? B_MARK[n.turn] : bumperStriker(n, n.turn);
   n.dry = kept.length || gave.length || dropped !== null ? 0 : (g.dry || 0) + 1;
   n.verdict = { foul, keep: win === null && n.turn === me, win, why, potted: kept, gave, back, dropped, scratch: false, grouped: false, twoFouls: false, opening: g.opening || 0 };
   return n;
@@ -1771,6 +1827,14 @@ function bRun(g, shot) {
   if (live) { for (const o of tab.balls) { o.vx = 0; o.vy = 0; o.wx = 0; o.wy = 0; o.wz = 0; } tab.end = 'rest'; }
   return { r: resultOf(tab), minD: b.on ? minD : 0 };
 }
+/* a ball in the shadow of cup k's guard pair: in front of the cup, between the posts' line and
+   15 cm out, closer to the long string than the posts. Near the cup by distance, but no straight
+   line goes in from there; on the octagon's short run between the cups the search found nudging
+   one there worth more than moving it, so the leave counts it as a bad spot. */
+function bShadow(b, k) {
+  const T = POCKETS[k], N = CPU_MOUTH_N[k], u = (b.x - T[0]) * N[0] + (b.y - T[1]) * N[1], w = Math.abs((b.x - T[0]) * N[1] - (b.y - T[1]) * N[0]);
+  return u > 0.05 && u < 0.22 && w < 0.07;
+}
 /* the score of a judged outcome j for the player who shot from g, and its shaping by minD */
 function bValue(g, j, minD) {
   const me = g.turn;
@@ -1779,7 +1843,7 @@ function bValue(g, j, minD) {
   for (const b of j.balls) {
     if (!b.on) continue;
     const p = bOwner(b.n), T = POCKETS[1 - p], d = Math.min(1, Math.hypot(b.x - T[0], b.y - T[1]));
-    if (p === me) v -= (b.n === B_MARK[me] ? 120 : 60) * d;
+    if (p === me) v -= (b.n === B_MARK[me] ? 120 : 60) * d + (BED_LINES && bShadow(b, 1 - p) ? 90 : 0);
     else v += 60 * d - (d < 0.2 ? 120 : 0);
   }
   return v - (j.verdict.potted.length ? 0 : 300 * Math.min(minD, 0.5));
@@ -1799,8 +1863,8 @@ function* cpuBumper(g, seed, level) {
   /* A: lines and fans, the likeliest first */
   const cands = [];
   for (const b of balls.slice(0, L.strikers)) {
-    const R = BALL_R, lines = [[T[0], T[1], 0]];
-    for (const [mx, my] of [[2 * R - T[0], T[1]], [2 * (TL - R) - T[0], T[1]], [T[0], 2 * R - T[1]], [T[0], 2 * (TW - R) - T[1]]]) lines.push([mx, my, 1]);
+    const lines = [[T[0], T[1], 0]];
+    for (const [mx, my] of bumperBanks(T)) lines.push([mx, my, 1]);
     for (const [x, y, bank] of lines) {
       const d = Math.hypot(x - b.x, y - b.y);
       for (const f of L.ladder) cands.push({ pri: -d - bank * 0.2 - Math.abs(f - 1.2) * 0.1, shot: { angle: Math.atan2(y - b.y, x - b.x), power: bPowerFor(d * f + 0.2), spin: none, ball: b.n } });
@@ -1809,7 +1873,7 @@ function* cpuBumper(g, seed, level) {
     for (let i = 0; i < L.fan; i++) cands.push({ pri: -3 - rnd(), shot: { angle: off + i * 2 * Math.PI / L.fan, power: bPowerFor(1.4 + rnd() * 1.6), spin: none, ball: b.n } });
   }
   cands.sort((a, b) => b.pri - a.pri);
-  const budgetA = Math.max(4, L.sims - L.refine - 2 * L.robust);
+  const mis = BED_LINES ? 4 : 2, budgetA = Math.max(4, L.sims - L.refine - mis * L.robust);
   for (const c of cands) { if (sims >= budgetA) break; sim(c.shot); yield; }
   /* B: refine the best three by keeping what scores better */
   const top = recs.slice().sort((a, b) => b.value - a.value).slice(0, 3);
@@ -1819,13 +1883,15 @@ function* cpuBumper(g, seed, level) {
     yield;
     if (r.value > base.value) top[j] = r;
   }
-  /* C: the finalists slightly mis-hit, scored on the mean */
+  /* C: the finalists slightly mis-hit, scored on the mean. On the octagon a shot off its slanted
+     cushions can turn on a hair, so each is also struck a little soft and a little firm */
   const best = recs.slice().sort((a, b) => b.value - a.value);
   for (const r of best) r.mean = r.value;
   for (const r of best.slice(0, L.robust)) {
     let sum = r.value;
-    for (const k of [1, -1]) { sum += sim(Object.assign({}, r.shot, { angle: r.shot.angle + k * Math.max(L.noise, 0.003) * 1.5 })).value; yield; }
-    r.mean = sum / 3;
+    for (const k of [1, -1]) { sum += sim(Object.assign({}, r.shot, { angle: r.shot.angle + k * Math.max(L.noise, 0.003) * (mis > 2 ? 2.5 : 1.5) })).value; yield; }
+    if (mis > 2) for (const k of [1, -1]) { sum += sim(Object.assign({}, r.shot, { power: clamp(powerFor(speedOf(r.shot.power) * (1 + k * Math.max(L.pnoise, 0.01) * 1.5)), 0, 1) })).value; yield; }
+    r.mean = sum / (1 + mis);
   }
   const pick = best.slice(0, Math.max(1, L.robust)).reduce((a, b) => b.mean > a.mean ? b : a, best[0]);
   return play(pick.shot);
@@ -1844,7 +1910,14 @@ function suggestBumper(g) {
   let best = null;
   for (const b of balls) {
     const extra = markOn && b.n !== B_MARK[me] ? 2 : 0, paths = [[T[0], T[1], null]];
-    for (const [mx, my, ax, at] of [[2 * R - T[0], T[1], 0, R], [2 * (TL - R) - T[0], T[1], 0, TL - R], [T[0], 2 * R - T[1], 1, R], [T[0], 2 * (TW - R) - T[1], 1, TW - R]]) {
+    if (BED_LINES) for (const [mx, my, j] of bumperBanks(T)) {
+      /* where the line to the mirrored cup meets the bank line, if that is on this cushion's nose */
+      const [nx, ny, c] = BED_LINES[j], s = CUSH[j], den = nx * (mx - b.x) + ny * (my - b.y), u = den ? (c + R - nx * b.x - ny * b.y) / den : -1;
+      const px = b.x + (mx - b.x) * u, py = b.y + (my - b.y) * u, sl = Math.hypot(s[2] - s[0], s[3] - s[1]);
+      const along = ((px - s[0]) * (s[2] - s[0]) + (py - s[1]) * (s[3] - s[1])) / (sl * sl);
+      if (u > 0 && u < 1 && along > R / sl && along < 1 - R / sl) paths.push([mx, my, [px, py]]);
+    }
+    else for (const [mx, my, ax, at] of [[2 * R - T[0], T[1], 0, R], [2 * (TL - R) - T[0], T[1], 0, TL - R], [T[0], 2 * R - T[1], 1, R], [T[0], 2 * (TW - R) - T[1], 1, TW - R]]) {
       const u = ax ? (at - b.y) / (my - b.y) : (at - b.x) / (mx - b.x);
       if (u > 0 && u < 1) paths.push([mx, my, [b.x + (mx - b.x) * u, b.y + (my - b.y) * u]]);
     }
@@ -2177,6 +2250,8 @@ const sdir = (tx, ty) => view.portrait ? [ty, -tx] : [tx, ty];
 function fitTable(r) {
   const W = TL + 2 * RAIL, H = TW + 2 * RAIL;
   const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
+  /* the octagon is square: on a tie it stands upright on an upright stage (red's end at the bottom) */
+  if (BED_LINES && Math.abs(kp - kl) <= 1e-9 * kl) return { k: kl, portrait: r.height > r.width };
   return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
 }
 /* The size the app really has. An iOS home-screen app with a translucent status bar can report
@@ -2301,7 +2376,7 @@ function drawTableImage() {
   g.shadowOffsetX = -LIGHT[0] * 0.025 * K; g.shadowOffsetY = -LIGHT[1] * 0.025 * K;
   g.fillStyle = '#2a140a'; railOutline(g, co); g.fill();
   g.restore();
-  paintRails(g, co, L, px, rnd);
+  if (BED_LINES) paintOctaRails(g, co, L, px, rnd); else paintRails(g, co, L, px, rnd);
   if (BUMPERS.length) { paintBumperTable(g, co, L, px, K, rnd); trayBox = trayGeom(); return c; }
   paintSights(g, co, L, px);
   /* the cloth runs under the cushions to the wood */
@@ -2419,6 +2494,13 @@ const SIDE_RING = 0.006, SIDE_WOOD = 0.0015;
    subpath, clockwise from the top left. */
 function railOutline(g, co) { g.beginPath(); railPath(g, co); }
 function railPath(g, co) {
+  if (BED_LINES) {   /* the octagonal bumper table: the rail's eight sides, corners eased */
+    const P = octagon(RAIL), r = 0.012, n = P.length, mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], s = mid(P[n - 1], P[0]);
+    g.moveTo(s[0], s[1]);
+    for (let i = 0; i < n; i++) { const q = mid(P[i], P[(i + 1) % n]); g.arcTo(P[i][0], P[i][1], q[0], q[1], r); }
+    g.closePath();
+    return;
+  }
   /* bumper pool has no caps to wrap: a plain rounded rail */
   const r = BUMPERS.length ? Math.min(0.045, RAIL) : Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co);
   const x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL;
@@ -2721,6 +2803,10 @@ function paintBevels(g, co, L, px) {
    and a thin nickel rim flush with the bed, the cloth turning under round it. Each post is a
    black rubber ring on a turned nickel cap, lit from the lamp, standing in its own shadow. */
 function paintBumperTable(g, co, L, px, K, rnd) {
+  /* the octagon: everything on the bed and the rubber stays inside the rubber's back, the cloth
+     included (the shared cloth and cushion painters work in the bed's box) */
+  g.save();
+  if (BED_LINES) { g.beginPath(); polyPath(g, octagon(co)); g.clip(); }
   g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
   POCKETS.forEach((P, k) => {
     const r = POCKET_R[k], fx = P[0] + L[0] * r * 0.35, fy = P[1] + L[1] * r * 0.35;
@@ -2744,6 +2830,8 @@ function paintBumperTable(g, co, L, px, K, rnd) {
     g.fillStyle = gr; g.fillRect(P[0] - r - d, P[1] - r - d, 2 * (r + d), 2 * (r + d));
   });
   g.restore();
+  g.restore();
+  if (BED_LINES) octaSeam(g, co, px);
   POCKETS.forEach((P, k) => {
     const r = POCKET_R[k], lw = Math.max(1.5 * px, 0.0042), rim = Math.max(px, 0.0013);
     g.strokeStyle = '#17120f'; g.lineWidth = lw; circle(g, P[0], P[1], r + lw / 2); g.stroke();
@@ -2755,7 +2843,7 @@ function paintBumperTable(g, co, L, px, K, rnd) {
     sh.addColorStop(0, 'rgba(255,240,220,0)'); sh.addColorStop(0.6, 'rgba(255,240,220,0)'); sh.addColorStop(1, 'rgba(255,240,220,0.18)');
     g.strokeStyle = sh; g.lineWidth = Math.max(px, 0.0012); circle(g, P[0], P[1], r - g.lineWidth / 2); g.stroke();
   });
-  paintPosts(g, L, px);
+  if (BED_LINES) paintMushrooms(g, L, px); else paintPosts(g, L, px);
 }
 /* the four rubbers' lit noses: a band along each nose shaded by how squarely it faces the lamp,
    a crease highlight, a dark line where it meets the bed, the mitres, and the seam to the wood */
@@ -2781,10 +2869,123 @@ function paintBumperBevels(g, co, L, px) {
     g.beginPath(); g.moveTo(pa[0], pa[1]); g.lineTo(ea[0], ea[1]); g.stroke();
   }
   g.restore();
+  if (BED_LINES) return;   /* the octagon's seam is drawn by octaSeam */
   g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 1.6 * px;
   g.strokeRect(-co, -co, TL + 2 * co, TW + 2 * co);
   g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
   g.strokeRect(-co - 1.5 * px, -co - 1.5 * px, TL + 2 * co + 3 * px, TW + 2 * co + 3 * px);
+}
+/* the octagon's seam where the rubber meets the wood, and a hair of light on the wood's edge */
+function octaSeam(g, co, px) {
+  g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 1.6 * px;
+  g.beginPath(); polyPath(g, octagon(co)); g.stroke();
+  g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
+  g.beginPath(); polyPath(g, octagon(co + 1.5 * px)); g.stroke();
+}
+/* The octagonal table's wood (1g's octagon at RAIL): eight boards mitred at the corners, each
+   with grain running along it, lit by how squarely it faces the lamp, a bullnose that follows the
+   eight-sided outline (railPath), dark mitre joints, and the metal sights: a domed nickel stud
+   at the middle of each side and on each mitre, halfway across the wood. */
+function paintOctaRails(g, co, L, px, rnd) {
+  const I = octagon(co), O = octagon(RAIL + 0.02), E = octagon(RAIL), w = RAIL - co;
+  const DARK = [44, 19, 9], LITE = [140, 78, 40];
+  for (let i = 0; i < 8; i++) {
+    const a = I[i], b = I[(i + 1) % 8], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, nx = -BED_LINES[i][0], ny = -BED_LINES[i][1];
+    g.save();
+    railOutline(g, co); g.clip();
+    g.beginPath(); polyPath(g, [O[i], O[(i + 1) % 8], b, a]); g.clip();
+    /* the board's own frame: x along it from its inner corner, y out across the wood */
+    g.transform(ux, uy, nx, ny, a[0], a[1]);
+    g.fillStyle = '#4f2714'; g.fillRect(-0.4, -0.01, len + 0.8, w + 0.05);
+    const lines = Math.ceil(w / (1.4 * px));
+    for (let k = 0; k < lines + 6; k++) {
+      const broad = k < 6, t = rnd(), base = broad ? w * rnd() : w * (k - 6 + rnd()) / lines;
+      const f1 = 2 * Math.PI / (0.5 + rnd() * 1.2), f2 = 2 * Math.PI / (0.09 + rnd() * 0.12), p1 = rnd() * 7, p2 = rnd() * 7;
+      const A1 = w * (broad ? 0.25 : 0.06 + rnd() * 0.08), A2 = w * 0.01;
+      const col = DARK.map((d, j) => Math.round(d + (LITE[j] - d) * t));
+      g.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${broad ? 0.16 : 0.16 + rnd() * 0.3})`;
+      g.lineWidth = broad ? w * (0.15 + rnd() * 0.2) : px * (0.7 + rnd() * 1.8);
+      g.beginPath();
+      for (let u = -0.35; u <= len + 0.37; u += 0.02) {
+        const y = base + A1 * Math.sin(u * f1 + p1) + A2 * Math.sin(u * f2 + p2);
+        u === -0.35 ? g.moveTo(u, y) : g.lineTo(u, y);
+      }
+      g.stroke();
+    }
+    const f = Math.max(0, nx * L[0] + ny * L[1]), gr = g.createLinearGradient(0, 0, 0, w);
+    gr.addColorStop(0, 'rgba(0,0,0,0.18)'); gr.addColorStop(0.1, 'rgba(255,225,190,0.03)');
+    gr.addColorStop(0.55, `rgba(255,225,190,${0.04 + 0.08 * f})`); gr.addColorStop(1, `rgba(255,225,190,${0.04 + 0.08 * f})`);
+    g.fillStyle = gr; g.fillRect(-0.4, -0.01, len + 0.8, w + 0.05);
+    g.restore();
+  }
+  /* the bullnose round the eight-sided outline: the same inner shadows as the pool rails */
+  const K = 1 / px, edge = (color, blur, off) => {
+    g.shadowColor = color; g.shadowBlur = blur * K; g.shadowOffsetX = LIGHT[0] * off * K; g.shadowOffsetY = LIGHT[1] * off * K;
+    g.beginPath(); g.rect(-RAIL - 1, -RAIL - 1, TL + 2 * RAIL + 2, TW + 2 * RAIL + 2); railPath(g, co);
+    g.fill('evenodd');
+  };
+  g.save();
+  railOutline(g, co); g.clip();
+  g.fillStyle = '#000';
+  edge('rgba(255,232,205,0.3)', 0.014, -0.008);
+  edge('rgba(0,0,0,0.32)', 0.012, 0.007);
+  edge('rgba(0,0,0,0.7)', 0.005, 0);
+  g.restore();
+  g.save();
+  railOutline(g, co); g.clip();
+  g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = px;
+  for (let i = 0; i < 8; i++) { g.beginPath(); g.moveTo(E[i][0], E[i][1]); g.lineTo(I[i][0], I[i][1]); g.stroke(); }
+  g.restore();
+  /* the sights: domed nickel studs, lit toward the lamp, each in a little shadow */
+  const M = octagon((co + RAIL) / 2), r = Math.min(0.0048, 0.2 * w), at = [];
+  for (let i = 0; i < 8; i++) { const a = M[i], b = M[(i + 1) % 8]; at.push(a, [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]); }
+  for (const [x, y] of at) {
+    g.fillStyle = 'rgba(20,8,2,0.55)'; circle(g, x - L[0] * r * 0.3, y - L[1] * r * 0.3, r * 1.25); g.fill();
+    const gr = g.createRadialGradient(x + L[0] * r * 0.4, y + L[1] * r * 0.4, 0, x, y, r);
+    gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.3, '#e2ded4'); gr.addColorStop(0.75, '#8d887d'); gr.addColorStop(1, '#4d4942');
+    g.fillStyle = gr; circle(g, x, y, r); g.fill();
+    g.strokeStyle = 'rgba(25,10,4,0.6)'; g.lineWidth = Math.max(0.8 * px, r * 0.12); g.stroke();
+  }
+}
+/* a post's colour on the octagon: red on red's half (x < TL / 2, where red sets up), white on
+   white's; the two on the middle line split, red on the y < TW / 2 side */
+const postSide = q => Math.abs(q[0] - TL / 2) > 1e-6 ? (q[0] < TL / 2 ? 0 : 1) : (q[1] < TW / 2 ? 0 : 1);
+/* per side: rubber ring, cap, the cap's hot colour and its lit rim. On the red cloth a red ring
+   would vanish into the bed (no red reaches 3:1 on it), so the red bumpers there ride on ivory
+   rubber (ringOnRed) and read by their outline like the white ones. */
+const MUSHROOM = [
+  { ring: [150, 22, 30], ringOnRed: [232, 222, 206], cap: [214, 40, 46], hi: [255, 190, 180], rim: 'rgba(255,220,210,0.55)' },
+  { ring: [196, 190, 176], cap: [246, 243, 234], hi: [255, 255, 255], rim: 'rgba(255,255,255,0.6)' },
+];
+/* The octagon's mushroom bumpers, seen from above: a soft shadow cast away from the lamp (the
+   cap stands on its stem, so the shadow sits off it), the rubber ring (the post's BUMPER_R, what
+   a ball hits) in a deeper shade of the side's colour with a sheen toward the lamp, the stem's
+   dark neck under the cap's edge, then the domed cap: lit toward the lamp, falling off to its
+   edge, a crisp rim, a small turned knob on top and a hot spot. */
+function paintMushrooms(g, L, px) {
+  const R = BUMPER_R, rc = R * 0.74, sx = -L[0] * 0.011, sy = -L[1] * 0.011, c = (v, k = 1) => `rgb(${v.map(x => Math.round(Math.min(255, x * k))).join(',')})`;
+  for (const q of BUMPERS) {
+    const [x, y] = q, M = MUSHROOM[postSide(q)], ring = CL === CLOTHS.red && M.ringOnRed ? M.ringOnRed : M.ring;
+    let gr = g.createRadialGradient(x + sx, y + sy, R * 0.5, x + sx, y + sy, R * 1.6);
+    gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.6, 'rgba(0,0,0,0.25)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; circle(g, x + sx, y + sy, R * 1.6); g.fill();
+    gr = g.createRadialGradient(x + L[0] * R * 0.35, y + L[1] * R * 0.35, R * 0.3, x, y, R);
+    gr.addColorStop(0, c(ring, 1.12)); gr.addColorStop(0.75, c(ring)); gr.addColorStop(1, c(ring, 0.8));
+    g.fillStyle = gr; circle(g, x, y, R); g.fill();
+    const sh = g.createLinearGradient(x + L[0] * R, y + L[1] * R, x - L[0] * R, y - L[1] * R);
+    sh.addColorStop(0, 'rgba(255,255,255,0.35)'); sh.addColorStop(0.5, 'rgba(255,255,255,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.35)');
+    g.strokeStyle = sh; g.lineWidth = Math.max(px, R * 0.1); circle(g, x, y, R - g.lineWidth / 2); g.stroke();
+    /* the neck under the cap */
+    g.fillStyle = 'rgba(0,0,0,0.45)'; circle(g, x - L[0] * R * 0.08, y - L[1] * R * 0.08, rc + R * 0.07); g.fill();
+    gr = g.createRadialGradient(x + L[0] * rc * 0.4, y + L[1] * rc * 0.4, 0, x, y, rc);
+    gr.addColorStop(0, c(M.hi)); gr.addColorStop(0.3, c(M.cap, 1.04)); gr.addColorStop(0.8, c(M.cap, 0.86)); gr.addColorStop(1, c(M.cap, 0.62));
+    g.fillStyle = gr; circle(g, x, y, rc); g.fill();
+    g.strokeStyle = M.rim; g.lineWidth = Math.max(0.8 * px, rc * 0.06);
+    g.beginPath(); g.arc(x, y, rc - g.lineWidth / 2, Math.atan2(L[1], L[0]) - 1.2, Math.atan2(L[1], L[0]) + 1.2); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.28)'; g.lineWidth = Math.max(0.8 * px, rc * 0.07); circle(g, x, y, rc * 0.36); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.8)'; circle(g, x + L[0] * rc * 0.45, y + L[1] * rc * 0.45, rc * 0.13); g.fill();
+  }
 }
 /* the posts: a soft shadow away from the lamp, the black rubber ring with a sheen on its lit
    side, the nickel cap (lit toward the lamp, a dark groove at its edge, a hot spot) and its screw */
@@ -3802,7 +4003,7 @@ function start(kind) {
   /* the table size and pockets take effect here, between games; the table is repainted only
      when either changed (its art reads the geometry globals) */
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
-  setTable(settings.table);
+  setTable(settings.table, settings.bumperTable);
   setPockets(settings.pockets);
   game = newGame(kind);
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
@@ -4819,7 +5020,7 @@ Object.defineProperties(felt, {
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green' };
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon' };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
@@ -4830,6 +5031,7 @@ function loadSettings() {
     if (['regulation', 'generous'].includes(o.pockets)) s.pockets = o.pockets;
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
     if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
+    if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
   } catch (e) { }
   return s;
 }
@@ -4842,6 +5044,8 @@ function setSetting(k, v) {
      there: setTable and setPockets never run mid-game, so they wait for the next start() */
   if (k === 'table' && state === 'menu' && !paused) { setTable(v); game = newGame(game.kind); layout(); hud(); }
   if (k === 'pockets' && state === 'menu' && !paused) { setPockets(v); game = newGame(game.kind); layout(); hud(); }
+  /* the bumper table's shape: the next bumper game's, and at once behind the menu when that is one */
+  if (k === 'bumperTable' && state === 'menu' && !paused && game.kind === 'bumper') { setTable('bumper', v); game = newGame('bumper'); layout(); hud(); }
   syncMenu();
   /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
   if (k === 'cloth') layout();
@@ -4855,6 +5059,7 @@ const SEGS = [
   ['pockets', [[pkReg, 'regulation'], [pkGen, 'generous']]],
   ['autoAim', [[aaOn, true], [aaOff, false]]],
   ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
+  ['bumperTable', [[btOct, 'octagon'], [btRect, 'rect']]],
 ];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
 function syncMenu() {
@@ -5097,7 +5302,7 @@ setTimeout(watchSize, 150);
 document.addEventListener('gesturestart', e => e.preventDefault());
 syncMenu();
 /* the remembered table size and pockets, and a rack on them behind the menu */
-setTable(settings.table);
+setTable(settings.table, settings.bumperTable);
 setPockets(settings.pockets);
 game = newGame(game.kind);
 layout();

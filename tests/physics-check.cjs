@@ -8,7 +8,10 @@
    makes every part of the bar useful, draw comes back, reverse english reads off a rail, and
    the table records whether the cue ball crossed the head string before first contact.
    Table sizes: setTable rebuilds the geometry for 7 and 9 ft, and the table-dependent sections
-   (shapes, pockets, lags, racks, fuzz) run on both. The rest is ball physics, run on the
+   (shapes, pockets, lags, racks, fuzz) run on both. Pocket styles: setPockets rebuilds it for
+   regulation or generous pockets, composing with setTable; generous mouths measure half an inch
+   wider, pot more of a fixed set of shots in every category, and the shapes, lags and fuzz run
+   on them too, while regulation stays exactly what it was. The rest is ball physics, run on the
    default 7 ft table in metres; the power curve, whose roll-outs are longer than a 7 ft table,
    is measured on the 9 ft table so its distances are free rolls, not rail bounces. */
 'use strict';
@@ -17,8 +20,17 @@ const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 const R = S.BALL_R, DEG = Math.PI / 180;
 const SIZES = ['7', '9'];
-/* run body(tag) once per table size, then go back to the default 7 ft table */
-const eachTable = body => { for (const size of SIZES) { S.setTable(size); body(`${size} ft: `); } S.setTable('7'); };
+/* run body(tag) once per table size, then go back to the default 7 ft table. With `styles`,
+   once per size and pocket style, the tag naming a style other than regulation; then back to
+   regulation pockets. */
+const eachTable = (body, styles = ['regulation']) => {
+  for (const style of styles) for (const size of SIZES) {
+    S.setTable(size); S.setPockets(style);
+    body(`${size} ft${style === 'regulation' ? '' : ', ' + style}: `, style);
+  }
+  S.setTable('7'); S.setPockets('regulation');
+};
+const BOTH = ['regulation', 'generous'];
 
 const shot = (balls, angle, power, spin = 0) => S.simulateShot(balls, { angle, power, spin });
 /* the power for a cue-ball speed: the checks below are written in m/s so that a new power curve
@@ -69,8 +81,75 @@ function play(t, limit = Infinity) {
     && (S.setTable('9'), Math.abs(S.newGame('9').balls.find(b => b.n === 1).x - 1.905) < 1e-12) && S.setTable('7') === '7');
 }
 
-/* 0. the contract's shapes, on both tables */
-eachTable(T => {
+/* 0b. pocket styles: regulation by default; setPockets rebuilds the same globals setTable does,
+   either call order gives the same geometry, and going back to regulation gives exactly the
+   fresh geometry (so every regulation check below runs on the very same table as before) */
+{
+  const geo = () => JSON.stringify([S.TABLE, S.POCKETS_STYLE, S.TL, S.TW, S.CUSH, S.CUSHION_POLYS, S.POCKETS, S.POCKET_R, S.POCKET_AIM]);
+  const fresh = geo(), reg = { cush: S.CUSH, polys: S.CUSHION_POLYS, pockets: S.POCKETS, aim: S.POCKET_AIM, R: S.POCKET_R };
+  check('pockets are regulation by default', S.POCKETS_STYLE === 'regulation');
+  const r = S.setPockets('generous');
+  check('setPockets(\'generous\'): every pocket global reassigned, the bed unchanged', r === 'generous' && S.POCKETS_STYLE === 'generous' && S.TABLE === '7' && S.TL === 1.981
+    && S.CUSH !== reg.cush && S.CUSHION_POLYS !== reg.polys && S.POCKETS !== reg.pockets && S.POCKET_AIM !== reg.aim && S.POCKET_R !== reg.R);
+  check('generous holes are wider than regulation ones (corner and side), the ball the same', S.POCKET_R.every((v, k) => v > reg.R[k]) && R === 0.028575, JSON.stringify(S.POCKET_R));
+  const gen7 = geo();
+  S.setTable('9'); const a = geo();
+  S.setPockets('regulation'); S.setTable('9'); S.setPockets('generous'); const b = geo();
+  S.setTable('7'); S.setPockets('regulation'); S.setTable('9'); S.setPockets('generous'); const c = geo();
+  check('setTable and setPockets compose: either order gives the same geometry', a === b && b === c && a !== gen7, a.slice(0, 40));
+  S.setTable('7');
+  check('setTable keeps the pocket style', S.POCKETS_STYLE === 'generous' && geo() === gen7);
+  const brk = () => JSON.stringify(shot(S.rack('8'), 0.01, 1, { x: 0.2, y: -0.3 }));
+  check('generous pockets are deterministic: same break, same result', brk() === brk());
+  check('setPockets: anything but \'generous\' is regulation, and gives back the fresh geometry exactly', S.setPockets('x') === 'regulation' && geo() === fresh
+    && (S.setPockets('generous'), S.setPockets('regulation')) === 'regulation' && geo() === fresh);
+}
+
+/* 0c. generous pots more. A fixed set of lone balls rolled at the pockets from 0.6 m, soft,
+   medium and firm (0.8, 1.6, 3 m/s): straight in at 0-60 mm off the mouth's middle (corner and
+   side), into the side at 20, 30 and 40 degrees off square across the mouth, into a corner 5 and
+   15 degrees off the long rail, and 400 shots at points across the mouths from anywhere. Every
+   category pots more on generous pockets, and more of the shots that touch a jaw drop. Both
+   tables. */
+{
+  const SPEEDS = [0.8, 1.6, 3.0];
+  const roll = (x, y, a, v) => {
+    const t = S.strike(S.newTable([cueAt(x, y)]), a, P(v), 0), kinds = play(t);
+    return { pot: !t.balls[0].on, jaw: !!kinds.jaw };
+  };
+  const at = (k, a, off, v) => {
+    const m = S.POCKET_AIM[k], ux = Math.cos(a), uy = Math.sin(a);
+    return roll(m[0] - ux * 0.6 - uy * off, m[1] - uy * 0.6 + ux * off, a, v);
+  };
+  const offs = (lo, hi) => { const o = []; for (let i = Math.round(lo * 200); i <= Math.round(hi * 200); i++) o.push(i / 200); return o; };
+  const measure = () => {
+    const out = {}, count = (name, list) => { out[name] = list.filter(r => r.pot).length; return list; };
+    for (const [name, k, a] of [['corner straight', 0, Math.atan2(-1, -1)], ['side straight', 1, -Math.PI / 2]])
+      count(name, offs(-0.06, 0.06).flatMap(o => SPEEDS.map(v => at(k, a, o, v))));
+    for (const deg of [20, 30, 40]) count(`side cut ${deg}`, [1, -1].flatMap(s => offs(-0.04, 0.04).flatMap(o => SPEEDS.map(v => at(1, -Math.PI / 2 + s * deg * DEG, o, v)))));
+    for (const deg of [5, 15]) count(`corner ${deg} off rail`, offs(-0.04, 0.04).flatMap(o => SPEEDS.map(v => at(0, Math.PI + deg * DEG, o, v))));
+    const rnd = S.rng(42), fz = [];
+    for (let i = 0; i < 400; i++) {
+      const k = Math.floor(rnd() * 6), m = S.POCKET_AIM[k], tx = m[0] + (rnd() - 0.5) * 0.2, ty = m[1] + (rnd() - 0.5) * 0.2;
+      const x = 0.2 + rnd() * (S.TL - 0.4), y = 0.1 + rnd() * (S.TW - 0.2);
+      fz.push(roll(x, y, Math.atan2(ty - y, tx - x), 1 + rnd() * 4));
+    }
+    count('mouth fuzz', fz);
+    const jaw = fz.filter(r => r.jaw);
+    out['jaw hits that drop, %'] = Math.round(100 * jaw.filter(r => r.pot).length / jaw.length);
+    return out;
+  };
+  for (const size of SIZES) {
+    S.setTable(size);
+    const reg = (S.setPockets('regulation'), measure()), gen = (S.setPockets('generous'), measure());
+    const worse = Object.keys(reg).filter(k => !(gen[k] > reg[k]));
+    check(`${size} ft: generous pockets pot more in every category`, !worse.length, JSON.stringify({ reg, gen, worse }));
+  }
+  S.setTable('7'); S.setPockets('regulation');
+}
+
+/* 0. the contract's shapes, on both tables and both pocket styles */
+eachTable((T, style) => {
   check(T + 'six pockets, six radii, six aim points', S.pockets().length === 6 && S.POCKETS.length === 6 && S.POCKET_R.length === 6 && S.POCKET_AIM.length === 6);
   const P = S.POCKETS, ok = P[0][0] < 0 && P[0][1] < 0 && Math.abs(P[1][0] - S.TL / 2) < 1e-9 && P[1][1] < 0 && P[2][0] > S.TL && P[3][1] > S.TW && P[4][1] > S.TW && P[5][0] > S.TL && P[5][1] > S.TW;
   check(T + 'pockets in the contract order: head-top, top side, foot-top, head-bottom, bottom side, foot-bottom', ok, JSON.stringify(P));
@@ -79,20 +158,23 @@ eachTable(T => {
   const inner = S.CUSHION_POLYS.every(poly => poly.length >= 3 && has(poly[0], poly[1]) && has(poly[1], poly[2]) && has(poly[2], poly[3]));
   const outside = S.CUSHION_POLYS.every(poly => poly.every(([x, y]) => x <= 1e-9 || x >= S.TL - 1e-9 || y <= 1e-9 || y >= S.TW - 1e-9));
   check(T + 'cushion polygons: inner edges are the collision segments, the rest lies off the bed', S.CUSHION_POLYS.length === 6 && inner && outside && S.CUSH.length === 18);
-  /* mouths between jaw points, from the nose ends: corners 4.5-5 in, sides 5-5.5 in */
+  /* mouths between jaw points, from the nose ends: corners 4.5-5 in, sides 5-5.5 in; generous
+     corners 5.15-5.35 in, sides 5.65-5.85 in */
   const IN = 0.0254, mouth = k => {
     const m = S.POCKET_AIM[k], ends = S.CUSH.slice(0, 6).flatMap(s => [[s[0], s[1]], [s[2], s[3]]]).filter(p => Math.hypot(p[0] - m[0], p[1] - m[1]) < 0.1);
     return ends.length === 2 ? Math.hypot(ends[0][0] - ends[1][0], ends[0][1] - ends[1][1]) / IN : NaN;
   };
   const w = [0, 1, 2, 3, 4, 5].map(mouth);
-  check(T + 'mouths: corners 4.5-5 in, sides 5-5.5 in', w.every((v, k) => k === 1 || k === 4 ? v >= 5 && v <= 5.5 : v >= 4.5 && v <= 5), JSON.stringify(w.map(v => +v.toFixed(2))));
+  const [c0, c1, s0, s1] = style === 'generous' ? [5.15, 5.35, 5.65, 5.85] : [4.5, 5, 5, 5.5];
+  check(T + `mouths: corners ${c0}-${c1} in, sides ${s0}-${s1} in`, w.every((v, k) => k === 1 || k === 4 ? v >= s0 && v <= s1 : v >= c0 && v <= c1), JSON.stringify(w.map(v => +v.toFixed(2))));
   const a = S.spinOf(0.5), b = S.spinOf({ x: 3, y: 4 }), c = S.spinOf(undefined), d = S.spinOf(-7);
   check(T + 'spinOf: a number is follow/draw, an object is clamped to the unit disc', a.x === 0 && a.y === 0.5 && Math.abs(b.x - 0.6) < 1e-12 && Math.abs(b.y - 0.8) < 1e-12 && c.x === 0 && c.y === 0 && d.y === -1, JSON.stringify([a, b, c, d]));
   check(T + 'power 1 is a hard break: 8-9 m/s', S.speedOf(1) >= 8 && S.speedOf(1) <= 9, String(S.speedOf(1)));
-});
+}, BOTH);
 
-/* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle; both tables */
-eachTable(T => {
+/* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle; both tables,
+   both pocket styles */
+eachTable((T, style) => {
   const r = shot([cueAt(S.TL - 0.6, S.TW - 0.6)], Math.PI / 4, P(0.93));
   check(T + 'a ball rolled at a corner is potted', r.potted.includes(0), JSON.stringify(r.potted));
   const s = shot([cueAt(S.TL / 2, S.TW / 2)], -Math.PI / 2, P(0.93));
@@ -101,17 +183,22 @@ eachTable(T => {
   play(t);
   check(T + 'a ball rolling along the rail into a corner drops', t.potted.includes(0) && t.pocketOf[0] === 0, JSON.stringify({ potted: t.potted, k: t.pocketOf }));
   /* 15 degrees off the long rail, hard, a ball width wide of the mouth's middle: it hits the
-     facing, bounces across and comes back out. Dead centre on the same line it drops. */
+     facing, bounces across and comes back out. Dead centre on the same line it drops. A
+     generous bucket swallows that one (the jaw turns it in), and rattles 44 mm wide. */
   const m = S.POCKET_AIM[0], a = Math.PI + 15 * DEG, ux = Math.cos(a), uy = Math.sin(a);
   const from = off => [m[0] - ux * 0.7 - uy * off, m[1] - uy * 0.7 + ux * off];
-  const rt = S.strike(S.newTable([cueAt(...from(0.032))]), a, P(3.53), 0), kinds = play(rt);
+  const rt = S.strike(S.newTable([cueAt(...from(style === 'generous' ? 0.044 : 0.032))]), a, P(3.53), 0), kinds = play(rt);
   const out = rt.balls[0];
   check(T + 'a hard ball into the jaw at a bad angle rattles out', kinds.jaw >= 1 && !rt.potted.length && out.on && out.x > 0 && out.y > 0, JSON.stringify({ kinds, potted: rt.potted }));
+  if (style === 'generous') {
+    const gt = S.strike(S.newTable([cueAt(...from(0.032))]), a, P(3.53), 0), gk = play(gt);
+    check(T + 'the regulation rattle (32 mm wide) touches the jaw and drops', gk.jaw >= 1 && gt.potted.includes(0), JSON.stringify({ kinds: gk, potted: gt.potted }));
+  }
   const ct = S.strike(S.newTable([cueAt(...from(0))]), a, P(3.53), 0);
   play(ct);
   check(T + 'the same line through the middle of the mouth drops', ct.potted.includes(0) && ct.pocketOf[0] === 0);
   check(T + 'a drop is reported as a pocket hit with its speed', (() => { const q = S.strike(S.newTable([cueAt(S.TL / 2, S.TW / 2)]), -Math.PI / 2, P(0.93), 0); let v = 0; while (S.stepTable(q)) for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; return v > 0.1; })());
-});
+}, BOTH);
 
 /* 1b. nothing hangs half over a hole. A ball that dies on the lip (within POCKET_LIP of the
    hole) creeps in; one that dies just outside it stays. Then 600 lags that die at the mouths,
@@ -159,7 +246,7 @@ eachTable(T => {
   check(T + '600 lags dying at the mouths: no ball rests with its centre over a hole or its lip', inside === 0 && potted > N / 2, JSON.stringify(res));
   check(T + '600 lags: no ball rests more than a third of its radius over a hole', worst < R / 3, JSON.stringify(res));
   check(T + '600 lags: hangers (resting over a hole at all) under 6% of lags that die at a mouth', over < 0.06 * N, JSON.stringify(res));
-});
+}, BOTH);
 
 /* 2. cushions reflect, english bends the rebound */
 {
@@ -463,7 +550,7 @@ eachTable(T => {
   Object.assign(t.balls[1], { vx: 0.5 });
   S.stepTable(t);
   check(T + 'the fail-safe pots a ball that got off the bed outside a mouth', !t.balls[1].on && t.potted.includes(3) && t.escaped === 1, JSON.stringify({ on: t.balls[1].on, esc: t.escaped }));
-});
+}, BOTH);
 
 /* 9. the kitchen rule's input: crossed is true once the cue ball's centre reaches the head
    string after the strike, at or before first contact */

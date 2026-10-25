@@ -322,6 +322,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="opts">
         <span class="label">Size</span>
         <div class="seg" role="group" aria-label="Table size, from the next game"><button id="tb7" aria-pressed="true">7 ft bar</button><button id="tb9" aria-pressed="false">9 ft pro</button></div>
+        <span class="label">Pockets</span>
+        <div class="seg" role="group" aria-label="Pockets, from the next game"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div>
         <span class="label">Cloth</span>
         <div class="seg" role="group" aria-label="Cloth colour"><button id="clGreen" aria-pressed="true">Green</button><button id="clRed" aria-pressed="false">Red</button></div>
       </div>
@@ -406,10 +408,16 @@ const TIP_MAX = 0.6;              /* tip offset at full spin, in radii: about wh
 const CUE_RATIO = 6 / 19;         /* ball over cue mass: off-centre hits send the ball slower */
 const TIP_LOSS = 0.6;             /* share of the two-mass speed loss a follow-through keeps (the tip stays on longer) */
 const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, away from the english */
-const CORNER_W = 0.1207, SIDE_W = 0.1334;   /* mouths between jaw points: 4.75 in and 5.25 in */
-const CORNER_FACE = 142 * Math.PI / 180, SIDE_FACE = 104 * Math.PI / 180;  /* WPA facing angles */
+/* Pocket styles (setPockets, 1b). Regulation: mouths between jaw points 4.75 in corner and
+   5.25 in side, WPA facing angles, holes of 0.056 and 0.062 m, the corner hole 0.032 m behind
+   its mouth line. Generous is a bar table's buckets: half an inch wider at both, facings a few
+   degrees more open so a ball that brushes one is turned in rather than back out, and holes
+   grown with the mouths so the shelf stays the same depth of cloth. */
+const POCKET_STYLES = {
+  regulation: { corner: 0.1207, side: 0.1334, cornerFace: 142, sideFace: 104, cornerR: 0.056, sideR: 0.062, shelf: 0.032 },
+  generous: { corner: 0.1334, side: 0.1461, cornerFace: 139, sideFace: 100, cornerR: 0.062, sideR: 0.068, shelf: 0.030 },
+};
 const CUSH_W = 0.05;              /* cushion depth, nose to rail */
-const CORNER_SHELF = 0.032;       /* from the corner mouth line to the edge of the hole */
 const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
 const ESCAPE_R = 0.16;            /* a centre off the bed this far from every mouth got out: the fail-safe */
 const RACK_GAP = 0.0002;
@@ -466,27 +474,43 @@ function pockets() {
     return [m[0] + ox * d, m[1] + oy * d];
   });
 }
-/* the table geometry, all rebuilt by setTable: mouths, rubbers, collision segments, cushion
-   polygons, hole radii (the same on both sizes), mouth middles, drop centres, and the inward
-   normal at each mouth (CPU_MOUTH_N: the CPU's entry test, kept here so it follows the table) */
+/* the table geometry, all rebuilt by buildTable: the pocket style's mouths (CORNER_W, SIDE_W),
+   facings and shelf, then mouths, rubbers, collision segments, cushion polygons, hole radii (the
+   same on both sizes), mouth middles, drop centres, and the inward normal at each mouth
+   (CPU_MOUTH_N: the CPU's entry test, kept here so it follows the table) */
+let POCKETS_STYLE = 'regulation', CORNER_W, SIDE_W, CORNER_FACE, SIDE_FACE, CORNER_SHELF;
 let MOUTHS, RUBBERS, CUSH, CUSHION_POLYS, POCKET_R, POCKET_AIM, POCKETS, CPU_MOUTH_N;
+/* one rebuild from TABLE and POCKETS_STYLE, so setTable and setPockets compose in either order */
+function buildTable() {
+  const st = POCKET_STYLES[POCKETS_STYLE];
+  [TL, TW] = TABLE_SIZES[TABLE];
+  HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
+  CORNER_W = st.corner; SIDE_W = st.side; CORNER_SHELF = st.shelf;
+  CORNER_FACE = st.cornerFace * Math.PI / 180; SIDE_FACE = st.sideFace * Math.PI / 180;
+  MOUTHS = mouths();
+  RUBBERS = rubbers(MOUTHS);
+  CUSH = cushions();
+  CUSHION_POLYS = RUBBERS.map(([a, b]) => [a.e, a.p, b.p, b.e].map(q => q.slice()));
+  POCKET_R = [st.cornerR, st.sideR, st.cornerR, st.cornerR, st.sideR, st.cornerR];
+  POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
+  POCKETS = pockets();
+  CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
+    : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
+}
 /* size '7' or '9' (anything else is '7'). Ball, mouths, jaws, shelf and cushions are the same on
    both; only the bed changes, with the head string and foot spot at a quarter from each end.
    Never mid-game: a game's balls keep their coordinates. Returns the size set. */
 function setTable(size) {
   TABLE = String(size) === '9' ? '9' : '7';
-  [TL, TW] = TABLE_SIZES[TABLE];
-  HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
-  MOUTHS = mouths();
-  RUBBERS = rubbers(MOUTHS);
-  CUSH = cushions();
-  CUSHION_POLYS = RUBBERS.map(([a, b]) => [a.e, a.p, b.p, b.e].map(q => q.slice()));
-  POCKET_R = [0.056, 0.062, 0.056, 0.056, 0.062, 0.056];
-  POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
-  POCKETS = pockets();
-  CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
-    : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
+  buildTable();
   return TABLE;
+}
+/* pocket style 'regulation' or 'generous' (anything else is regulation), on the current table.
+   Like setTable, never mid-game. Returns the style set. */
+function setPockets(style) {
+  POCKETS_STYLE = style === 'generous' ? 'generous' : 'regulation';
+  buildTable();
+  return POCKETS_STYLE;
 }
 setTable('7');
 function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
@@ -993,7 +1017,10 @@ function cpuLine(balls, cx, cy, t, k, psi, L) {
   const cos = (ax * Math.cos(psi) + ay * Math.sin(psi)) / d1;
   if (cos < L.minCos) return null;
   if (!cpuClear(balls, cx, cy, gx, gy, t.n) || !cpuClear(balls, t.x, t.y, p[0], p[1], t.n)) return null;
-  const w = 0.03 * (side ? entry : Math.sqrt(entry));
+  /* the window at the mouth: 3 cm either side on regulation pockets, widened by as much as the
+     style's mouth is (generous buckets forgive more, and the CPU knows it) */
+  const reg = POCKET_STYLES.regulation, grow = (side ? SIDE_W - reg.side : CORNER_W - reg.corner) / 2;
+  const w = (0.03 + grow) * (side ? entry : Math.sqrt(entry));
   const tol = w * 2 * BALL_R * cos / (Math.max(d1, 0.1) * Math.max(d2, 0.05));
   return { n: t.n, k, cx, cy, tx: t.x, ty: t.y, psi0, psi, angle: Math.atan2(ay, ax), cos, d1, d2, q: Math.tanh(0.8 * tol / L.noise) };
 }
@@ -2757,7 +2784,7 @@ const felt = window.felt = {
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
   get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
-  get fineAim() { return fineAim; }, get table() { return TABLE; }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
+  get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
   /* a ball's diameter on screen, CSS px */
   get ballPx() { return 2 * BALL_R * view.k; },
   start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAnim = null; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
@@ -2776,11 +2803,13 @@ function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []] };
 
 function start(kind) {
   cpuMode = settings.cpu; cpuLevel = settings.level;
-  /* the table size takes effect here, between games; the table is repainted only when it changed */
-  const was = [TABLE, TL, TW].join();
+  /* the table size and pockets take effect here, between games; the table is repainted only
+     when either changed (its art reads the geometry globals) */
+  const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(settings.table);
+  setPockets(settings.pockets);
   game = newGame(kind);
-  if ([TABLE, TL, TW].join() !== was) layout();
+  if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
   pull = null; stroke = null; paused = null; stats = newStats(); aimAnim = null;
@@ -3352,7 +3381,7 @@ addEventListener('keydown', e => {
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', autoAim: true, cloth: 'green' };
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green' };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
@@ -3360,6 +3389,7 @@ function loadSettings() {
     if (['easy', 'medium', 'hard'].includes(o.level)) s.level = o.level;
     if (typeof o.sound === 'boolean') s.sound = o.sound;
     if (['7', '9'].includes(o.table)) s.table = o.table;
+    if (['regulation', 'generous'].includes(o.pockets)) s.pockets = o.pockets;
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
     if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
   } catch (e) { }
@@ -3369,9 +3399,10 @@ function setSetting(k, v) {
   settings[k] = v;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
   if (k === 'sound') { muted = !v; audioOn(); }
-  /* a new table size shows at once behind the menu, unless a game is paused there: setTable
-     never runs mid-game, so it waits for the next start() */
+  /* a new table size or pocket style shows at once behind the menu, unless a game is paused
+     there: setTable and setPockets never run mid-game, so they wait for the next start() */
   if (k === 'table' && state === 'menu' && !paused) { setTable(v); game = newGame(game.kind); layout(); hud(); }
+  if (k === 'pockets' && state === 'menu' && !paused) { setPockets(v); game = newGame(game.kind); layout(); hud(); }
   syncMenu();
   /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
   if (k === 'cloth') layout();
@@ -3382,6 +3413,7 @@ const SEGS = [
   ['guide', [[gFull, 'full'], [gShort, 'short'], [gOff, 'off']]],
   ['sound', [[sndOn, true], [sndOff, false]]],
   ['table', [[tb7, '7'], [tb9, '9']]],
+  ['pockets', [[pkReg, 'regulation'], [pkGen, 'generous']]],
   ['autoAim', [[aaOn, true], [aaOff, false]]],
   ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
 ];
@@ -3605,8 +3637,9 @@ setTimeout(watchSize, 150);
 /* iOS Safari ignores user-scalable=no; its own pinch event is refused here */
 document.addEventListener('gesturestart', e => e.preventDefault());
 syncMenu();
-/* the remembered table size, and a rack on it behind the menu */
+/* the remembered table size and pockets, and a rack on them behind the menu */
 setTable(settings.table);
+setPockets(settings.pockets);
 game = newGame(game.kind);
 layout();
 randomOrient();

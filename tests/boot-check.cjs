@@ -18,6 +18,10 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
+  /* the Pockets control in the Table section: two 44 px choices, regulation pressed by default */
+  const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed') }; }));
+  check('menu: Pockets, Regulation / Generous, 44 px each, regulation by default', pk[0].t === 'Regulation' && pk[1].t === 'Generous' && pk.every(b => b.w >= 44 && b.h >= 44)
+    && pk[0].p === 'true' && pk[1].p === 'false' && await page.evaluate(() => felt.pockets === 'regulation'), JSON.stringify(pk));
   await page.click('#how summary');
   check('menu text is 4.5:1 or better, how-to open', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
 

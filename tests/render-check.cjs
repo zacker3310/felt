@@ -100,7 +100,9 @@ async function tableChecks(page, tag) {
   const acc = await page.evaluate(() => {
     felt.start('8'); game.breakShot = false; game.inHand = null; state = 'aim'; pull = null; stroke = null; settings.guide = 'full';
     const out = [];
-    for (const [cut, sy, pw, side] of [[15, 0, 0.55, 0], [15, 1, 0.55, 0], [30, 0, 0.55, 0], [30, -1, 0.55, 0], [45, -1, 0.55, 0], [45, 0.6, 0.3, 0], [0, 0, 0.55, 1], [30, 0, 0.8, 0]]) {
+    /* a medium shot: 2 m/s, so the cue ball is rolling by the time it reaches the object ball 0.6 m on */
+    const M = powerFor(1.97);
+    for (const [cut, sy, pw, side] of [[15, 0, M, 0], [15, 1, M, 0], [30, 0, M, 0], [30, -1, M, 0], [45, -1, M, 0], [45, 0.6, 0.3, 0], [0, 0, M, 1], [30, 0, 0.8, 0]]) {
       for (const b of game.balls) b.on = [0, 1, 6, 14].includes(b.n);
       Object.assign(game.balls[0], { x: 1.0, y: 0.6 }); Object.assign(game.balls.find(b => b.n === 1), { x: 1.6, y: 0.6 });
       Object.assign(game.balls.find(b => b.n === 6), { x: 0.3, y: 1.1 }); Object.assign(game.balls.find(b => b.n === 14), { x: 2.3, y: 1.15 });
@@ -125,11 +127,11 @@ async function tableChecks(page, tag) {
     }
     return { out };
   });
-  const fmt = o => o.map(r => `${r.cut}deg ${r.sy}/${r.side} p${r.pw}: ${(r.err * 100).toFixed(2)} cm over ${r.len} m`).join('; ');
+  const fmt = o => o.map(r => `${r.cut}deg ${r.sy}/${r.side} p${r.pw.toFixed(2)}: ${(r.err * 100).toFixed(2)} cm over ${r.len} m`).join('; ');
   check('preview: the cue ball path ends within 3 cm of the real roll at the same travel, cuts with centre, follow, draw and side', acc.out.every(r => r.err < 0.03 && r.len > 0.1), fmt(acc.out));
   check('preview: the object ball leaves within 0.5 deg of the real roll', acc.out.every(r => r.objErr < 0.5), acc.out.map(r => r.objErr.toFixed(3)).join(','));
   const c15 = acc.out[0], side = acc.out.find(r => r.side);
-  check('preview: 15 deg cut, centre, 0.6 m at power 0.55 follows (leaves under 45 deg off the aim, not along the 75 deg tangent)', c15.leave < 45, c15.leave.toFixed(1) + ' deg');
+  check('preview: 15 deg cut, centre, 0.6 m at 2 m/s follows (leaves under 45 deg off the aim, not along the 75 deg tangent)', c15.leave < 45, c15.leave.toFixed(1) + ' deg');
   check('preview: full side on a straight shot shows the object ball thrown off the aim line, as it plays', side.geomObj > 5 && side.objErr < 0.5, JSON.stringify(side));
 
   /* the preview reads game and never writes it, nor tab */

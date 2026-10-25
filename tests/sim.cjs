@@ -10,9 +10,9 @@ const path = require('path');
 const vm = require('vm');
 
 const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_SIM_T',
-  'cushions', 'pockets', 'newBall', 'rack', 'speedOf', 'newTable', 'strike', 'stepTable', 'simulateShot',
+  'cushions', 'pockets', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM', 'spinOf', 'energyOf', 'newBall', 'rack', 'speedOf', 'newTable', 'strike', 'stepTable', 'resultOf', 'simulateShot',
   'newGame', 'legalTargets', 'judge', 'canPlace', 'placeCue', 'spot', 'rng', 'cpuShot', 'cpuSearch',
-  'CUSH', 'POCKETS', 'POCKET_AIM', 'spinOf', 'CPU_LEVELS'];
+  'CPU_LEVELS'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

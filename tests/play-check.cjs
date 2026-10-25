@@ -1,4 +1,6 @@
-/* play-check: playing through the page. Placing the cue ball by clicking, the live roll matching
+/* play-check: playing through the page. Ball in hand (the cue ball movable all turn by a drag
+   from it, never locked by letting go, back to its last legal spot from an illegal one, locked
+   by the bar shot), the live roll matching
    simulateShot exactly (with and without english, and across a pause), the power bar as the
    only pointer control that shoots (power proportional to the pull, cancel by coming back or
    sliding off), the table only aiming (a 1:1 sweep about the cue ball; no drag on it ever
@@ -21,11 +23,48 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   /* ball in hand: put the cue ball somewhere predictable (the hook moves it as a drag would) */
   const inHand = () => page.evaluate(() => { if (felt.game.inHand) felt.place(0.4, 0.3); });
 
-  /* 1. ball in hand: click a kitchen spot to place the cue ball */
-  const at = await page.evaluate(() => felt.toScreen(HEAD_X - 0.2, TW / 2 + 0.1));
-  await page.mouse.click(at[0], at[1]);
-  const placed = await page.evaluate(() => ({ s: felt.state, x: felt.game.balls[0].x, y: felt.game.balls[0].y, hx: HEAD_X }));
-  check('clicking the kitchen places the cue ball', placed.s === 'aim' && Math.abs(placed.x - (placed.hx - 0.2)) < 0.01, JSON.stringify(placed));
+  /* 1. ball in hand, mouse. The break turn starts aimable with the cue ball already on a legal
+     kitchen spot. A drag that starts on or near the ball moves it by the drag (relative: the
+     pointer's offset from the ball is kept); letting go never locks it, so it moves again and
+     again. A drag that starts off the ball aims and leaves it. Past the head string the ghost
+     follows, illegal, and letting go there slides the ball back to the last legal spot it had. */
+  const cueAt = () => page.evaluate(() => { const c = felt.game.balls[0]; return { x: c.x, y: c.y, s: felt.toScreen(c.x, c.y), st: felt.state, hand: felt.game.inHand, ok: canPlace(felt.game, c.x, c.y), placeAt: felt.placeAt, moving: felt.moving, aim: felt.aim, shots: felt.game.shots, hx: HEAD_X, tw: TW, msg: msg.textContent }; });
+  const scr = (x, y) => page.evaluate(([x, y]) => felt.toScreen(x, y), [x, y]);
+  const mdrag = async (from, to, n = 8, up = true) => {
+    await page.mouse.move(from[0], from[1]); await page.mouse.down();
+    for (let i = 1; i <= n; i++) await page.mouse.move(from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n);
+    if (up) await page.mouse.up();
+  };
+  const b0 = await cueAt();
+  check('ball in hand: the break turn starts aimable, the cue ball already on a legal kitchen spot', b0.st === 'aim' && b0.hand === 'kitchen' && b0.ok && b0.x <= b0.hx && !b0.placeAt, JSON.stringify(b0));
+  const moves = [];
+  for (const [tx, ty, ox, oy] of [[-0.2, 0.1, 8, -6], [-0.3, -0.15, -10, 4], [-0.1, 0, 0, 12]]) {
+    const c = await cueAt(), want = [c.hx + tx, c.tw / 2 + ty], ws = await scr(want[0], want[1]);
+    await mdrag([c.s[0] + ox, c.s[1] + oy], [ws[0] + ox, ws[1] + oy]);
+    await page.waitForTimeout(60);
+    const a = await cueAt();
+    moves.push({ d: Math.hypot(a.x - want[0], a.y - want[1]), st: a.st, ok: a.ok, placeAt: a.placeAt, shots: a.shots });
+  }
+  check('mouse: a drag from the cue ball moves it, offset kept; letting go never locks it (three moves in a row)', moves.every(m => m.d < 0.003 && m.st === 'aim' && m.ok && !m.placeAt && m.shots === 0), JSON.stringify(moves));
+  const off0 = await cueAt(), offFrom = await scr(off0.hx + 0.6, off0.tw * 0.3), offTo = await scr(off0.hx + 0.6, off0.tw * 0.5);
+  await mdrag(offFrom, offTo, 8, false);
+  const offMid = await cueAt();
+  await page.mouse.up();
+  const off1 = await cueAt(), offWant = await page.evaluate(([x, y]) => { const p = felt.toTable(x, y), c = felt.game.balls[0]; return Math.atan2(p[1] - c.y, p[0] - c.x); }, offTo);
+  check('mouse: a drag that starts off the cue ball aims (the sweep) and leaves the ball where it is', off1.x === off0.x && off1.y === off0.y && !offMid.moving && !offMid.placeAt && Math.abs(off1.aim - offWant) < 0.01 && off1.st === 'aim', JSON.stringify({ offWant, off1: off1.aim }));
+  await page.evaluate(() => { felt.speed = 0.25; });
+  const il0 = await cueAt(), ilTo = await scr(il0.hx + 0.25, il0.y);
+  await mdrag(il0.s, ilTo, 24, false);
+  const il1 = await cueAt();
+  await page.mouse.up();
+  const il2 = await cueAt();
+  await page.waitForTimeout(700);
+  const il3 = await cueAt();
+  await page.evaluate(() => { felt.speed = 40; });
+  check('mouse: dragged past the head string the ghost follows, illegal, and says why; the ball keeps its last legal spot by the line',
+    il1.placeAt && il1.placeAt[0] > il1.hx && il1.x <= il1.hx && il1.hx - il1.x < 0.03 && /head string/.test(il1.msg), JSON.stringify(il1));
+  check('mouse: let go there, it slides back to that last legal spot (not locked, not anywhere else)',
+    il2.placeAt && il2.placeAt[0] > il1.x && il3.placeAt === null && il3.x === il1.x && il3.y === il1.y && il3.ok && il3.st === 'aim', JSON.stringify({ il2: il2.placeAt, il3 }));
 
   /* 2. the live break equals the pure simulation of the same shot */
   const angle = await page.evaluate(() => Math.atan2(FOOT[1] - felt.game.balls[0].y, FOOT[0] - felt.game.balls[0].x));
@@ -35,7 +74,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const live = await page.evaluate(() => JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])));
   check('live break matches simulateShot exactly', live === expected);
   const after = await page.evaluate(() => ({ shots: felt.game.shots, s: felt.state, msg: msg.textContent }));
-  check('the break is judged and the HUD says so', after.shots === 1 && after.msg.length > 0 && ['aim', 'place', 'over'].includes(after.s), JSON.stringify(after));
+  check('the break is judged and the HUD says so', after.shots === 1 && after.msg.length > 0 && ['aim', 'over'].includes(after.s), JSON.stringify(after));
 
   /* 2b. with english, and paused mid-roll: still byte for byte, and the game is kept */
   await inHand();
@@ -239,7 +278,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const over = await page.evaluate(() => ({ s: felt.state, vis: getComputedStyle(rematch).display, title: overText.textContent, rows: overStats.querySelectorAll('tbody tr').length }));
   check('a win shows who won, the stats and the rematch button', over.s === 'over' && over.vis !== 'none' && over.title === 'You win' && over.rows === 3, JSON.stringify(over));
   await page.click('#rematch');
-  check('rematch starts a fresh rack', await page.evaluate(() => felt.game.shots === 0 && felt.game.winner === null && felt.state === 'place'));
+  check('rematch starts a fresh rack', await page.evaluate(() => felt.game.shots === 0 && felt.game.winner === null && felt.state === 'aim' && felt.game.inHand === 'kitchen'));
 
   /* 9. settings survive a reload */
   await page.click('#menuBtn');
@@ -255,13 +294,14 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const st = await page.evaluate(() => ({ s: felt.settings, hard: lvHard.getAttribute('aria-pressed'), short: gShort.getAttribute('aria-pressed'), level: getComputedStyle(levelSeg).display }));
   check('settings persist across a reload', st.s.guide === 'short' && st.s.cpu === true && st.s.level === 'hard' && st.s.sound === false && st.hard === 'true' && st.short === 'true' && st.level !== 'none', JSON.stringify(st));
 
-  /* a cue-ball drag still held through a keyboard place and a shot cannot stop the roll */
+  /* a cue-ball drag still held through a shot cannot stop the roll or move the ball */
   if (!(await page.evaluate(() => menu.classList.contains('show')))) await page.click('#menuBtn');
   await page.click('#vs2p');
   await page.click('#play9');
-  const hold = await page.evaluate(() => felt.toScreen(HEAD_X - 0.2, TW / 2));
+  const hold = await page.evaluate(() => { const c = felt.game.balls[0]; return felt.toScreen(c.x, c.y); });
   await page.mouse.move(hold[0], hold[1]);
   await page.mouse.down();
+  await page.mouse.move(hold[0] - 20, hold[1] + 10, { steps: 3 });
   await page.keyboard.press('Enter');
   await page.evaluate(() => { felt.speed = 1; felt.shoot(0, 1, 0); });
   await page.waitForFunction(() => felt.state === 'rolling', null, { timeout: 5000 });
@@ -275,8 +315,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   /* 11. how a gesture becomes a shot (or does not), with a mouse. setup(): a two-player rack with
      the cue ball down at (x, middle), aiming along +x (to the right on screen), still in hand or not */
   const setup = (x = 0.5, hand = false) => page.evaluate(([x, hand]) => {
-    settings.cpu = false; settings.autoAim = false; felt.start('8'); tryPlace([x, TW / 2]);
-    if (!hand) game.inHand = null;
+    settings.cpu = false; settings.autoAim = false; felt.start('8'); game = placeCue(game, x, TW / 2);
+    game.inHand = hand ? 'table' : null;
     aimAngle = 0; felt.speed = 40;
     const c = felt.game.balls[0];
     return { c: felt.toScreen(c.x, c.y), full: felt.pullFull, arm: felt.armPx, shots: felt.game.shots };
@@ -355,7 +395,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.mouse.move(bar.x, bar.y + bar.h * 0.5, { steps: 15 });
   const atBar = (await idle()).aim;
   check('moving the mouse from the table to the power bar leaves the aim unchanged', Math.abs(atBar - rested) < 1e-9, JSON.stringify({ rested, atBar }));
-  /* ball in hand, placed: a backward drag from the cue ball only aims; the ball stays put */
+  /* ball in hand: a backward drag from the cue ball moves the ball; it never pulls or shoots */
   S = await setup(0.4, true);
   await page.mouse.move(S.c[0], S.c[1]);
   await page.mouse.down();
@@ -364,11 +404,11 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.mouse.up();
   await page.waitForTimeout(200);
   const cueAfter = await idle();
-  check('ball in hand, placed: a backward drag from the cue ball never pulls or shoots, the ball stays put', cuePull.s === 'aim' && !cuePull.pulling && Math.abs(cuePull.x - 0.4) < 1e-9 && cueAfter.s === 'aim' && cueAfter.shots === S.shots, JSON.stringify({ cuePull, cueAfter }));
+  check('ball in hand: a backward drag from the cue ball moves the ball, and never pulls or shoots', cuePull.s === 'aim' && !cuePull.pulling && Math.abs(cuePull.x - 0.4) > 0.05 && cueAfter.s === 'aim' && cueAfter.shots === S.shots, JSON.stringify({ cuePull, cueAfter }));
   S = await setup(0.4, true);
   await page.mouse.click(S.c[0], S.c[1]);
-  const pick = await page.evaluate(() => ({ s: felt.state, lab: powerLab.textContent }));
-  check('ball in hand, placed: a click on the cue ball picks it up again, and the bar says so', pick.s === 'place' && pick.lab === 'Place the ball', JSON.stringify(pick));
+  const pick = await page.evaluate(() => ({ s: felt.state, x: felt.game.balls[0].x, aim: felt.aim, lab: powerLab.textContent }));
+  check('ball in hand: a click on the cue ball changes nothing (no pick-up, no aim)', pick.s === 'aim' && pick.x === 0.4 && pick.aim === 0 && pick.lab === 'Pull to shoot', JSON.stringify(pick));
   /* the english pad: a quick second drag is not a double tap */
   await setup();
   const pd = await page.evaluate(() => { const r = spinPad.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
@@ -403,7 +443,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     'You potted the 8 before clearing your group.', 'Ball in hand for you behind the head string',
     'Player 2: ball in hand behind the head string', 'Player 1: ball in hand'];
   check('game-over and ball-in-hand lines are whole sentences', JSON.stringify(lines) === JSON.stringify(wantLines), JSON.stringify(lines));
-  await page.evaluate(() => { settings.cpu = false; felt.start('9'); tryPlace([0.4, TW / 2]); game.fouls = [1, 0]; felt.speed = 40; felt.shoot(Math.PI, 0.01, 0); });
+  await page.evaluate(() => { settings.cpu = false; felt.start('9'); felt.place(0.4, TW / 2); game.fouls = [1, 0]; felt.speed = 40; felt.shoot(Math.PI, 0.01, 0); });
   await settled(page);
   const two = await page.evaluate(() => ({ sub: bannerSub.textContent, kind: banner.dataset.kind, chip: chipName.textContent, chipWarn: turnChip.classList.contains('warn') }));
   await page.click('#menuBtn');
@@ -419,45 +459,53 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   });
   check('9-ball: the turn chip of the player to shoot on two fouls is marked, and only theirs', two.chip === 'P2' && !two.chipWarn && chipTwo.on[0] === 'P2' && chipTwo.on[1] && !chipTwo.off[1], JSON.stringify({ two, chipTwo }));
 
-  /* 14. auto aim. On: the break starts aimed at the head ball, and each later human turn starts,
-     once the cue has swung round, within 1 deg of suggestAim(game). Off: the aim is left alone.
-     The setting persists. */
+  /* 14. auto aim, a recommendation rather than a sniper. On: the break starts aimed at the head
+     ball, and each later human turn starts, once the cue has swung round, within 1 deg of the
+     straight line to the centre of the ball suggestAim(game) picks (not its pot line); `hint` is
+     that suggestion's { n, k }, cleared once the shot is fired. Off: no hint, the aim is left
+     alone. The setting persists. */
   await page.click('#menuBtn');
   await page.click('#aaOn');
   await page.click('#vs2p');
   await page.click('#play9');
   const brk = await page.evaluate(async () => {
-    felt.speed = 40; tryPlace([HEAD_X - 0.2, TW / 2 + 0.1]);
+    felt.speed = 40;
     await new Promise(r => setTimeout(r, 150));
     const c = game.balls[0], one = game.balls.find(b => b.n === 1);
-    return { on: settings.autoAim, d: Math.abs(wrapAngle(felt.aim - Math.atan2(one.y - c.y, one.x - c.x))) / (Math.PI / 180), locked: felt.aimLocked };
+    return { on: settings.autoAim, d: Math.abs(wrapAngle(felt.aim - Math.atan2(one.y - c.y, one.x - c.x))) / (Math.PI / 180), locked: felt.aimLocked, hint: felt.hint };
   });
-  check('auto aim: the break starts aimed at the head ball, and that aim is locked', brk.on && brk.d < 1 && brk.locked, JSON.stringify(brk));
-  /* the turn after a shot: if it is ball in hand, place it first */
+  check('auto aim: the break starts aimed at the head ball, that aim is locked, and the hint names it', brk.on && brk.d < 1 && brk.locked && brk.hint && brk.hint.n === 1 && brk.hint.k === -1, JSON.stringify(brk));
+  /* the turn after a shot (ball in hand or not: the ball is already on its spot) */
   const nextTurn = () => page.evaluate(async () => {
-    if (felt.state === 'place') tryPlace(nearestLegal(0.5, 0.35) || [0.5, 0.35]);
     await new Promise(r => setTimeout(r, 150));
-    const s = suggestAim(game);
-    return { s: felt.state, aim: felt.aim, d: s ? Math.abs(wrapAngle(felt.aim - s.angle)) / (Math.PI / 180) : null, locked: felt.aimLocked };
+    const s = suggestAim(game), c = game.balls[0], t = s && game.balls.find(b => b.n === s.n);
+    const line = t ? Math.atan2(t.y - c.y, t.x - c.x) : null;
+    return { s: felt.state, aim: felt.aim, d: t ? Math.abs(wrapAngle(felt.aim - line)) / (Math.PI / 180) : null, pot: s ? Math.abs(wrapAngle(s.angle - line)) / (Math.PI / 180) : null,
+      locked: felt.aimLocked, hint: felt.hint, want: s && { n: s.n, k: s.k }, hand: game.inHand };
   });
-  const autoRuns = [];
+  const autoRuns = [], hintAfterShot = [];
   for (const [a, p] of [[Math.PI, 0.02], [null, 0.25]]) {
-    await page.evaluate(([a, p]) => { const c = game.balls[0], s = suggestAim(game); felt.shoot(a === null ? s.angle : a, p, 0); }, [a, p]);
+    hintAfterShot.push(await page.evaluate(([a, p]) => { const s = suggestAim(game); felt.shoot(a === null ? s.angle : a, p, 0); return felt.hint; }, [a, p]));
     await settled(page);
     autoRuns.push(await nextTurn());
   }
-  check('auto aim on: after a shot (a foul and ball in hand, then a hit) the turn starts within 1 deg of suggestAim(game)', autoRuns.every(r => r.s === 'aim' && r.d !== null && r.d < 1 && r.locked), JSON.stringify(autoRuns));
+  check('auto aim on: after a shot (a foul and ball in hand, then a hit) the turn starts within 1 deg of the line to the suggested ball\'s centre, hint = suggestAim\'s { n, k }',
+    autoRuns.every(r => r.s === 'aim' && r.d !== null && r.d < 1 && r.locked && r.hint && r.hint.n === r.want.n && r.hint.k === r.want.k) && autoRuns[0].hand === 'table', JSON.stringify(autoRuns));
+  check('auto aim on: the hint is cleared once the shot is fired', hintAfterShot.every(h => h === null), JSON.stringify(hintAfterShot));
   await page.click('#menuBtn');
   await page.click('#aaOff');
   await page.click('#resumeBtn');
   const offShot = await page.evaluate(() => felt.state === 'aim' && felt.shoot(Math.PI / 2 + 0.3, 0.02, 0));
   await settled(page);
   const offRun = await page.evaluate(async () => {
-    if (felt.state === 'place') tryPlace(nearestLegal(0.5, 0.35) || [0.5, 0.35]);
     await new Promise(r => setTimeout(r, 150));
-    return { s: felt.state, aim: felt.aim, on: settings.autoAim };
+    const out = { s: felt.state, aim: felt.aim, on: settings.autoAim, hint: felt.hint, hand: game.inHand };
+    /* a ball-in-hand move with auto aim off leaves the aim alone too */
+    if (game.inHand) { const c = game.balls[0], q = nearestLegal(c.x + 0.1, c.y + 0.05); if (q) felt.place(q[0], q[1]); out.moved = felt.aim; out.hint2 = felt.hint; }
+    return out;
   });
-  check('auto aim off: the next turn keeps the aim the last shot left', offShot && !offRun.on && offRun.s === 'aim' && Math.abs(offRun.aim - (Math.PI / 2 + 0.3)) < 1e-9, JSON.stringify(offRun));
+  check('auto aim off: no hint, and the next turn (and a ball-in-hand move) keeps the aim the last shot left', offShot && !offRun.on && offRun.s === 'aim' && offRun.hint === null && Math.abs(offRun.aim - (Math.PI / 2 + 0.3)) < 1e-9
+    && (offRun.moved === undefined || (offRun.moved === offRun.aim && offRun.hint2 === null)), JSON.stringify(offRun));
   await page.reload();
   await page.waitForFunction(() => window.booted === true);
   const aaSt = await page.evaluate(() => ({ on: felt.settings.autoAim, off: aaOff.getAttribute('aria-pressed') }));
@@ -476,10 +524,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const t9 = await page.evaluate(() => ({ s: felt.settings.table, p: tb9.getAttribute('aria-pressed') }));
   await page.click('#play8');
   const g9 = await page.evaluate(() => ({ calls: tableCalls.slice(), table: felt.table, s: felt.state }));
-  check('table size: 7 ft by default, the menu choice persists, and a new game starts on that table', t7.s === '7' && t7.p === 'true' && preview.includes('9') && t9.s === '9' && t9.p === 'true' && g9.calls[g9.calls.length - 1] === '9' && g9.table === '9' && g9.s === 'place', JSON.stringify({ t7, preview, t9, g9 }));
+  check('table size: 7 ft by default, the menu choice persists, and a new game starts on that table', t7.s === '7' && t7.p === 'true' && preview.includes('9') && t9.s === '9' && t9.p === 'true' && g9.calls[g9.calls.length - 1] === '9' && g9.table === '9' && g9.s === 'aim', JSON.stringify({ t7, preview, t9, g9 }));
   /* the 9 ft table plays too: the live roll still equals simulateShot byte for byte */
   const nine = await page.evaluate(async () => {
-    felt.speed = 40; tryPlace([HEAD_X - 0.2, TW / 2]);
+    felt.speed = 40; felt.place(HEAD_X - 0.2, TW / 2);
     const c = game.balls[0], a = Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x);
     const want = JSON.stringify(simulateShot(game.balls, { angle: a, power: 0.9, spin: 0 }).balls.map(b => [b.n, b.on, b.x, b.y]));
     felt.shoot(a, 0.9, 0);
@@ -511,10 +559,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#play9');
   const pn = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, s: felt.state }));
   check('pockets: the choice persists across a reload, and a new game starts with generous pockets', pb.s === 'generous' && pb.p === 'true' && pb.now === 'generous'
-    && pn.calls[pn.calls.length - 1] === 'generous' && pn.now === 'generous' && pn.s === 'place', JSON.stringify({ pb, pn }));
+    && pn.calls[pn.calls.length - 1] === 'generous' && pn.now === 'generous' && pn.s === 'aim', JSON.stringify({ pb, pn }));
   /* generous pockets play too: the live roll still equals simulateShot byte for byte */
   const gen = await page.evaluate(async () => {
-    felt.speed = 40; tryPlace([HEAD_X - 0.2, TW / 2]);
+    felt.speed = 40; felt.place(HEAD_X - 0.2, TW / 2);
     const c = game.balls[0], a = Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x);
     const want = JSON.stringify(simulateShot(game.balls, { angle: a, power: 0.9, spin: 0 }).balls.map(b => [b.n, b.on, b.x, b.y]));
     felt.shoot(a, 0.9, 0);
@@ -527,16 +575,105 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const pz = await page.evaluate(() => { pkCalls.length = 0; felt.start('8'); return { calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }; });
   check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.062, JSON.stringify(pz));
 
+  /* 17. ball in hand after a foul by the CPU, then after a break scratch. cpuSearch is swapped for
+     a stub that thinks for a while, then rolls the cue ball gently into nothing: a foul. */
+  await page.evaluate(() => {
+    window.realSearch = cpuSearch;
+    cpuSearch = function* () { const t = performance.now(); while (performance.now() - t < 1500) yield; return { angle: Math.PI / 2, power: 0.02, spin: 0, place: null }; };
+    settings.cpu = true; settings.autoAim = false; felt.start('8'); felt.speed = 40;
+    game.breakShot = false; game.inHand = null; game.turn = 1;
+    state = 'thinking'; cpuPlan = null; cpuIt = cpuSearch(); hud();
+  });
+  const cpu0 = await cueAt();
+  await mdrag(cpu0.s, [cpu0.s[0] + 60, cpu0.s[1] + 40]);
+  await page.keyboard.press('m'); await page.keyboard.press('ArrowUp');
+  const cpu1 = await cueAt();
+  check('during the CPU\'s turn the cue ball cannot be moved (drag, M and arrows do nothing)', cpu0.st === 'thinking' && cpu1.st === 'thinking' && cpu1.x === cpu0.x && cpu1.y === cpu0.y && !cpu1.placeAt && !cpu1.moving, JSON.stringify({ cpu0, cpu1 }));
+  await page.waitForFunction(() => felt.state === 'aim' && felt.game.turn === 0, null, { timeout: 30000 });
+  await page.evaluate(() => { cpuSearch = window.realSearch; });
+  const fh = await cueAt();
+  check('after a CPU foul: your turn, ball in hand, the cue ball on a legal spot, aimable at once', fh.st === 'aim' && fh.hand === 'table' && fh.ok && !fh.placeAt, JSON.stringify(fh));
+  /* release on another ball: the head ball of the rack, dragged straight onto its centre */
+  const tgt = await page.evaluate(() => { const b = felt.game.balls.filter(b => b.n > 0 && b.on).reduce((a, b) => b.x < a.x ? b : a); return { n: b.n, x: b.x, y: b.y, s: felt.toScreen(b.x, b.y), R: BALL_R }; });
+  await mdrag(fh.s, tgt.s, 40, false);
+  const ob1 = await cueAt();
+  await page.mouse.up();
+  await page.waitForTimeout(150);
+  const ob2 = await cueAt();
+  check('a release on another ball: the ghost says why, and the ball goes back to its last legal spot, right beside that ball',
+    ob1.placeAt && new RegExp('the ' + tgt.n + '\\.').test(ob1.msg) && ob2.placeAt === null && ob2.ok && ob2.x === ob1.x && ob2.y === ob1.y && Math.hypot(ob2.x - tgt.x, ob2.y - tgt.y) < 2 * tgt.R + 0.04 && ob2.st === 'aim',
+    JSON.stringify({ ob1, ob2, tgt }));
+  /* the bar shot locks the spot: the live roll equals simulateShot from there, byte for byte */
+  const snap = await page.evaluate(() => JSON.stringify(felt.game.balls)), shotsB = ob2.shots;
+  await page.mouse.move(bar0.x, bar0.lo + 10);
+  await page.mouse.down();
+  await page.mouse.move(bar0.x, bar0.lo + 10 + (bar0.hi - bar0.lo) * 0.3, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForFunction(n => felt.game.shots === n + 1, shotsB, { timeout: 30000 });
+  const cmt = await page.evaluate(b => {
+    const balls = JSON.parse(b), s = felt.lastShot, row = x => JSON.stringify(x.map(b => [b.n, b.on, b.x, b.y]));
+    return { same: row(simulateShot(balls, { angle: s.angle, power: s.power, spin: s.spin }).balls) === row(felt.lastResult.balls), cue: [balls[0].x, balls[0].y] };
+  }, snap);
+  check('ball in hand: the bar shot plays from the spot the ball was on, and the live roll equals simulateShot from it byte for byte', cmt.same && cmt.cue[0] === ob2.x && cmt.cue[1] === ob2.y, JSON.stringify(cmt));
+  /* a break scratch: the next player has the ball in hand in the kitchen, auto aim on */
+  const bs = await page.evaluate(async () => {
+    settings.cpu = false; settings.autoAim = true; felt.start('8'); felt.speed = 40;
+    const P = POCKET_AIM.reduce((a, p) => Math.hypot(p[0], p[1]) < Math.hypot(a[0], a[1]) ? p : a);
+    felt.place(0.15, 0.15);
+    const c = game.balls[0];
+    felt.shoot(Math.atan2(P[1] - c.y, P[0] - c.x), 0.3, 0);
+    while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 30));
+    await new Promise(r => setTimeout(r, 200));
+    const d = game.balls[0], h = felt.hint, t = h && game.balls.find(b => b.n === h.n);
+    return { s: felt.state, turn: game.turn, hand: game.inHand, ok: canPlace(game, d.x, d.y), x: d.x, hx: HEAD_X, foul: game.verdict.foul, hint: h,
+      d: t ? Math.abs(wrapAngle(felt.aim - Math.atan2(t.y - d.y, t.x - d.x))) / (Math.PI / 180) : null };
+  });
+  check('a break scratch: the next player has ball in hand behind the line, on a legal spot, auto aimed at the suggested ball',
+    bs.s === 'aim' && bs.turn === 1 && bs.hand === 'kitchen' && bs.ok && bs.x <= bs.hx && bs.hint && bs.d < 1, JSON.stringify(bs));
+  /* auto aim follows the moved ball until the player aims by hand; then only the hint follows */
+  const sugg = () => page.evaluate(() => {
+    const s = suggestAim(game), c = game.balls[0], t = game.balls.find(b => b.n === s.n);
+    return { aim: felt.aim, d: Math.abs(wrapAngle(felt.aim - Math.atan2(t.y - c.y, t.x - c.x))) / (Math.PI / 180), hint: felt.hint, want: { n: s.n, k: s.k }, hand: felt.handAimed, x: c.x, y: c.y };
+  });
+  const sameHint = r => r.hint && r.hint.n === r.want.n && r.hint.k === r.want.k;
+  let k0 = await cueAt();
+  await mdrag(k0.s, await scr(k0.x - 0.12, k0.y + 0.25));
+  await page.waitForTimeout(150);
+  const ra1 = await sugg();
+  check('auto aim: after a move, with no aiming by hand yet, the cue re-aims at the suggested ball from the new spot', !ra1.hand && ra1.d < 1 && sameHint(ra1) && ra1.y > k0.y + 0.2, JSON.stringify(ra1));
+  await page.keyboard.down('Alt'); for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight'); await page.keyboard.up('Alt');
+  const aimK = await page.evaluate(() => felt.aim);
+  k0 = await cueAt();
+  await mdrag(k0.s, await scr(k0.x - 0.1, k0.y - 0.3));
+  await page.waitForTimeout(150);
+  const ra2 = await sugg();
+  check('auto aim: once the player has aimed by hand, a move keeps their aim (the hint still follows the new spot)', ra2.hand && ra2.aim === aimK && sameHint(ra2) && ra2.y < k0.y - 0.25, JSON.stringify({ ra2, aimK }));
+  k0 = await cueAt();
+  await mdrag(k0.s, await scr(k0.hx + 0.3, k0.y), 20);
+  await page.waitForTimeout(150);
+  const kb = await cueAt();
+  check('after a break scratch: let go past the head string, the ball is back in the kitchen on a legal spot', kb.placeAt === null && kb.ok && kb.x <= kb.hx && kb.hx - kb.x < 0.04 && kb.st === 'aim', JSON.stringify(kb));
+  /* keyboard: M, then arrows move the ball; nothing commits until the bar; M again to aim */
+  const kk0 = await cueAt();
+  await page.keyboard.press('m');
+  const kk1 = await page.evaluate(() => felt.moving);
+  await page.keyboard.press('ArrowUp'); await page.keyboard.press('ArrowUp');
+  await page.keyboard.down('Shift'); await page.keyboard.press('ArrowUp'); await page.keyboard.up('Shift');
+  const kk2 = await cueAt();
+  await page.keyboard.press('m');
+  const kk3 = await cueAt();
+  check('keyboard: M then arrows move the cue ball in hand (7 cm here), M again goes back to aiming, and no key shoots', kk1 && kk2.moving && Math.abs(Math.hypot(kk2.x - kk0.x, kk2.y - kk0.y) - 0.07) < 0.002 && !kk3.moving && !kk3.placeAt && kk3.st === 'aim' && kk3.shots === kk0.shots, JSON.stringify({ kk0, kk2, kk3 }));
+
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 
-  /* 10. touch, on a phone: tap to place, tap to aim, a backward drag only aims, the bar shoots */
+  /* 10. touch, on a phone: the break is aimable at once, tap to aim, a backward drag only aims
+     (from the cue ball in hand it moves the ball), the bar shoots */
   const t = await open('', { viewport: { width: 390, height: 844 }, hasTouch: true });
   await t.page.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
   await t.page.tap('#play9');
-  const kt = await t.page.evaluate(() => felt.toScreen(HEAD_X - 0.15, TW / 2 - 0.2));
-  await t.page.touchscreen.tap(kt[0], kt[1]);
-  check('touch: a tap places the cue ball', await t.page.evaluate(() => felt.state === 'aim'));
+  await t.page.waitForTimeout(100);
+  check('touch: the break turn is aimable at once, the cue ball in hand on a legal kitchen spot', await t.page.evaluate(() => felt.state === 'aim' && felt.game.inHand === 'kitchen' && canPlace(felt.game, felt.game.balls[0].x, felt.game.balls[0].y)));
   const ap = await t.page.evaluate(() => { const c = felt.game.balls[0]; return { s: felt.toScreen(FOOT[0], FOOT[1]), want: Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x) }; });
   await t.page.touchscreen.tap(ap.s[0], ap.s[1]);
   const got = await t.page.evaluate(() => felt.aim);
@@ -580,8 +717,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const tch = (type, x, y) => mc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
   const swipe = async (from, to, n = 6) => { for (let i = 1; i <= n; i++) await tch('touchMove', from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n); };
   const msetup = (x = 0.5, hand = false) => mp.evaluate(([x, hand]) => {
-    settings.cpu = false; settings.autoAim = false; felt.start('8'); tryPlace([x, TW / 2]);
-    if (!hand) game.inHand = null;
+    settings.cpu = false; settings.autoAim = false; felt.start('8'); game = placeCue(game, x, TW / 2);
+    game.inHand = hand ? 'table' : null;
     aimAngle = 0; felt.speed = 40;
     const c = felt.game.balls[0], s = felt.toScreen(c.x, c.y), u = felt.toScreen(c.x + 0.1, c.y);
     return { c: s, ang: Math.atan2(u[1] - s[1], u[0] - s[0]), q: felt.toScreen(TL - 0.4, TW / 2 + 0.2), want: Math.atan2(0.2, TL - 0.4 - x), full: felt.pullFull, arm: felt.armPx, shots: felt.game.shots, tw: TW, bx: c.x };
@@ -630,20 +767,22 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await mp.waitForTimeout(100);
   ms = await mstate();
   check('touch: a second finger stops a sweep and puts the aim back, and a pinch never shoots', Math.abs(pSwept.aim) > 0.01 && ms.s === 'aim' && ms.shots === M.shots && !ms.pulling && ms.aim === 0, JSON.stringify({ pSwept, ms }));
-  /* the placed cue ball: a backward drag only aims; a tap picks it up; holding it slides it */
+  /* the cue ball in hand: a backward drag from it moves it and never pulls; a tap on it does
+     nothing; holding it still and then dragging moves it too (no long press to learn) */
   M = await msetup(0.6, true);
   await tch('touchStart', M.c[0], M.c[1]);
-  await swipe(M.c, [M.c[0], M.c[1] + M.full * 0.8], 8);
+  await swipe(M.c, [M.c[0], M.c[1] + M.full * 0.5], 8);
+  await mp.waitForTimeout(60);
   const cp = await mstate();
   await tch('touchEnd');
   await mp.waitForTimeout(150);
   const cpAfter = await mstate();
-  check('touch: ball in hand, placed: a backward drag from the cue ball never pulls or shoots, the ball stays put', cp.s === 'aim' && !cp.pulling && cp.x === M.bx && cpAfter.x === M.bx && cpAfter.s === 'aim' && cpAfter.shots === M.shots, JSON.stringify({ cp, cpAfter }));
+  check('touch: ball in hand: a backward drag from the cue ball moves it, never pulls or shoots', cp.s === 'aim' && !cp.pulling && cp.x !== M.bx && cpAfter.x === cp.x && cpAfter.s === 'aim' && cpAfter.shots === M.shots, JSON.stringify({ cp, cpAfter }));
   M = await msetup(0.6, true);
   await tch('touchStart', M.c[0], M.c[1]);
   await tch('touchEnd');
-  const tp1 = await mp.evaluate(() => ({ s: felt.state, lab: powerLab.textContent }));
-  check('touch: a tap on the placed cue ball picks it up', tp1.s === 'place' && tp1.lab === 'Place the ball', JSON.stringify(tp1));
+  const tp1 = await mstate();
+  check('touch: a tap on the cue ball in hand changes nothing (no pick-up, no aim)', tp1.s === 'aim' && tp1.x === M.bx && tp1.aim === 0, JSON.stringify(tp1));
   M = await msetup(0.6, true);
   await tch('touchStart', M.c[0], M.c[1]);
   await mp.waitForTimeout(600);
@@ -651,7 +790,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await swipe(M.c, [M.c[0] + 40, M.c[1]], 4);
   await tch('touchEnd');
   const moved = await mp.evaluate(() => ({ s: felt.state, y: felt.game.balls[0].y }));
-  check('touch: holding the placed cue ball picks it up and a drag slides it', held2.s === 'place' && moved.s === 'aim' && moved.y > M.tw / 2 + 0.1, JSON.stringify({ held2, moved }));
+  check('touch: holding the cue ball in hand, then dragging, moves it', held2.s === 'aim' && held2.x === M.bx && moved.s === 'aim' && moved.y > M.tw / 2 + 0.1, JSON.stringify({ held2, moved }));
   /* AC3, touch: a finger swept 90 deg round the cue ball turns the aim 90 deg (+-2); on to 200 */
   M = await msetup();
   const TS = { c: M.c, a: M.ang, r: 120 };
@@ -718,5 +857,65 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('touch: pinching the table, the controls or the menu never zooms the page', scales.every(s => s === 1), JSON.stringify(scales));
   check('touch gestures: no console errors', m.errors.length === 0, m.errors.join(' | '));
   await m.browser.close();
+
+  /* 18. ball in hand by touch on a big phone (440x956, dpr 3, real touch events): a drag that
+     starts beside the ball moves it with the finger's offset kept (the finger never hides it),
+     again and again; a drag elsewhere aims; a tap on it does nothing; past the head string it
+     slides back; the bar shot plays from the spot it was left on */
+  const h = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3 });
+  const hp = h.page, hc = await hp.context().newCDPSession(hp);
+  const ht = (type, x, y) => hc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  const hdrag = async (from, to, n = 8, end = true) => {
+    await ht('touchStart', from[0], from[1]);
+    for (let i = 1; i <= n; i++) await ht('touchMove', from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n);
+    await hp.waitForTimeout(60);
+    if (end) await ht('touchEnd');
+  };
+  const hcue = () => hp.evaluate(() => { const c = felt.game.balls[0]; return { x: c.x, y: c.y, s: felt.toScreen(c.x, c.y), st: felt.state, hand: felt.game.inHand, ok: canPlace(felt.game, c.x, c.y), placeAt: felt.placeAt, aim: felt.aim, shots: felt.game.shots, hx: HEAD_X, tw: TW, grab: Math.max(30, 2.5 * BALL_R * felt.view.k) }; });
+  const hscr = (x, y) => hp.evaluate(([x, y]) => felt.toScreen(x, y), [x, y]);
+  await hp.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
+  await hp.tap('#play8');
+  await hp.waitForTimeout(150);
+  const h0 = await hcue();
+  check('touch 440: the break turn is aimable at once, the cue ball in hand on a legal kitchen spot', h0.st === 'aim' && h0.hand === 'kitchen' && h0.ok, JSON.stringify(h0));
+  const hm = [];
+  for (const [tx, ty, ox, oy] of [[-0.15, 0.12, 22, 0], [-0.25, -0.1, 0, 24], [-0.05, 0.05, -17, -17]]) {
+    const c = await hcue(), want = [c.hx + tx, c.tw / 2 + ty], ws = await hscr(want[0], want[1]);
+    await hdrag([c.s[0] + ox, c.s[1] + oy], [ws[0] + ox, ws[1] + oy]);
+    const a = await hcue();
+    hm.push({ d: Math.hypot(a.x - want[0], a.y - want[1]), gap: Math.hypot(ws[0] + ox - a.s[0], ws[1] + oy - a.s[1]), st: a.st, ok: a.ok, placeAt: a.placeAt, shots: a.shots });
+  }
+  check('touch 440: a drag starting beside the cue ball moves it, finger offset kept; letting go never locks it (three moves)',
+    hm.every(m => m.d < 0.003 && m.gap > 20 && m.st === 'aim' && m.ok && !m.placeAt && m.shots === 0), JSON.stringify(hm));
+  const ho0 = await hcue();
+  await hdrag([ho0.s[0] + ho0.grab + 40, ho0.s[1] - 120], [ho0.s[0] + ho0.grab + 120, ho0.s[1] - 120]);
+  const ho1 = await hcue();
+  check('touch 440: a drag that starts away from the cue ball aims and leaves the ball', ho1.x === ho0.x && ho1.y === ho0.y && Math.abs(ho1.aim - ho0.aim) > 0.01, JSON.stringify({ ho0, ho1 }));
+  await ht('touchStart', ho1.s[0], ho1.s[1]); await ht('touchEnd');
+  await hp.waitForTimeout(60);
+  const hq = await hcue();
+  check('touch 440: a tap on the cue ball in hand changes nothing', hq.x === ho1.x && hq.y === ho1.y && hq.aim === ho1.aim && hq.st === 'aim', JSON.stringify(hq));
+  await hp.evaluate(() => { felt.speed = 0.25; });
+  await hdrag(hq.s, await hscr(hq.hx + 0.3, hq.y), 24, false);
+  const hi1 = await hcue();
+  await ht('touchEnd');
+  const hi2 = await hcue();
+  await hp.waitForTimeout(700);
+  const hi3 = await hcue();
+  await hp.evaluate(() => { felt.speed = 40; });
+  check('touch 440: let go past the head string, the ball slides back to its last legal spot by the line',
+    hi1.placeAt && hi1.placeAt[0] > hi1.hx && hi2.placeAt && hi3.placeAt === null && hi3.x === hi1.x && hi3.y === hi1.y && hi3.ok && hi1.hx - hi1.x < 0.03, JSON.stringify({ hi1, hi2: hi2.placeAt, hi3 }));
+  const hsnap = await hp.evaluate(() => JSON.stringify(felt.game.balls));
+  const hb = await hp.evaluate(() => { const r = powerBar.getBoundingClientRect(); return { lo: r.left, hi: r.right, y: r.y + r.height / 2 }; });
+  await hdrag([hb.lo + 10, hb.y], [hb.lo + 10 + (hb.hi - hb.lo) * 0.7, hb.y], 6);
+  await hp.waitForFunction(() => felt.game.shots >= 1, null, { timeout: 30000 });
+  await settled(hp);
+  const hcm = await hp.evaluate(b => {
+    const balls = JSON.parse(b), s = felt.lastShot, row = x => JSON.stringify(x.map(b => [b.n, b.on, b.x, b.y]));
+    return { same: row(simulateShot(balls, { angle: s.angle, power: s.power, spin: s.spin }).balls) === row(felt.lastResult.balls), cue: [balls[0].x, balls[0].y] };
+  }, hsnap);
+  check('touch 440: the bar shot plays from where the ball was left, the live roll equal to simulateShot byte for byte', hcm.same && hcm.cue[0] === hi3.x && hcm.cue[1] === hi3.y, JSON.stringify(hcm));
+  check('touch 440: no console errors', h.errors.length === 0, h.errors.join(' | '));
+  await h.browser.close();
   done();
 })().catch(e => { console.error(e); process.exit(1); });

@@ -2,7 +2,7 @@
    the menu, starts both games, keeps every target at least 44 px and every text at 4.5:1, and
    on a phone fills the width with the table, keeps the controls off it and never scrolls
    sideways. The game screen is the table and the controls: no player cards, no status text, no
-   tray; a turn chip (32 px or less) says whose turn it is, and the pause menu holds the rest.
+   tray; two player chips, as tall as the controls, say whose turn it is, and the pause menu holds the rest.
    Ball size is the target metric: measured at each listed viewport (iOS insets simulated with
    --sat/--sar/--sab/--sal, which headless env() leaves at 0) against the sizes before the
    maximised layout. */
@@ -73,7 +73,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
   /* the game screen is the table and the controls: no player cards, no status text, no tray
      band; #msg stays for screen readers (visually hidden, still a polite live region). The turn
-     chip shows the active player, 32 px tall or less, and pulses while the CPU thinks. */
+     chips show both players, as tall as the controls beside them, the active one lit. */
   const clean = [];
   for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width: w, height: h });
@@ -84,12 +84,13 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
         && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
       const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
       return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),
-        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: chipName.textContent } };
+        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout } };
     }));
   }
   check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));
   check('the status line stays for screen readers: visually hidden, role status, aria-live polite', clean.every(c => c.msg.w <= 1 && c.msg.h <= 1 && c.msg.live === 'polite' && c.msg.role === 'status'), JSON.stringify(clean.map(c => c.msg)));
-  check('the turn chip shows the active player and is 32 px tall or less', clean.every(c => c.chip.shown && c.chip.h <= 32 && c.chip.name === 'You'), JSON.stringify(clean.map(c => c.chip)));
+  check('two player chips, the active one lit; in the strip they are as tall as the controls, in a column as wide', clean.every(c => c.chip.shown && c.chip.name === 'You' && c.chip.chips.length === 2 && c.chip.chips[0].on && !c.chip.chips[1].on
+    && c.chip.chips[1].name === 'CPU' && c.chip.chips.every(k => (c.chip.layout === 'portrait' ? k.h === 56 : k.h >= 36) && k.w >= 34)), JSON.stringify(clean.map(c => c.chip)));
 
   /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
      every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or

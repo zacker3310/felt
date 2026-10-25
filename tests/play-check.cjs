@@ -263,7 +263,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.evaluate(() => felt.shoot(Math.PI, 0.01, 0));
   await page.waitForFunction(() => felt.state !== 'rolling', null, { timeout: 30000 });
   const foul = await page.evaluate(() => ({ head: bannerHead.textContent, on: banner.classList.contains('show'), kind: banner.dataset.kind,
-    chip: { name: chipName.textContent, busy: turnChip.classList.contains('busy'), thinking: felt.state === 'thinking' && !cpuPlan } }));
+    chip: { name: turnChip.dataset.name, busy: turnChip.classList.contains('busy'), thinking: felt.state === 'thinking' && !cpuPlan } }));
   check('a foul raises a foul banner', foul.on && foul.kind === 'foul' && foul.head.startsWith('Foul'), JSON.stringify(foul));
   check('the turn passes to the CPU: the chip says CPU and pulses while it thinks', foul.chip.name === 'CPU' && foul.chip.busy === foul.chip.thinking, JSON.stringify(foul.chip));
   await page.waitForFunction(() => felt.game.shots >= 2 || felt.game.winner !== null, null, { timeout: 60000 });
@@ -445,15 +445,15 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('game-over and ball-in-hand lines are whole sentences', JSON.stringify(lines) === JSON.stringify(wantLines), JSON.stringify(lines));
   await page.evaluate(() => { settings.cpu = false; felt.start('9'); felt.place(0.4, TW / 2); game.fouls = [1, 0]; felt.speed = 40; felt.shoot(Math.PI, 0.01, 0); });
   await settled(page);
-  const two = await page.evaluate(() => ({ sub: bannerSub.textContent, kind: banner.dataset.kind, chip: chipName.textContent, chipWarn: turnChip.classList.contains('warn') }));
+  const two = await page.evaluate(() => ({ sub: bannerSub.textContent, kind: banner.dataset.kind, chip: turnChip.dataset.name, chipWarn: turnChip.classList.contains('warn') }));
   await page.click('#menuBtn');
   Object.assign(two, await page.evaluate(() => ({ meta: p0meta.textContent, warn: p0meta.classList.contains('warn'), shown: !gameNow.hidden && p0meta.getBoundingClientRect().height > 0 })));
   await page.click('#resumeBtn');
   check('9-ball: a second foul in a row warns that a third loses (banner, and the card in the pause menu)', /Player 1 is on two fouls: a third loses/.test(two.sub) && two.kind === 'foul' && /Two fouls/.test(two.meta) && two.warn && two.shown, JSON.stringify(two));
   const chipTwo = await page.evaluate(() => {
     const was = game.fouls.slice(), out = {};
-    game.fouls = [0, 2]; hud(); out.on = [chipName.textContent, turnChip.classList.contains('warn')];
-    game.fouls = [2, 0]; hud(); out.off = [chipName.textContent, turnChip.classList.contains('warn')];
+    game.fouls = [0, 2]; hud(); out.on = [turnChip.dataset.name, turnChip.classList.contains('warn')];
+    game.fouls = [2, 0]; hud(); out.off = [turnChip.dataset.name, turnChip.classList.contains('warn')];
     game.fouls = was; hud();
     return out;
   });

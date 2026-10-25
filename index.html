@@ -54,11 +54,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* portrait: the table edge to edge, one strip under it: english, power (the biggest), fine
    aim, the turn chip and pause */
 [data-layout="portrait"] #ui { grid-template: "stage" minmax(0, 1fr) "ctl" 56px / minmax(0, 1fr); }
-[data-layout="portrait"] #ctl { flex-direction: row; gap: 5px; }
+[data-layout="portrait"] #ctl { flex-direction: row; gap: 4px; }
 [data-layout="portrait"] #spinBox { order: 1; }
 [data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 150px; }   /* fonts must not shrink the shot meter: the chip gives way */
 [data-layout="portrait"] #fineWheel { order: 3; height: 56px; }
-[data-layout="portrait"] #turnChip { order: 4; padding: 0 7px; gap: 4px; flex-shrink: 1; min-width: 0; overflow: hidden; }
+[data-layout="portrait"] #turnChip { order: 4; height: 56px; }
+[data-layout="portrait"] .pchip { width: 34px; height: 56px; }
+/* under 390 px wide the meter gives a little so pause stays on screen; short landscape trims the column */
+@media (max-width: 389px) { [data-layout="portrait"] #powerBar { min-width: 136px; } [data-layout="portrait"] .pchip { width: 32px; } }
 [data-layout="portrait"] #menuBtn { order: 5; width: 44px; height: 56px; }
 [data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
 /* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
@@ -83,26 +86,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
   [data-layout="portrait"] #powerBar, [data-layout="portrait"] #fineWheel, [data-layout="portrait"] #menuBtn { height: 60px; }
 }
 
-/* ---- the turn chip: a dot (signal red: the turn marker), a short name and what they are on:
-   one or two of their group's balls, the 8, or in 9-ball the ball on and its number. It pulses
-   while the CPU thinks and takes the illegal colour on two fouls in a row. ---- */
-#turnChip { flex: none; display: flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 8px;
-  border-radius: 15px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
+/* ---- the player chips: one per player, as tall as the controls beside them: a short name over
+   what they are on (a ball of their group, one of each on an open table, the 8 once the group is
+   gone; in 9-ball the ball on, for the player to shoot). The player to shoot is lit with the turn
+   marker; a chip pulses while the CPU thinks and takes the illegal colour on two fouls. ---- */
+#turnChip { flex: none; display: flex; gap: 4px; }
 #turnChip[hidden] { display: none; }
-#turnChip .tdot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 2.5px rgba(192, 57, 43, .3); }
-#turnChip .cb { display: flex; align-items: center; gap: 2px; }
-#turnChip .dot { width: 11px; height: 11px; }
-#turnChip .dot.ring { margin: 0 1px; }
-#turnChip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
-/* under 400 px wide the meter keeps its 150 px and the chip drops its turn dot (the name says it) */
-@media (max-width: 399px) { [data-layout="portrait"] #turnChip .tdot { display: none; } }
-#turnChip.warn { border-color: var(--illegal); }
-#turnChip.warn .tname { color: var(--illegal); }
-#turnChip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
+.pchip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0;
+  border-radius: 12px; background: var(--panel); border: 1.5px solid var(--line); opacity: .62; font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
+.pchip.on { opacity: 1; border-color: var(--signal); background: var(--panel-2); box-shadow: inset 0 0 0 1px rgba(192, 57, 43, .35); }
+.pchip .pn { max-width: 100%; overflow: hidden; text-overflow: clip; }
+.pchip .pb { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 12px; }
+.pchip .dot { width: 12px; height: 12px; }
+.pchip .dot.ring { margin: 0 1px; }
+.pchip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
+.pchip.warn { border-color: var(--illegal); }
+.pchip.warn .pn { color: var(--illegal); }
+.pchip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
 @keyframes chipPulse { 50% { border-color: #8a8a94; background: var(--panel-3); } }
-[data-layout="wide"] #turnChip { width: var(--col); height: 32px; padding: 0 2px; flex-direction: column; gap: 3px; border-radius: 10px; }
-[data-layout="wide"] #turnChip .tn { display: flex; align-items: center; gap: 4px; }
-#turnChip .tn { display: flex; align-items: center; gap: 5px; }
+[data-layout="wide"] #turnChip { flex-direction: column; width: var(--col); }
+[data-layout="wide"] .pchip { width: var(--col); height: 42px; }
+/* a short landscape screen: the column trims chips, wheel and the meter's floor so it all fits */
+@media (max-height: 420px) { [data-layout="wide"] .pchip { height: 38px; } [data-layout="wide"] #fineWheel { height: 64px; } [data-layout="wide"] #powerBar { min-height: 96px; } }
 
 /* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
 #gameNow { margin: 0 0 14px; }
@@ -282,7 +287,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
-    <div id="turnChip" aria-hidden="true"><span class="tn"><span class="tdot"></span><span class="tname" id="chipName"></span></span><span class="cb" id="chipBalls"></span></div>
+    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div></div>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
@@ -3699,26 +3704,32 @@ function cardOf(p) {
 const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `P${p + 1}`;
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
-  if (game.kind === '9') return { balls: on.length ? [on[0]] : [], num: on.length ? String(on[0]) : '' };
+  if (game.kind === '9') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
   if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
   const left = on.filter(n => groupOf(n) === gr);
   return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
 }
 function hudChip() {
-  const p = game.turn;
   turnChip.hidden = game.winner !== null;
-  const c = chipOf(p), name = shortName(p);
-  if (chipName.textContent !== name) chipName.textContent = name;
-  const key = c.balls.join(',') + '|' + c.num;
-  if (chipBalls.dataset.key !== key) {
-    chipBalls.dataset.key = key;
-    const els = c.balls.map(n => dotEl(n));
-    if (c.num) { const t = document.createElement('span'); t.className = 'num'; t.textContent = c.num; els.push(t); }
-    chipBalls.replaceChildren(...els);
+  for (const p of [0, 1]) {
+    const el = document.getElementById('pchip' + p), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
+    if (name.textContent !== nm) name.textContent = nm;
+    const key = c.balls.join(',') + '|' + c.num;
+    if (box.dataset.key !== key) {
+      box.dataset.key = key;
+      const els = c.balls.map(n => dotEl(n));
+      if (c.num) { const t = document.createElement('span'); t.className = 'num'; t.textContent = c.num; els.push(t); }
+      box.replaceChildren(...els);
+    }
+    el.classList.toggle('on', p === game.turn);
+    el.classList.toggle('busy', p === game.turn && state === 'thinking' && !human() && !cpuPlan);
+    el.classList.toggle('warn', onTwo(game, p));
   }
+  /* the whole strip carries the active player's state too (tests and screen-reader-free checks) */
   turnChip.classList.toggle('busy', state === 'thinking' && !human() && !cpuPlan);
-  turnChip.classList.toggle('warn', onTwo(game, p));
+  turnChip.classList.toggle('warn', onTwo(game, game.turn));
+  turnChip.dataset.name = shortName(game.turn);
 }
 /* the game section of the pause menu: both cards, the potted balls in pot order, the latest word */
 function hudMenu() {

@@ -3,7 +3,10 @@
    follow, draw and the stop shot; sliding turns into rolling; squirt and throw; energy
    (rolling and spinning included) never rises; results are deterministic; the break spreads
    the rack; fuzzed shots never produce a NaN, an escaped ball, an overlap or a timeout, and
-   the fail-safe pots anything that gets out. */
+   the fail-safe pots anything that gets out. The pockets keep nothing half over a hole: balls
+   dying at the mouths either drop or rest clear of the hole but for a sliver. The power curve
+   makes every part of the bar useful, draw comes back, reverse english reads off a rail, and
+   the table records whether the cue ball crossed the head string before first contact. */
 'use strict';
 const { check, done } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
@@ -11,6 +14,9 @@ const S = loadSim();
 const R = S.BALL_R, DEG = Math.PI / 180;
 
 const shot = (balls, angle, power, spin = 0) => S.simulateShot(balls, { angle, power, spin });
+/* the power for a cue-ball speed: the checks below are written in m/s so that a new power curve
+   does not move them */
+const P = v => S.powerFor(v);
 const cueAt = (x, y) => S.newBall(0, x, y);
 const ball = (balls, n) => balls.find(b => b.n === n);
 const slip = b => Math.hypot(b.vx + R * b.wy, b.vy - R * b.wx);
@@ -48,37 +54,85 @@ function play(t, limit = Infinity) {
 
 /* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle */
 {
-  const r = shot([cueAt(S.TL - 0.6, S.TW - 0.6)], Math.PI / 4, 0.4);
+  const r = shot([cueAt(S.TL - 0.6, S.TW - 0.6)], Math.PI / 4, P(0.93));
   check('a ball rolled at a corner is potted', r.potted.includes(0), JSON.stringify(r.potted));
-  const s = shot([cueAt(S.TL / 2, S.TW / 2)], -Math.PI / 2, 0.4);
+  const s = shot([cueAt(S.TL / 2, S.TW / 2)], -Math.PI / 2, P(0.93));
   check('a ball rolled at a side pocket is potted', s.potted.includes(0), JSON.stringify(s.potted));
-  const t = S.strike(S.newTable([cueAt(1.0, R + 0.0005)]), Math.PI, 0.5, 0);
+  const t = S.strike(S.newTable([cueAt(1.0, R + 0.0005)]), Math.PI, P(1.57), 0);
   play(t);
   check('a ball rolling along the rail into a corner drops', t.potted.includes(0) && t.pocketOf[0] === 0, JSON.stringify({ potted: t.potted, k: t.pocketOf }));
   /* 15 degrees off the long rail, hard, a ball width wide of the mouth's middle: it hits the
      facing, bounces across and comes back out. Dead centre on the same line it drops. */
   const m = S.POCKET_AIM[0], a = Math.PI + 15 * DEG, ux = Math.cos(a), uy = Math.sin(a);
   const from = off => [m[0] - ux * 0.7 - uy * off, m[1] - uy * 0.7 + ux * off];
-  const rt = S.strike(S.newTable([cueAt(...from(0.032))]), a, 0.7, 0), kinds = play(rt);
+  const rt = S.strike(S.newTable([cueAt(...from(0.032))]), a, P(3.53), 0), kinds = play(rt);
   const out = rt.balls[0];
   check('a hard ball into the jaw at a bad angle rattles out', kinds.jaw >= 1 && !rt.potted.length && out.on && out.x > 0 && out.y > 0, JSON.stringify({ kinds, potted: rt.potted }));
-  const ct = S.strike(S.newTable([cueAt(...from(0))]), a, 0.7, 0);
+  const ct = S.strike(S.newTable([cueAt(...from(0))]), a, P(3.53), 0);
   play(ct);
   check('the same line through the middle of the mouth drops', ct.potted.includes(0) && ct.pocketOf[0] === 0);
-  check('a drop is reported as a pocket hit with its speed', (() => { const q = S.strike(S.newTable([cueAt(S.TL / 2, S.TW / 2)]), -Math.PI / 2, 0.4, 0); let v = 0; while (S.stepTable(q)) for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; return v > 0.1; })());
+  check('a drop is reported as a pocket hit with its speed', (() => { const q = S.strike(S.newTable([cueAt(S.TL / 2, S.TW / 2)]), -Math.PI / 2, P(0.93), 0); let v = 0; while (S.stepTable(q)) for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; return v > 0.1; })());
+}
+
+/* 1b. nothing hangs half over a hole. A ball that dies on the lip (within POCKET_LIP of the
+   hole) creeps in; one that dies just outside it stays. Then 600 lags that die at the mouths,
+   from every angle the bed allows, a little wide of the middle, at speeds from short to a
+   little long: none rests with its centre over a hole or its lip, none rests more than a third
+   of its radius over the drawn hole, and the ones that rest over it at all (genuine hangers,
+   a sliver on the lip) stay rare. */
+{
+  const creep = (k, gap) => {
+    const p = S.POCKETS[k], m = S.POCKET_AIM[k], d = Math.hypot(m[0] - p[0], m[1] - p[1]), r = S.POCKET_R[k] + gap;
+    const b = S.newBall(0, p[0] + (m[0] - p[0]) / d * r, p[1] + (m[1] - p[1]) / d * r);
+    Object.assign(b, { vx: (m[0] - p[0]) / d * 0.005, vy: (m[1] - p[1]) / d * 0.005 });
+    const t = S.newTable([b]);
+    Object.assign(t.balls[0], { wx: t.balls[0].vy / R, wy: -t.balls[0].vx / R });
+    while (S.stepTable(t));
+    return t.balls[0].on;
+  };
+  const lip = [0, 1, 2, 3, 4, 5].map(k => [creep(k, S.POCKET_LIP - 0.002), creep(k, S.POCKET_LIP + 0.002)]);
+  check('a ball dying on a hole\'s lip creeps in, one dying just outside it stays', lip.every(([a, b]) => !a && b) && S.POCKET_LIP < R, JSON.stringify(lip));
+  const rnd = S.rng(11), N = 600;
+  let potted = 0, inside = 0, worst = 0, over = 0;
+  for (let i = 0; i < N; i++) {
+    const k = i % 6, m = S.POCKET_AIM[k], side = k === 1 || k === 4;
+    const nx = side ? 0 : (m[0] < S.TL / 2 ? 1 : -1) * Math.SQRT1_2, ny = (m[1] < S.TW / 2 ? 1 : -1) * (side ? 1 : Math.SQRT1_2);
+    const a = Math.atan2(ny, nx) + (rnd() * 2 - 1) * (side ? 1.1 : 0.8), d = 0.15 + rnd() * 0.6;
+    const x = m[0] + Math.cos(a) * d, y = m[1] + Math.sin(a) * d;
+    if (x < 0.05 || x > S.TL - 0.05 || y < 0.05 || y > S.TW - 0.05) { i--; continue; }
+    const w = (rnd() * 2 - 1) * 0.05, tx = m[0] - Math.sin(a) * w, ty = m[1] + Math.cos(a) * w;
+    /* the speed that rolls about to the mouth: a ball keeps 5/7 of it into the roll, which dies at mu_roll g */
+    const reach = Math.hypot(tx - x, ty - y) + rnd() * 0.25 - 0.05, v = Math.sqrt(2 * 0.098 * Math.max(0.01, reach)) * 1.4 * (0.9 + rnd() * 0.3);
+    const t = S.strike(S.newTable([cueAt(x, y)]), Math.atan2(ty - y, tx - x), P(v), 0);
+    while (S.stepTable(t));
+    const b = t.balls[0];
+    if (!b.on) { potted++; continue; }
+    let hang = 0;
+    S.POCKETS.forEach((p, j) => {
+      const dd = Math.hypot(b.x - p[0], b.y - p[1]);
+      if (dd < S.POCKET_R[j] + S.POCKET_LIP) inside++;
+      hang = Math.max(hang, S.POCKET_R[j] + R - dd);
+    });
+    if (hang > 0) over++;
+    worst = Math.max(worst, hang);
+  }
+  const res = { potted, inside, over, worstMm: +(worst * 1000).toFixed(1) };
+  check('600 lags dying at the mouths: no ball rests with its centre over a hole or its lip', inside === 0 && potted > N / 2, JSON.stringify(res));
+  check('600 lags: no ball rests more than a third of its radius over a hole', worst < R / 3, JSON.stringify(res));
+  check('600 lags: hangers (resting over a hole at all) under 6% of lags that die at a mouth', over < 0.06 * N, JSON.stringify(res));
 }
 
 /* 2. cushions reflect, english bends the rebound */
 {
   const t = S.newTable([cueAt(0.6, 0.6)]);
-  S.strike(t, -Math.PI / 2, 0.4, 0);
+  S.strike(t, -Math.PI / 2, P(0.93), 0);
   let back = false;
   for (let i = 0; i < 20000 && S.stepTable(t); i++) if (t.balls[0].vy > 0) back = true;
   const b = t.balls[0];
   check('cushion reflects the ball', back && b.on && b.y >= R - 1e-9, JSON.stringify({ y: b.y, on: b.on }));
   /* straight into the foot rail; the shooter faces +x, so his right is +y */
   const off = x => {
-    const q = S.strike(S.newTable([cueAt(1.8, S.TW / 2)]), 0, 0.5, { x, y: 0 }), c = q.balls[0];
+    const q = S.strike(S.newTable([cueAt(1.8, S.TW / 2)]), 0, P(1.57), { x, y: 0 }), c = q.balls[0];
     let k = -1;
     while (S.stepTable(q)) { if (k < 0 && c.vx < 0) k = 0; if (k >= 0 && ++k === 12) break; }
     return Math.atan2(c.vy, -c.vx) / DEG;
@@ -88,13 +142,34 @@ function play(t, limit = Infinity) {
   /* 30 degrees from the normal into the bottom rail: running english (here left) comes off
      wider, reverse narrower */
   const reb = x => {
-    const q = S.strike(S.newTable([cueAt(0.4, 0.5)]), 60 * DEG, 0.5, { x, y: 0 }), c = q.balls[0];
+    const q = S.strike(S.newTable([cueAt(0.4, 0.5)]), 60 * DEG, P(1.57), { x, y: 0 }), c = q.balls[0];
     let k = -1;
     while (S.stepTable(q)) { if (k < 0 && c.vy < 0) k = 0; if (k >= 0 && ++k === 6) break; }
     return Math.atan2(c.vx, -c.vy) / DEG;
   };
   const run = reb(-1), plain = reb(0), rev = reb(1);
-  check('running english lengthens the rebound angle, reverse shortens it', run > plain + 5 && rev < plain - 2, JSON.stringify({ run, plain, rev }));
+  check('running english lengthens the rebound angle, reverse shortens it', run > plain + 5 && rev < plain - 5, JSON.stringify({ run, plain, rev }));
+  /* 30 and 40 degrees in, full english at 1.5 and 3 m/s: the rebound angle 5 ms after the hit,
+     and (at 1.5 m/s) the direction of the next 0.3 m once the cloth has bent the path. Reverse
+     is smaller than running, as on a real cushion, but it reads: at least 4 degrees shorter off
+     the cushion, and still shorter once the path has bent. */
+  const bend = (deg, x, v) => {
+    const q = S.strike(S.newTable([cueAt(0.3, 0.6)]), (90 - deg) * DEG, P(v), { x, y: 0 }), c = q.balls[0];
+    let k = -1, early = NaN, p0 = null;
+    while (S.stepTable(q)) {
+      if (k < 0 && c.vy < 0) k = 0;
+      if (k >= 0 && ++k === 6) { early = Math.atan2(c.vx, -c.vy) / DEG; p0 = [c.x, c.y]; }
+      if (p0 && Math.hypot(c.x - p0[0], c.y - p0[1]) > 0.3) break;
+    }
+    return [early, p0 ? Math.atan2(c.x - p0[0], p0[1] - c.y) / DEG : NaN];
+  };
+  const eng = [];
+  for (const deg of [30, 40]) for (const v of [1.5, 3]) {
+    const [r0, r1] = bend(deg, -1, v), [n0, n1] = bend(deg, 0, v), [v0, v1] = bend(deg, 1, v);
+    eng.push({ deg, v, run: [r0 - n0, r1 - n1].map(a => +a.toFixed(1)), rev: [v0 - n0, v1 - n1].map(a => +a.toFixed(1)) });
+  }
+  check('reverse english shortens the rebound at 30-40 degrees in by at least 4 degrees, running lengthens it more',
+    eng.every(e => e.rev[0] < -4 && (e.v > 2 || e.rev[1] < -2) && e.run[0] > 10 && e.run[0] > -e.rev[0]), JSON.stringify(eng));
 }
 
 /* 3. stun, follow, draw. Cue at 0.6, object 0.25-1 m ahead. Stun: velocities 5 ms after
@@ -120,19 +195,35 @@ function play(t, limit = Infinity) {
   check('stun: cue ball all but stops', Math.abs(stun.cue) < 0.15 * v0, JSON.stringify({ stun, v0 }));
   check('stun: object ball takes the speed', stun.obj > 0.7 * v0, JSON.stringify({ stun, v0 }));
   for (const gap of [0.3, 1]) {
-    const fol = after(1, 0.6, gap), drw = after(-1, gap < 0.5 ? 0.7 : 0.85, gap), stop = after(-0.3, 0.6, gap);
+    const fol = after(1, P(2.43), gap), drw = after(-1, P(gap < 0.5 ? 3.53 : 5.69), gap), stop = after(-0.25, P(2.43), gap);
     check(`follow over ${gap} m: cue ball rolls on after contact`, fol.roll > 0.2 * fol.vc && fol.far > 0.3, JSON.stringify(fol));
     check(`draw over ${gap} m: cue ball comes back toward the shooter`, drw.roll < -0.2 * drw.vc && drw.far > 0.3, JSON.stringify(drw));
     if (gap < 0.5) check('stop shot: a touch of draw leaves the cue ball dead', Math.abs(stop.roll) < 0.05 * stop.vc, JSON.stringify(stop));
   }
   check('first contact is recorded', shot(lay(0.25), 0, 0.5).first === 1);
+  /* what the cue ball does after a full hit with the object ball 0.5 m ahead, by power, with
+     the object ball lifted off once hit so nothing else gets in the way: how far it comes back
+     (until it stops or meets a rail) and how far it goes on */
+  const backOn = (spin, power, gap = 0.5) => {
+    const t = S.strike(S.newTable([cueAt(1, S.TW / 2), S.newBall(1, 1 + gap, S.TW / 2)]), 0, power, spin), c = t.balls[0];
+    while (t.first === null && S.stepTable(t));
+    const x0 = c.x;
+    S.stepTable(t); t.balls[1].on = false; t.hits.length = 0;
+    let back = 0, on = 0;
+    while (S.stepTable(t) && !t.hits.length) { back = Math.max(back, x0 - c.x); on = Math.max(on, c.x - x0); }
+    return { back: +back.toFixed(3), on: +on.toFixed(3), first: t.first };
+  };
+  const d50 = backOn(-1, 0.5), s40 = backOn(-0.35, 0.4), c40 = backOn(0, 0.4), d35 = backOn(-1, 0.35, 0.6);
+  check('full draw at 50% power over 0.5 m brings the cue ball back at least 0.4 m', d50.back >= 0.4, JSON.stringify(d50));
+  check('stun at 40% power over 0.5 m (a touch below centre) stops within a ball width', s40.back < 2 * R && s40.on < 2 * R && c40.on > 0.2, JSON.stringify({ s40, centre: c40 }));
+  check('35% power with full draw reaches a ball 0.6 m away', d35.first === 1, JSON.stringify(d35));
 }
 
 /* 3b. sliding turns into rolling: the slip dies at 7/2 mu g, leaving 5/7 of the speed */
 {
-  const t = S.strike(S.newTable([cueAt(0.3, S.TW / 2)]), 0, 0.5, 0), c = t.balls[0], v0 = c.vx;
+  const t = S.strike(S.newTable([cueAt(0.3, S.TW / 2)]), 0, P(1.57), 0), c = t.balls[0], v0 = c.vx;
   while (slip(c) > 1e-9 && S.stepTable(t));
-  const ts = t.t, vr = c.vx, want = 2 * v0 / (7 * 0.2 * 9.8);
+  const ts = t.t, vr = c.vx, want = 2 * v0 / (7 * S.MU_SLIDE * 9.8);
   let back = 0;
   for (let i = 0; i < 600 && S.stepTable(t); i++) back = Math.max(back, slip(c));
   check('a centre-ball hit slides, then rolls at 5/7 of its speed', Math.abs(ts - want) < 0.05 * want && Math.abs(vr / v0 - 5 / 7) < 0.02, JSON.stringify({ ts, want, ratio: vr / v0 }));
@@ -141,7 +232,7 @@ function play(t, limit = Infinity) {
 
 /* 3c. squirt and throw */
 {
-  const dir = x => { const t = S.strike(S.newTable([cueAt(1, 0.6)]), 0, 0.5, { x, y: 0 }); return Math.atan2(t.balls[0].vy, t.balls[0].vx) / DEG; };
+  const dir = x => { const t = S.strike(S.newTable([cueAt(1, 0.6)]), 0, P(1.57), { x, y: 0 }); return Math.atan2(t.balls[0].vy, t.balls[0].vx) / DEG; };
   const r = dir(1), l = dir(-1);
   check('squirt: right english pushes the cue ball left of the cue line, 0.5-3 degrees', r < -0.5 && r > -3 && Math.abs(l + r) < 1e-9, JSON.stringify({ r, l }));
   /* a 30 degree cut with a touch of draw so the cue ball slides into it: the object ball
@@ -153,11 +244,11 @@ function play(t, limit = Infinity) {
     const c = t.balls[0], o = t.balls[1];
     return (Math.atan2(o.vy, o.vx) - Math.atan2(o.y - c.y, o.x - c.x)) / DEG;
   };
-  const slow = cut(0.4), fast = cut(0.9);
+  const slow = cut(P(0.93)), fast = cut(P(6.55));
   check('cut-induced throw: the object ball leaves over a degree off the line of centres', slow < -1, String(slow));
   check('cut-induced throw is smaller at high speed', fast < 0 && Math.abs(fast) < Math.abs(slow) / 2, JSON.stringify({ slow, fast }));
   const full = x => {
-    const t = S.strike(S.newTable([cueAt(1, S.TW / 2), S.newBall(1, 1.3, S.TW / 2)]), 0, 0.4, { x, y: 0 });
+    const t = S.strike(S.newTable([cueAt(1, S.TW / 2), S.newBall(1, 1.3, S.TW / 2)]), 0, P(0.93), { x, y: 0 });
     while (t.first === null && S.stepTable(t));
     const c = t.balls[0], o = t.balls[1];
     return (Math.atan2(o.vy, o.vx) - Math.atan2(o.y - c.y, o.x - c.x)) / DEG;
@@ -214,8 +305,8 @@ function play(t, limit = Infinity) {
   check('balls at rest have no velocity and no spin', a.balls.every(x => x.vx === 0 && x.vy === 0 && x.wx === 0 && x.wy === 0 && x.wz === 0));
 }
 
-/* 6. roll-out grows with power, a soft shot stops on the cloth, a medium one runs about two
-   table lengths */
+/* 6. roll-out grows with power, a soft shot stops on the cloth; the power curve: a quarter is a
+   gentle roll of about a table length, a half is firm, full is the break */
 {
   const dist = p => ball(shot([cueAt(0.4, S.TW / 2)], 0, p).balls, 0).x - 0.4;
   const d = [0.05, 0.1, 0.15, 0.2].map(dist);
@@ -225,7 +316,17 @@ function play(t, limit = Infinity) {
   const t = S.strike(S.newTable([cueAt(0.4, S.TW / 2 + 0.1)]), 0.05, 0.5, 0);
   let path = 0;
   while (S.stepTable(t)) path += Math.hypot(t.balls[0].vx, t.balls[0].vy) * S.SIM_DT;
-  check('power 0.5 rolls a lone ball 1.5-2 table lengths', path > 1.5 * S.TL && path < 2 * S.TL, (path / S.TL).toFixed(2) + ' lengths');
+  const lengths = p => {
+    const q = S.strike(S.newTable([cueAt(0.4, S.TW / 2 + 0.1)]), 0.05, p, 0);
+    let L = 0;
+    while (S.stepTable(q)) L += Math.hypot(q.balls[0].vx, q.balls[0].vy) * S.SIM_DT;
+    return L / S.TL;
+  };
+  const q25 = lengths(0.25), q10 = lengths(0.1), q50 = path / S.TL;
+  check('power curve: 25% rolls a lone ball 0.75-1.3 table lengths, 10% still rolls a ball width or more', q25 > 0.75 && q25 < 1.3 && q10 * S.TL > 2 * R, JSON.stringify({ q10, q25 }));
+  check('power curve: 50% is a firm shot, 2.3-4 table lengths', q50 > 2.3 && q50 < 4, q50.toFixed(2) + ' lengths');
+  const inv = [0, 0.1, 0.25, 0.5, 0.8, 1].every(p => Math.abs(S.powerFor(S.speedOf(p)) - p) < 1e-9);
+  check('powerFor inverts speedOf', inv && S.powerFor(0) === 0 && S.powerFor(99) === 1);
 }
 
 /* 7. rack shapes */
@@ -313,6 +414,23 @@ function play(t, limit = Infinity) {
   Object.assign(t.balls[1], { vx: 0.5 });
   S.stepTable(t);
   check('the fail-safe pots a ball that got off the bed outside a mouth', !t.balls[1].on && t.potted.includes(3) && t.escaped === 1, JSON.stringify({ on: t.balls[1].on, esc: t.escaped }));
+}
+
+/* 9. the kitchen rule's input: crossed is true once the cue ball's centre reaches the head
+   string after the strike, at or before first contact */
+{
+  const cross = (cue, obj, angle, power) => S.simulateShot([cueAt(...cue), ...obj.map(([n, x, y]) => S.newBall(n, x, y))], { angle, power, spin: 0 });
+  const over = cross([0.3, 0.6], [[1, 1.5, 0.6]], 0, 0.3), behind = cross([0.3, 0.6], [[1, 0.5, 0.6]], 0, 0.3);
+  const soft = cross([0.3, 0.6], [], Math.PI, 0.1), after = cross([0.3, 0.6], [[1, 0.45, 0.6 + 1.8 * R]], 0, 0.4);
+  /* an object ball a ball width past the string: contact with the cue ball's centre 3 mm past
+     it counts, 3 mm short of it does not */
+  const edge = gap => S.simulateShot([cueAt(0.3, 0.6), S.newBall(1, S.HEAD_X + 2 * R + gap, 0.6)], { angle: 0, power: 0.2, spin: 0 });
+  const at = edge(0.003), short = edge(-0.003);
+  check('crossed: a shot from the kitchen across the head string to a ball past it', over.crossed === true && over.first === 1, JSON.stringify({ crossed: over.crossed, first: over.first }));
+  check('crossed: false when the cue ball hits a ball behind the string, or stays behind it', behind.crossed === false && behind.first === 1 && soft.crossed === false, JSON.stringify([behind.crossed, soft.crossed]));
+  check('crossed: false when the cue ball only crosses after first contact', after.first === 1 && after.crossed === false && after.balls[0].x > S.HEAD_X, JSON.stringify({ crossed: after.crossed, x: after.balls[0].x }));
+  check('crossed: judged at first contact, to the millimetre', at.first === 1 && at.crossed === true && short.first === 1 && short.crossed === false, JSON.stringify([at.crossed, short.crossed]));
+  check('crossed is in resultOf, and a fresh table has not crossed', 'crossed' in S.resultOf(S.newTable([cueAt(0.3, 0.6)])) && S.newTable([cueAt(0.3, 0.6)]).crossed === false);
 }
 
 done();

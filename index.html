@@ -273,13 +273,13 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    a right-handed frame whose z points down into the slate (x along the table, y across it, as
    drawn). So the cloth contact is at +R z and rolling means vx = -R wy, vy = R wx. The values
    are the usual measured ones (Marlow, Alciatore, pooltool): cloth slide 0.2, roll 0.01,
-   ball-ball friction falling with slip speed, cushion friction 0.2. */
+   ball-ball friction falling with slip speed, cushion friction 0.2 (0.3 along the rail). */
 const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a quarter radius */
 const BALL_R = 0.028575;          /* 2 1/4 in */
 const TL = 2.54, TW = 1.27;       /* 9 ft table, playing surface between cushion noses */
 const HEAD_X = TL / 4, FOOT = [TL * 3 / 4, TW / 2];
-const MIN_V = 0.08, MAX_V = 8.5;  /* centre-ball speed at power 0 and power 1 (a hard break) */
-const POWER_EXP = 2.5;            /* power curve: 0.5 rolls a lone ball about two table lengths */
+const MIN_V = 0.2, MAX_V = 8.5;   /* centre-ball speed at power 0 and power 1 (a hard break) */
+const POWER_EXP = 1.7;            /* power curve: 0.25 rolls a lone ball about a table length, 0.5 is firm */
 const V_CAP = 9;                  /* belt and braces: energy already keeps every ball under MAX_V */
 const G = 9.8;
 const MU_SLIDE = 0.2;             /* ball on cloth, sliding */
@@ -289,15 +289,17 @@ const STOP_V = 0.01;
 const MAX_SIM_T = 60;
 const BALL_E = 0.94;
 const THROW_A = 0.00995, THROW_B = 0.108, THROW_C = 1.088;   /* ball-ball friction a + b exp(-c slip) */
-const CUSH_MU = 0.2;
+const CUSH_MU = 0.2, CUSH_MU_ALONG = 0.1;   /* ball on the cushion, and the extra grip along the rail */
 const NOSE_S = 0.27, NOSE_C = Math.sqrt(1 - NOSE_S * NOSE_S); /* nose 63.5% of a diameter up: 0.27 R above the centre */
-const TIP_MAX = 0.5;              /* tip offset at full spin, in radii: about where a miscue starts */
+const TIP_MAX = 0.6;              /* tip offset at full spin, in radii: about where a miscue starts */
 const CUE_RATIO = 6 / 19;         /* ball over cue mass: off-centre hits send the ball slower */
+const TIP_LOSS = 0.6;             /* share of the two-mass speed loss a follow-through keeps (the tip stays on longer) */
 const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, away from the english */
 const CORNER_W = 0.1207, SIDE_W = 0.1334;   /* mouths between jaw points: 4.75 in and 5.25 in */
 const CORNER_FACE = 142 * Math.PI / 180, SIDE_FACE = 104 * Math.PI / 180;  /* WPA facing angles */
 const CUSH_W = 0.05;              /* cushion depth, nose to rail */
 const CORNER_SHELF = 0.032;       /* from the corner mouth line to the edge of the hole */
+const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
 const ESCAPE_R = 0.16;            /* a centre off the bed this far from every mouth got out: the fail-safe */
 const RACK_GAP = 0.0002;
 
@@ -368,7 +370,9 @@ function rack(kind) {
   rows.forEach((row, k) => row.forEach((n, j) => out.push(newBall(n, FOOT[0] + k * dx, FOOT[1] + (j - (row.length - 1) / 2) * sp))));
   return out;
 }
+/* the power curve: cue-ball speed (m/s, centre hit) for a power in [0, 1], and back */
 const speedOf = power => MIN_V + (MAX_V - MIN_V) * clamp(power, 0, 1) ** POWER_EXP;
+const powerFor = v => clamp((v - MIN_V) / (MAX_V - MIN_V), 0, 1) ** (1 / POWER_EXP);
 
 /* ---- 1c. collisions ---- */
 function closestOnSeg(ax, ay, bx, by, x, y) {
@@ -395,23 +399,34 @@ function rub(b, ux, uy, uz, load, mu, eff, rx, ry, rz) {
 /* the cloth's grip under the ball: slip of the contact point */
 const slipX = b => b.vx + BALL_R * b.wy, slipY = b => b.vy - BALL_R * b.wx;
 /* A cushion with inward normal n. The nose touches 0.27 R above the centre, so the push
-   (restitution falling with impact speed) also presses the ball into the slate. Two friction
-   impulses follow: the rubber on the ball's slip at the nose, which is where english changes
-   the rebound angle and the spin, and the cloth on the slip under the ball. Returns the
+   (restitution falling with impact speed) also presses the ball into the slate. Friction
+   follows: the rubber on the ball's slip at the nose, which is where english changes the
+   rebound angle and the spin, then the cloth on the slip under the ball. The nose takes
+   CUSH_MU along the whole slip, then up to CUSH_MU_ALONG more along the rail alone: the
+   rubber is stiff along its length and gives up and down. With one budget, the slip of the
+   ball's roll into the cushion used the grip a reverse-english ball needs, so reverse hardly
+   moved the rebound while running moved it a lot. Each impulse only takes energy. Returns the
    impact speed. */
+function noseSlip(b, tx, ty, rx, ry, rz) {
+  const vt = b.vx * tx + b.vy * ty;
+  let ux = vt * tx + b.wy * rz - b.wz * ry, uy = vt * ty + b.wz * rx - b.wx * rz, uz = b.wx * ry - b.wy * rx;
+  const un = (ux * rx + uy * ry + uz * rz) / (BALL_R * BALL_R);
+  return [ux - un * rx, uy - un * ry, uz - un * rz];
+}
 function rail(b, nx, ny) {
   const vn = -(b.vx * nx + b.vy * ny);
   if (vn <= 0) return 0;
   const e = clamp(0.88 - 0.03 * vn, 0.7, 0.88), R = BALL_R;
-  const tx = -ny, ty = nx, vt = b.vx * tx + b.vy * ty;
+  const tx = -ny, ty = nx;
   b.vx += (1 + e) * vn * nx; b.vy += (1 + e) * vn * ny;
   /* nose contact r1, upward is -z */
-  const rx = -R * NOSE_C * nx, ry = -R * NOSE_C * ny, rz = -R * NOSE_S;
-  let ux = vt * tx + b.wy * rz - b.wz * ry, uy = vt * ty + b.wz * rx - b.wx * rz, uz = b.wx * ry - b.wy * rx;
-  const un = (ux * rx + uy * ry + uz * rz) / (R * R);
-  ux -= un * rx; uy -= un * ry; uz -= un * rz;
-  const load = (1 + e) * vn / NOSE_C, uh = Math.hypot(ux, uy), u = Math.hypot(uh, uz) || 1;
+  const rx = -R * NOSE_C * nx, ry = -R * NOSE_C * ny, rz = -R * NOSE_S, load = (1 + e) * vn / NOSE_C;
+  let [ux, uy, uz] = noseSlip(b, tx, ty, rx, ry, rz);
+  const uh = Math.hypot(ux, uy), u = Math.hypot(uh, uz) || 1;
   rub(b, ux, uy, uz, load, CUSH_MU, 2.5 + (uh / u) ** 2, rx, ry, rz);
+  [ux, uy, uz] = noseSlip(b, tx, ty, rx, ry, rz);
+  const ut = ux * tx + uy * ty;
+  rub(b, ut * tx, ut * ty, 0, load, CUSH_MU_ALONG, 3.5, rx, ry, rz);
   rub(b, slipX(b), slipY(b), 0, load * NOSE_S, MU_SLIDE, 3.5, 0, 0, R);
   const s = Math.hypot(b.vx, b.vy);
   if (s > V_CAP) { b.vx *= V_CAP / s; b.vy *= V_CAP / s; }
@@ -460,16 +475,17 @@ function hitBalls(tab, a, b) {
 
 /* ---- 1d. the table in motion ---- */
 function newTable(balls) {
-  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
+  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
-   further off centre (cue and ball as two masses, the ball's inertia at the offset), with
+   further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
+   that follows through loses only TIP_LOSS of that, as the tip stays on the ball), with
    w = 5 v d / (2 R^2) about the axis of the offset: top is follow, bottom draw (0.4 R is a
    natural roll), side is english about the vertical. Side english also squirts the ball off
    the cue line, away from the side struck. */
 function strike(tab, angle, power, spin) {
   const c = tab.balls.find(b => b.n === 0), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
-  const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * (ox * ox + oy * oy));
+  const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * TIP_LOSS * (ox * ox + oy * oy));
   const dx = Math.cos(angle), dy = Math.sin(angle), a = angle - SQUIRT * sp.x, k = 2.5 * v / BALL_R;
   c.vx = Math.cos(a) * v; c.vy = Math.sin(a) * v;
   c.wx = k * oy * dy; c.wy = -k * oy * dx; c.wz = -k * ox;
@@ -499,6 +515,17 @@ function pot(tab, b, k, v) {
   tab.potted.push(b.n); tab.pocketOf[b.n] = k;
   tab.hits.push(['pocket', v]);
 }
+/* The cloth is pulled down over the radiused slate edge into the hole, so for POCKET_LIP
+   around a hole the bed falls away. The slope is gentle (a moving ball rolls over it as if
+   flat) but steeper than rolling resistance: a ball that dies on it creeps in. Returns the
+   pocket whose lip the ball's centre is on, or -1. */
+function onLip(b) {
+  for (let k = 0; k < 6; k++) {
+    const p = POCKETS[k], r = POCKET_R[k] + POCKET_LIP;
+    if ((b.x - p[0]) ** 2 + (b.y - p[1]) ** 2 < r * r) return k;
+  }
+  return -1;
+}
 /* one fixed step. Returns true while anything is still rolling. */
 function stepTable(tab) {
   const dt = SIM_DT, B = tab.balls, R = BALL_R, R2 = 4 * R * R, lo = R + 1e-6;
@@ -506,6 +533,8 @@ function stepTable(tab) {
     if (!b.on || still(b)) continue;
     cloth(b, dt);
     b.x += b.vx * dt; b.y += b.vy * dt;
+    /* the kitchen rule: did the cue ball's centre reach the head string by first contact */
+    if (b.n === 0 && b.x >= HEAD_X && tab.first === null) tab.crossed = true;
   }
   /* fixed pair order; pairs at rest and pairs apart are skipped cheaply */
   for (let i = 0; i < B.length; i++) {
@@ -544,8 +573,11 @@ function stepTable(tab) {
     }
     if (!still(b)) {
       const v2 = b.vx * b.vx + b.vy * b.vy;
-      if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; }
-      else moving = true;
+      if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) {
+        const k = onLip(b);
+        if (k >= 0) { pot(tab, b, k, Math.sqrt(v2)); continue; }
+        b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0;
+      } else moving = true;
     }
   }
   tab.t += dt; tab.steps++;
@@ -554,7 +586,7 @@ function stepTable(tab) {
   return true;
 }
 function resultOf(tab) {
-  return { balls: tab.balls.map(b => Object.assign({}, b)), first: tab.first, railAfter: tab.railAfter, potted: tab.potted.slice(), end: tab.end, t: tab.t, steps: tab.steps };
+  return { balls: tab.balls.map(b => Object.assign({}, b)), first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), end: tab.end, t: tab.t, steps: tab.steps };
 }
 function simulateShot(balls, shot) {
   const tab = strike(newTable(balls), shot.angle, shot.power, shot.spin || 0);

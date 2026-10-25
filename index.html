@@ -2107,7 +2107,8 @@ function previewRun(S, ms) {
         if (S.ev) S.cue.push(POCKETS[S.cuePot].slice());
       } else if (evWas) {
         S.cl += Math.hypot(cue.x - px, cue.y - py);
-        const stop = Math.hypot(cue.vx, cue.vy) < PV_SLOW;
+        /* slow is not stopped while follow or draw (spin about a horizontal axis) can drive it on */
+        const stop = Math.hypot(cue.vx, cue.vy) < PV_SLOW && BALL_R * Math.hypot(cue.wx, cue.wy) < PV_SLOW;
         if (stop || S.cl >= lens[0]) { S.cueDone = true; S.cueStop = stop; S.cue.push([cue.x, cue.y]); } else add(S.cue, cue.x, cue.y, PV_GAP);
       }
     }
@@ -2481,9 +2482,9 @@ function settle() {
   const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (v.foul) {
-    const hand = handWords(who, kitchen), w = warn(shooter);
+    const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
     flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2600 : 1800);
-    say(state === 'place' ? placeHint() : `Foul: ${v.foul}. ${hand}.`);
+    say(state === 'place' ? placeHint() + ballOn : `Foul: ${v.foul}. ${hand}.${ballOn}`);
     sfx('foul', 1);
   } else if (who !== shooter) {
     const w = warn(who);
@@ -2581,7 +2582,7 @@ function think(now) {
      hides it), a tap drops it at the tap, a mouse carries it. Once it is down a drag from it is
      an ordinary aim or pull; a tap on it (or holding it LONG_PRESS_MS) picks it up again.
    The english pad sets cueSpin; only two real taps reset it. */
-const TAP_SLOP = { mouse: 6, touch: 14 }, TAP_MAX = { mouse: 12, touch: 24 }, TAP_MS = 260;
+const TAP_SLOP = { mouse: 6, touch: 10 }, TAP_MAX = { mouse: 12, touch: 18 }, TAP_MS = 220;
 const BACK_RATIO = 2;             /* a drag is backward when |back| > 2 |side| (within ~27 deg) */
 const SIDE_CANCEL = 60;           /* an armed pull this far off its line, in CSS px, cancels */
 const LOCK_PX = 24;               /* a locked aim unlocks when the mouse travels this far */
@@ -2667,6 +2668,13 @@ function cancelGestures() {
 table.addEventListener('pointerdown', e => {
   audioOn();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  /* a second finger (a pinch, a palm) kills the gesture in progress: a pinch must never shoot */
+  if (gest && !gest.bar && e.pointerId !== gest.id && e.pointerType !== 'mouse') {
+    const g = gest;
+    clearTimeout(g.hold);
+    if (g.mode !== 'place' && state === 'aim') { aimAngle = g.a0; if (g.armed) cancelPull(g); else g.mode = 'dead'; }
+    return;
+  }
   if (gest || !human() || e.button > 0 || (state !== 'place' && state !== 'aim')) return;
   const mouse = e.pointerType === 'mouse';
   const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, last: [e.clientX, e.clientY], far: 0, mode: null, armed: false, hold: 0, msg0: msg.textContent };

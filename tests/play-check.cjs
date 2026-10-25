@@ -422,6 +422,19 @@ const { check, done, open, settled } = require('./lib.cjs');
   await tch('touchEnd');
   ms = await mstate();
   check('touch: a quick return to the start leaves no stale power and does not shoot', ms.s === 'aim' && ms.shots === M.shots && !ms.pulling, JSON.stringify(ms));
+  /* a pinch along the aim line: the first finger's backward slide would arm; the second cancels */
+  M = await msetup();
+  const pinch = (type, a, b) => mc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: a[0], y: a[1], id: 1 }, ...(b ? [{ x: b[0], y: b[1], id: 2 }] : [])] });
+  await mc.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: M.q[0], y: M.q[1], id: 1 }] });
+  for (let i = 1; i <= 6; i++) await mc.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: M.q[0], y: M.q[1] + (M.arm + 60) * i / 6, id: 1 }] });
+  const pArmed = await mstate();
+  const f1 = [M.q[0], M.q[1] + M.arm + 60];
+  await pinch('touchStart', f1, [M.q[0], M.q[1] - 40]);
+  for (let i = 1; i <= 4; i++) await pinch('touchMove', [f1[0], f1[1] + 10 * i], [M.q[0], M.q[1] - 40 - 10 * i]);
+  await pinch('touchEnd');
+  await mp.waitForTimeout(100);
+  ms = await mstate();
+  check('touch: a second finger cancels an armed pull, so a pinch never shoots', pArmed.pulling && ms.s === 'aim' && ms.shots === M.shots && !ms.pulling && Math.abs(ms.aim - pArmed.aim) < 1e-9, JSON.stringify({ pArmed, ms }));
   /* the placed cue ball: a backward drag pulls; a tap picks it up; holding it slides it */
   M = await msetup(0.6, true);
   await tch('touchStart', M.c[0], M.c[1]);

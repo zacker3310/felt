@@ -129,6 +129,21 @@ async function tableChecks(page, tag) {
   });
   const fmt = o => o.map(r => `${r.cut}deg ${r.sy}/${r.side} p${r.pw.toFixed(2)}: ${(r.err * 100).toFixed(2)} cm over ${r.len} m`).join('; ');
   check('preview: the cue ball path ends within 3 cm of the real roll at the same travel, cuts with centre, follow, draw and side', acc.out.every(r => r.err < 0.03 && r.len > 0.1), fmt(acc.out));
+  const straight = await page.evaluate(() => {
+    for (const b of game.balls) b.on = [0, 1].includes(b.n);
+    Object.assign(game.balls[0], { x: 1.0, y: 0.6 }); Object.assign(game.balls.find(b => b.n === 1), { x: 1.6, y: 0.6 });
+    aimAngle = 0; markPower = powerFor(1.2); preview = null;
+    const out = {};
+    /* draw needs pace to survive 0.6 m of cloth */
+    for (const [k, sy, v] of [['follow', 1, 1.2], ['draw', -1, 3]]) {
+      cueSpin = { x: 0, y: sy }; markPower = powerFor(v); preview = null;
+      for (let i = 0; i < 2000 && !(preview && preview.done); i++) draw(performance.now());
+      const P = preview;
+      out[k] = { len: P.cue.slice(1).reduce((s, q, i) => s + Math.hypot(q[0] - P.cue[i][0], q[1] - P.cue[i][1]), 0), stop: P.cueStop, done: P.done };
+    }
+    return out;
+  });
+  check('preview: a straight follow or draw shot shows the cue ball running on, not a stop at contact', straight.follow.len > 0.1 && straight.draw.len > 0.1, JSON.stringify(straight));
   check('preview: the object ball leaves within 0.5 deg of the real roll', acc.out.every(r => r.objErr < 0.5), acc.out.map(r => r.objErr.toFixed(3)).join(','));
   const c15 = acc.out[0], side = acc.out.find(r => r.side);
   check('preview: 15 deg cut, centre, 0.6 m at 2 m/s follows (leaves under 45 deg off the aim, not along the 75 deg tangent)', c15.leave < 45, c15.leave.toFixed(1) + ' deg');

@@ -109,48 +109,100 @@ h1 { margin: 0; font-size: 44px; line-height: 1; letter-spacing: -0.02em; }
 // #region sim
 /* Everything between these markers is deterministic and touches neither the page nor the
    canvas: tests/sim.cjs runs it in Node. Metres and seconds; the table lies in x (length) and y.
-   The integrator, cushion bounce and rest rules come from puttX; ball-ball contact, pockets
-   and spin are new. */
+   The fixed step and rest rules come from puttX; the ball dynamics (slide, roll, spin, throw,
+   cushions and pocket jaws) are a rigid-ball model with measured coefficients. */
 
 /* ---- 1a. constants ---- */
-const SIM_DT = 1 / 1000;          /* fixed step: at MAX_V a ball moves 7 mm, a quarter radius */
+/* Per unit mass throughout. A ball has velocity (vx, vy) and angular velocity (wx, wy, wz) in
+   a right-handed frame whose z points down into the slate (x along the table, y across it, as
+   drawn). So the cloth contact is at +R z and rolling means vx = -R wy, vy = R wx. The values
+   are the usual measured ones (Marlow, Alciatore, pooltool): cloth slide 0.2, roll 0.01,
+   ball-ball friction falling with slip speed, cushion friction 0.2. */
+const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a quarter radius */
 const BALL_R = 0.028575;          /* 2 1/4 in */
 const TL = 2.54, TW = 1.27;       /* 9 ft table, playing surface between cushion noses */
 const HEAD_X = TL / 4, FOOT = [TL * 3 / 4, TW / 2];
-const MIN_V = 0.08, MAX_V = 7;    /* cue ball speed at power 0 and power 1 */
-const V_CAP = 8;
-const G = 9.8, MU_ROLL = 0.016;   /* rolling resistance, cloth */
+const MIN_V = 0.08, MAX_V = 8.5;  /* centre-ball speed at power 0 and power 1 (a hard break) */
+const POWER_EXP = 2.5;            /* power curve: 0.5 rolls a lone ball about two table lengths */
+const V_CAP = 9;                  /* belt and braces: energy already keeps every ball under MAX_V */
+const G = 9.8;
+const MU_SLIDE = 0.2;             /* ball on cloth, sliding */
+const MU_ROLL = 0.01;             /* rolling resistance */
+const SPIN_DECAY = 8;             /* rad/s^2: side spin dies against the cloth in a few seconds */
 const STOP_V = 0.01;
 const MAX_SIM_T = 60;
-const CUSHION_E = 0.78, BALL_E = 0.94;
-const CORNER_M = 0.085, SIDE_M = 0.068;   /* cushion gap from each corner; half the side mouth */
-const SPIN_K = 1.6;               /* spin 1 = this many natural rolls of topspin, about a miscue's limit */
-const SLIDE_RATE = 4;             /* how fast the cloth turns slide into roll (m/s^2) */
+const BALL_E = 0.94;
+const THROW_A = 0.00995, THROW_B = 0.108, THROW_C = 1.088;   /* ball-ball friction a + b exp(-c slip) */
+const CUSH_MU = 0.2;
+const NOSE_S = 0.27, NOSE_C = Math.sqrt(1 - NOSE_S * NOSE_S); /* nose 63.5% of a diameter up: 0.27 R above the centre */
+const TIP_MAX = 0.5;              /* tip offset at full spin, in radii: about where a miscue starts */
+const CUE_RATIO = 6 / 19;         /* ball over cue mass: off-centre hits send the ball slower */
+const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, away from the english */
+const CORNER_W = 0.1207, SIDE_W = 0.1334;   /* mouths between jaw points: 4.75 in and 5.25 in */
+const CORNER_FACE = 142 * Math.PI / 180, SIDE_FACE = 104 * Math.PI / 180;  /* WPA facing angles */
+const CUSH_W = 0.05;              /* cushion depth, nose to rail */
+const CORNER_SHELF = 0.032;       /* from the corner mouth line to the edge of the hole */
+const ESCAPE_R = 0.16;            /* a centre off the bed this far from every mouth got out: the fail-safe */
 const RACK_GAP = 0.0002;
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+/* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre */
+function spinOf(s) {
+  if (typeof s === 'number') return { x: 0, y: Number.isFinite(s) ? clamp(s, -1, 1) : 0 };
+  let x = s && Number.isFinite(s.x) ? s.x : 0, y = s && Number.isFinite(s.y) ? s.y : 0;
+  const m = Math.hypot(x, y);
+  if (m > 1) { x /= m; y /= m; }
+  return { x, y };
+}
 
 /* ---- 1b. table ---- */
-/* cushion noses as segments; the gaps between them are the pocket mouths */
-function cushions() {
-  const c = CORNER_M, s = SIDE_M, h = TL / 2;
-  return [[c, 0, h - s, 0], [h + s, 0, TL - c, 0], [c, TW, h - s, TW], [h + s, TW, TL - c, TW], [0, c, 0, TW - c], [TL, c, TL, TW - c]];
+/* Pocket mouths. Each corner and side has two jaw points on the nose line; from each, the jaw
+   facing runs back into the rail at the WPA facing angle (measured through the rubber from the
+   nose), so a corner funnels in and a side is cut nearly square. A jaw point is
+   { p, e }: the point and where its facing meets the rail. */
+function jaw(px, py, ax, ay, ox, oy, face) {
+  const dx = -ax * Math.cos(face) + ox * Math.sin(face), dy = -ay * Math.cos(face) + oy * Math.sin(face);
+  const t = CUSH_W / Math.sin(face);
+  return { p: [px, py], e: [px + dx * t, py + dy * t] };
 }
-const CUSH = cushions();
-/* pocket centres, for aiming and drawing */
+/* a = along the rail toward the mouth, o = outward from the bed */
+function mouths() {
+  const c = CORNER_W / Math.SQRT2, s = SIDE_W / 2, h = TL / 2, out = [];
+  for (const [cx, cy, side] of [[0, 0], [h, 0, 1], [TL, 0], [0, TW], [h, TW, 1], [TL, TW]]) {
+    const sy = cy === 0 ? 1 : -1;
+    if (side) { out.push([jaw(h - s, cy, 1, 0, 0, -sy, SIDE_FACE), jaw(h + s, cy, -1, 0, 0, -sy, SIDE_FACE)]); continue; }
+    const sx = cx === 0 ? 1 : -1;
+    out.push([jaw(cx + sx * c, cy, -sx, 0, 0, -sy, CORNER_FACE), jaw(cx, cy + sy * c, 0, -sy, -sx, 0, CORNER_FACE)]);
+  }
+  return out;
+}
+const MOUTHS = mouths();
+/* six rubbers, each between two jaw points: [jaw point, jaw point] */
+const RUBBERS = [[MOUTHS[0][0], MOUTHS[1][0]], [MOUTHS[1][1], MOUTHS[2][0]], [MOUTHS[3][0], MOUTHS[4][0]],
+  [MOUTHS[4][1], MOUTHS[5][0]], [MOUTHS[0][1], MOUTHS[3][1]], [MOUTHS[2][1], MOUTHS[5][1]]];
+/* collision segments: the six noses, then the twelve jaw facings; JAW_FROM is the first jaw */
+function cushions() {
+  const out = RUBBERS.map(([a, b]) => [a.p[0], a.p[1], b.p[0], b.p[1]]);
+  for (const [a, b] of RUBBERS) out.push([a.p[0], a.p[1], a.e[0], a.e[1]], [b.p[0], b.p[1], b.e[0], b.e[1]]);
+  return out;
+}
+const CUSH = cushions(), JAW_FROM = 6;
+const CUSHION_POLYS = RUBBERS.map(([a, b]) => [a.e, a.p, b.p, b.e].map(q => q.slice()));
+/* drop centres and hole radii. A corner hole sits CORNER_SHELF behind its mouth line; the side
+   holes start at the mouth line (WPA allows 0 to 3/8 in of side shelf), and any centre past
+   the nose line, which only a mouth allows, drops too. */
+const POCKET_R = [0.056, 0.062, 0.056, 0.056, 0.062, 0.056];
+const POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
 function pockets() {
-  const o = 0.022, so = 0.036;
-  return [[-o, -o], [TL / 2, -so], [TL + o, -o], [-o, TW + o], [TL / 2, TW + so], [TL + o, TW + o]];
+  return POCKET_AIM.map((m, k) => {
+    const ox = m[0] < TL / 2 ? -1 : 1, oy = m[1] < TW / 2 ? -1 : 1;
+    if (k === 1 || k === 4) return [m[0], m[1] + oy * POCKET_R[k]];
+    const d = (CORNER_SHELF + POCKET_R[k]) / Math.SQRT2;
+    return [m[0] + ox * d, m[1] + oy * d];
+  });
 }
 const POCKETS = pockets();
-/* STUB(T2.1) */ const POCKET_R = POCKETS.map((p, k) => k === 1 || k === 4 ? 0.06 : 0.066);
-/* STUB(T2.1): rubber cushions as polygons from the nose segments, jaws angled toward the pockets */
-const CUSHION_POLYS = CUSH.map(([ax, ay, bx, by]) => {
-  const D = 0.045, ox = ax === bx ? (ax === 0 ? -1 : 1) : 0, oy = ay === by ? (ay === 0 ? -1 : 1) : 0;
-  const ux = Math.sign(bx - ax), uy = Math.sign(by - ay), jaw = x => oy && Math.abs(x - TL / 2) < 0.2 ? 0.35 * D : 0.75 * D;
-  return [[ax, ay], [bx, by], [bx + ux * jaw(bx) + ox * D, by + uy * jaw(bx) + oy * D], [ax - ux * jaw(ax) + ox * D, ay - uy * jaw(ax) + oy * D]];
-});
-function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, s: 0, on: true }; }
+function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
 /* 8-ball: a triangle with the 8 in the middle, a solid and a stripe in the back corners.
    9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. */
 function rack(kind) {
@@ -160,111 +212,189 @@ function rack(kind) {
   rows.forEach((row, k) => row.forEach((n, j) => out.push(newBall(n, FOOT[0] + k * dx, FOOT[1] + (j - (row.length - 1) / 2) * sp))));
   return out;
 }
-const speedOf = power => MIN_V + (MAX_V - MIN_V) * clamp(power, 0, 1) ** 2;
+const speedOf = power => MIN_V + (MAX_V - MIN_V) * clamp(power, 0, 1) ** POWER_EXP;
 
-/* ---- 1c. collisions (puttX) ---- */
+/* ---- 1c. collisions ---- */
 function closestOnSeg(ax, ay, bx, by, x, y) {
   const ex = bx - ax, ey = by - ay, L2 = ex * ex + ey * ey;
   const t = L2 ? clamp(((x - ax) * ex + (y - ay) * ey) / L2, 0, 1) : 0;
   return [ax + ex * t, ay + ey * t];
 }
-/* reflect off a surface with normal n; returns the impact speed */
-function bounce(b, nx, ny, e) {
-  const vn = b.vx * nx + b.vy * ny;
-  if (vn >= 0) return 0;
-  const tx = b.vx - vn * nx, ty = b.vy - vn * ny;
-  b.vx = tx * 0.97 - e * vn * nx;
-  b.vy = ty * 0.97 - e * vn * ny;
+const energyOf = b => (b.vx * b.vx + b.vy * b.vy) / 2 + BALL_R * BALL_R * (b.wx * b.wx + b.wy * b.wy + b.wz * b.wz) / 5;
+/* an impulse (px, py, pz) at the point (rx, ry, rz) from the centre. The slate takes any
+   vertical push, so only the spin feels pz. */
+function kick(b, px, py, pz, rx, ry, rz) {
+  const k = 2.5 / (BALL_R * BALL_R);
+  b.vx += px; b.vy += py;
+  b.wx += k * (ry * pz - rz * py); b.wy += k * (rz * px - rx * pz); b.wz += k * (rx * py - ry * px);
+}
+/* friction at a point: oppose the point's slip (ux, uy, uz) with at most mu * load, and never
+   more than stops the slip (eff = the slip change per unit impulse), so it only takes energy */
+function rub(b, ux, uy, uz, load, mu, eff, rx, ry, rz) {
+  const u = Math.hypot(ux, uy, uz);
+  if (u < 1e-12 || load <= 0) return;
+  const f = Math.min(mu * load, u / eff) / u;
+  kick(b, -ux * f, -uy * f, -uz * f, rx, ry, rz);
+}
+/* the cloth's grip under the ball: slip of the contact point */
+const slipX = b => b.vx + BALL_R * b.wy, slipY = b => b.vy - BALL_R * b.wx;
+/* A cushion with inward normal n. The nose touches 0.27 R above the centre, so the push
+   (restitution falling with impact speed) also presses the ball into the slate. Two friction
+   impulses follow: the rubber on the ball's slip at the nose, which is where english changes
+   the rebound angle and the spin, and the cloth on the slip under the ball. Returns the
+   impact speed. */
+function rail(b, nx, ny) {
+  const vn = -(b.vx * nx + b.vy * ny);
+  if (vn <= 0) return 0;
+  const e = clamp(0.88 - 0.03 * vn, 0.7, 0.88), R = BALL_R;
+  const tx = -ny, ty = nx, vt = b.vx * tx + b.vy * ty;
+  b.vx += (1 + e) * vn * nx; b.vy += (1 + e) * vn * ny;
+  /* nose contact r1, upward is -z */
+  const rx = -R * NOSE_C * nx, ry = -R * NOSE_C * ny, rz = -R * NOSE_S;
+  let ux = vt * tx + b.wy * rz - b.wz * ry, uy = vt * ty + b.wz * rx - b.wx * rz, uz = b.wx * ry - b.wy * rx;
+  const un = (ux * rx + uy * ry + uz * rz) / (R * R);
+  ux -= un * rx; uy -= un * ry; uz -= un * rz;
+  const load = (1 + e) * vn / NOSE_C, uh = Math.hypot(ux, uy), u = Math.hypot(uh, uz) || 1;
+  rub(b, ux, uy, uz, load, CUSH_MU, 2.5 + (uh / u) ** 2, rx, ry, rz);
+  rub(b, slipX(b), slipY(b), 0, load * NOSE_S, MU_SLIDE, 3.5, 0, 0, R);
   const s = Math.hypot(b.vx, b.vy);
   if (s > V_CAP) { b.vx *= V_CAP / s; b.vy *= V_CAP / s; }
-  return -vn;
+  return vn;
 }
-function hitSeg(b, ax, ay, bx, by, e) {
+function hitSeg(b, ax, ay, bx, by) {
   const [px, py] = closestOnSeg(ax, ay, bx, by, b.x, b.y);
   let nx = b.x - px, ny = b.y - py;
-  const d = Math.hypot(nx, ny);
-  if (d >= BALL_R || d < 1e-12) return 0;
+  const d2 = nx * nx + ny * ny;
+  if (d2 >= BALL_R * BALL_R || d2 < 1e-24) return 0;
+  const d = Math.sqrt(d2);
   nx /= d; ny /= d;
   b.x = px + nx * BALL_R; b.y = py + ny * BALL_R;
-  return bounce(b, nx, ny, e);
+  return rail(b, nx, ny);
 }
-/* equal masses: split the overlap, exchange the normal impulse. Then the cue ball's spin
-   grips the cloth: it ends up rolling at 5/7 of its post-impact velocity plus 2/7 of the
-   spin's surface velocity along its incoming line (s = 1 is a natural roll). Follow runs on,
-   draw comes back, and the cue ball never leaves faster than it arrived. */
+/* Equal masses: split the overlap, exchange the normal impulse (restitution BALL_E), then
+   friction between the two surfaces on their relative slip at the contact. Its sideways part
+   is throw: a cut drags the object ball along the cue ball's path, english twists it the other
+   way, and the slower the slip the more it grips. Both balls take the same spin change. */
 function hitBalls(tab, a, b) {
   let nx = b.x - a.x, ny = b.y - a.y;
-  const d = Math.hypot(nx, ny);
-  if (d >= 2 * BALL_R || d < 1e-12) return;
+  const d2 = nx * nx + ny * ny;
+  if (d2 >= 4 * BALL_R * BALL_R || d2 < 1e-24) return;
+  const d = Math.sqrt(d2), R = BALL_R;
   nx /= d; ny /= d;
-  const push = (2 * BALL_R - d) / 2;
+  const push = (2 * R - d) / 2;
   a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
   const vn = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny;
   if (vn <= 0) return;
-  const cue = a.n === 0 ? a : b.n === 0 ? b : null, pvx = cue ? cue.vx : 0, pvy = cue ? cue.vy : 0;
+  /* slip of a's surface at +R n against b's at -R n, before the push (which does not change it) */
+  let ux = a.vx - b.vx - R * (a.wz + b.wz) * ny, uy = a.vy - b.vy + R * (a.wz + b.wz) * nx;
+  const uz = R * ((a.wx + b.wx) * ny - (a.wy + b.wy) * nx), un = ux * nx + uy * ny;
+  ux -= un * nx; uy -= un * ny;
   const J = (1 + BALL_E) / 2 * vn;
   a.vx -= J * nx; a.vy -= J * ny; b.vx += J * nx; b.vy += J * ny;
-  if (cue) {
-    cue.vx = (5 * cue.vx + 2 * cue.s * pvx) / 7; cue.vy = (5 * cue.vy + 2 * cue.s * pvy) / 7;
-    const vin = Math.hypot(pvx, pvy), vout = Math.hypot(cue.vx, cue.vy);
-    if (vout > vin) { cue.vx *= vin / vout; cue.vy *= vin / vout; }
-    cue.s = 1;
-    if (tab.first === null) tab.first = (cue === a ? b : a).n;
+  const u = Math.hypot(ux, uy, uz);
+  if (u > 1e-12) {
+    const f = Math.min((THROW_A + THROW_B * Math.exp(-THROW_C * u)) * J, u / (5 + 2 * (ux * ux + uy * uy) / (u * u))) / u;
+    kick(a, -ux * f, -uy * f, -uz * f, R * nx, R * ny, 0);
+    kick(b, ux * f, uy * f, uz * f, -R * nx, -R * ny, 0);
   }
+  const cue = a.n === 0 ? a : b.n === 0 ? b : null;
+  if (cue && tab.first === null) tab.first = (cue === a ? b : a).n;
   tab.hits.push(['ball', vn]);
 }
 
 /* ---- 1d. the table in motion ---- */
 function newTable(balls) {
-  return { balls: balls.map(b => Object.assign({}, b)), t: 0, steps: 0, first: null, railAfter: false, potted: [], pocketOf: {}, hits: [], end: null };
+  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
 }
+/* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
+   further off centre (cue and ball as two masses, the ball's inertia at the offset), with
+   w = 5 v d / (2 R^2) about the axis of the offset: top is follow, bottom draw (0.4 R is a
+   natural roll), side is english about the vertical. Side english also squirts the ball off
+   the cue line, away from the side struck. */
 function strike(tab, angle, power, spin) {
-  const c = tab.balls.find(b => b.n === 0), v = speedOf(power);
-  c.vx = Math.cos(angle) * v; c.vy = Math.sin(angle) * v; c.s = SPIN_K * clamp(spin, -1, 1);
+  const c = tab.balls.find(b => b.n === 0), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
+  const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * (ox * ox + oy * oy));
+  const dx = Math.cos(angle), dy = Math.sin(angle), a = angle - SQUIRT * sp.x, k = 2.5 * v / BALL_R;
+  c.vx = Math.cos(a) * v; c.vy = Math.sin(a) * v;
+  c.wx = k * oy * dy; c.wy = -k * oy * dx; c.wz = -k * ox;
   tab.hits.push(['cue', v]);
   return tab;
 }
+/* Cloth friction on one ball for one step. While the contact point slips, kinetic friction
+   on it changes v by F dt and R w by 5/2 F dt, so the slip shrinks along a fixed direction at
+   7/2 mu g: the closed form, cut off exactly where it reaches zero. Rolling, the ball only
+   loses rolling resistance and its spin follows its speed. Side spin decays on its own. */
+function cloth(b, dt) {
+  const ux = slipX(b), uy = slipY(b), u = Math.hypot(ux, uy), du = 3.5 * MU_SLIDE * G * dt;
+  if (u > du) {
+    const k = du / u / 3.5;
+    b.vx -= k * ux; b.vy -= k * uy; b.wy -= 2.5 * k * ux / BALL_R; b.wx += 2.5 * k * uy / BALL_R;
+  } else {
+    if (u > 0) { b.vx -= ux / 3.5; b.vy -= uy / 3.5; }
+    const sp = Math.hypot(b.vx, b.vy), s1 = Math.max(0, sp - MU_ROLL * G * dt);
+    if (sp > 0) { b.vx *= s1 / sp; b.vy *= s1 / sp; }
+    b.wx = b.vy / BALL_R; b.wy = -b.vx / BALL_R;
+  }
+  b.wz = b.wz > 0 ? Math.max(0, b.wz - SPIN_DECAY * dt) : Math.min(0, b.wz + SPIN_DECAY * dt);
+}
+const still = b => b.vx === 0 && b.vy === 0 && b.wx === 0 && b.wy === 0 && b.wz === 0;
+function pot(tab, b, k, v) {
+  b.on = false; b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0;
+  tab.potted.push(b.n); tab.pocketOf[b.n] = k;
+  tab.hits.push(['pocket', v]);
+}
 /* one fixed step. Returns true while anything is still rolling. */
 function stepTable(tab) {
-  const dt = SIM_DT, B = tab.balls;
+  const dt = SIM_DT, B = tab.balls, R = BALL_R, R2 = 4 * R * R, lo = R + 1e-6;
   for (const b of B) {
-    if (!b.on) continue;
-    const sp = Math.hypot(b.vx, b.vy);
-    if (sp === 0) continue;
-    if (b.n === 0 && b.s !== 1) b.s += (1 - b.s) * Math.min(1, SLIDE_RATE * dt / Math.max(sp, 0.2));
-    const s1 = Math.max(0, sp - MU_ROLL * G * dt);
-    b.vx *= s1 / sp; b.vy *= s1 / sp;
+    if (!b.on || still(b)) continue;
+    cloth(b, dt);
     b.x += b.vx * dt; b.y += b.vy * dt;
   }
+  /* fixed pair order; pairs at rest and pairs apart are skipped cheaply */
   for (let i = 0; i < B.length; i++) {
     const a = B[i];
     if (!a.on) continue;
+    const sa = still(a);
     for (let j = i + 1; j < B.length; j++) {
       const b = B[j];
-      if (!b.on || (a.vx === 0 && a.vy === 0 && b.vx === 0 && b.vy === 0)) continue;
+      if (!b.on) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      if (dx * dx + dy * dy >= R2 || (sa && still(b))) continue;
       hitBalls(tab, a, b);
     }
   }
   let moving = false;
   for (const b of B) {
     if (!b.on) continue;
-    for (const c of CUSH) {
-      const v = hitSeg(b, c[0], c[1], c[2], c[3], CUSHION_E);
-      if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['rail', v]); }
+    /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
+    if (b.x < lo || b.x > TL - lo || b.y < lo || b.y > TW - lo) {
+      for (let k = 0; k < CUSH.length; k++) {
+        const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
+        if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]); }
+      }
+      /* the drop: a centre over a hole, or past the nose line (only a mouth lets it get there).
+         A centre off the bed and nowhere near a mouth means something got through: pot it. */
+      const off = b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
+      let hole = -1, near = -1, nd = Infinity;
+      for (let k = 0; k < 6; k++) {
+        const p = POCKETS[k], dx = b.x - p[0], dy = b.y - p[1], d2 = dx * dx + dy * dy;
+        if (d2 < POCKET_R[k] * POCKET_R[k]) { hole = k; break; }
+        const m = POCKET_AIM[k], e2 = (b.x - m[0]) ** 2 + (b.y - m[1]) ** 2;
+        if (e2 < nd) { nd = e2; near = k; }
+      }
+      if (hole < 0 && off) { hole = near; if (nd > ESCAPE_R * ESCAPE_R) tab.escaped++; }
+      if (hole >= 0) { pot(tab, b, hole, Math.hypot(b.vx, b.vy)); continue; }
     }
-    /* a centre past the cushion nose can only be in a mouth: it drops */
-    if (b.x < 0 || b.x > TL || b.y < 0 || b.y > TW) {
-      let best = 0, bd = Infinity;
-      POCKETS.forEach((p, k) => { const d = Math.hypot(p[0] - b.x, p[1] - b.y); if (d < bd) { bd = d; best = k; } });
-      b.on = false; b.vx = 0; b.vy = 0; tab.potted.push(b.n); tab.pocketOf[b.n] = best;
-      tab.hits.push(['pocket', 1]);
-      continue;
+    if (!still(b)) {
+      const v2 = b.vx * b.vx + b.vy * b.vy;
+      if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; }
+      else moving = true;
     }
-    if (Math.hypot(b.vx, b.vy) < STOP_V) { b.vx = 0; b.vy = 0; } else moving = true;
   }
   tab.t += dt; tab.steps++;
   if (!moving) { tab.end = 'rest'; return false; }
-  if (tab.t >= MAX_SIM_T) { for (const b of B) { b.vx = 0; b.vy = 0; } tab.end = 'timeout'; return false; }
+  if (tab.t >= MAX_SIM_T) { for (const b of B) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; } tab.end = 'timeout'; return false; }
   return true;
 }
 function resultOf(tab) {
@@ -386,7 +516,7 @@ function potLines(g, cx, cy, targets) {
   }
   return out.sort((a, b) => b.est - a.est);
 }
-const powerFor = v => Math.sqrt(clamp((v - MIN_V) / (MAX_V - MIN_V), 0, 1));
+const powerFor = v => clamp((v - MIN_V) / (MAX_V - MIN_V), 0, 1) ** (1 / POWER_EXP);
 function placements(g, targets) {
   const out = [], cue = g.balls.find(b => b.n === 0);
   if (cue.on && canPlace(g, cue.x, cue.y)) out.push([cue.x, cue.y]);
@@ -456,45 +586,161 @@ function cpuShot(g, seed) {
 // #endregion sim
 
 /* ============ 2. AUDIO ============ */
-let ac = null, noiseBuf = null, muted = false;
-const lastSfx = {};
+/* Everything is synthesised: filtered noise and a few sine partials per hit, no files. Each voice
+   goes into `bus`; the master chain is bus gain, a compressor acting as a limiter, then a soft
+   clipper whose curve tops out below 1, so a break never clips. Intensity `v` is impact speed
+   in m/s (0 to about 9). */
+let ac = null, noiseBuf = null, bus = null, muted = false;
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
+/* per kind: most voices sounding at once, shortest gap between two (s) */
+const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], pocket: [3, 0.05],
+  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5] };
+const voices = {}, crowd = {};
+function audioInit(c) {
+  ac = c;
+  const sr = c.sampleRate;
+  noiseBuf = c.createBuffer(1, sr, sr);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const lim = c.createDynamicsCompressor();
+  /* threshold high and knee hard: the node adds automatic make-up gain that grows as the threshold
+     drops, which would flatten the hit dynamics. Here it only catches pile-ups (about +1.7 dB). */
+  lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20;
+  lim.attack.value = 0.001; lim.release.value = 0.1;
+  /* soft clip: the shaper sees signal / 2, so its [-1, 1] covers +-2; linear to 0.7, then a tanh
+     shoulder that never passes 0.98 (inputs past +-2 hold the end value) */
+  const pre = c.createGain(), clip = c.createWaveShaper(), n = 2049, curve = new Float32Array(n);
+  pre.gain.value = 0.5;
+  for (let i = 0; i < n; i++) {
+    const y = (i / (n - 1) * 2 - 1) * 2, a = Math.abs(y);
+    curve[i] = Math.sign(y) * (a <= 0.7 ? a : 0.7 + 0.28 * Math.tanh((a - 0.7) / 0.28));
+  }
+  clip.curve = curve;
+  bus = c.createGain(); bus.gain.value = 0.55;
+  bus.connect(lim).connect(pre).connect(clip).connect(c.destination);
+}
 function audioOn() {
   if (!ac) {
     const A = window.AudioContext || window.webkitAudioContext;
     if (!A) return;
-    ac = new A();
-    noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.25, ac.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    try { audioInit(new A()); } catch (e) { ac = null; return; }
   }
   if (ac.state === 'suspended') ac.resume();
 }
-function burst(freq, q, vol, decay, type) {
-  const t = ac.currentTime, src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain();
-  src.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
-  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-  src.connect(f).connect(gn).connect(ac.destination);
-  src.start(t); src.stop(t + decay + 0.02);
+/* gain node with a fast attack and an exponential tail, starting at t */
+function env(t, peak, attack, decay) {
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(Math.max(peak, 2e-4), t + attack);
+  g.gain.exponentialRampToValueAtTime(1e-4, t + attack + decay);
+  return g;
 }
-function tone(freq, vol, decay) {
-  const t = ac.currentTime, o = ac.createOscillator(), gn = ac.createGain();
-  o.type = 'sine'; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.6, t + decay);
-  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-  o.connect(gn).connect(ac.destination);
-  o.start(t); o.stop(t + decay + 0.02);
+/* filtered noise burst into `out`; reads from a random spot in the buffer so no two match */
+function noise(t, out, type, freq, q, peak, decay, attack = 0.0008) {
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = env(t, peak, attack, decay);
+  s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
+  s.connect(f).connect(g).connect(out);
+  s.start(t, Math.random() * 0.7); s.stop(t + attack + decay + 0.02);
+}
+/* sine partial gliding from f0 to f1 */
+function partial(t, out, f0, f1, peak, decay, attack = 0.0005) {
+  const o = ac.createOscillator(), g = env(t, peak, attack, decay);
+  o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + attack + decay);
+  o.connect(g).connect(out);
+  o.start(t); o.stop(t + attack + decay + 0.02);
+}
+const jit = (x, r) => x * (1 + (Math.random() * 2 - 1) * r);
+/* ball on ball: a sub-2 ms bright tick, then two detuned phenolic partials (2.5-4.5 kHz) and a
+   faint mid knock, all rising in pitch, level and brightness with the impact. s is 0..1. */
+function clack(t, s, out) {
+  const f = jit(2500 + 1600 * s, 0.05), lvl = 0.03 + 0.97 * Math.pow(s, 0.9);
+  noise(t, out, 'bandpass', 3500 + 2500 * s, 0.9, 0.55 * lvl, 0.0025 + 0.002 * s, 0.0003);
+  partial(t, out, f, f * 0.985, 0.42 * lvl, 0.022 + 0.018 * s);
+  partial(t, out, jit(f * 1.41, 0.02), f * 1.39, 0.22 * lvl, 0.014 + 0.01 * s);
+  partial(t, out, jit(1150, 0.06), 1050, 0.12 * lvl, 0.012);
+}
+/* cushion or jaw: a low rubber body, a little rail wood. Soft hits fall away fast (s^1.6). */
+function thump(t, s, hard) {
+  const lvl = 0.6 * Math.pow(s, 1.6), f = jit(hard ? 190 : 140, 0.08);
+  partial(t, bus, f, f * 0.62, 0.75 * lvl, 0.09 + 0.05 * s, 0.002);
+  noise(t, bus, 'lowpass', 380 + 300 * s, 0.7, 0.35 * lvl, 0.05, 0.001);
+  partial(t, bus, jit(hard ? 620 : 430, 0.05), hard ? 560 : 400, (hard ? 0.3 : 0.12) * lvl, hard ? 0.025 : 0.018);
+  noise(t, bus, 'bandpass', hard ? 1900 : 1200, 1.4, (hard ? 0.28 : 0.1) * lvl, hard ? 0.012 : 0.008);
+}
+/* the drop: a thud into leather, a rumble down the gully (noise through a low-pass that sweeps
+   down, wobbled at a rolling rate), then a muffled clack against the balls already there */
+function drop(t, s) {
+  const lvl = 0.4 + 0.4 * s;
+  partial(t, bus, jit(90, 0.06), 55, 0.7 * lvl, 0.16, 0.003);
+  noise(t, bus, 'lowpass', 320, 0.8, 0.4 * lvl, 0.07, 0.002);
+  noise(t, bus, 'bandpass', 900, 1.2, 0.12 * lvl, 0.02, 0.001);
+  const roll = jit(0.55, 0.15), t1 = t + 0.06, src = ac.createBufferSource(), lp = ac.createBiquadFilter();
+  const g = ac.createGain(), wob = ac.createOscillator(), depth = ac.createGain();
+  src.buffer = noiseBuf; src.loop = true;
+  lp.type = 'lowpass'; lp.Q.value = 2.5;
+  lp.frequency.setValueAtTime(1100, t1); lp.frequency.exponentialRampToValueAtTime(180, t1 + roll);
+  wob.frequency.setValueAtTime(jit(26, 0.1), t1); wob.frequency.linearRampToValueAtTime(14, t1 + roll);
+  /* the wobble rides on the gain, so it gets the same envelope or it would outlive the roll */
+  for (const [p, v] of [[g.gain, 0.3 * lvl], [depth.gain, 0.1 * lvl]]) {
+    p.setValueAtTime(0, t1); p.linearRampToValueAtTime(v, t1 + 0.05); p.setTargetAtTime(0, t1 + roll * 0.6, roll * 0.18);
+  }
+  wob.connect(depth).connect(g.gain);
+  src.connect(lp).connect(g).connect(bus);
+  src.start(t1, Math.random() * 0.2); wob.start(t1);
+  src.stop(t1 + roll + 0.25); wob.stop(t1 + roll + 0.25);
+  const muff = ac.createBiquadFilter();
+  muff.type = 'lowpass'; muff.frequency.value = 2200; muff.connect(bus);
+  clack(t1 + roll + jit(0.04, 0.3), 0.12, muff);
+}
+/* UI cue: a soft sine note with a quiet octave, attack 10 ms */
+function note(t, f, peak, decay) {
+  partial(t, bus, f, f, peak, decay, 0.01);
+  partial(t, bus, f * 2, f * 2, peak * 0.15, decay * 0.5, 0.01);
+}
+/* schedule one sound at time t. Per-kind voice cap and minimum gap, and a crowd factor that
+   ducks hits of the same kind arriving close together, so a break is a crack and a scatter. */
+function sfxAt(kind, v, t) {
+  const lim = VOICE[kind];
+  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw') && v < 0.1))) return;
+  const live = (voices[kind] || []).filter(e => e > t);
+  if (live.length >= lim[0]) return;
+  const c = crowd[kind] || { t: -1, e: 0 };
+  if (t - c.t < lim[1]) return;
+  c.e = c.e * Math.exp(-(t - c.t) / 0.06) + 1; c.t = t; crowd[kind] = c;
+  const duck = 1 / Math.sqrt(c.e);
+  let end = t + 0.06;
+  if (kind === 'ball') {
+    const s = clamp(v / 6, 0, 1);
+    clack(t, s * duck, bus);
+  } else if (kind === 'cue') {
+    const s = clamp(v / 7, 0, 1), lvl = 0.12 + 0.6 * Math.pow(s, 0.8);
+    noise(t, bus, 'bandpass', 1500 + 600 * s, 1.6, 0.6 * lvl, 0.028);
+    partial(t, bus, jit(760, 0.04), 520, 0.45 * lvl, 0.035);
+    noise(t, bus, 'bandpass', 3200, 1.2, 0.25 * lvl, 0.004, 0.0003);
+  } else if (kind === 'rail' || kind === 'jaw') {
+    const s = clamp(v / 5, 0, 1) * duck, hard = kind === 'jaw';
+    thump(t, s, hard);
+    if (hard) thump(t + jit(0.032, 0.25), s * 0.6, true);
+    end = t + 0.18;
+  } else if (kind === 'pocket') {
+    drop(t, clamp(v == null ? 1 : v, 0, 1));
+    end = t + 0.9;
+  } else if (kind === 'foul') {
+    note(t, 311, 0.13, 0.22); note(t + 0.16, 233, 0.13, 0.32);
+    end = t + 0.5;
+  } else if (kind === 'turn') {
+    partial(t, bus, 1320, 1250, 0.05, 0.03, 0.002);
+  } else if (kind === 'win') {
+    [523.25, 659.25, 783.99].forEach((f, i) => note(t + i * 0.09, f, 0.1, 0.7 - i * 0.1));
+    note(t + 0.18, 1046.5, 0.035, 0.6);
+    end = t + 0.9;
+  }
+  live.push(end); voices[kind] = live;
 }
 function sfx(kind, v) {
   if (!ac || muted || ac.state !== 'running') return;
-  const now = ac.currentTime;
-  if (now - (lastSfx[kind] || 0) < 0.015) return;
-  lastSfx[kind] = now;
-  const vol = clamp(v / 3, 0, 1);
-  if (vol < 0.01) return;
-  if (kind === 'ball') burst(3200, 3, 0.9 * vol, 0.035, 'bandpass');
-  else if (kind === 'cue') burst(1800, 2, 0.5 + 0.5 * vol, 0.05, 'bandpass');
-  else if (kind === 'rail') { tone(150, 0.5 * vol, 0.09); burst(500, 1, 0.3 * vol, 0.05, 'lowpass'); }
-  else if (kind === 'pocket') { tone(95, 0.6, 0.22); burst(700, 1, 0.4, 0.16, 'lowpass'); }
+  sfxAt(kind, v, ac.currentTime + 0.005);
 }
 
 /* ============ 3. VIEW ============ */
@@ -688,8 +934,8 @@ function paintPocketCaps(g, co, L) {
     gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.6, '#1f1b17'); gr.addColorStop(1, '#2d2722');
     g.fillStyle = gr; g.beginPath(); g.arc(P[0], P[1], r, 0, Math.PI * 2); g.fill();
     const metal = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
-    metal.addColorStop(0, '#e9e6de'); metal.addColorStop(0.45, '#8d8a84'); metal.addColorStop(1, '#3b3936');
-    g.strokeStyle = metal; g.lineWidth = 0.0045;
+    metal.addColorStop(0, '#cfccc4'); metal.addColorStop(0.45, '#77746e'); metal.addColorStop(1, '#2f2d2a');
+    g.strokeStyle = metal; g.lineWidth = 0.0035;
     g.beginPath(); g.arc(P[0], P[1], r - 0.0022, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 0.0012;
     g.beginPath(); g.arc(P[0], P[1], r - 0.0052, 0, Math.PI * 2); g.stroke();
@@ -737,13 +983,17 @@ function paintCushions(g, co, K) {
   for (const p of CUSHION_POLYS) { g.beginPath(); polyPath(g, p); g.fill(); }
   g.restore();
 }
+/* clip to everywhere but the holes and their lips */
+function clipOutHoles(g) {
+  g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
+  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k] + 0.006, P[1]); g.arc(P[0], P[1], POCKET_R[k] + 0.006, 0, Math.PI * 2); });
+  g.clip('evenodd');
+}
 /* nap and overhead light on everything covered in cloth (not down the holes) */
 function paintClothLight(g, co, rnd) {
   g.save();
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
-  g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
-  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k] + 0.006, P[1]); g.arc(P[0], P[1], POCKET_R[k] + 0.006, 0, Math.PI * 2); });
-  g.clip('evenodd');
+  clipOutHoles(g);
   /* nap: fine speckle with streaks along the table's length, laid in device pixels */
   const W = g.canvas.width, H = g.canvas.height;
   if (view.portrait) g.setTransform(0, -1, 1, 0, 0, H); else g.setTransform(1, 0, 0, 1, 0, 0);
@@ -802,10 +1052,13 @@ function paintBevels(g, co, L, px) {
   }
   g.restore();
   /* the seam between cushion and wood, and the wood's lip catching light beside it */
+  g.save();
+  clipOutHoles(g);
   g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 1.6 * px;
   g.strokeRect(-co, -co, TL + 2 * co, TW + 2 * co);
   g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
   g.strokeRect(-co - 1.5 * px, -co - 1.5 * px, TL + 2 * co + 3 * px, TW + 2 * co + 3 * px);
+  g.restore();
 }
 
 /* ---- 4b. balls ---- */
@@ -1348,7 +1601,7 @@ function start(kind) {
 }
 function shoot() {
   audioOn();
-  tab = strike(newTable(game.balls), aimAngle, power, cueSpin.y);   /* STUB(T2.1): v1 physics takes a number */
+  tab = strike(newTable(game.balls), aimAngle, power, cueSpin);
   state = 'rolling'; pull = null; barDrag = null;
   hud();
 }

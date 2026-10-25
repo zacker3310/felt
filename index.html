@@ -27,7 +27,7 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEven
   --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 var(--font); overflow: hidden; }
+html, body { margin: 0; height: var(--app-h, 100%); background: var(--bg); color: var(--text); font: 15px/1.4 var(--font); overflow: hidden; }
 /* no pinch or double-tap zoom anywhere: the page and the game UI take no browser gestures at
    all, and the overlays only scroll (pan-y), so a menu taller than the screen still scrolls */
 html, body, #ui, #ui * { touch-action: none; }
@@ -36,10 +36,11 @@ body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color
 button { font: inherit; color: inherit; cursor: pointer; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
-#table { position: fixed; inset: 0; display: block; touch-action: none; }
+/* #table, #ui and the overlays take their height from --app-h (see appSize()), not inset: 0 */
+#table { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: block; touch-action: none; }
 
 /* ---- the frame around the table: hud, stage (where layout() fits the table), controls ---- */
-#ui { position: fixed; inset: 0; display: grid; gap: 8px; pointer-events: none;
+#ui { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: grid; gap: 8px; pointer-events: none;
   padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
 #hudBar { grid-area: hud; display: grid; gap: 6px 8px; align-items: center; min-width: 0; }
 #stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
@@ -178,10 +179,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #powerBar.live #powerLab, [data-layout="short"] #powerBar.live #powerLab { writing-mode: horizontal-tb; align-items: flex-end; justify-content: center; }
 
 /* ---- overlays: the menu and game over ---- */
-.overlay { position: fixed; inset: 0; display: none; overflow-y: auto; padding: max(16px, var(--sat)) max(16px, var(--sar)) max(16px, var(--sab)) max(16px, var(--sal));
+.overlay { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: none; overflow-y: auto; padding: max(16px, var(--sat)) max(16px, var(--sar)) max(16px, var(--sab)) max(16px, var(--sal));
   background: rgba(10, 10, 11, .82); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
 .overlay.show { display: grid; }
 .overlay .sheet { margin: auto; }
+.diag { margin: 14px 0 0; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .sheet { width: 100%; max-width: 440px; padding: 26px 24px 22px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
 .brand { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
 h1 { margin: 0; font-size: 46px; line-height: 1; letter-spacing: -.035em; font-weight: 800; }
@@ -324,6 +326,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
           <dt>Pause</dt><dd>The pause button. The game waits.</dd>
         </dl>
       </details>
+      <p class="diag" id="diag"></p>
     </div>
   </div>
 </div>
@@ -1464,11 +1467,34 @@ function fitTable(r) {
   const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
   return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
 }
+/* The size the app really has. An iOS home-screen app with a translucent status bar can report
+   innerHeight short by the status bar (worst at launch), which left a dead strip under the
+   controls; a home-screen app always fills the screen, so there the screen wins. */
+const standalone = () => navigator.standalone === true || !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+function appSize() {
+  const w = innerWidth;
+  let h = Math.max(innerHeight, document.documentElement.clientHeight || 0);
+  const S = window.screen;
+  if (standalone() && S && S.width && S.height) {
+    const up = w <= h, sw = up ? Math.min(S.width, S.height) : Math.max(S.width, S.height), sh = up ? Math.max(S.width, S.height) : Math.min(S.width, S.height);
+    if (Math.abs(sw - w) < 2 && sh > h) h = sh;
+  }
+  return [w, h];
+}
+/* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
+   (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
+   crisp). sizeSig() changes whenever any of that does; boot re-lays out when it has. */
+const pixelRatio = () => Math.min(4, (window.devicePixelRatio || 1) * Math.max(1, window.visualViewport ? visualViewport.scale : 1));
+const sizeSig = () => appSize().join('x') + '@' + pixelRatio();
+let layoutSig = '';
 function layout() {
-  const w = innerWidth, h = innerHeight, root = document.documentElement;
-  dpr = Math.min(3, window.devicePixelRatio || 1);   /* a frame is cheap (cached sprites), so phones get their full 3x */
+  const [w, h] = appSize(), root = document.documentElement;
+  root.style.setProperty('--app-h', h + 'px');
+  dpr = pixelRatio();   /* a frame is cheap (cached sprites), so phones get their full 3x */
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
+  layoutSig = sizeSig();
+  diag.textContent = `${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}`;
   RAIL = railFor(w, h);
   const tries = h > w ? ['portrait', 'wide'] : h < 600 ? ['short', 'wide'] : ['wide'];
   let best = null;
@@ -3510,7 +3536,15 @@ overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); })
 /* ============ 7. BOOT ============ */
 muted = !settings.sound;
 /* a resize or a rotation drops any gesture in flight: its screen axes are stale */
-addEventListener('resize', () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); });
+const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); };
+addEventListener('resize', relayout);
+addEventListener('orientationchange', relayout);
+addEventListener('pageshow', relayout);
+if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (sizeSig() !== layoutSig) relayout(); });
+/* iOS reports its sizes late at launch and sometimes changes them without a resize event:
+   look again shortly after boot, then once a second, and lay out again only on a change */
+const watchSize = () => { if (sizeSig() !== layoutSig) relayout(); setTimeout(watchSize, 1000); };
+setTimeout(watchSize, 150);
 /* iOS Safari ignores user-scalable=no; its own pinch event is refused here */
 document.addEventListener('gesturestart', e => e.preventDefault());
 syncMenu();

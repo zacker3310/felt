@@ -154,7 +154,24 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     return { dpr, w: table.width, cssW: innerWidth, median: +ts[15].toFixed(2) };
   });
   check('phone: the canvas backs onto all 3 device pixels and a frame stays cheap', perf.dpr === 3 && perf.w === perf.cssW * 3 && perf.median < 12, JSON.stringify(perf));
+  const fit = await ph3.page.evaluate(() => ({ appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, h: innerHeight, back: [table.width, table.height], css: [table.clientWidth, table.clientHeight], dpr }));
+  check('browser: the app is the window\'s height and the canvas backs its exact CSS size at dpr', fit.appH === fit.h + 'px' && fit.uiH === fit.h && fit.back[0] === fit.css[0] * fit.dpr && fit.back[1] === fit.css[1] * fit.dpr, JSON.stringify(fit));
   check('phone: no console errors', ph3.errors.length === 0, ph3.errors.join(' | '));
   await ph3.browser.close();
+
+  /* an iOS home-screen app on a 440x956 pt screen reporting innerHeight short by the status bar
+     (62 pt): the app must still fill the screen, so no dead strip under the controls */
+  const ios = await open('', { viewport: { width: 440, height: 894 }, screen: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3,
+    init: () => Object.defineProperty(navigator, 'standalone', { get: () => true }) });
+  const st = await ios.page.evaluate(() => { felt.start('8'); const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, ctlBottom: c.bottom, back: table.height, dpr, diag: diag.textContent }; });
+  check('home-screen app: sized from the screen when iOS reports a short innerHeight; controls sit at the bottom', st.appH === '956px' && st.uiH === 956 && st.ctlBottom > 956 - 30 && st.back === 956 * st.dpr, JSON.stringify(st));
+  /* iOS changing its size with no resize event: the watch lays out again within a couple of seconds */
+  await ios.page.setViewportSize({ width: 440, height: 956 });
+  await ios.page.evaluate(() => Object.defineProperty(window.screen, 'height', { get: () => 1000 }));
+  await ios.page.waitForTimeout(2300);
+  const st2 = await ios.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim());
+  check('a size change without a resize event is picked up', st2 === '1000px', st2);
+  check('home-screen app: no console errors', ios.errors.length === 0, ios.errors.join(' | '));
+  await ios.browser.close();
   done();
 })().catch(e => { console.error(e); process.exit(1); });

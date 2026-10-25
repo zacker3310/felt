@@ -3,8 +3,9 @@
    only pointer control that shoots (power proportional to the pull, cancel by coming back or
    sliding off), the table only aiming (a 1:1 sweep about the cue ball; no drag on it ever
    shoots), the fine-aim wheel, the english pad, the keyboard, auto aim, the table size, the turn
-   passing with a banner, the CPU taking its turn at the chosen level, settings surviving a
-   reload, rematch after a win, and touch on a phone. */
+   passing with a banner and the turn chip, the CPU taking its turn at the chosen level (the
+   chip pulses while it thinks), the two-fouls warning in the banner, the chip and the pause
+   menu's card, settings surviving a reload, rematch after a win, and touch on a phone. */
 'use strict';
 const { check, done, open, settled } = require('./lib.cjs');
 const DEG = Math.PI / 180;
@@ -225,8 +226,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.mouse.click(k[0], k[1]);
   await page.evaluate(() => felt.shoot(Math.PI, 0.01, 0));
   await page.waitForFunction(() => felt.state !== 'rolling', null, { timeout: 30000 });
-  const foul = await page.evaluate(() => ({ head: bannerHead.textContent, on: banner.classList.contains('show'), kind: banner.dataset.kind }));
+  const foul = await page.evaluate(() => ({ head: bannerHead.textContent, on: banner.classList.contains('show'), kind: banner.dataset.kind,
+    chip: { name: chipName.textContent, busy: turnChip.classList.contains('busy'), thinking: felt.state === 'thinking' && !cpuPlan } }));
   check('a foul raises a foul banner', foul.on && foul.kind === 'foul' && foul.head.startsWith('Foul'), JSON.stringify(foul));
+  check('the turn passes to the CPU: the chip says CPU and pulses while it thinks', foul.chip.name === 'CPU' && foul.chip.busy === foul.chip.thinking, JSON.stringify(foul.chip));
   await page.waitForFunction(() => felt.game.shots >= 2 || felt.game.winner !== null, null, { timeout: 60000 });
   await settled(page, 60000);
   const c = await page.evaluate(() => ({ shots: felt.game.shots, turn: felt.game.turn, s: felt.state, lvl: felt.lastCpu }));
@@ -405,8 +408,19 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('game-over and ball-in-hand lines are whole sentences', JSON.stringify(lines) === JSON.stringify(wantLines), JSON.stringify(lines));
   await page.evaluate(() => { settings.cpu = false; felt.start('9'); tryPlace([0.4, TW / 2]); game.fouls = [1, 0]; felt.speed = 40; felt.shoot(Math.PI, 0.01, 0); });
   await settled(page);
-  const two = await page.evaluate(() => ({ sub: bannerSub.textContent, kind: banner.dataset.kind, meta: p0meta.textContent, warn: p0meta.classList.contains('warn') }));
-  check('9-ball: a second foul in a row warns that a third loses', /Player 1 is on two fouls: a third loses/.test(two.sub) && two.kind === 'foul' && /Two fouls/.test(two.meta) && two.warn, JSON.stringify(two));
+  const two = await page.evaluate(() => ({ sub: bannerSub.textContent, kind: banner.dataset.kind, chip: chipName.textContent, chipWarn: turnChip.classList.contains('warn') }));
+  await page.click('#menuBtn');
+  Object.assign(two, await page.evaluate(() => ({ meta: p0meta.textContent, warn: p0meta.classList.contains('warn'), shown: !gameNow.hidden && p0meta.getBoundingClientRect().height > 0 })));
+  await page.click('#resumeBtn');
+  check('9-ball: a second foul in a row warns that a third loses (banner, and the card in the pause menu)', /Player 1 is on two fouls: a third loses/.test(two.sub) && two.kind === 'foul' && /Two fouls/.test(two.meta) && two.warn && two.shown, JSON.stringify(two));
+  const chipTwo = await page.evaluate(() => {
+    const was = game.fouls.slice(), out = {};
+    game.fouls = [0, 2]; hud(); out.on = [chipName.textContent, turnChip.classList.contains('warn')];
+    game.fouls = [2, 0]; hud(); out.off = [chipName.textContent, turnChip.classList.contains('warn')];
+    game.fouls = was; hud();
+    return out;
+  });
+  check('9-ball: the turn chip of the player to shoot on two fouls is marked, and only theirs', two.chip === 'P2' && !two.chipWarn && chipTwo.on[0] === 'P2' && chipTwo.on[1] && !chipTwo.off[1], JSON.stringify({ two, chipTwo }));
 
   /* 14. auto aim. On: the break starts aimed at the head ball, and each later human turn starts,
      once the cue has swung round, within 1 deg of suggestAim(game). Off: the aim is left alone.
@@ -659,7 +673,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
      Chromium only applies a synthesized pinch of the 'mouse' kind (it zooms the old page to
      2.5x); the viewport meta is what refuses it, touch-action is checked in boot-check */
   const scales = [];
-  for (const sel of ['#table', '#spinLabel', '#menuBtn']) {
+  for (const sel of ['#table', '#powerBar', '#menuBtn']) {
     const r = await mp.evaluate(s => { const b = document.querySelector(s).getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, sel);
     await mc.send('Input.synthesizePinchGesture', { x: r[0], y: r[1], scaleFactor: 2.5, relativeSpeed: 1200, gestureSourceType: 'mouse' });
     await mp.waitForTimeout(150);

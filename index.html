@@ -39,70 +39,85 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* #table, #ui and the overlays take their height from --app-h (see appSize()), not inset: 0 */
 #table { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: block; touch-action: none; }
 
-/* ---- the frame around the table: hud, stage (where layout() fits the table), controls ---- */
-#ui { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: grid; gap: 8px; pointer-events: none;
-  padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
-#hudBar { grid-area: hud; display: grid; gap: 6px 8px; align-items: center; min-width: 0; }
+/* ---- the game screen: the table (fitted into #stage by layout()) and one strip or column of
+   controls. Nothing else: the players, the potted balls and the status line live in the pause
+   menu; a turn chip in the controls says whose turn it is and what they are on. ---- */
+#ui { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: grid; gap: 4px; pointer-events: none;
+  padding: max(2px, var(--sat)) max(2px, var(--sar)) max(4px, var(--sab)) max(2px, var(--sal)); }
 #stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
-#ctl { grid-area: ctl; display: flex; gap: 10px; align-items: center; min-width: 0; min-height: 0; }
-#ctl > *, #menuBtn { pointer-events: auto; }
-#menuBtn { grid-area: menu; }
+#ctl { grid-area: ctl; display: flex; gap: 6px; align-items: center; min-width: 0; min-height: 0; }
+#ctl > * { pointer-events: auto; }
+#turnChip { pointer-events: none; }
+/* text only a screen reader needs: the status line (#msg, live) and the english in words */
+.sr { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
-/* portrait phone: hud on top, the table full width, one strip of controls at the bottom */
-/* #trayBand: the potted-ball tray's strip, outside the table in every layout; layout() puts
-   view.tray right under the table, inside the room this band keeps free */
-#trayBand { grid-area: tray; min-width: 0; height: var(--tray-h); }
-#ui { --tray-h: 22px; }
-/* every px of height here is table: thin padding and gaps, slim cards, the pause button beside
-   them so the strip below is all english, power and fine aim */
-[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "tray" var(--tray-h) "ctl" auto / minmax(0, 1fr); gap: 5px;
-  padding: max(6px, var(--sat)) max(8px, var(--sar)) max(6px, var(--sab)) max(8px, var(--sal)); }
-[data-layout="portrait"] #hudBar { grid-template: "p0 p1 menu" auto "msg msg msg" auto / minmax(0, 1fr) minmax(0, 1fr) 48px; gap: 3px 6px; }
-[data-layout="portrait"] .pc { padding: 4px 9px 5px; gap: 2px 8px; }
-[data-layout="portrait"] #ctl { flex-direction: row; height: 58px; gap: 8px; }
-[data-layout="portrait"] #msg { font-size: 13px; }
-/* where the hud has the height (a tablet strip, or beside the cards in landscape), the status
-   line wraps to two lines instead of being cut short */
-@media (min-width: 600px) { [data-layout="portrait"] #msg { white-space: normal; line-height: 18px; height: 36px; display: flex; align-items: center; justify-content: center; } }
-[data-layout="wide"] #msg { white-space: normal; line-height: 18px; max-height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-[data-layout="portrait"] #spinBox { order: 1; flex-direction: row; }
-[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 58px; }
-[data-layout="portrait"] #fineWheel { order: 3; height: 58px; }
-[data-layout="portrait"] #spinLabel { width: 76px; text-align: left; }
-/* landscape: hud across the top, controls in a column on the right */
-[data-layout="wide"] #ui { grid-template: "hud hud" auto "stage ctl" minmax(0, 1fr) "tray ctl" var(--tray-h) / minmax(0, 1fr) 84px; }
-@media (min-height: 700px) and (min-width: 700px) { #ui { --tray-h: 30px; } }
-[data-layout="wide"] #hudBar { grid-template: "p0 msg p1 menu" auto / minmax(0, 260px) minmax(0, 1fr) minmax(0, 260px) 48px; }
-/* short landscape (a phone on its side): players and pause on the left, controls on the
-   right, the table gets the whole height and every px of width the columns can spare */
-[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) "hud tray ctl" var(--tray-h) / 102px minmax(0, 1fr) 62px; gap: 4px 6px;
-  padding: max(4px, var(--sat)) max(6px, var(--sar)) max(4px, var(--sab)) max(6px, var(--sal)); }
-[data-layout="short"] #hudBar { grid-template: "p0" auto "p1" auto "msg" auto "menu" auto / minmax(0, 1fr); align-content: start; }
-[data-layout="short"] #ctl { gap: 8px; }
-[data-layout="short"] .pc { padding: 7px 9px 8px; }
-[data-layout="short"] .pc .line { flex-wrap: wrap; height: auto; row-gap: 4px; }
-[data-layout="short"] .pc .dots { flex: 1 1 100%; flex-wrap: wrap; row-gap: 2px; overflow: visible; }
-[data-layout="short"] #spinPad { width: 56px; height: 56px; }
-[data-layout="short"] #spinLabel { width: 60px; }
-[data-layout="short"] #msg { white-space: normal; text-align: left; font-size: 13px; }
-[data-layout="wide"] #ctl, [data-layout="short"] #ctl { flex-direction: column; }
-[data-layout="wide"] #powerBar, [data-layout="short"] #powerBar { flex: 1; width: 56px; min-height: 120px; max-height: 440px; }
-[data-layout="wide"] #fineWheel { width: 52px; height: 104px; }
-[data-layout="short"] #fineWheel { width: 48px; height: 76px; }
+/* portrait: the table edge to edge, one strip under it: english, power (the biggest), fine
+   aim, the turn chip and pause */
+[data-layout="portrait"] #ui { grid-template: "stage" minmax(0, 1fr) "ctl" 56px / minmax(0, 1fr); }
+[data-layout="portrait"] #ctl { flex-direction: row; gap: 5px; }
+[data-layout="portrait"] #spinBox { order: 1; }
+[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 0; }
+[data-layout="portrait"] #fineWheel { order: 3; height: 56px; }
+[data-layout="portrait"] #turnChip { order: 4; padding: 0 7px; gap: 4px; }
+[data-layout="portrait"] #menuBtn { order: 5; width: 44px; height: 56px; }
+[data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
+/* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
+   nothing there is touched), the controls stand in one column on the right, clear of every inset */
+[data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: 48px;
+  padding: max(2px, var(--sat)) max(2px, var(--sar)) 2px max(2px, var(--sal)); }
+[data-layout="wide"] #ctl { flex-direction: column; padding-bottom: max(0px, calc(var(--sab) - 2px)); }
+[data-layout="wide"] #menuBtn { width: var(--col); height: 44px; }
+[data-layout="wide"] #spinPad { width: var(--col); height: var(--col); }
+[data-layout="wide"] #powerBar { flex: 1; width: var(--col); min-height: 120px; }
+[data-layout="wide"] #fineWheel { width: var(--col); height: 84px; }
+/* a bigger screen: a roomier frame and a wider column */
+@media (min-width: 700px) and (min-height: 600px) {
+  [data-layout="wide"] #ui { --col: 64px; gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
+  [data-layout="wide"] #ctl { gap: 10px; padding-bottom: 0; }
+  [data-layout="wide"] #menuBtn { height: 48px; }
+  [data-layout="wide"] #powerBar { max-height: 440px; }
+  [data-layout="wide"] #fineWheel { height: 104px; }
+  [data-layout="portrait"] #ui { gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); grid-template-rows: minmax(0, 1fr) 60px; }
+  [data-layout="portrait"] #ctl { gap: 10px; }
+  [data-layout="portrait"] #spinPad { width: 60px; height: 60px; }
+  [data-layout="portrait"] #powerBar, [data-layout="portrait"] #fineWheel, [data-layout="portrait"] #menuBtn { height: 60px; }
+}
 
-/* ---- player cards ---- */
-.pc { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 8px;
-  min-width: 0; padding: 7px 10px 8px; border-radius: var(--radius); background: rgba(27, 27, 29, .94); border: 1px solid var(--line); }
-#p0 { grid-area: p0; } #p1 { grid-area: p1; }
+/* ---- the turn chip: a dot (signal red: the turn marker), a short name and what they are on:
+   one or two of their group's balls, the 8, or in 9-ball the ball on and its number. It pulses
+   while the CPU thinks and takes the illegal colour on two fouls in a row. ---- */
+#turnChip { flex: none; display: flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 8px;
+  border-radius: 15px; background: var(--panel); border: 1px solid var(--line); font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
+#turnChip[hidden] { display: none; }
+#turnChip .tdot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--signal); box-shadow: 0 0 0 2.5px rgba(192, 57, 43, .3); }
+#turnChip .cb { display: flex; align-items: center; gap: 2px; }
+#turnChip .dot { width: 11px; height: 11px; }
+#turnChip .dot.ring { margin: 0 1px; }
+#turnChip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
+#turnChip.warn { border-color: var(--illegal); }
+#turnChip.warn .tname { color: var(--illegal); }
+#turnChip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
+@keyframes chipPulse { 50% { border-color: #8a8a94; background: var(--panel-3); } }
+[data-layout="wide"] #turnChip { width: var(--col); height: 32px; padding: 0 2px; flex-direction: column; gap: 3px; border-radius: 10px; }
+[data-layout="wide"] #turnChip .tn { display: flex; align-items: center; gap: 4px; }
+#turnChip .tn { display: flex; align-items: center; gap: 5px; }
+
+/* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
+#gameNow { margin: 0 0 14px; }
+#gameNow[hidden] { display: none; }
+#gameNow .cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.pc { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 5px 8px;
+  min-width: 0; padding: 9px 11px 10px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
 .pc .turn { width: 8px; height: 8px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px #6b6b74; }
 .pc.on { border-color: #74747e; background: rgba(38, 38, 42, .96); }
 .pc.on .turn { background: var(--signal); box-shadow: 0 0 0 3px rgba(192, 57, 43, .28); }
 .pc .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* second line: the group (or ball on) in words, then its balls */
-.pc .line { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; height: 16px; }
+.pc .line { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; min-height: 16px; }
 .pc .meta { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .pc .meta.warn { color: var(--illegal); }
-.pc .dots { flex: 1; min-width: 0; display: flex; gap: 2px; overflow: hidden; }
+.pc .dots { flex: 1 1 100%; min-width: 0; display: flex; flex-wrap: wrap; gap: 3px 2px; }
+.pc .dots:empty { display: none; }
 .pc .dot { width: 12px; height: 12px; }
 .dot { width: 13px; height: 13px; border-radius: 50%; flex: none; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .3); }
 /* a dark ball (the 8, maroon, purple, blue) is ringed so it reads on a dark panel: the ring is
@@ -112,16 +127,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dot.big { width: 18px; height: 18px; }
 .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
-#msg { grid-area: msg; min-width: 0; min-height: 20px; line-height: 20px; text-align: center; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#potRow { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-top: 10px; padding: 0 2px; }
+#potRow .label { flex: none; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+#potDots { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 3px; min-width: 0; font-size: 13px; color: var(--muted); }
+#potDots .dot { width: 18px; height: 18px; }
+#menuMsg { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+#menuMsg:empty { display: none; }
 
 /* ---- banners: a turn or a foul, shown over the table for a moment ---- */
 /* flash() places it over the part of the table away from the cue ball (or the kitchen) */
-#banner { position: absolute; left: 50%; top: 50%; width: max-content; max-width: min(88%, 360px); padding: 10px 18px 11px; border-radius: 14px; text-align: center;
+#banner { position: absolute; left: 50%; top: 50%; width: max-content; max-width: min(84%, 300px); padding: 7px 14px 8px; border-radius: 12px; text-align: center;
   background: rgba(22, 22, 24, .94); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
   opacity: 0; transform: translate(-50%, -50%) translateY(10px) scale(.98); transition: opacity .18s ease-out, transform .22s ease-out; pointer-events: none; }
 #banner.show { opacity: 1; transform: translate(-50%, -50%); }
-#banner b { display: block; font-size: 19px; line-height: 1.2; letter-spacing: -.01em; }
-#banner span { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); white-space: pre-line; }
+#banner b { display: block; font-size: 16px; line-height: 1.2; letter-spacing: -.01em; }
+#banner span { display: block; margin-top: 1px; font-size: 12px; color: var(--muted); white-space: pre-line; }
 #banner span:empty { display: none; }
 #banner[data-kind="foul"] { background: var(--signal); border-color: #d9584a; }
 #banner[data-kind="foul"] span { color: #fff; }
@@ -137,11 +157,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .icon { width: 48px; height: 48px; flex: none; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; }
 .icon:hover { background: var(--panel-2); }
 .icon svg { width: 22px; height: 22px; }
-#spinBox { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
+#spinBox { display: flex; flex: none; }
 #spinPad { position: relative; width: 56px; height: 56px; flex: none; border-radius: 50%; touch-action: none; cursor: crosshair;
   background: radial-gradient(circle at 36% 30%, #ffffff 0, #f1efe8 32%, #cfccc4 72%, #9d9a93 100%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .25); }
-[data-layout="wide"] #spinPad { width: 64px; height: 64px; }
 /* the safe circle (|spin| <= 1) and a crosshair; past the ring is miscue country */
 #spinPad::before { content: ""; position: absolute; inset: 19%; border-radius: 50%; border: 1px dashed rgba(40, 40, 44, .45); }
 #spinPad::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
@@ -149,8 +168,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
               linear-gradient(rgba(40, 40, 44, .2), rgba(40, 40, 44, .2)) center / 62% 1px no-repeat; }
 #spinTip { position: absolute; z-index: 1; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #5b95d0, var(--chalk) 60%, #1f4f82); box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .5); pointer-events: none; }
-#spinLabel { font-size: 12px; line-height: 1.25; color: var(--muted); text-align: center; width: 84px; min-height: 30px; display: flex; align-items: center; justify-content: center; }
-[data-layout="portrait"] #spinLabel { justify-content: flex-start; min-height: 0; }
 /* the power bar is the only pointer control that shoots: a lighter edge than the other
    controls (#6b6b74, 3.4:1 on the page) and chevrons that point the way to pull */
 #powerBar { position: relative; border-radius: 14px; background: var(--panel-2); border: 1px solid #6b6b74; overflow: hidden; touch-action: none; cursor: grab; }
@@ -172,11 +189,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #powerMark { position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: linear-gradient(rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
 #powerLab { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; font-size: 13px; color: var(--muted); pointer-events: none; }
 #powerBar.live #powerLab { justify-content: flex-end; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
-[data-layout="wide"] #powerFill, [data-layout="short"] #powerFill { width: 100%; height: 0; background: linear-gradient(180deg, #cfc6b2, var(--cream)); }
-[data-layout="wide"] #powerFill.hot, [data-layout="short"] #powerFill.hot { background: linear-gradient(180deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
-[data-layout="wide"] #powerMark, [data-layout="short"] #powerMark { width: 100%; height: 2px; background: linear-gradient(90deg, rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
-[data-layout="wide"] #powerLab, [data-layout="short"] #powerLab { writing-mode: vertical-rl; padding: 10px 0; }
-[data-layout="wide"] #powerBar.live #powerLab, [data-layout="short"] #powerBar.live #powerLab { writing-mode: horizontal-tb; align-items: flex-end; justify-content: center; }
+[data-layout="wide"] #powerFill { width: 100%; height: 0; background: linear-gradient(180deg, #cfc6b2, var(--cream)); }
+[data-layout="wide"] #powerFill.hot { background: linear-gradient(180deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
+[data-layout="wide"] #powerMark { width: 100%; height: 2px; background: linear-gradient(90deg, rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
+[data-layout="wide"] #powerLab { writing-mode: vertical-rl; padding: 10px 0; }
+[data-layout="wide"] #powerBar.live #powerLab { writing-mode: horizontal-tb; align-items: flex-end; justify-content: center; }
 
 /* ---- overlays: the menu and game over ---- */
 .overlay { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: none; overflow-y: auto; padding: max(16px, var(--sat)) max(16px, var(--sar)) max(16px, var(--sab)) max(16px, var(--sal));
@@ -214,6 +231,8 @@ h1 i { font-style: normal; color: var(--signal); }
 .b8 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #4a4a4e, #161618 70%); }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
 #resumeBtn { width: 100%; margin-bottom: 4px; }
+#resumeBtn:not([hidden]) + .brand { margin: 22px 0 0; }
+#resumeBtn:not([hidden]) + .brand h1 { font-size: 32px; }
 #resumeBtn[hidden] { display: none; }
 details.how { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 4px; }
 details.how summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; list-style: none; }
@@ -258,31 +277,35 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 <body>
 <canvas id="table" aria-label="Pool table. Point, tap or drag to aim; the power bar shoots."></canvas>
 <div id="ui">
-  <div id="hudBar">
-    <div class="pc" id="p0"><span class="turn" aria-hidden="true"></span><span class="name" id="p0name">Player 1</span><span class="line"><span class="meta" id="p0meta"></span><span class="dots" id="p0dots"></span></span></div>
-    <div id="msg" role="status" aria-live="polite"></div>
-    <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
-    <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
-  </div>
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
-  <div id="trayBand" aria-hidden="true"></div>
   <div id="ctl">
+    <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
+    <div id="turnChip" aria-hidden="true"><span class="tn"><span class="tdot"></span><span class="tname" id="chipName"></span></span><span class="cb" id="chipBalls"></span></div>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
-      <span id="spinLabel" aria-hidden="true">center</span>
+      <span id="spinLabel" class="sr" aria-hidden="true">center</span>
     </div>
     <div id="powerBar" role="slider" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
       <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div>
     </div>
     <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
   </div>
+  <div id="msg" class="sr" role="status" aria-live="polite"></div>
 </div>
 
 <div class="overlay show" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
   <div class="sheet wide">
     <div class="col1">
-      <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball and 9-ball, one device.</p></div>
+      <section id="gameNow" hidden aria-label="This game">
+        <div class="cards">
+          <div class="pc" id="p0"><span class="turn" aria-hidden="true"></span><span class="name" id="p0name">Player 1</span><span class="line"><span class="meta" id="p0meta"></span><span class="dots" id="p0dots"></span></span></div>
+          <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
+        </div>
+        <div id="potRow"><span class="label">Potted</span><span id="potDots"></span></div>
+        <p id="menuMsg"></p>
+      </section>
       <button class="big" id="resumeBtn" hidden>Resume game</button>
+      <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball and 9-ball, one device.</p></div>
       <div class="sect">New game</div>
       <div class="opts">
         <span class="label">Opponent</span>
@@ -1458,10 +1481,10 @@ function tableXform(c) {
 const LIGHT = [-0.55, -0.835];
 const tdir = (sx, sy) => view.portrait ? [-sy, sx] : [sx, sy];
 const sdir = (tx, ty) => view.portrait ? [ty, -tx] : [tx, ty];
-/* layout (U): CSS lays out the hud, the controls and an empty #stage; the table is fitted into
-   the stage. Up to three arrangements are tried (portrait strip, wide, short landscape) and the
-   one that gives the biggest table wins, so a tablet in portrait can take its controls to the
-   side while a phone keeps them in a strip under a full-width table. */
+/* layout (U): CSS lays out the controls and an empty #stage; the table is fitted into the
+   stage. Upright, the strip under the table and the column beside it are both tried and the one
+   that gives the bigger table wins, so a tablet in portrait can take its controls to the side
+   while a phone keeps them in a strip under a full-width table; on its side, the column. */
 function fitTable(r) {
   const W = TL + 2 * RAIL, H = TW + 2 * RAIL;
   const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
@@ -1496,25 +1519,23 @@ function layout() {
   layoutSig = sizeSig();
   diag.textContent = `${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}`;
   RAIL = railFor(w, h);
-  const tries = h > w ? ['portrait', 'wide'] : h < 600 ? ['short', 'wide'] : ['wide'];
+  /* upright: the strip under the table, or the side column where that is clearly bigger (a
+     tablet); on its side the column on the right */
+  const tries = h > w ? ['portrait', 'wide'] : ['wide'];
   let best = null;
   for (const m of tries) {
     root.dataset.layout = m;
     const f = fitTable(stage.getBoundingClientRect());
-    /* a phone held upright keeps the strip unless the side layout is clearly bigger: the side
-       layout has no room for the status line on a narrow screen */
+    /* a phone held upright keeps the strip unless the side layout is clearly bigger */
     if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
   const r = stage.getBoundingClientRect(), f = fitTable(r), k = Math.max(10, f.k);
   const tw = (f.portrait ? TW : TL) + 2 * RAIL, th = (f.portrait ? TL : TW) + 2 * RAIL;
   view = { k, portrait: f.portrait, ox: r.left + (r.width - tw * k) / 2 + RAIL * k, oy: r.top + (r.height - th * k) / 2 + RAIL * k };
-  /* the potted-ball tray: a horizontal strip just under the table, as tall as #trayBand (balls
-     at least 16 px across on a phone), wide enough for 15 balls, never over the table. The
-     band is a grid row of its own, so the strip always has room under the stage. */
-  const bh = trayBand.getBoundingClientRect().height || 22, tx0 = view.ox - RAIL * k, ty1 = view.oy - RAIL * k + th * k;
-  const trw = Math.min(tw * k * 0.9, 15 * (bh - 4) + 6);
-  view.tray = { x: tx0 + (tw * k - trw) / 2, y: ty1 + 4, w: trw, h: bh };
+  /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
+     render's explicit off state (no slot painted, nothing drawn on or under the rail). */
+  view.tray = null;
   tableImg = drawTableImage();
 }
 
@@ -1615,8 +1636,9 @@ function drawTableImage() {
   g.beginPath(); g.arc(FOOT[0], FOOT[1], 0.0045, 0, Math.PI * 2); g.fill();
   g.fillStyle = 'rgba(255,255,255,0.2)';
   g.beginPath(); g.arc(HEAD_X, TW / 2, 0.0032, 0, Math.PI * 2); g.fill();
-  /* the pocketed-ball tray's slot */
+  /* the pocketed-ball tray's slot, only where layout() gives the tray a band (view.tray) */
   const T = trayBox = trayGeom();
+  if (!T) return c;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   roundRect(g, T.x, T.y, T.w, T.h, T.h / 2);
   gr = g.createLinearGradient(0, T.y, 0, T.y + T.h);
@@ -2072,12 +2094,11 @@ function drawShadow(X, Y, r, alpha = 1) {
 
 /* ---- 4c. pots, the tray and hit effects ---- */
 /* onPot (called by frame() for each ball that leaves the table): the ball runs on into the drop
-   it fell in, shrinking and darkening under the rim, then rises out of the pocket and travels
-   to its slot in the tray. Both legs run at felt.speed. The tray goes in view.tray, the band
-   layout() reserves for it outside the table (CSS px), with the balls sized from its height.
-   Without one it is a slot along the outside of the screen-bottom rail, sized to the gap below
-   the table (2.2 ball radii plus 10 px fits it), or over the rail's outer edge with no gap. It
-   shows the potted object balls in pot order. */
+   it fell in, shrinking and darkening under the rim, and is gone. Tray: OFF unless layout() sets
+   view.tray (a band outside the table, CSS px); the game screen has none, the potted balls show
+   in the pause menu. With view.tray null nothing is painted for a tray: no slot, no fallback on
+   or under the rail, no flight out of the pocket. With a band, the ball rises out of the pocket
+   and travels to its slot, balls sized from the band's height, in pot order. */
 const POT_MS = 420, FLY_MS = 480;
 let pots = [], trayList = [], effects = [];
 const potMs = () => POT_MS / felt.speed, flyMs = () => FLY_MS / felt.speed;
@@ -2095,19 +2116,13 @@ function trayGeom() {
     const step = 2 * r + gap, w = Math.min(V.w, 15 * step - gap + 2 * pad), h = 2 * r + 2 * pad;
     return { x: V.x + (V.w - w) / 2, y: V.y + (V.h - h) / 2, w, h, r, pad, step };
   }
-  const H = stageBox ? stageBox.bottom : table.height / dpr, rb = BALL_R * view.k;
-  const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL);
-  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]), gap = H - y1;
-  const r = clamp((gap - 10) / 2.2, Math.max(4, rb * 0.6), rb * 0.85), pad = Math.max(2, r * 0.2), step = 2 * r + 2;
-  const w = Math.min(x1 - x0 - 4 * rb, 15 * step + 2 * pad), h = 2 * r + 2 * pad;
-  const y = gap >= h + 6 ? y1 + Math.min(8, (gap - h) / 2) : y1 - h - 4;
-  return { x: (x0 + x1) / 2 - w / 2, y, w, h, r, pad, step };
+  return null;   /* the explicit off state: no band, no tray */
 }
 function drawPots(now) {
   const dur = potMs();
   pots = pots.filter(p => {
     if (now - p.t < dur) return true;
-    if (p.n !== 0) { trayList = trayList.filter(e => e.n !== p.n); trayList.push({ n: p.n, t: now, k: p.k }); }
+    if (p.n !== 0 && trayBox) { trayList = trayList.filter(e => e.n !== p.n); trayList.push({ n: p.n, t: now, k: p.k }); }
     return false;
   });
   const rb = BALL_R * view.k * dpr, co = cushionDepth();
@@ -2772,7 +2787,7 @@ function start(kind) {
   aimAngle = 0;
   enterPlace();
   const who = cpuMode ? 'You break' : 'Player 1 breaks';
-  flash('turn', who, 'Ball in hand behind the head string');
+  flash('turn', who, 'Ball in hand behind the line', 1400);
   hud();
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
@@ -2913,16 +2928,16 @@ function settle() {
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (v.foul) {
     const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
-    flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2600 : 1800);
+    flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2400 : 1500);
     say(state === 'place' ? placeHint() + ballOn : `Foul: ${v.foul}. ${hand}.${ballOn}`);
     sfx('foul', 1);
   } else if (who !== shooter) {
     const w = warn(who);
-    flash(w ? 'foul' : 'turn', turnOf(who), w || group.slice(0, -1), w ? 2200 : 1100);
+    flash(w ? 'foul' : 'turn', turnOf(who), w || group.slice(0, -1), w ? 2000 : 900);
     say(`${group ? group + ' ' : ''}${turnOf(who)}.${ballOn}`);
     sfx('turn', 1);
   } else {
-    if (group) flash('turn', `${isOf(shooter)} ${game.groups[shooter]}`, 'and shoots again', 1300);
+    if (group) flash('turn', `${isOf(shooter)} ${game.groups[shooter]}`, 'and shoots again', 1100);
     say(`${group ? group + ' ' : ''}${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again.${ballOn}`);
   }
   hud();
@@ -3386,9 +3401,10 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
-/* a solid this dark is under 3:1 on the panel (#1b1b1d), so its dot gets a light ring */
+/* a solid this dark is under 3:1 on the lighter panel (#26262a, the menu's player cards), so
+   its dot gets a light ring */
 const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
-const darkBall = n => (lumOf(colorOf(n)) + 0.05) / (lumOf([27, 27, 29]) + 0.05) < 3;
+const darkBall = n => (lumOf(colorOf(n)) + 0.05) / (lumOf([38, 38, 42]) + 0.05) < 3;
 function dotEl(n, big) {
   const d = document.createElement('span'), c = colorOf(n);
   d.className = 'dot' + (n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
@@ -3418,12 +3434,51 @@ function cardOf(p) {
   const pot = stats.potted[p].length;
   return { meta: fw || (pot ? `${pot} potted` : ''), dots: stats.potted[p], warn: f > 0 };
 }
+/* the turn chip: the active player's short name and what they are on: a ball of their group (on
+   an open table one of each), the 8 once the group is gone, or in 9-ball the ball on */
+const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `P${p + 1}`;
+function chipOf(p) {
+  const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
+  if (game.kind === '9') return { balls: on.length ? [on[0]] : [], num: on.length ? String(on[0]) : '' };
+  const gr = game.groups[p];
+  if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
+  const left = on.filter(n => groupOf(n) === gr);
+  return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
+}
+function hudChip() {
+  const p = game.turn;
+  turnChip.hidden = game.winner !== null;
+  const c = chipOf(p), name = shortName(p);
+  if (chipName.textContent !== name) chipName.textContent = name;
+  const key = c.balls.join(',') + '|' + c.num;
+  if (chipBalls.dataset.key !== key) {
+    chipBalls.dataset.key = key;
+    const els = c.balls.map(n => dotEl(n));
+    if (c.num) { const t = document.createElement('span'); t.className = 'num'; t.textContent = c.num; els.push(t); }
+    chipBalls.replaceChildren(...els);
+  }
+  turnChip.classList.toggle('busy', state === 'thinking' && !human() && !cpuPlan);
+  turnChip.classList.toggle('warn', onTwo(game, p));
+}
+/* the game section of the pause menu: both cards, the potted balls in pot order, the latest word */
+function hudMenu() {
+  gameNow.hidden = !paused;
+  if (!paused) return;
+  const potted = [];
+  for (const n of [...stats.potted[0], ...stats.potted[1]]) if (n > 0 && !potted.includes(n)) potted.push(n);
+  for (const b of game.balls) if (!b.on && b.n > 0 && !potted.includes(b.n)) potted.push(b.n);
+  fillDots(potDots, potted);
+  if (!potted.length) potDots.textContent = 'none yet';
+  if (menuMsg.textContent !== msg.textContent) menuMsg.textContent = msg.textContent;
+}
 function hud() {
+  hudChip();
+  hudMenu();
   for (const p of [0, 1]) {
     const card = document.getElementById('p' + p), meta = document.getElementById('p' + p + 'meta'), c = cardOf(p);
-    card.classList.toggle('on', state !== 'menu' && game.turn === p && game.winner === null);
+    card.classList.toggle('on', (state !== 'menu' || !!paused) && game.turn === p && game.winner === null);
     document.getElementById('p' + p + 'name').textContent = nameOf(p);
-    const think = state === 'thinking' && cpuMode && p === 1 && !cpuPlan;
+    const think = (paused ? paused.state : state) === 'thinking' && cpuMode && p === 1 && !cpuPlan;
     meta.textContent = think ? 'thinking' : c.meta;
     meta.classList.toggle('thinking', think);
     meta.classList.toggle('warn', !think && !!c.warn);
@@ -3461,7 +3516,7 @@ let flashT = 0, byKeys = false;
 addEventListener('keydown', () => { byKeys = true; }, true);
 addEventListener('pointerdown', () => { byKeys = false; }, true);
 /* a banner over the table for a moment: a foul in signal red, a turn in the panel colour */
-function flash(kind, head, sub, ms = 1300) {
+function flash(kind, head, sub, ms = 1100) {
   clearTimeout(flashT);
   banner.dataset.kind = kind;
   bannerHead.textContent = head; bannerSub.textContent = sub || '';

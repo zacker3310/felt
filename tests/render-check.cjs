@@ -1,10 +1,10 @@
 /* render-check: what the canvas shows. The table art is built from the sim's geometry (pockets
    dark, cushions distinct from the bed, wood on the rails), the guide follows settings.guide,
    the guide's paths are the physics (they match a real roll, never touch game or tab, and stay
-   inside their per-frame budget), its ring calls kitchen fouls, a pot ends in the tray, the tray
-   sits in view.tray clear of the table, a scratch never shows two cue balls, portrait draws the
-   same table turned, the illegal ring and the 8's tray rim keep their contrast, and a frame stays
-   cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
+   inside their per-frame budget), its ring calls kitchen fouls, a pot sinks into its pocket and is gone
+   (no tray on the game screen: view.tray null is the off state, and nothing is drawn on or under
+   the rail for one), a scratch never shows two cue balls, portrait draws the same table turned,
+   the illegal ring keeps its contrast, and a frame stays cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
    (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
    the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
@@ -83,18 +83,26 @@ async function tableChecks(page, tag) {
   });
   check('illegal ring #ffa597 keeps 3:1 on the brightest cloth', contrast >= 3, contrast.toFixed(2));
 
-  /* a pot: the ball sinks into its pocket and lands in the tray */
-  const tray = await page.evaluate(async () => {
+  /* a pot: the ball sinks into its pocket and is gone. No tray: view.tray is null, trayGeom()
+     gives nothing, and every pixel off the table is the same before the pot and after it */
+  const POT = async () => {
     for (const o of game.balls) o.on = o.n !== 1;
     trayList = [];
-    const T = trayBox, x = T.x + T.pad + T.r, y = T.y + T.h / 2;
-    onPot(1, 2, [POCKETS[2][0] - 0.05, POCKETS[2][1] + 0.05], performance.now());
-    const before = __px([[x, y]])[0];
-    const mid = __px([toScreen(POCKETS[2][0], POCKETS[2][1])])[0];
+    const t = felt.tableRect(), W = table.width / dpr, H = table.height / dpr, off = [];
+    for (let x = 4; x < W; x += 9) for (let y = 4; y < H; y += 9) if (x < t.left - 2 || x > t.right + 2 || y < t.top - 2 || y > t.bottom + 2) off.push([x, y]);
+    const base = __px(off);
+    const P = POCKETS[2], from = [P[0] - 0.05, P[1] + 0.05], disk = [];
+    for (let i = 0; i < 24; i++) for (const d of [0, 0.02, 0.04, 0.06]) disk.push(toScreen(from[0] + Math.cos(i * Math.PI / 12) * d, from[1] + Math.sin(i * Math.PI / 12) * d));
+    const yellow = px => px.some(c => c[0] > 150 && c[1] > 100 && c[2] < 90);
+    onPot(1, 2, from, performance.now());
+    const mid = yellow(__px(disk));
     await new Promise(r => setTimeout(r, 1300));
-    return { before, mid, after: __px([[x, y]])[0] };
-  });
-  check('a potted ball rolls into the tray', bright(tray.after) > bright(tray.before) + 150, JSON.stringify(tray));
+    const after = __px(off), diff = Math.max(...after.map((c, i) => Math.abs(c[0] - base[i][0]) + Math.abs(c[1] - base[i][1]) + Math.abs(c[2] - base[i][2])));
+    return { mid, gone: !yellow(__px(disk)) && !pots.length, diff, tray: view.tray, box: trayGeom(), list: trayList.length, n: off.length };
+  };
+  const pot = await page.evaluate(POT);
+  check('a potted ball sinks into its pocket and is gone', pot.mid && pot.gone, JSON.stringify(pot));
+  check('no tray: view.tray null, trayGeom() null, nothing drawn off the table before or after a pot', pot.tray === null && pot.box === null && pot.list === 0 && pot.n > 50 && pot.diff <= 3, JSON.stringify(pot));
 
   /* the guide's paths are the physics: run the preview to the end, then roll the same shot on
      every ball with strike/stepTable (what simulateShot does) and compare the cue ball where it
@@ -244,30 +252,11 @@ async function tableChecks(page, tag) {
   check('portrait: the table is turned', await p.page.evaluate(() => view.portrait));
   await tableChecks(p.page, 'portrait');
 
-  /* the tray goes in view.tray, layout()'s band outside the table, with readable balls. Checked
-     on the band layout() sets when it sets one, and on a band given here either way. */
-  const tr = await p.page.evaluate(() => {
-    const t = felt.tableRect(), cut = (a, b) => a.x < b.right && a.x + a.w > b.left && a.y < b.bottom && a.y + a.h > b.top;
-    const own = view.tray ? { inside: true, clear: !cut(trayBox, t) } : null;
-    view.tray = { x: t.left + 10, y: t.bottom + 4, w: t.right - t.left - 20, h: 26 };
-    tableImg = drawTableImage();
-    const T = trayBox, V = view.tray;
-    const inside = T.x >= V.x - 0.5 && T.y >= V.y - 0.5 && T.x + T.w <= V.x + V.w + 0.5 && T.y + T.h <= V.y + V.h + 0.5;
-    return { own, inside, clear: !cut(T, t), across: 2 * T.r, fits: T.pad * 2 + 15 * T.step - 2 <= T.w + 0.5 };
-  });
-  check('tray: inside view.tray, clear of the table, 15 balls fit', tr.inside && tr.clear && tr.fits && (!tr.own || tr.own.clear), JSON.stringify(tr));
-  check('tray: balls at least 16 px across on a phone', tr.across >= 16, tr.across.toFixed(1) + ' px');
-
-  /* the 8 in the tray: its light rim against the tray (on the cloth it has none; see the halo) */
-  const eight = await p.page.evaluate(() => {
-    for (const b of game.balls) b.on = b.n !== 8;
-    game.shots = 1; trayList = [{ n: 8, t: 0 }];
-    const T = trayBox, x = T.x + T.pad + T.r, y = T.y + T.h / 2, pts = [], out = [];
-    for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; pts.push([x + Math.cos(a) * (T.r - 0.6), y + Math.sin(a) * (T.r - 0.6)]); out.push([x + Math.cos(a) * (T.r + 2.5), y + Math.sin(a) * (T.r + 2.5)]); }
-    const px = __px([...pts, ...out]), rim = Math.max(...px.slice(0, 16).map(__lum)), bg = Math.max(...px.slice(16).map(__lum));
-    return { tray: (rim + 0.05) / (bg + 0.05) };
-  });
-  check('the 8 reads in the tray: its rim keeps 3:1 on it', eight.tray >= 3, JSON.stringify(eight));
+  /* portrait, where the old fallback put a tray on or under the bottom rail: the same pot, and
+     still nothing off the table */
+  await p.page.evaluate(() => { game.shots = 1; });
+  const ppot = await p.page.evaluate(POT);
+  check('portrait: a pot sinks and is gone, no tray anywhere (view.tray null is the off state)', ppot.mid && ppot.gone && ppot.tray === null && ppot.box === null && ppot.diff <= 3, JSON.stringify(ppot));
   check('portrait: no console errors', p.errors.length === 0, p.errors.join(' | '));
   await p.browser.close();
 

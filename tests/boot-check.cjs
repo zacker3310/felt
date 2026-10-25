@@ -1,7 +1,11 @@
 /* boot-check: the page boots with no console errors and no network beyond itself, opens on
    the menu, starts both games, keeps every target at least 44 px and every text at 4.5:1, and
    on a phone fills the width with the table, keeps the controls off it and never scrolls
-   sideways. */
+   sideways. The game screen is the table and the controls: no player cards, no status text, no
+   tray; a turn chip (32 px or less) says whose turn it is, and the pause menu holds the rest.
+   Ball size is the target metric: measured at each listed viewport (iOS insets simulated with
+   --sat/--sar/--sab/--sal, which headless env() leaves at 0) against the sizes before the
+   maximised layout. */
 'use strict';
 const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
@@ -43,11 +47,11 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   const sc = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: innerWidth }));
   check('no horizontal scroll at 390 px', sc.sw <= sc.w, JSON.stringify(sc));
   const ph = await page.evaluate(() => {
-    const t = felt.tableRect(), c = ctl.getBoundingClientRect(), h = hudBar.getBoundingClientRect();
-    return { w: t.right - t.left, vw: innerWidth, layout: document.documentElement.dataset.layout, portrait: felt.view.portrait, gapBelow: c.top - t.bottom, gapAbove: t.top - h.bottom, inside: t.left >= 0 && t.right <= innerWidth };
+    const t = felt.tableRect(), c = ctl.getBoundingClientRect(), h = stage.getBoundingClientRect();
+    return { w: t.right - t.left, vw: innerWidth, layout: document.documentElement.dataset.layout, portrait: felt.view.portrait, gapBelow: c.top - t.bottom, gapAbove: t.top - h.top, inside: t.left >= 0 && t.right <= innerWidth };
   });
-  check('phone portrait: the table is at least 85% of the viewport width', ph.w >= 0.85 * ph.vw && ph.portrait && ph.layout === 'portrait' && ph.inside, JSON.stringify(ph));
-  check('phone portrait: hud above and controls below never overlap the table', ph.gapBelow >= 0 && ph.gapAbove >= 0, JSON.stringify(ph));
+  check('phone portrait: the table is at least 97% of the viewport width', ph.w >= 0.97 * ph.vw && ph.portrait && ph.layout === 'portrait' && ph.inside, JSON.stringify(ph));
+  check('phone portrait: the controls below never overlap the table, which stays inside its stage', ph.gapBelow >= 0 && ph.gapAbove >= 0, JSON.stringify(ph));
   check('phone targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
   check('phone text is 4.5:1 or better', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
   /* AC1 (T2.2): on the default 7 ft table a ball is at least 17 px across at 390x844 */
@@ -63,19 +67,25 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   });
   check('phone landscape: the table takes most of the height, controls beside it', ls.h >= 0.8 * ls.vh && !ls.overlap && ls.sw <= ls.w, JSON.stringify(ls));
 
-  /* the tray strip: in every layout, outside the table and the controls, inside the screen,
-     tall enough for balls at least 16 px across */
-  const trays = [];
-  for (const [w, h] of [[1280, 800], [1920, 1080], [390, 844], [375, 667], [844, 390], [768, 1024]]) {
+  /* the game screen is the table and the controls: no player cards, no status text, no tray
+     band; #msg stays for screen readers (visually hidden, still a polite live region). The turn
+     chip shows the active player, 32 px tall or less, and pulses while the CPU thinks. */
+  const clean = [];
+  for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.waitForTimeout(150);
-    trays.push(await page.evaluate(() => {
-      const T = felt.view.tray, t = felt.tableRect(), c = ctl.getBoundingClientRect();
-      const hit = (a, b) => a.x < b.right && a.x + a.w > b.left && a.y < b.bottom && a.y + a.h > b.top;
-      return { size: innerWidth + 'x' + innerHeight, T, ok: !!T && T.h >= 22 && T.w >= 15 * (T.h - 4) * 0.8 && !hit(T, t) && !hit(T, c) && T.x >= 0 && T.y >= 0 && T.x + T.w <= innerWidth && T.y + T.h <= innerHeight };
+    clean.push(await page.evaluate(() => {
+      const seen = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && !el.closest('.overlay:not(.show)'); };
+      const text = [...document.querySelectorAll('#ui *')].filter(el => seen(el) && el.id !== 'banner' && !el.closest('#banner') && !el.closest('#powerBar') && !el.closest('#turnChip')
+        && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
+      const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
+      return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),
+        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: chipName.textContent } };
     }));
   }
-  check('view.tray: a strip outside the table and the controls in every layout, balls 16 px or more', trays.every(r => r.ok), JSON.stringify(trays.filter(r => !r.ok)));
+  check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));
+  check('the status line stays for screen readers: visually hidden, role status, aria-live polite', clean.every(c => c.msg.w <= 1 && c.msg.h <= 1 && c.msg.live === 'polite' && c.msg.role === 'status'), JSON.stringify(clean.map(c => c.msg)));
+  check('the turn chip shows the active player and is 32 px tall or less', clean.every(c => c.chip.shown && c.chip.h <= 32 && c.chip.name === 'You'), JSON.stringify(clean.map(c => c.chip)));
 
   /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
      every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or
@@ -86,8 +96,8 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     await page.waitForTimeout(150);
     lays.push(await page.evaluate(() => {
       const t = felt.tableRect(), R = el => el.getBoundingClientRect(), hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
-      const els = { hud: R(hudBar), menu: R(menuBtn), pad: R(spinPad), bar: R(powerBar), wheel: R(fineWheel), ctl: R(ctl) };
-      const over = Object.keys(els).filter(k => hit(els[k], t));
+      const els = { chip: R(turnChip), menu: R(menuBtn), pad: R(spinPad), bar: R(powerBar), wheel: R(fineWheel), ctl: R(ctl), banner: R(stage) };
+      const over = Object.keys(els).filter(k => k !== 'banner' && hit(els[k], t));
       const out = Object.keys(els).filter(k => els[k].left < -0.5 || els[k].top < -0.5 || els[k].right > innerWidth + 0.5 || els[k].bottom > innerHeight + 0.5);
       const small = ['menu', 'pad', 'bar', 'wheel'].filter(k => Math.min(els[k].width, els[k].height) < 44);
       const area = k => els[k].width * els[k].height, barBig = ['menu', 'pad', 'wheel'].every(k => area('bar') > area(k));
@@ -98,15 +108,76 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     lays.every(l => !l.over.length && !l.out.length && !l.small.length && !l.scroll && l.rail >= 0.1 - 1e-9 && l.barBig), JSON.stringify(lays));
   console.log('ball px: ' + lays.map(l => l.size + ' ' + l.ball).join(', '));
 
-  /* short landscape: a card's ball dots wrap rather than clip */
-  await page.setViewportSize({ width: 844, height: 390 });
-  await page.evaluate(() => { felt.start('8'); game.groups = ['solids', 'stripes']; game.open = false; hud(); });
-  const clip = await page.evaluate(() => [0, 1].map(p => {
-    const card = document.getElementById('p' + p).getBoundingClientRect();
-    const dots = [...document.querySelectorAll(`#p${p}dots .dot`)].map(d => d.getBoundingClientRect());
-    return { n: dots.length, inside: dots.every(d => d.left >= card.left && d.right <= card.right && d.top >= card.top && d.bottom <= card.bottom) };
-  }));
-  check('short landscape: all seven group dots show inside each card', clip.every(c => c.n === 7 && c.inside), JSON.stringify(clip));
+  /* the pause menu holds the game: both cards (name, turn marker, group and its balls, or the
+     ball on and fouls in 9-ball), the potted balls in pot order and the latest status line, at
+     the top, then Resume as the primary button. Checked at 844x390 (dots wrap inside the cards,
+     nothing clipped) and at 390x844. */
+  for (const [w, h] of [[844, 390], [390, 844]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.evaluate(() => {
+      settings.cpu = false; felt.start('8'); game.groups = ['solids', 'stripes']; game.open = false;
+      for (const n of [1, 9, 3]) game.balls.find(b => b.n === n).on = false;
+      stats.potted = [[1, 3], [9]]; msg.textContent = 'Player 1 to shoot.'; hud();
+    });
+    await page.click('#menuBtn');
+    await page.waitForTimeout(100);
+    const pm = await page.evaluate(() => {
+      const R = el => el.getBoundingClientRect(), sec = R(gameNow), res = R(resumeBtn);
+      const cards = [0, 1].map(p => {
+        const card = R(document.getElementById('p' + p)), dots = [...document.querySelectorAll(`#p${p}dots .dot`)].map(R);
+        return { name: document.getElementById('p' + p + 'name').textContent, meta: document.getElementById('p' + p + 'meta').textContent, on: document.getElementById('p' + p).classList.contains('on'), n: dots.length,
+          inside: dots.every(d => d.left >= card.left && d.right <= card.right && d.top >= card.top && d.bottom <= card.bottom), h: card.height };
+      });
+      return { size: innerWidth + 'x' + innerHeight, shown: !gameNow.hidden && sec.height > 0, cards, potted: [...potDots.querySelectorAll('.dot')].map(d => d.title), say: menuMsg.textContent,
+        first: sec.top < res.top && res.top < R(document.querySelector('#menu .brand')).top, primary: resumeBtn.classList.contains('big') };
+    });
+    check(`pause menu at ${w}x${h}: both cards (active marker, group, remaining dots inside), the potted balls in order, the status line, then Resume`,
+      pm.shown && pm.first && pm.primary && pm.cards[0].on && !pm.cards[1].on && pm.cards[0].meta === 'Solids' && pm.cards[1].meta === 'Stripes' && pm.cards[0].n === 5 && pm.cards[1].n === 6
+      && pm.cards.every(c => c.inside) && pm.potted.join() === '1,3,9' && pm.say === 'Player 1 to shoot.', JSON.stringify(pm));
+    check(`pause menu at ${w}x${h}: targets 44 px, text 4.5:1`, (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+    const dk = await page.evaluate(() => {
+      const rgba = c => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
+      const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+      const cr = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+      return [...document.querySelectorAll('#gameNow .dot')].map(d => {
+        const bg = rgba(getComputedStyle(d.closest('.pc') || document.querySelector('#menu .sheet')).backgroundColor);
+        const cs = getComputedStyle(d), ball = rgba(cs.backgroundColor), ring = cs.boxShadow.match(/rgb\([^)]*\)(?= 0px 0px 0px 1\.5px)/);
+        return { n: d.title, r: +Math.max(d.classList.contains('stripe') ? 99 : cr(ball, bg), ring ? cr(rgba(ring[0]), bg) : 0).toFixed(2) };
+      });
+    });
+    check(`pause menu at ${w}x${h}: every ball dot reads at 3:1 (dark ones by their ring)`, dk.length >= 14 && dk.every(d => d.r >= 3), JSON.stringify(dk.filter(d => d.r < 3)));
+    await page.click('#resumeBtn');
+  }
+  const gone = await page.evaluate(() => ({ s: felt.state, hidden: gameNow.hidden }));
+  check('resume hides the menu and its game section', gone.s !== 'menu' && gone.hidden, JSON.stringify(gone));
+
+  /* the ball, the target metric: at least 20 px across at 956x440 with the iOS insets, and never
+     smaller than before the maximised layout at any listed viewport */
+  const BEFORE = { '440x956 ios': 18.13, '956x440 ios': 17.19, '390x844': 17.4, '440x956': 20.33, '844x390': 17.08, '1280x800': 30.29, '375x667': 12.76, '768x1024': 23.37 };
+  const INSETS = { '440x956 ios': [62, 0, 34, 0], '956x440 ios': [0, 62, 21, 62] };
+  const sizes = {};
+  for (const key of Object.keys(BEFORE)) {
+    const [w, h] = key.split(' ')[0].split('x').map(Number), ins = INSETS[key] || [0, 0, 0, 0];
+    await page.setViewportSize({ width: w, height: h });
+    sizes[key] = await page.evaluate(i => {
+      let st = document.getElementById('insets');
+      if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
+      st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
+      relayout();
+      const t = felt.tableRect(), rs = [menuBtn, turnChip, spinPad, powerBar, fineWheel].map(el => el.getBoundingClientRect());
+      const c = { left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), top: Math.min(...rs.map(r => r.top)), bottom: Math.max(...rs.map(r => r.bottom)) };
+      const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
+      const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };
+      const ctlSafe = c.left >= safe.l - 0.5 && c.right <= safe.r + 0.5 && c.top >= safe.t - 0.5 && c.bottom <= safe.b + 0.5;
+      const tableSafe = t.left >= safe.l - 0.5 && t.right <= safe.r + 0.5 && t.top >= safe.t - 0.5 && t.bottom <= innerHeight + 0.5;
+      return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe };
+    }, ins);
+  }
+  await page.evaluate(() => { document.getElementById('insets').remove(); relayout(); });
+  console.log('ball px (before -> now): ' + Object.keys(BEFORE).map(k => `${k} ${BEFORE[k]} -> ${sizes[k].ball}`).join(', '));
+  check('ball: at least 20 px across at 956x440 with the iOS insets', sizes['956x440 ios'].ball >= 20, JSON.stringify(sizes['956x440 ios']));
+  check('ball: at every listed viewport no smaller than before', Object.keys(BEFORE).every(k => sizes[k].ball >= BEFORE[k]), JSON.stringify(sizes));
+  check('insets: every control inside the safe area; the table inside it but for its bottom rail (home indicator)', Object.values(sizes).every(s => s.ctlSafe && s.tableSafe), JSON.stringify(sizes));
 
   /* game over at 844x390: the sheet fits the screen; its dark dots are ringed to 3:1 */
   await page.evaluate(() => { stats.potted = [[8, 7, 4, 2, 1], [6, 3, 15]]; felt.forceWin(0); });
@@ -138,7 +209,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     const ta = s => getComputedStyle(document.querySelector(s)).touchAction;
     return {
       meta: document.querySelector('meta[name="viewport"]').content,
-      none: ['html', 'body', '#table', '#ui', '#hudBar', '#ctl', '#menuBtn', '#spinLabel', '#spinPad', '#powerBar', '#banner', '#trayBand'].map(ta),
+      none: ['html', 'body', '#table', '#ui', '#turnChip', '#ctl', '#menuBtn', '#spinPad', '#powerBar', '#fineWheel', '#banner'].map(ta),
       menu: [ta('#menu'), ta('#over'), ta('#menu .sheet'), ta('#play8')],
       how: [getComputedStyle(document.querySelector('.how .keys')).display, getComputedStyle(document.querySelector('.how .touch')).display],
     };

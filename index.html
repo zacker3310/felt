@@ -2,7 +2,7 @@
 <html lang="en" data-layout="wide">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0f0f10">
 <title>felt</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23161618'/%3E%3Ccircle cx='32' cy='32' r='13' fill='%23fff'/%3E%3Ctext x='32' y='38' font-size='17' font-weight='700' text-anchor='middle' font-family='sans-serif'%3E8%3C/text%3E%3C/svg%3E">
@@ -20,6 +20,10 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 var(--font); overflow: hidden; }
+/* no pinch or double-tap zoom anywhere: the page and the game UI take no browser gestures at
+   all, and the overlays only scroll (pan-y), so a menu taller than the screen still scrolls */
+html, body, #ui, #ui * { touch-action: none; }
+.overlay, .overlay * { touch-action: pan-y; }
 body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 button { font: inherit; color: inherit; cursor: pointer; }
 :focus { outline: none; }
@@ -35,22 +39,32 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #ctl > * { pointer-events: auto; }
 
 /* portrait phone: hud on top, the table full width, one strip of controls at the bottom */
-[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "ctl" auto / minmax(0, 1fr); }
+/* #trayBand: the potted-ball tray's strip, outside the table in every layout; layout() puts
+   view.tray right under the table, inside the room this band keeps free */
+#trayBand { grid-area: tray; min-width: 0; height: var(--tray-h); }
+#ui { --tray-h: 22px; }
+[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "tray" var(--tray-h) "ctl" auto / minmax(0, 1fr); }
 [data-layout="portrait"] #hudBar { grid-template: "p0 p1" auto "msg msg" auto / minmax(0, 1fr) minmax(0, 1fr); }
 [data-layout="portrait"] #ctl { flex-direction: row; height: 60px; }
 [data-layout="portrait"] #msg { font-size: 13px; }
+/* where the hud has the height (a tablet strip, or beside the cards in landscape), the status
+   line wraps to two lines instead of being cut short */
+@media (min-width: 600px) { [data-layout="portrait"] #msg { white-space: normal; line-height: 18px; height: 36px; display: flex; align-items: center; justify-content: center; } }
+[data-layout="wide"] #msg { white-space: normal; line-height: 18px; max-height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 [data-layout="portrait"] #spinBox { order: 1; flex-direction: row; }
 [data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; }
 [data-layout="portrait"] #menuBtn { order: 3; }
 [data-layout="portrait"] #spinLabel { width: 76px; text-align: left; }
 /* landscape: hud across the top, controls in a column on the right */
-[data-layout="wide"] #ui { grid-template: "hud hud" auto "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) 84px; }
+[data-layout="wide"] #ui { grid-template: "hud hud" auto "stage ctl" minmax(0, 1fr) "tray ctl" var(--tray-h) / minmax(0, 1fr) 84px; }
+@media (min-height: 700px) and (min-width: 700px) { #ui { --tray-h: 30px; } }
 [data-layout="wide"] #hudBar { grid-template: "p0 msg p1" auto / minmax(0, 260px) minmax(0, 1fr) minmax(0, 260px); }
 /* short landscape (a phone on its side): players on the left, controls on the right, the
    table gets the whole height */
-[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) / 124px minmax(0, 1fr) 72px; }
+[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) "hud tray ctl" var(--tray-h) / 124px minmax(0, 1fr) 72px; }
 [data-layout="short"] .pc { padding: 7px 9px 8px; }
 [data-layout="short"] .pc .line { flex-wrap: wrap; height: auto; row-gap: 4px; }
+[data-layout="short"] .pc .dots { flex: 1 1 100%; flex-wrap: wrap; row-gap: 2px; overflow: visible; }
 [data-layout="short"] #spinPad { width: 60px; height: 60px; }
 [data-layout="short"] #spinLabel { width: 72px; }
 [data-layout="short"] #hudBar { grid-template: "p0" auto "p1" auto "msg" auto / minmax(0, 1fr); align-content: start; }
@@ -73,6 +87,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pc .dots { flex: 1; min-width: 0; display: flex; gap: 2px; overflow: hidden; }
 .pc .dot { width: 12px; height: 12px; }
 .dot { width: 13px; height: 13px; border-radius: 50%; flex: none; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .3); }
+/* a dark ball (the 8, maroon, purple, blue) is ringed so it reads on a dark panel: the ring is
+   #a3a3aa, 6.8:1 on the panel (graphics need 3:1) */
+.dot.ring { margin: 0 1.5px; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .35), 0 0 0 1.5px #a3a3aa; }
 .dot.stripe { background-image: linear-gradient(#f6f4ec 0 24%, transparent 24% 76%, #f6f4ec 76%) !important; }
 .dot.big { width: 18px; height: 18px; }
 .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
@@ -80,12 +97,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #msg { grid-area: msg; min-width: 0; min-height: 20px; line-height: 20px; text-align: center; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---- banners: a turn or a foul, shown over the table for a moment ---- */
-#banner { position: absolute; left: 50%; top: 50%; width: max-content; max-width: min(92%, 420px); padding: 14px 24px 15px; border-radius: 16px; text-align: center;
+/* flash() places it over the part of the table away from the cue ball (or the kitchen) */
+#banner { position: absolute; left: 50%; top: 50%; width: max-content; max-width: min(88%, 360px); padding: 10px 18px 11px; border-radius: 14px; text-align: center;
   background: rgba(22, 22, 24, .94); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
   opacity: 0; transform: translate(-50%, -50%) translateY(10px) scale(.98); transition: opacity .18s ease-out, transform .22s ease-out; pointer-events: none; }
 #banner.show { opacity: 1; transform: translate(-50%, -50%); }
-#banner b { display: block; font-size: 21px; line-height: 1.2; letter-spacing: -.01em; }
-#banner span { display: block; margin-top: 3px; font-size: 14px; color: var(--muted); }
+#banner b { display: block; font-size: 19px; line-height: 1.2; letter-spacing: -.01em; }
+#banner span { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); white-space: pre-line; }
 #banner span:empty { display: none; }
 #banner[data-kind="foul"] { background: var(--signal); border-color: #d9584a; }
 #banner[data-kind="foul"] span { color: #fff; }
@@ -129,7 +147,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ---- overlays: the menu and game over ---- */
 .overlay { position: fixed; inset: 0; display: none; overflow-y: auto; padding: max(16px, var(--sat)) max(16px, var(--sar)) max(16px, var(--sab)) max(16px, var(--sal));
   background: rgba(10, 10, 11, .82); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
-.overlay.show { display: grid; place-items: center; }
+.overlay.show { display: grid; }
+.overlay .sheet { margin: auto; }
 .sheet { width: 100%; max-width: 440px; padding: 26px 24px 22px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
 .brand { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
 h1 { margin: 0; font-size: 46px; line-height: 1; letter-spacing: -.035em; font-weight: 800; }
@@ -182,6 +201,17 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .stats tbody th { color: var(--muted); font-weight: 500; width: 28%; }
 .stats td { width: 36%; }
 .stats .dots { display: flex; flex-wrap: wrap; gap: 3px; }
+@media (max-height: 480px) {
+  #over .sheet { padding: 16px 20px 14px; }
+  #overText { font-size: 26px; }
+  #overWhy { margin: 4px 0 10px; }
+  .stats { margin-bottom: 12px; }
+  .stats th, .stats td { padding: 5px 6px; }
+  #over .big, #over .ghost { min-height: 48px; }
+}
+/* How to play: touch words on a touch screen, mouse and keyboard words otherwise */
+.how .touch { display: none; }
+@media (hover: none) and (pointer: coarse) { .how .touch { display: grid; } .how .keys { display: none; } }
 @media (max-height: 560px) and (min-width: 700px) {
   .sheet.wide { max-width: 760px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
   .sheet.wide .col2 { padding-top: 6px; }
@@ -199,6 +229,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
   </div>
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
+  <div id="trayBand" aria-hidden="true"></div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
     <div id="spinBox">
@@ -235,12 +266,19 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       </div>
       <details class="how" id="how">
         <summary>How to play</summary>
-        <dl>
-          <dt>Aim</dt><dd>Point with the mouse, or tap where the cue ball should go. Drag across the line to fine-tune; start the drag further from the cue ball for finer steps. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> also aim (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine).</dd>
-          <dt>Shoot</dt><dd>Drag back along the line, away from the target, and let go: the further, the harder. Slide back to the start to cancel. Or drag the power bar and let go. <kbd>Space</kbd> shoots at the marked power, <kbd>&uarr;</kbd> <kbd>&darr;</kbd> set it.</dd>
-          <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it or press <kbd>R</kbd> to centre.</dd>
-          <dt>In hand</dt><dd>Drag anywhere to slide the cue ball, or tap a spot. Let go to place it. You can pick it up again until you shoot.</dd>
+        <dl class="keys">
+          <dt>Aim</dt><dd>Point at the cloth, or click a spot. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> fine-tune (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine), and so does a drag across the line. A fine-tuned aim holds still until the mouse moves away or clicks, and the aim never follows the pointer off the cloth.</dd>
+          <dt>Shoot</dt><dd>Press and drag back along the line, away from the target. Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, come back past the dead zone, slide off the line or off the table. The power bar works the same way. <kbd>Space</kbd> shoots at the marked power, <kbd>&uarr;</kbd> <kbd>&darr;</kbd> set it.</dd>
+          <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double click it or press <kbd>R</kbd> to centre.</dd>
+          <dt>In hand</dt><dd>The cue ball follows the mouse; click to place it. Click the placed ball to pick it up again.</dd>
           <dt>Pause</dt><dd>The pause button or <kbd>Esc</kbd>. The game waits.</dd>
+        </dl>
+        <dl class="touch">
+          <dt>Aim</dt><dd>Tap where the cue ball should go. Drag across the line to fine-tune; start further from the cue ball for finer steps.</dd>
+          <dt>Shoot</dt><dd>Drag back along the line, away from the target. Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, slide back to the start, off the line or off the table. Or drag the power bar.</dd>
+          <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it to centre.</dd>
+          <dt>In hand</dt><dd>Drag anywhere to slide the cue ball, or tap a spot to drop it there. Once it is down, tap it (or hold it) to pick it up again.</dd>
+          <dt>Pause</dt><dd>The pause button. The game waits.</dd>
         </dl>
       </details>
     </div>
@@ -1301,7 +1339,7 @@ function fitTable(r) {
 }
 function layout() {
   const w = innerWidth, h = innerHeight, root = document.documentElement;
-  dpr = Math.min(2, window.devicePixelRatio || 1);
+  dpr = Math.min(3, window.devicePixelRatio || 1);   /* a frame is cheap (cached sprites), so phones get their full 3x */
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
   const tries = h > w ? ['portrait', 'wide'] : h < 600 ? ['short', 'wide'] : ['wide'];
@@ -1309,12 +1347,20 @@ function layout() {
   for (const m of tries) {
     root.dataset.layout = m;
     const f = fitTable(stage.getBoundingClientRect());
-    if (!best || f.k > best.k * 1.04) best = { m, k: f.k };
+    /* a phone held upright keeps the strip unless the side layout is clearly bigger: the side
+       layout has no room for the status line on a narrow screen */
+    if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
   const r = stage.getBoundingClientRect(), f = fitTable(r), k = Math.max(10, f.k);
   const tw = (f.portrait ? TW : TL) + 2 * RAIL, th = (f.portrait ? TL : TW) + 2 * RAIL;
   view = { k, portrait: f.portrait, ox: r.left + (r.width - tw * k) / 2 + RAIL * k, oy: r.top + (r.height - th * k) / 2 + RAIL * k };
+  /* the potted-ball tray: a horizontal strip just under the table, as tall as #trayBand (balls
+     at least 16 px across on a phone), wide enough for 15 balls, never over the table. The
+     band is a grid row of its own, so the strip always has room under the stage. */
+  const bh = trayBand.getBoundingClientRect().height || 22, tx0 = view.ox - RAIL * k, ty1 = view.oy - RAIL * k + th * k;
+  const trw = Math.min(tw * k * 0.9, 15 * (bh - 4) + 6);
+  view.tray = { x: tx0 + (tw * k - trw) / 2, y: ty1 + 4, w: trw, h: bh };
   tableImg = drawTableImage();
 }
 
@@ -1758,6 +1804,8 @@ function onPot(n, k, from, now) {
   pots.push({ n, k, from: [from[0], from[1]], t: now });
 }
 function trayGeom() {
+  /* STUB(T2.1 U fix): use the strip layout() reserves in view.tray; V owns the real version */
+  if (view.tray) { const T = view.tray, pad = 3, r = (T.h - 2 * pad) / 2; stageBox = stage.getBoundingClientRect(); return { x: T.x, y: T.y, w: T.w, h: T.h, r, pad, step: 2 * r + 2 }; }
   const st = document.getElementById('stage');
   stageBox = st ? st.getBoundingClientRect() : null;
   const V = view.tray;
@@ -2257,8 +2305,6 @@ function clipStage() {
    STROKE_MS) -> rolling -> judged -> place | aim | thinking (the CPU) -> ... -> over.
    Pausing parks the state in `paused` and shows the menu; resuming puts it back. */
 const STROKE_MS = 110;            /* cue travel before the physics starts, at speed 1 */
-const TAP_PX = 8;                 /* a press that moves less than this is a tap */
-const MIN_PULL = 0.03;            /* release a pull below this power and the shot is cancelled */
 const TURN_GAIN = 0.25;           /* a sideways drag turns the aim a quarter as fast as the finger circles the cue ball */
 const SETTINGS_KEY = 'felt.settings';
 const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, as a share of its radius */
@@ -2272,6 +2318,7 @@ const felt = window.felt = {
   get state() { return state; }, get game() { return game; }, get cpu() { return cpuMode; }, get power() { return power; }, get aim() { return aimAngle; },
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
   get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
+  get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
   start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
@@ -2291,7 +2338,8 @@ function start(kind) {
   game = newGame(kind);
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
-  pull = null; stroke = null; gest = null; paused = null; stats = newStats();
+  pull = null; stroke = null; paused = null; stats = newStats();
+  cancelGestures(); aimLock = null;
   hideOverlays();
   aimAngle = 0;
   enterPlace();
@@ -2323,7 +2371,9 @@ function enterPlace() {
   placeAt = c.on && canPlace(game, c.x, c.y) ? [c.x, c.y] : nearestLegal(game.inHand === 'kitchen' ? HEAD_X - 0.15 : TL / 4, TW / 2);
   say(placeHint());
 }
-const placeHint = () => game.inHand === 'kitchen' ? 'Ball in hand, behind the line: drag or tap to place.' : 'Ball in hand: drag or tap to place.';
+const placeHint = () => game.inHand === 'kitchen' ? 'Ball in hand behind the line: drag or tap to place.' : 'Ball in hand: drag or tap to place.';
+/* the status line while aiming: whose turn, and how to pick the cue ball up while it may move */
+const aimHint = () => `${turnOf(game.turn)}.` + (game.inHand ? ' Tap the cue ball to move it.' : '');
 /* why a ball-in-hand spot is refused, in words */
 function placeWhy(p) {
   if (game.inHand === 'kitchen' && p[0] > HEAD_X) return 'Behind the head string: the cue ball goes in the kitchen.';
@@ -2355,7 +2405,8 @@ function tryPlace(p) {
   if (!q) { say(p ? placeWhy(p) : placeHint()); return false; }
   game = placeCue(game, q[0], q[1]);
   placeAt = null; state = 'aim'; gest = null;
-  say(`${turnOf(game.turn)}.`);
+  keepAim();
+  say(aimHint());
   hud();
   return true;
 }
@@ -2365,6 +2416,15 @@ function finish() {
   sfx('win', 1);
   hud();
 }
+/* "Player 2 is" or "You are": the verb agrees with the name */
+const isOf = p => `${nameOf(p)} ${cpuMode && p === 0 ? 'are' : 'is'}`;
+/* who has ball in hand, and where: "Player 2: ball in hand behind the head string" */
+function handWords(p, kitchen) {
+  const where = kitchen ? ' behind the head string' : '';
+  return cpuMode ? `Ball in hand for ${p === 0 ? 'you' : 'the CPU'}${where}` : `${nameOf(p)}: ball in hand${where}`;
+}
+/* 9-ball: a player on two fouls in a row loses with a third (stream C may say so in the verdict) */
+const onTwo = (g, p) => g.kind === '9' && g.winner === null && (g.fouls[p] >= 2 || !!(g.verdict && g.verdict.twoFouls && g.verdict.twoFouls[p]));
 function settle() {
   const r = resultOf(tab);
   felt.lastResult = r;
@@ -2375,39 +2435,42 @@ function settle() {
   stats.shots[shooter]++;
   if (v.foul) stats.fouls[shooter]++;
   stats.potted[shooter].push(...v.potted);
-  if (game.winner !== null) { say(`${nameOf(game.winner)} ${cpuMode && game.winner === 0 ? 'win' : 'wins'}.`); finish(); return; }
-  const kitchen = game.inHand === 'kitchen' ? ' behind the line' : '';
-  const group = v.grouped ? `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'are' : 'is'} ${game.groups[shooter]}. ` : '';
-  const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
-  if (v.foul) {
-    const hand = cpuMode ? (who === 0 ? 'Ball in hand for you' : 'Ball in hand for the CPU') : `Ball in hand, ${nameOf(who)}`;
-    flash('foul', `Foul: ${v.foul}`, hand + kitchen, 2000);
-    say(`Foul: ${v.foul}. ${hand}${kitchen}.${ballOn}`);
-    sfx('foul', 1);
-  } else if (who !== shooter) {
-    flash('turn', turnOf(who), group.trim(), 1300);
-    say(`${group}${turnOf(who)}.${ballOn}`);
-    sfx('turn', 1);
-  } else {
-    if (group) flash('turn', `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'are' : 'is'} ${game.groups[shooter]}`, 'and shoots again', 1500);
-    say(`${group}${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again.${ballOn}`);
-  }
+  if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
-  placeAt = null;
+  placeAt = null; aimLock = null;
   if (!human()) {
     state = 'thinking'; cpuPlan = null;
     felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
     cpuIt = cpuSearch(game, cpuSeed++, cpuLevel);
-  } else if (game.inHand) { enterPlace(); say(v.foul ? `Foul: ${v.foul}. ${placeHint()}` : placeHint()); }
+  } else if (game.inHand) enterPlace();
   else state = 'aim';
+  keepAim();
+  /* the words, once the next state is set so the banner can keep clear of the cue ball */
+  const kitchen = game.inHand === 'kitchen';
+  const group = v.grouped ? `${isOf(shooter)} ${game.groups[shooter]}.` : '';
+  const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
+  const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
+  if (v.foul) {
+    const hand = handWords(who, kitchen), w = warn(shooter);
+    flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2600 : 1800);
+    say(state === 'place' ? placeHint() : `Foul: ${v.foul}. ${hand}.`);
+    sfx('foul', 1);
+  } else if (who !== shooter) {
+    const w = warn(who);
+    flash(w ? 'foul' : 'turn', turnOf(who), w || group.slice(0, -1), w ? 2200 : 1100);
+    say(`${group ? group + ' ' : ''}${turnOf(who)}.${ballOn}`);
+    sfx('turn', 1);
+  } else {
+    if (group) flash('turn', `${isOf(shooter)} ${game.groups[shooter]}`, 'and shoots again', 1300);
+    say(`${group ? group + ' ' : ''}${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again.${ballOn}`);
+  }
   hud();
 }
 function say(t) { if (msg.textContent !== t) msg.textContent = t; }
 
 function pause() {
   if (state === 'menu' || state === 'over') return;
-  gest = null;
-  if (pull) { pull = null; power = markPower; }
+  cancelGestures();
   if (state === 'place' && !placeAt) placeAt = [cueBall().x, cueBall().y];
   paused = { state, at: performance.now() };
   state = 'menu';
@@ -2469,16 +2532,40 @@ function think(now) {
   if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuPlan = null; commit(p); }
 }
 /* ---- input ----
-   One grammar for mouse and touch on the table:
-   - tap (or click) the cloth: aim at that spot; with a mouse, pointing aims too;
-   - drag across the aim line: turn the aim finely, finer the further from the cue ball you start;
-   - drag back along the aim line (away from the target): pull the cue, let go to shoot,
-     come back to the start to cancel; the aim is locked while pulling;
-   - ball in hand: drag anywhere slides the cue ball (relative, so the finger never hides it),
-     a tap drops it at the tap, a mouse carries it under the pointer.
-   The power bar is the other way to shoot; the english pad sets cueSpin. */
+   One grammar for mouse and touch on the table and the power bar:
+   - tap or click: aim at that spot. A press is a tap while it moves less than TAP_SLOP, or
+     when it is let go within TAP_MS having moved less than TAP_MAX (a sloppy tap still aims).
+   - drag across the aim line: turn the aim finely (a lever about the cue ball).
+   - drag back along the line (within about 27 deg of it): a pull, but nothing happens until it
+     has gone armPx() back. Then it arms: the cue draws back with power
+     (back - arm) / (pullFull - arm), so there is no dead start, and the hud says how to let go
+     or cancel. Let go to shoot. It cancels when let go short of the arm distance, when the
+     finger strays SIDE_CANCEL px off the line, or when it leaves the table. A gesture that
+     never armed never shoots. A backward drag that wanders across before arming is a turn.
+   - the power bar: the same arming along the bar; leaving the bar sideways cancels.
+   - mouse hover aims, but only over the bed and never while the aim is locked: a fine
+     adjustment (arrows, a drag-turn) locks it until the pointer travels LOCK_PX or clicks.
+     When the pointer leaves the bed the aim goes back to where the pointer last rested, so a
+     dash to the power bar does not drag the line along. Pressing never re-aims.
+   - ball in hand, before it is down: drag anywhere slides it (relative, so the finger never
+     hides it), a tap drops it at the tap, a mouse carries it. Once it is down a drag from it is
+     an ordinary aim or pull; a tap on it (or holding it LONG_PRESS_MS) picks it up again.
+   The english pad sets cueSpin; only two real taps reset it. */
+const TAP_SLOP = { mouse: 6, touch: 14 }, TAP_MAX = { mouse: 12, touch: 24 }, TAP_MS = 260;
+const BACK_RATIO = 2;             /* a drag is backward when |back| > 2 |side| (within ~27 deg) */
+const SIDE_CANCEL = 60;           /* an armed pull this far off its line, in CSS px, cancels */
+const LOCK_PX = 24;               /* a locked aim unlocks when the mouse travels this far */
+const DWELL_MS = 150;             /* the pointer rested this long: that aim is the one to keep */
+const LONG_PRESS_MS = 450;        /* holding the placed cue ball this long picks it up */
+const OFF_TABLE = 24;             /* how far past the rails (or the bar) a pull may stray */
+const PULL_HINT = 'Let go to shoot. Slide back or off the line to cancel.';
+/* the dead zone before a pull arms: 28 px, or 8% of a full pull when that is longer */
+const armPx = () => Math.max(28, 0.08 * pullFull());
+const pullPower = back => clamp((back - armPx()) / (pullFull() - armPx()), 0, 1);
 const pointAt = e => toTable(e.clientX, e.clientY);
 const angleTo = p => { const c = cueBall(); return Math.atan2(p[1] - c.y, p[0] - c.x); };
+const onBed = p => p[0] >= 0 && p[0] <= TL && p[1] >= 0 && p[1] <= TW;
+const kindOf = g => g.mouse ? 'mouse' : 'touch';
 function aimOnScreen() {
   const c = cueBall(), a = toScreen(c.x, c.y), b = toScreen(c.x + Math.cos(aimAngle) * 0.1, c.y + Math.sin(aimAngle) * 0.1);
   const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
@@ -2488,52 +2575,116 @@ function nearCue(e) {
   const c = cueBall(), s = toScreen(c.x, c.y);
   return c.on && Math.hypot(e.clientX - s[0], e.clientY - s[1]) < Math.max(26, BALL_R * view.k * 2.2);
 }
+function nearTable(e) {
+  const t = felt.tableRect();
+  return e.clientX > t.left - OFF_TABLE && e.clientX < t.right + OFF_TABLE && e.clientY > t.top - OFF_TABLE && e.clientY < t.bottom + OFF_TABLE;
+}
+
+/* mouse hover. hov: where the pointer is anchored (x, y, since t), whether it is on the bed,
+   and `rest`, the aim where it last rested. aimLock: null, 'pending' (lock wherever the
+   pointer next shows up) or the [x, y] it is locked at. */
+let hov = null, aimLock = null;
+function lockAim() { aimLock = hov ? [hov.x, hov.y] : 'pending'; keepAim(); }
+/* this aim is deliberate: a dash off the bed comes back to it */
+function keepAim() { if (hov) hov.rest = aimAngle; }
+function leaveBed() {
+  if (!hov || !hov.bed) return;
+  hov.bed = false;
+  if (state === 'aim' && human() && !aimLock) aimAngle = hov.rest;
+}
+function hover(e) {
+  const x = e.clientX, y = e.clientY, now = e.timeStamp, p = pointAt(e), bed = onBed(p);
+  if (!hov) hov = { x, y, t: now, bed: false, rest: aimAngle };
+  if (Math.hypot(x - hov.x, y - hov.y) > 4) {
+    if (now - hov.t >= DWELL_MS && hov.bed) hov.rest = aimAngle;
+    hov.x = x; hov.y = y; hov.t = now;
+  }
+  if (aimLock === 'pending') aimLock = [x, y];
+  else if (aimLock && Math.hypot(x - aimLock[0], y - aimLock[1]) > LOCK_PX) aimLock = null;
+  if (!bed) { leaveBed(); return; }
+  hov.bed = true;
+  if (state === 'place') { movePlace(p); return; }
+  if (state !== 'aim' || aimLock) return;
+  const c = cueBall(), s = toScreen(c.x, c.y);
+  if (Math.hypot(x - s[0], y - s[1]) > 2 * BALL_R * view.k) aimAngle = angleTo(p);
+}
+/* the placed cue ball goes back into the hand */
+function pickUp() {
+  const c = cueBall();
+  state = 'place'; placeAt = [c.x, c.y];
+  say(placeHint());
+  hud();
+}
+/* an armed pull (table or bar) that strays: drop it now, and ignore the rest of the gesture */
+function cancelPull(g) {
+  g.mode = 'dead'; g.armed = false;
+  pull = null; power = markPower;
+  say('Shot cancelled. Let go and pull again.');
+  hudControls();
+}
+/* a gesture cut short (resize, rotation, pause): nothing it was doing survives, so no stale
+   screen axes, no stale power */
+function cancelGestures() {
+  const g = gest;
+  gest = null; spinDrag = null; hov = null;
+  if (!g) return;
+  clearTimeout(g.hold);
+  if (pull && (state === 'aim' || state === 'menu')) { pull = null; power = markPower; }
+  if (g.msg0 !== undefined && (g.armed || g.mode === 'dead')) say(g.msg0);
+  hudControls();
+}
+
 table.addEventListener('pointerdown', e => {
   audioOn();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
-  if (gest || !human() || e.button > 0) return;
-  const mouse = e.pointerType === 'mouse', p = pointAt(e);
-  const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, last: [e.clientX, e.clientY], moved: false, mode: null };
-  if (state === 'aim' && game.inHand && nearCue(e)) { const c = cueBall(); state = 'place'; placeAt = [c.x, c.y]; }
+  if (gest || !human() || e.button > 0 || (state !== 'place' && state !== 'aim')) return;
+  const mouse = e.pointerType === 'mouse';
+  const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, last: [e.clientX, e.clientY], far: 0, mode: null, armed: false, hold: 0, msg0: msg.textContent };
   if (state === 'place') {
     g.mode = 'place'; g.from = (placeAt || [cueBall().x, cueBall().y]).slice();
-    if (mouse) movePlace(p);
-  } else if (state === 'aim') {
-    if (mouse) aimAngle = angleTo(p);
+    if (mouse) movePlace(pointAt(e));
+  } else {
     g.a0 = aimAngle;
     Object.assign(g, aimOnScreen());
-  } else return;
+    g.onCue = !!game.inHand && nearCue(e);
+    /* hold the placed ball still to pick it up and slide it from there */
+    if (g.onCue && !mouse) g.hold = setTimeout(() => {
+      if (gest !== g || g.mode || state !== 'aim') return;
+      pickUp();
+      Object.assign(g, { mode: 'place', from: placeAt.slice(), x0: g.last[0], y0: g.last[1], far: TAP_SLOP.touch + 1 });
+    }, LONG_PRESS_MS);
+  }
   gest = g;
   table.setPointerCapture(e.pointerId);
 });
 table.addEventListener('pointermove', e => {
   if (!human()) return;
-  if (!gest) {
-    if (e.pointerType !== 'mouse') return;
-    if (state === 'aim') aimAngle = angleTo(pointAt(e));
-    else if (state === 'place') movePlace(pointAt(e));
-    return;
-  }
+  if (!gest) { if (e.pointerType === 'mouse') hover(e); return; }
   const g = gest;
   if (g.bar || e.pointerId !== g.id) return;
-  const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
-  if (!g.moved && Math.hypot(dx, dy) > TAP_PX) g.moved = true;
+  const dx = e.clientX - g.x0, dy = e.clientY - g.y0, slop = TAP_SLOP[kindOf(g)];
+  g.far = Math.max(g.far, Math.hypot(dx, dy));
   if (g.mode === 'place') {
     if (state !== 'place') return;
     if (g.mouse) movePlace(pointAt(e));
-    else if (g.moved) { const p = pointAt(e), p0 = toTable(g.x0, g.y0); movePlace([g.from[0] + p[0] - p0[0], g.from[1] + p[1] - p0[1]]); }
+    else if (g.far > slop) { const p = pointAt(e), p0 = toTable(g.x0, g.y0); movePlace([g.from[0] + p[0] - p0[0], g.from[1] + p[1] - p0[1]]); }
     return;
   }
-  if (!g.moved || state !== 'aim') return;
-  if (!g.mode) {
-    const along = dx * g.ux + dy * g.uy, side = dy * g.ux - dx * g.uy;
-    g.mode = along < 0 && -along > 1.2 * Math.abs(side) ? 'pull' : 'turn';
-    if (g.mode === 'pull') { pull = { kind: 'table' }; power = 0; }
+  if (state !== 'aim' || g.mode === 'dead' || (!g.mode && g.far <= slop)) return;
+  if (g.hold) { clearTimeout(g.hold); g.hold = 0; }
+  const back = -(dx * g.ux + dy * g.uy), side = dy * g.ux - dx * g.uy;
+  if (!g.mode) g.mode = back > BACK_RATIO * Math.abs(side) ? 'back' : 'turn';
+  if (g.mode === 'back' && !g.armed) {
+    if (Math.abs(side) > Math.max(slop, back)) g.mode = 'turn';
+    else if (back >= armPx()) { g.armed = true; pull = { kind: 'table' }; say(PULL_HINT); }
   }
-  if (g.mode === 'pull') {
-    aimAngle = g.a0;
-    power = clamp(-(dx * g.ux + dy * g.uy) / pullFull(), 0, 1);
-    hudControls();
+  if (g.mode === 'back') {
+    if (g.armed) {
+      if (Math.abs(side) > SIDE_CANCEL || !nearTable(e)) { cancelPull(g); return; }
+      aimAngle = g.a0;
+      power = pullPower(back);
+      hudControls();
+    }
   } else {
     /* rotate by the finger's angular step about the cue ball, scaled down: a lever */
     const rx = g.last[0] - g.cx, ry = g.last[1] - g.cy, mx = e.clientX - g.last[0], my = e.clientY - g.last[1];
@@ -2545,49 +2696,81 @@ function endTable(e, cancel) {
   const g = gest;
   if (!g || g.bar || e.pointerId !== g.id) return;
   gest = null;
+  clearTimeout(g.hold);
   if (g.mode === 'place') {
     if (cancel || state !== 'place') return;
-    if (g.mouse || !g.moved) movePlace(pointAt(e));
+    if (g.mouse || g.far <= TAP_SLOP[kindOf(g)]) movePlace(pointAt(e));
     tryPlace(placeAt);
-  } else if (g.mode === 'pull') {
+    return;
+  }
+  if (state !== 'aim') return;
+  if (g.armed) {
+    /* the release point decides, so a quick slide back to the start cancels however few
+       moves the browser reported on the way */
     pull = null;
-    if (!cancel && power >= MIN_PULL && state === 'aim') commit(power);
-    else { power = markPower; hudControls(); }
-  } else if (!g.mode && !g.moved && !cancel && state === 'aim') aimAngle = angleTo(pointAt(e));
+    const back = -((e.clientX - g.x0) * g.ux + (e.clientY - g.y0) * g.uy), p = pullPower(back);
+    if (!cancel && back > armPx() && p > 0 && Math.abs((e.clientY - g.y0) * g.ux - (e.clientX - g.x0) * g.uy) <= SIDE_CANCEL && nearTable(e)) { commit(p); return; }
+    power = markPower; say(g.msg0); hudControls();
+    return;
+  }
+  if (g.mode === 'dead') { say(g.msg0); return; }
+  if (cancel) return;
+  const k = kindOf(g), tap = g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS);
+  if (tap) {
+    if (g.onCue) { aimAngle = g.a0; pickUp(); return; }
+    aimAngle = angleTo(toTable(g.x0, g.y0));
+    aimLock = null; keepAim();
+  } else if (g.mode === 'turn') {
+    if (hov) { hov.x = e.clientX; hov.y = e.clientY; }
+    lockAim();
+  }
 }
 table.addEventListener('pointerup', e => endTable(e, false));
 table.addEventListener('pointercancel', e => endTable(e, true));
 /* a capture lost without a pointerup (alt-tab mid-drag) cancels, so no stale gesture survives */
 table.addEventListener('lostpointercapture', e => endTable(e, true));
+table.addEventListener('pointerleave', e => { if (!gest && e.pointerType === 'mouse') leaveBed(); });
 
-/* the power bar: press, drag along it (right, or down when it stands upright), let go */
-function barPos(e) { const r = powerBar.getBoundingClientRect(); return r.height > r.width ? [e.clientY, r.top, r.bottom] : [e.clientX, r.left, r.right]; }
+/* the power bar: press, drag along it (right, or down when it stands upright), let go. It arms
+   like a table pull, a fifth of the way at most; leaving the bar sideways or back past its
+   start cancels, running past its far end just holds full power. */
+function barPos(e) {
+  const r = powerBar.getBoundingClientRect(), up = r.height > r.width;
+  return up ? [e.clientY, r.top, r.bottom, e.clientX, r.left, r.right] : [e.clientX, r.left, r.right, e.clientY, r.top, r.bottom];
+}
+powerBar.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
   if (state !== 'aim' || !human() || gest) return;
-  const [pos, lo, hi] = barPos(e);
-  gest = { id: e.pointerId, bar: true, pos0: pos, span: Math.max(hi - pos, (hi - lo) * 0.5) * 0.92 };
-  pull = { kind: 'bar' }; power = 0;
+  if (e.pointerType === 'mouse') leaveBed();
+  const [pos, lo, hi] = barPos(e), span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92;
+  gest = { id: e.pointerId, bar: true, pos0: pos, span, arm: Math.min(armPx(), span * 0.2), armed: false, mode: null, msg0: msg.textContent };
   powerBar.setPointerCapture(e.pointerId);
-  hudControls();
 });
 powerBar.addEventListener('pointermove', e => {
-  if (!gest || !gest.bar || e.pointerId !== gest.id) return;
-  power = clamp((barPos(e)[0] - gest.pos0) / gest.span, 0, 1);
-  hudControls();
+  const g = gest;
+  if (!g || !g.bar || e.pointerId !== g.id || g.mode === 'dead') return;
+  const [pos, lo, , cross, c0, c1] = barPos(e), d = pos - g.pos0;
+  if (g.armed && (cross < c0 - OFF_TABLE || cross > c1 + OFF_TABLE || pos < lo - OFF_TABLE)) { cancelPull(g); return; }
+  if (!g.armed && d >= g.arm) { g.armed = true; pull = { kind: 'bar' }; say(PULL_HINT); }
+  if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); hudControls(); }
 });
 function endBar(e, cancel) {
-  if (!gest || !gest.bar || e.pointerId !== gest.id) return;
+  const g = gest;
+  if (!g || !g.bar || e.pointerId !== g.id) return;
   gest = null; pull = null;
-  if (!cancel && power >= MIN_PULL && state === 'aim') commit(power);
-  else { power = markPower; hudControls(); }
+  if (g.armed && !cancel && power > 0 && state === 'aim') { commit(power); return; }
+  if (g.armed || g.mode === 'dead') { power = markPower; say(g.msg0); }
+  hudControls();
 }
 powerBar.addEventListener('pointerup', e => endBar(e, false));
 powerBar.addEventListener('pointercancel', e => endBar(e, true));
+powerBar.addEventListener('lostpointercapture', e => endBar(e, true));
 
-/* the english pad: tap or drag the tip anywhere inside the safe circle, double tap to centre */
+/* the english pad: tap or drag the tip anywhere inside the safe circle. Two real taps (each
+   short and still, close together in time and place) centre it; a drag never does. */
 const spinOk = () => human() && (state === 'aim' || state === 'place');
-let spinTap = 0, spinDrag = null;
+let spinTap = null, spinDrag = null;
 function spinAt(e) {
   const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE;
   let x = (e.clientX - (r.left + r.width / 2)) / R, y = -(e.clientY - (r.top + r.height / 2)) / R;
@@ -2600,15 +2783,26 @@ function spinAt(e) {
 spinPad.addEventListener('pointerdown', e => {
   audioOn();
   if (!spinOk()) return;
-  const now = performance.now();
-  if (now - spinTap < 320) { spinTap = 0; cueSpin = { x: 0, y: 0 }; hudControls(); return; }
-  spinTap = now; spinDrag = e.pointerId;
+  spinDrag = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, far: 0 };
   spinPad.setPointerCapture(e.pointerId);
   spinAt(e);
 });
-spinPad.addEventListener('pointermove', e => { if (spinDrag === e.pointerId && spinOk()) spinAt(e); });
-spinPad.addEventListener('pointerup', () => { spinDrag = null; });
-spinPad.addEventListener('pointercancel', () => { spinDrag = null; });
+spinPad.addEventListener('pointermove', e => {
+  const d = spinDrag;
+  if (!d || d.id !== e.pointerId || !spinOk()) return;
+  d.far = Math.max(d.far, Math.hypot(e.clientX - d.x, e.clientY - d.y));
+  spinAt(e);
+});
+spinPad.addEventListener('pointerup', e => {
+  const d = spinDrag;
+  spinDrag = null;
+  if (!d || d.id !== e.pointerId) return;
+  const tap = e.timeStamp - d.t < TAP_MS && d.far < 8;
+  if (tap && spinTap && e.timeStamp - spinTap.t < 350 && Math.hypot(d.x - spinTap.x, d.y - spinTap.y) < 24 && spinOk()) {
+    spinTap = null; cueSpin = { x: 0, y: 0 }; hudControls();
+  } else spinTap = tap ? { t: e.timeStamp, x: d.x, y: d.y } : null;
+});
+spinPad.addEventListener('pointercancel', () => { spinDrag = null; spinTap = null; });
 
 /* pointing at the pad or the bar does not focus them, so the arrows keep aiming afterwards;
    Tab still reaches both */
@@ -2631,7 +2825,7 @@ addEventListener('keydown', e => {
     else return;
   } else if (state === 'aim') {
     const bar = document.activeElement === powerBar;
-    if (dx && !bar) aimAngle += dx * (e.shiftKey ? 0.03 : e.altKey || e.ctrlKey ? 0.0005 : 0.004);
+    if (dx && !bar) { aimAngle += dx * (e.shiftKey ? 0.03 : e.altKey || e.ctrlKey ? 0.0005 : 0.004); lockAim(); }
     else if (dy || (bar && dx)) { markPower = power = clamp(power + (dy || dx) * (e.shiftKey ? 0.01 : 0.05), 0.05, 1); hudControls(); }
     else if (k === ' ' || (k === 'Enter' && bar)) { if (!pull) commit(power); }
     else return;
@@ -2681,9 +2875,12 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
+/* a solid this dark is under 3:1 on the panel (#1b1b1d), so its dot gets a light ring */
+const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const darkBall = n => (lumOf(colorOf(n)) + 0.05) / (lumOf([27, 27, 29]) + 0.05) < 3;
 function dotEl(n, big) {
   const d = document.createElement('span'), c = colorOf(n);
-  d.className = 'dot' + (n > 8 ? ' stripe' : '') + (big ? ' big' : '');
+  d.className = 'dot' + (n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
   d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
   d.title = String(n);
   return d;
@@ -2705,9 +2902,10 @@ function cardOf(p) {
     return { meta: gr[0].toUpperCase() + gr.slice(1), dots: left };
   }
   const f = game.fouls[p];
-  if (game.turn === p && game.winner === null && on.length) return { meta: f ? `${f} foul${f > 1 ? 's' : ''}, ball on` : 'Ball on', dots: [Math.min(...on)], warn: f > 0 };
+  const two = onTwo(game, p), fw = two ? 'Two fouls' : f ? '1 foul' : '';
+  if (game.turn === p && game.winner === null && on.length) return { meta: fw ? `${fw}, ball on` : 'Ball on', dots: [Math.min(...on)], warn: f > 0 };
   const pot = stats.potted[p].length;
-  return { meta: f ? `${f} foul${f > 1 ? 's' : ''}` : pot ? `${pot} potted` : '', dots: stats.potted[p], warn: f > 0 };
+  return { meta: fw || (pot ? `${pot} potted` : ''), dots: stats.potted[p], warn: f > 0 };
 }
 function hud() {
   for (const p of [0, 1]) {
@@ -2756,17 +2954,46 @@ function flash(kind, head, sub, ms = 1300) {
   banner.dataset.kind = kind;
   bannerHead.textContent = head; bannerSub.textContent = sub || '';
   banner.classList.remove('show');
+  placeBanner();
   void banner.offsetWidth;
   banner.classList.add('show');
   flashT = setTimeout(() => banner.classList.remove('show'), ms);
 }
+/* the banner sits over the half of the table away from what the player needs to see: the
+   kitchen while the ball is in hand behind the line, else the cue ball (or its ghost). In
+   landscape it also moves to the far end, so the start banner clears the kitchen. */
+function placeBanner() {
+  const t = felt.tableRect(), st = stage.getBoundingClientRect(), c = cueBall();
+  const at = game.inHand === 'kitchen' ? [HEAD_X / 2, TW / 2] : state === 'place' && placeAt ? placeAt : [c.x, c.y];
+  const s = toScreen(at[0], at[1]), W = t.right - t.left, H = t.bottom - t.top;
+  let x = t.left + W / 2, y = t.top + H / 2;
+  if (view.portrait) y = t.top + H * (s[1] > y ? 0.27 : 0.73);
+  else { x = t.left + W * (s[0] > x ? 0.32 : 0.68); y = t.top + H * (s[1] >= y ? 0.3 : 0.7); }
+  const bw = banner.offsetWidth / 2 + 6, bh = banner.offsetHeight / 2 + 6;
+  x = clamp(x - st.left, bw, Math.max(bw, st.width - bw)); y = clamp(y - st.top, bh, Math.max(bh, st.height - bh));
+  banner.style.left = x + 'px'; banner.style.top = y + 'px';
+}
+/* why the game ended, as a sentence. The verdict's `why` is matched loosely, so a reworded
+   rule still reads as a sentence; anything unknown falls back to a plain one. */
+function overLine(g) {
+  const v = g.verdict || {}, w = g.winner, l = 1 - w, why = v.why || '';
+  const who = p => cpuMode ? (p === 0 ? 'You' : 'The CPU') : nameOf(p), their = p => cpuMode && p === 0 ? 'your' : 'their';
+  if (w === null || why === 'forced' || !why) return 'Game over.';
+  if (/three fouls/.test(why)) return `${who(l)} fouled three times in a row.`;
+  if (/\b8\b/.test(why)) {
+    if (/legal/.test(why)) return `${who(w)} potted the 8 to win.`;
+    if (/foul/.test(why)) return v.scratch ? `${who(l)} scratched while potting the 8.` : `${who(l)} potted the 8 on a foul${v.foul ? ` (${v.foul})` : ''}.`;
+    if (/before|clear|early/.test(why)) return `${who(l)} potted the 8 before clearing ${their(l)} group.`;
+  }
+  if (/\b9\b/.test(why)) return `${who(w)} potted the 9 to win.`;
+  return `${who(w)} won: ${why}.`;
+}
 function showOver() {
-  const w = game.winner, v = game.verdict || {}, kind = game.kind + '-ball';
+  const w = game.winner, kind = game.kind + '-ball';
   const n = stats.shots[0] + stats.shots[1];
   overKind.textContent = `${kind}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
-  const why = v.why && v.why !== 'forced' ? v.why : '';
-  overWhy.textContent = why ? `On ${why}.` : 'Game over.';
+  overWhy.textContent = overLine(game);
   const row = (head, cells, isHead) => {
     const tr = document.createElement('tr'), th = document.createElement('th');
     th.textContent = head; tr.appendChild(th);
@@ -2796,7 +3023,10 @@ overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); })
 
 /* ============ 7. BOOT ============ */
 muted = !settings.sound;
-addEventListener('resize', () => { layout(); hud(); });
+/* a resize or a rotation drops any gesture in flight: its screen axes are stale */
+addEventListener('resize', () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); });
+/* iOS Safari ignores user-scalable=no; its own pinch event is refused here */
+document.addEventListener('gesturestart', e => e.preventDefault());
 syncMenu();
 layout();
 randomOrient();

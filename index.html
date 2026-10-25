@@ -568,7 +568,7 @@ const otherGroup = gr => gr === 'solids' ? 'stripes' : 'solids';
 const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
 const copyGame = g => JSON.parse(JSON.stringify(g));
 function newGame(kind) {
-  return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, verdict: null };
+  return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null };
 }
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
@@ -608,9 +608,17 @@ function placeCue(g, x, y) {
   return n;
 }
 /* judge a finished shot: returns the next game state with a verdict; g is not touched.
-   With the cue ball in hand behind the head string (after a break scratch), the first ball hit
-   must lie past the head string, unless no legal ball does. An 8 potted on a legal break is spotted and the breaker
-   shoots again. */
+   With the cue ball in hand behind the head string (after a break scratch) the shot is legal
+   when the first ball hit lies past the head string or the cue ball crossed the string before
+   that contact (r.crossed: a bank off the foot rail onto a ball in the kitchen is fine), as in
+   the WPA and BCA rules. Those rules let a player whose legal balls are all behind the string
+   have the nearest one spotted; felt has no spot request, so then any legal hit counts. A result
+   without `crossed` is judged on the first ball's position alone. An 8 potted on a legal break
+   is spotted and the breaker shoots again. The verdict: foul (text or null), keep (same player
+   shoots), win, why, potted (balls that stayed down), scratch, grouped (groups set by this shot),
+   twoFouls (9-ball: the player to shoot next is on two fouls in a row, a third loses). The game
+   also counts `dry`, shots in a row with no object ball down, which the CPU reads to break
+   safety loops. */
 function judge(g, r) {
   const n = copyGame(g), me = g.turn, op = 1 - me;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
@@ -620,7 +628,7 @@ function judge(g, r) {
   let foul = null, keep = false, win = null, why = '';
   if (r.first === null) foul = 'no ball hit';
   else if (!(g.kind === '8' && g.breakShot) && !targets.includes(r.first)) foul = `hit the ${r.first} first`;
-  else if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) foul = `hit the ${r.first} behind the head string`;
+  else if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && r.crossed !== true && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) foul = `hit the ${r.first} behind the head string`;
   else if (!g.breakShot && !pot.length && !r.railAfter) foul = 'no rail after contact';
   if (scratch) foul = 'scratch';
   if (g.kind === '8') {
@@ -646,7 +654,9 @@ function judge(g, r) {
   if (win !== null) { n.winner = win; n.inHand = null; n.turn = me; }
   else { n.turn = keep ? me : op; n.inHand = foul ? (g.breakShot && scratch ? 'kitchen' : 'table') : null; }
   n.breakShot = false;
-  n.verdict = { foul, keep, win, why, potted: pot.filter(x => !n.balls.find(b => b.n === x).on), scratch, grouped: g.open && !n.open };
+  n.dry = pot.length ? 0 : (g.dry || 0) + 1;
+  n.verdict = { foul, keep, win, why, potted: pot.filter(x => !n.balls.find(b => b.n === x).on), scratch, grouped: g.open && !n.open,
+    twoFouls: g.kind === '9' && win === null && n.fouls[n.turn] >= 2 };
   return n;
 }
 
@@ -796,17 +806,27 @@ function cpuClear(balls, ax, ay, bx, by, skip) {
   }
   return true;
 }
+/* a ball hanging in pocket k's jaw: its centre within a radius of the mouth line (or past it)
+   and inside the mouth. Such a ball drops from almost any push toward the hole, so its lines aim
+   at the drop centre and skip the entry test. */
+function cpuHangs(t, k) {
+  const a = POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4;
+  return (t.x - a[0]) * m[0] + (t.y - a[1]) * m[1] < BALL_R && Math.hypot(t.x - a[0], t.y - a[1]) < (side ? SIDE_W : CORNER_W) / 2 + BALL_R;
+}
 /* a ghost-ball pot of ball t into pocket k from (cx, cy), or null when it is not on. psi0 is the
    line to the mouth; psi is where the ghost sends the ball (psi0 until aim correction moves it).
-   q is the chance the shot goes in under the level's aim noise: the cue-angle tolerance is the
-   mouth's half width seen from the object ball, shrunk by the cut and both distances. */
+   A hanging ball aims at the drop centre, and psi may then differ from that line on purpose (it
+   becomes the line's psi0). q is the chance the shot goes in under the level's aim noise: the
+   cue-angle tolerance is the mouth's half width seen from the object ball, shrunk by the cut and
+   both distances. */
 function cpuLine(balls, cx, cy, t, k, psi, L) {
-  const p = POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4;
-  const psi0 = Math.atan2(p[1] - t.y, p[0] - t.x), ux = Math.cos(psi0), uy = Math.sin(psi0);
-  const entry = -(ux * m[0] + uy * m[1]);
+  const hang = cpuHangs(t, k), p = hang ? POCKETS[k] : POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4;
+  const psi0 = hang ? psi : Math.atan2(p[1] - t.y, p[0] - t.x), ux = Math.cos(psi0), uy = Math.sin(psi0);
+  const entry = hang ? 1 : -(ux * m[0] + uy * m[1]);
   if (entry < (side ? 0.55 : 0.5)) return null;
   const d2 = Math.hypot(p[0] - t.x, p[1] - t.y), gx = t.x - 2 * BALL_R * Math.cos(psi), gy = t.y - 2 * BALL_R * Math.sin(psi);
-  if (gx < BALL_R - 1e-4 || gx > TL - BALL_R + 1e-4 || gy < BALL_R - 1e-4 || gy > TW - BALL_R + 1e-4) return null;
+  if (hang ? CUSH.some(c => segGap(c[0], c[1], c[2], c[3], gx, gy) < BALL_R - 1e-4)
+    : gx < BALL_R - 1e-4 || gx > TL - BALL_R + 1e-4 || gy < BALL_R - 1e-4 || gy > TW - BALL_R + 1e-4) return null;
   const ax = gx - cx, ay = gy - cy, d1 = Math.hypot(ax, ay);
   if (d1 < 1e-6) return null;
   const cos = (ax * Math.cos(psi) + ay * Math.sin(psi)) / d1;
@@ -816,21 +836,29 @@ function cpuLine(balls, cx, cy, t, k, psi, L) {
   const tol = w * 2 * BALL_R * cos / (Math.max(d1, 0.1) * Math.max(d2, 0.05));
   return { n: t.n, k, cx, cy, tx: t.x, ty: t.y, psi0, psi, angle: Math.atan2(ay, ax), cos, d1, d2, q: Math.tanh(0.8 * tol / L.noise) };
 }
+/* every pot line for the targets from (cx, cy), best chance first; a hanging ball also gets
+   lines pushed into its hole at a slant, which the jaw forgives, ranked over the straight push,
+   after which the cue ball tends to follow the ball in */
 function cpuLines(balls, cx, cy, targets, L) {
   const out = [];
   for (const n of targets) {
     const t = balls.find(b => b.n === n);
     if (!t || !t.on) continue;
     for (let k = 0; k < POCKET_AIM.length; k++) {
-      const p = POCKET_AIM[k], l = cpuLine(balls, cx, cy, t, k, Math.atan2(p[1] - t.y, p[0] - t.x), L);
-      if (l) out.push(l);
+      const hang = cpuHangs(t, k), p = hang ? POCKETS[k] : POCKET_AIM[k], psi = Math.atan2(p[1] - t.y, p[0] - t.x);
+      for (const off of hang ? [0, 0.35, -0.35] : [0]) {
+        const l = cpuLine(balls, cx, cy, t, k, psi + off, L);
+        if (l) { if (hang && !off) l.q *= 0.85; out.push(l); }
+      }
     }
   }
   return out.sort((a, b) => b.q - a.q);
 }
 /* the ghost position for line l when the object ball should leave along psi, as a cue angle */
 const cpuAim = (l, psi) => Math.atan2(l.ty - 2 * BALL_R * Math.sin(psi) - l.cy, l.tx - 2 * BALL_R * Math.cos(psi) - l.cx);
-/* legal first contacts; from the kitchen only balls past the head string (judge's rule) */
+/* legal first contacts; from the kitchen only balls past the head string, since a straight line
+   from behind the string onto a ball behind it never crosses the string (judge's rule). Banks
+   and kicks that do cross are left to the simulation, which judges them like any shot. */
 function cpuTargets(g) {
   const all = legalTargets(g);
   if (g.inHand !== 'kitchen') return all;
@@ -851,6 +879,18 @@ function cpuChance(j, who, L) {
   }
   return targets.some(n => { const t = j.balls.find(b => b.n === n); return cpuClear(j.balls, cue.x, cue.y, t.x, t.y, n); }) ? 0.02 : -0.3;
 }
+/* the loop breaker: once CPU_DRY shots in a row have potted nothing, a legal shot that hands
+   over the table costs more with every further dry shot: a little, up to CPU_DRY_MAX, when it
+   moves the object balls, and without that limit when it leaves them where they were (a tap
+   that only gives the same safety back), so a makeable pot, or at least a shot that changes the table,
+   wins over the next micro-safety. It never takes a legal shot down to a foul's score. */
+const CPU_DRY = 4, CPU_DRY_COST = 30, CPU_DRY_MAX = 100, CPU_STILL = 0.15;
+function cpuDryCost(g, j, v) {
+  const dry = (g.dry || 0) - CPU_DRY + 1;
+  if (dry <= 0 || j.verdict.foul || j.turn === g.turn) return 0;
+  const still = g.balls.every(b => { const c = j.balls.find(x => x.n === b.n); return !b.on || !b.n || (c.on && Math.hypot(c.x - b.x, c.y - b.y) < CPU_STILL); });
+  return clamp(still ? 2 * CPU_DRY_COST * dry : Math.min(CPU_DRY_MAX, CPU_DRY_COST * dry), 0, Math.max(0, v + 390));
+}
 /* the score of a judged outcome j of a shot from g, for the player who shot */
 function cpuValue(g, j, L) {
   const me = g.turn;
@@ -859,17 +899,33 @@ function cpuValue(g, j, L) {
   if (j.verdict.foul) v = -400 - (g.kind === '9' && j.fouls[me] >= 2 ? 150 : 0);
   else if (j.turn === me) v = 300 + (L.position ? 250 * cpuChance(j, me, L) : 0);
   else v = L.position ? -250 * cpuChance(j, j.turn, L) : 0;
+  v -= cpuDryCost(g, j, v);
   if (g.kind === '8' && j.groups[me]) for (const n of j.verdict.potted) v += groupOf(n) === j.groups[me] ? 12 : groupOf(n) ? -12 : 0;
   return v;
 }
+/* the nearest legal ball the cue ball at (x, y) can hit full on a straight, clear line, as its
+   distance, or 0 when none can be seen */
+function cpuSight(balls, x, y, targets) {
+  let best = 0;
+  for (const n of targets) {
+    const t = balls.find(b => b.n === n), D = t ? Math.hypot(t.x - x, t.y - y) : 0;
+    if (!t || !t.on || D < 2 * BALL_R) continue;
+    const s = (D - 2 * BALL_R) / D;
+    if ((!best || D < best) && cpuClear(balls, x, y, x + (t.x - x) * s, y + (t.y - y) * s, n)) best = D;
+  }
+  return best;
+}
 /* ball in hand: spots behind a ball's line to a pocket (straight and at a slight cut, near and
-   far), or a grid of the kitchen; the best spot per ball and pocket, ranked by the pot's chance
-   with a little for a second option. Always at least one legal spot. */
+   far), a ring round each legal ball, or a grid of the kitchen; the best spot per ball and
+   pocket, ranked by the pot's chance with a little for a second option. After those, the
+   nearest spot with a clear straight line to a legal ball, so a safety or a nudge into a jaw is
+   always on offer. A blind fallback only when no spot sees a legal ball. Always at least one
+   legal spot. */
 function cpuSpots(g, targets, L) {
-  const best = new Map(), add = (x, y) => {
+  const best = new Map(), seen = [], add = (x, y) => {
     if (!canPlace(g, x, y)) return;
     const ls = cpuLines(g.balls, x, y, targets, L);
-    if (!ls.length) return;
+    if (!ls.length) { const D = cpuSight(g.balls, x, y, targets); if (D) seen.push({ x, y, D }); return; }
     const key = ls[0].n * 8 + ls[0].k, q = ls[0].q + (ls.length > 1 ? 0.1 * ls[1].q : 0);
     if (!best.has(key) || best.get(key).q < q) best.set(key, { x, y, q });
   };
@@ -884,16 +940,19 @@ function cpuSpots(g, targets, L) {
         const a = Math.atan2(p[1] - t.y, p[0] - t.x);
         for (const d of [0.2, 0.45, 0.8]) for (const off of [0, 0.3, -0.3]) add(t.x - Math.cos(a + off) * (2 * BALL_R + d), t.y - Math.sin(a + off) * (2 * BALL_R + d));
       }
+      for (let i = 0; i < 16; i++) for (const d of [0.25, 0.55]) add(t.x + Math.cos(i * Math.PI / 8) * (2 * BALL_R + d), t.y + Math.sin(i * Math.PI / 8) * (2 * BALL_R + d));
     }
   }
   const out = [...best.values()].sort((a, b) => b.q - a.q).slice(0, L.place).map(s => [s.x, s.y]);
+  if (seen.length) { const s = seen.reduce((a, b) => b.D < a.D ? b : a); out.push([s.x, s.y]); }
   for (let x = g.inHand === 'kitchen' ? HEAD_X - 0.02 : TL / 4; !out.length && x >= BALL_R; x -= 0.05)
     for (let y = TW / 2, i = 0; y > BALL_R && y < TW - BALL_R; i++, y = TW / 2 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 0.05) if (canPlace(g, x, y)) { out.push([x, y]); break; }
   for (let x = TL - BALL_R; !out.length && x >= BALL_R; x -= 0.02) for (let y = BALL_R; y <= TW - BALL_R; y += 0.02) if (canPlace(g, x, y)) { out.push([x, y]); break; }
   return out;
 }
 /* safeties from (cx, cy): each legal ball hit full, half and thin on both sides, soft (to a
-   rail and little more), medium and firm; one-rail kicks off each cushion when the path is clear */
+   rail and little more), medium and firm; one-rail kicks off each cushion when the path is clear
+   and the cushion point is not in a pocket mouth (there is no cushion there, only the hole) */
 function cpuSafeties(g, cx, cy, targets, place) {
   const out = [], R2 = 2 * BALL_R, none = { x: 0, y: 0 };
   for (const n of targets) {
@@ -910,6 +969,7 @@ function cpuSafeties(g, cx, cy, targets, place) {
       const ex = mx - cx, ey = my - cy, u = axis ? (at - cy) / ey : (at - cx) / ex;
       if (!(u > 0 && u < 1)) continue;
       const rx = cx + ex * u, ry = cy + ey * u, len = Math.hypot(ex, ey);
+      if (POCKET_AIM.some((p, k) => Math.hypot(p[0] - rx, p[1] - ry) < (k === 1 || k === 4 ? SIDE_W : CORNER_W) / 2 + 1.5 * BALL_R)) continue;
       if (!cpuClear(g.balls, cx, cy, rx, ry, -1) || !cpuClear(g.balls, rx, ry, t.x, t.y, n)) continue;
       out.push({ angle: Math.atan2(ey, ex), power: cpuPower(1.15 * cpuSpeedFor(len + 1)), spin: none, place, pri: -len });
     }
@@ -928,7 +988,8 @@ function cpuBreak(g, rnd, L) {
    direction; B spin and power variants on the best lines, for position; C the finalists re-run
    slightly mis-hit and scored on the mean (hard also simulates the next shot from the leave);
    D safeties and kicks when the best mean is below the level's bar, the best of them tested the
-   same way. The shot played carries the level's aim noise. */
+   same way. The best mean wins among the shots simulated as legal; a foul only when nothing
+   legal turned up. The shot played carries the level's aim noise. */
 function* cpuSearch(g, seed, level = 'medium') {
   const L = CPU_LEVELS[level] || CPU_LEVELS.medium, rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
@@ -969,8 +1030,9 @@ function* cpuSearch(g, seed, level = 'medium') {
     l.psi = psi;
   }
 
-  /* B: spin and power variants on the lines that kept the turn */
-  const seen = new Set(), keepers = recs.filter(r => r.value >= 300).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
+  /* B: spin and power variants on the lines that kept the turn, or potted the ball but lost the
+     cue ball after it (draw or stun may save those) */
+  const seen = new Set(), keepers = recs.filter(r => r.value >= 300 || (r.j.verdict.scratch && r.j.verdict.potted.includes(r.line.n))).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
   for (const r of keepers.slice(0, L.spin)) {
     for (const [sx, sy, pf] of L.spins) {
       if (sims >= L.sims - reserve) break;
@@ -1018,7 +1080,7 @@ function* cpuSearch(g, seed, level = 'medium') {
   /* D: safeties and kicks when no pot is worth its risk */
   if (L.safe && (!recs.length || pool().reduce((m, r) => Math.max(m, r.mean), -Infinity) < L.safeBar)) {
     const safes = [], got = [];
-    for (const place of spots.slice(0, 2)) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
+    for (const place of spots.length > 2 ? [spots[0], spots[spots.length - 1]] : spots) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
     safes.sort((a, b) => b.pri - a.pri);
     for (const s of safes.slice(0, L.safe)) {
       if (sims >= L.sims - (L.robust ? 8 : 0)) break;
@@ -1033,7 +1095,10 @@ function* cpuSearch(g, seed, level = 'medium') {
     const place = spots[0], cx = place ? place[0] : cue.x, cy = place ? place[1] : cue.y, t = g.balls.find(b => b.n === targets[0]);
     return play({ angle: Math.atan2(t.y - cy, t.x - cx), power: cpuPower(cpuSpeedFor(Math.hypot(t.x - cx, t.y - cy) + 1.5)), spin: { x: 0, y: 0 }, place });
   }
-  return play(pool().reduce((a, b) => b.mean > a.mean ? b : a).shot);
+  /* a shot simulated as a foul (or a loss) is never played over one simulated as legal */
+  const legal = r => !r.j.verdict.foul && !(r.j.winner !== null && r.j.winner !== me);
+  const pick = [tested.filter(legal), recs.filter(legal), tested, recs].find(c => c.length);
+  return play(pick.reduce((a, b) => b.mean > a.mean ? b : a).shot);
 }
 function cpuShot(g, seed, level) {
   const it = cpuSearch(g, seed, level);

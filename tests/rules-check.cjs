@@ -6,10 +6,12 @@ const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 const R = S.BALL_R;
 
-/* a fake shot result: the game's balls, with `potted` taken off the table */
-function res(g, { first = null, rail = true, potted = [] } = {}) {
+/* a fake shot result: the game's balls, with `potted` taken off the table. `crossed` (the cue
+   ball reached the head string before or at first contact) is left out unless a case sets it,
+   which exercises judge's fallback for results without the field. */
+function res(g, { first = null, rail = true, potted = [], crossed } = {}) {
   const balls = g.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0, on: b.on && !potted.includes(b.n) }));
-  return { balls, first, railAfter: rail, potted, end: 'rest' };
+  return Object.assign({ balls, first, railAfter: rail, potted, end: 'rest' }, crossed === undefined ? {} : { crossed });
 }
 /* a game past the break, with only the listed object balls left on the table */
 function midGame(kind, left, over = {}) {
@@ -97,6 +99,12 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   check('9: three fouls in a row lose', lost.winner === 1);
   const reset = S.judge(h, res(h, { first: 3 }));
   check('9: a legal shot resets the foul count', reset.fouls[0] === 0);
+  /* the warning: the verdict that hands the table to a player on two fouls says so */
+  let w = g, flags = [];
+  for (const first of [null, 3, null, 3]) { w = S.judge(w, res(w, { first })); flags.push(w.verdict.twoFouls); }
+  check('9: verdict.twoFouls is set exactly when the player to shoot is on two fouls', JSON.stringify(flags) === '[false,false,false,true]' && w.turn === 0 && w.fouls[0] === 2, JSON.stringify(flags));
+  const e8 = midGame('8', [1, 9, 8]);
+  check('8: verdict.twoFouls is never set in 8-ball', S.judge(e8, res(e8, { first: null })).verdict.twoFouls === false);
 }
 
 /* ---- rules tightened in T2.1 ---- */
@@ -109,22 +117,36 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   const snap = JSON.stringify(g);
   S.judge(g, res(g, { first: 1, potted: [3, 0] }));
   check('judge does not mutate the game it is given', JSON.stringify(g) === snap);
+  const m = midGame('9', [3, 5, 9]);
+  const d1 = S.judge(m, res(m, { first: 3 })), d2 = S.judge(d1, res(d1, { first: 3 })), d3 = S.judge(d2, res(d2, { first: 3, potted: [5] }));
+  check('game.dry counts shots in a row with nothing potted', g.dry === 0 && d1.dry === 1 && d2.dry === 2 && d3.dry === 0, JSON.stringify([d1.dry, d2.dry, d3.dry]));
 }
 {
   /* after a break scratch: in hand behind the head string, a ball behind it is not on */
   const g = midGame('8', [1, 2, 9], { inHand: 'kitchen' });
   Object.assign(g.balls.find(b => b.n === 1), { x: S.HEAD_X - 0.3, y: 0.3 });
   Object.assign(g.balls.find(b => b.n === 2), { x: S.HEAD_X + 0.6, y: 0.6 });
-  const a = S.judge(g, res(g, { first: 1 }));
+  const a = S.judge(g, res(g, { first: 1, crossed: false }));
   check('8: in hand in the kitchen, hitting a ball behind the head string first is a foul', a.verdict.foul && a.turn === 1 && a.inHand === 'table', JSON.stringify(a.verdict));
-  const b = S.judge(g, res(g, { first: 2 }));
+  const b = S.judge(g, res(g, { first: 2, crossed: true }));
   check('8: in hand in the kitchen, a ball past the head string is fine', !b.verdict.foul && b.turn === 1 && b.inHand === null);
+  /* the rule is crossing, not where the ball sits: a bank off the foot rail onto the 1 is legal */
+  const c = S.judge(g, res(g, { first: 1, crossed: true }));
+  check('8: in hand in the kitchen, the cue ball crossing the string first makes a ball behind it fair', !c.verdict.foul && c.turn === 1, JSON.stringify(c.verdict));
+  /* a ball whose centre is past the string is fair even if the cue ball touches it before its own centre gets there */
+  const d = S.judge(g, res(g, { first: 2, crossed: false }));
+  check('8: in hand in the kitchen, a ball past the head string is fair without the cue ball crossing', !d.verdict.foul, JSON.stringify(d.verdict));
+  const e = S.judge(g, res(g, { first: 1 }));
+  check('8: a result without `crossed` is judged on the first ball\'s position', e.verdict.foul === a.verdict.foul && !!e.verdict.foul);
+  const f = midGame('8', [1, 2, 9], { inHand: 'table' });
+  Object.assign(f.balls.find(b => b.n === 1), { x: S.HEAD_X - 0.3, y: 0.3 });
+  check('8: ball in hand anywhere: the head string does not matter', !S.judge(f, res(f, { first: 1, crossed: false })).verdict.foul);
 }
 {
   /* the kitchen rule cannot force a foul: when no legal ball lies past the head string, any is on */
   const g = midGame('9', [1, 9], { inHand: 'kitchen' });
   Object.assign(g.balls.find(b => b.n === 1), { x: 0.3, y: 0.3 });
-  const a = S.judge(g, res(g, { first: 1 }));
+  const a = S.judge(g, res(g, { first: 1, crossed: false }));
   check('9: in hand in the kitchen with the ball on behind the line, hitting it is legal', !a.verdict.foul, JSON.stringify(a.verdict));
   const f = midGame('9', [3, 5, 9]);
   const b = S.judge(f, res(f, { first: 5, potted: [9] }));

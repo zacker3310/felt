@@ -1,8 +1,9 @@
 /* ai-check (Node): the CPU at its three levels. It pots a hanging ball, breaks legally, places
-   the cue ball well with ball in hand, plays a legal safety when every pot is blocked, respects
-   the kitchen, stays inside its simulation budget, is deterministic for a seed, and its levels
-   are ordered: easy misses more than medium on a fixed set of layouts, and hard beats medium
-   over 20 seeded games of each kind. The games run on worker threads to keep the suite fast. */
+   the cue ball well with ball in hand (also when the ball on hangs in a jaw), plays a legal
+   safety when every pot is blocked, respects the kitchen, stays inside its simulation budget, is
+   deterministic for a seed, and its levels are ordered: easy misses more than medium on a fixed
+   set of layouts, and hard beats medium over 20 seeded games of each kind. Hard against hard
+   never stalls in a safety loop. The games run on worker threads to keep the suite fast. */
 'use strict';
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const os = require('os');
@@ -16,12 +17,13 @@ function wellFormed(g, s) {
   return !!s && Number.isFinite(s.angle) && s.power >= 0 && s.power <= 1 && !!sp && Number.isFinite(sp.x) && Number.isFinite(sp.y) &&
     sp.x * sp.x + sp.y * sp.y <= 1 + 1e-9 && (g.inHand ? !!s.place && S.canPlace(g, s.place[0], s.place[1]) : s.place === null);
 }
-/* a whole game; levels[p] plays for player p, `first` breaks */
-function play(kind, levels, seed, first) {
+/* a whole game; levels[p] plays for player p, `first` breaks; shot i is searched with seed
+   seed * mult + i (the page counts its seed up by one a shot, mult 1) */
+function play(kind, levels, seed, first, mult = 1000) {
   let g = S.newGame(kind), shots = 0, bad = 0;
   g.turn = first;
   while (g.winner === null && shots < 300) {
-    const s = S.cpuShot(g, seed * 1000 + shots, levels[g.turn]);
+    const s = S.cpuShot(g, seed * mult + shots, levels[g.turn]);
     if (!wellFormed(g, s)) { bad++; break; }
     if (g.inHand) g = S.placeCue(g, s.place[0], s.place[1]);
     g = S.judge(g, S.simulateShot(g.balls, s));
@@ -31,7 +33,7 @@ function play(kind, levels, seed, first) {
 }
 
 if (!isMainThread) {
-  parentPort.postMessage(workerData.map(j => Object.assign(j, play(j.kind, j.levels, j.seed, j.first))));
+  parentPort.postMessage(workerData.map(j => Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult))));
   return;
 }
 const { check, done } = require('./lib.cjs');
@@ -85,16 +87,22 @@ function layouts(count) {
   const jobs = [];
   for (const kind of ['8', '9']) for (let i = 0; i < 20; i++) jobs.push({ kind, seed: 7 + i, levels: i % 2 ? ['medium', 'hard'] : ['hard', 'medium'], hard: i % 2, first: (i >> 1) % 2 });
   for (const kind of ['8', '9']) jobs.push({ kind, seed: 3, levels: ['easy', 'easy'], hard: -1, first: 0 });
+  /* hard against hard: no endless safety exchange. 4888 (= 5 * 977 + 3) is the playtest's
+     150-shot 9-ball game, both players tapping the 7 frozen on the head rail */
+  for (const kind of ['8', '9']) for (const [seed, mult] of [[4888, 1], [4870, 1], [4881, 1], [23, 1000], [25, 1000]]) jobs.push({ kind, seed, mult, levels: ['hard', 'hard'], hard: -2, first: 0 });
   const t0 = Date.now(), games = await playAll(jobs), ms = Date.now() - t0;
 
   for (const kind of ['8', '9']) {
-    const easy = games.find(r => r.kind === kind && r.hard < 0);
+    const easy = games.find(r => r.kind === kind && r.hard === -1);
     check(`easy vs easy finishes a game of ${kind}-ball with well-formed shots`, easy.winner !== null && easy.bad === 0, JSON.stringify(easy));
     const m = games.filter(r => r.kind === kind && r.hard >= 0), wins = m.filter(r => r.winner === r.hard).length;
     check(`hard vs medium: all 20 games of ${kind}-ball finish with well-formed shots and legal placements`,
       m.every(r => r.winner !== null && r.bad === 0), JSON.stringify(m.filter(r => r.winner === null || r.bad)));
     check(`hard beats medium at ${kind}-ball over 20 seeded games (breaker and seat alternate)`, wins >= 13,
       `hard won ${wins}/20, ${(m.reduce((a, r) => a + r.shots, 0) / m.length).toFixed(1)} shots a game`);
+    const hh = games.filter(r => r.kind === kind && r.hard === -2);
+    check(`hard vs hard: every ${kind}-ball game finishes within 120 shots (no safety loop)`, hh.every(r => r.winner !== null && r.bad === 0 && r.shots <= 120),
+      hh.map(r => `${r.seed}:${r.shots}`).join(' '));
   }
   console.log(`(match: ${games.length} games in ${(ms / 1000).toFixed(1)} s)`);
 
@@ -154,6 +162,41 @@ function layouts(count) {
       }
     }
     check('ball in hand: hard places and pots every time, medium nearly', res.hard === 5 && res.medium >= 4, JSON.stringify(res));
+  }
+
+  /* ball in hand with the ball on hanging in a jaw (the playtest's 2 at (2.5162, 0.0222), then
+     one per pocket among random balls): no level fouls, medium and hard pot it. Before the fix
+     no pot line reached a ball past the mouth line, the spot fell back blind and the one-rail
+     kick went through the side pocket's mouth: a scratch at every level. */
+  {
+    const set = [], fouls = [], missed = [];
+    for (let i = 0; i < 13; i++) {
+      const r = S.rng(500 + i), g = midGame('9', [2, 9]);
+      g.inHand = 'table'; ball(g, 0).on = false;
+      if (i === 12) { put(g, 2, 2.5162, 0.0222); set.push(g); continue; }
+      const k = i % 6, P = S.POCKETS[k], A = S.POCKET_AIM[k], f = k === 1 || k === 4 ? 1 : 0.68;
+      put(g, 2, P[0] + (A[0] - P[0]) * f, P[1] + (A[1] - P[1]) * f);
+      for (let n = 3; n < 9; n++) if (r() < 0.5) {
+        for (;;) {
+          const x = 0.2 + r() * (S.TL - 0.4), y = 0.15 + r() * (S.TW - 0.3);
+          if (g.balls.every(o => !o.on || o.n === n || Math.hypot(o.x - x, o.y - y) > 0.07)) { put(g, n, x, y); break; }
+        }
+      }
+      for (;;) {
+        const x = 0.2 + r() * (S.TL - 0.4), y = 0.15 + r() * (S.TW - 0.3);
+        if (g.balls.every(o => !o.on || o.n === 9 || Math.hypot(o.x - x, o.y - y) > 0.07)) { put(g, 9, x, y); break; }
+      }
+      set.push(g);
+    }
+    set.forEach((g, i) => {
+      for (const l of LEVELS) {
+        const s = S.cpuShot(g, i, l), j = wellFormed(g, s) ? after(g, s) : null;
+        if (!j || j.verdict.foul) fouls.push(`${l}#${i}:${j ? j.verdict.foul : 'malformed'}`);
+        else if (l !== 'easy' && !j.verdict.potted.includes(2)) missed.push(`${l}#${i}`);
+      }
+    });
+    check('ball in hand, the ball on hanging in a jaw: no level fouls', !fouls.length, fouls.join(' '));
+    check('ball in hand, the ball on hanging in a jaw: medium and hard pot it', !missed.length, missed.join(' '));
   }
 
   /* ball in hand in a crowded kitchen still finds a legal spot (v1) */

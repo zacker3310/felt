@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-layout="wide">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -7,96 +7,252 @@
 <title>felt</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23161618'/%3E%3Ccircle cx='32' cy='32' r='13' fill='%23fff'/%3E%3Ctext x='32' y='38' font-size='17' font-weight='700' text-anchor='middle' font-family='sans-serif'%3E8%3C/text%3E%3C/svg%3E">
 <style>
+/* Palette: near-black panels, one signal red used for the turn marker, the foul banner, the hot
+   end of the power bar and the primary button. Every text pair is measured at 4.5:1 or better
+   (boot-check walks the page and fails anything lower); graphics at 3:1. */
 :root {
-  --bg: #0f0f10; --panel: #1b1b1d; --panel-2: #26262a; --line: #34343a;
+  --bg: #0f0f10; --panel: #1b1b1d; --panel-2: #26262a; --panel-3: #303036; --line: #3a3a41;
   --text: #ececee; --muted: #a3a3aa; --signal: #c0392b; --signal-dk: #a93226; --illegal: #ffa597;
+  --cream: #ece4d2; --chalk: #2f6fb0;
   --radius: 12px; --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 15px/1.4 var(--font); overflow: hidden; }
-body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
 button { font: inherit; color: inherit; cursor: pointer; }
-button:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 #table { position: fixed; inset: 0; display: block; touch-action: none; }
 
-#topbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; display: flex; align-items: center; gap: 8px; padding: 8px 16px; pointer-events: none; }
-#topbar > * { pointer-events: auto; }
-.chip { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px 12px; border-radius: var(--radius); background: var(--panel); border: 2px solid transparent; }
-.chip.on { border-color: var(--signal); }
-.chip .name { font-weight: 700; white-space: nowrap; }
-.dots { display: flex; gap: 3px; flex-wrap: nowrap; overflow: hidden; }
-.dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset -2px -2px 3px rgba(0,0,0,.35); }
-.dot.stripe { background-image: linear-gradient(#fff 0 22%, transparent 22% 78%, #fff 78%) !important; }
-#msg { flex: 1; min-width: 0; text-align: center; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.icon { width: 44px; height: 44px; flex: none; border-radius: var(--radius); border: 0; background: var(--panel); display: grid; place-items: center; }
+/* ---- the frame around the table: hud, stage (where layout() fits the table), controls ---- */
+#ui { position: fixed; inset: 0; display: grid; gap: 8px; pointer-events: none;
+  padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
+#hudBar { grid-area: hud; display: grid; gap: 6px 8px; align-items: center; min-width: 0; }
+#stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
+#ctl { grid-area: ctl; display: flex; gap: 10px; align-items: center; min-width: 0; min-height: 0; }
+#ctl > * { pointer-events: auto; }
+
+/* portrait phone: hud on top, the table full width, one strip of controls at the bottom */
+[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "ctl" auto / minmax(0, 1fr); }
+[data-layout="portrait"] #hudBar { grid-template: "p0 p1" auto "msg msg" auto / minmax(0, 1fr) minmax(0, 1fr); }
+[data-layout="portrait"] #ctl { flex-direction: row; height: 60px; }
+[data-layout="portrait"] #msg { font-size: 13px; }
+[data-layout="portrait"] #spinBox { order: 1; flex-direction: row; }
+[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; }
+[data-layout="portrait"] #menuBtn { order: 3; }
+[data-layout="portrait"] #spinLabel { width: 76px; text-align: left; }
+/* landscape: hud across the top, controls in a column on the right */
+[data-layout="wide"] #ui { grid-template: "hud hud" auto "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) 84px; }
+[data-layout="wide"] #hudBar { grid-template: "p0 msg p1" auto / minmax(0, 260px) minmax(0, 1fr) minmax(0, 260px); }
+/* short landscape (a phone on its side): players on the left, controls on the right, the
+   table gets the whole height */
+[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) / 124px minmax(0, 1fr) 72px; }
+[data-layout="short"] .pc { padding: 7px 9px 8px; }
+[data-layout="short"] .pc .line { flex-wrap: wrap; height: auto; row-gap: 4px; }
+[data-layout="short"] #spinPad { width: 60px; height: 60px; }
+[data-layout="short"] #spinLabel { width: 72px; }
+[data-layout="short"] #hudBar { grid-template: "p0" auto "p1" auto "msg" auto / minmax(0, 1fr); align-content: start; }
+[data-layout="short"] #msg { white-space: normal; text-align: left; font-size: 13px; }
+[data-layout="wide"] #ctl, [data-layout="short"] #ctl { flex-direction: column; }
+[data-layout="wide"] #powerBar, [data-layout="short"] #powerBar { flex: 1; width: 52px; min-height: 120px; max-height: 440px; }
+
+/* ---- player cards ---- */
+.pc { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 8px;
+  min-width: 0; padding: 7px 10px 8px; border-radius: var(--radius); background: rgba(27, 27, 29, .94); border: 1px solid var(--line); }
+#p0 { grid-area: p0; } #p1 { grid-area: p1; }
+.pc .turn { width: 8px; height: 8px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px #6b6b74; }
+.pc.on { border-color: #74747e; background: rgba(38, 38, 42, .96); }
+.pc.on .turn { background: var(--signal); box-shadow: 0 0 0 3px rgba(192, 57, 43, .28); }
+.pc .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* second line: the group (or ball on) in words, then its balls */
+.pc .line { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-width: 0; height: 16px; }
+.pc .meta { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pc .meta.warn { color: var(--illegal); }
+.pc .dots { flex: 1; min-width: 0; display: flex; gap: 2px; overflow: hidden; }
+.pc .dot { width: 12px; height: 12px; }
+.dot { width: 13px; height: 13px; border-radius: 50%; flex: none; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .35), 0 0 0 1px rgba(0, 0, 0, .3); }
+.dot.stripe { background-image: linear-gradient(#f6f4ec 0 24%, transparent 24% 76%, #f6f4ec 76%) !important; }
+.dot.big { width: 18px; height: 18px; }
+.thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+#msg { grid-area: msg; min-width: 0; min-height: 20px; line-height: 20px; text-align: center; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- banners: a turn or a foul, shown over the table for a moment ---- */
+#banner { position: absolute; left: 50%; top: 50%; width: max-content; max-width: min(92%, 420px); padding: 14px 24px 15px; border-radius: 16px; text-align: center;
+  background: rgba(22, 22, 24, .94); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5);
+  opacity: 0; transform: translate(-50%, -50%) translateY(10px) scale(.98); transition: opacity .18s ease-out, transform .22s ease-out; pointer-events: none; }
+#banner.show { opacity: 1; transform: translate(-50%, -50%); }
+#banner b { display: block; font-size: 21px; line-height: 1.2; letter-spacing: -.01em; }
+#banner span { display: block; margin-top: 3px; font-size: 14px; color: var(--muted); }
+#banner span:empty { display: none; }
+#banner[data-kind="foul"] { background: var(--signal); border-color: #d9584a; }
+#banner[data-kind="foul"] span { color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  #banner, #banner.show { transition: none; transform: translate(-50%, -50%); }
+  .thinking::after { animation: none; content: "..."; }
+}
+
+/* ---- controls: english, power, pause ---- */
+.icon { width: 48px; height: 48px; flex: none; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); display: grid; place-items: center; }
+.icon:hover { background: var(--panel-2); }
 .icon svg { width: 22px; height: 22px; }
-#soundBtn[aria-pressed="false"] .wave { display: none; }
-#soundBtn[aria-pressed="true"] .cross { display: none; }
+#spinBox { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; }
+#spinPad { position: relative; width: 56px; height: 56px; flex: none; border-radius: 50%; touch-action: none; cursor: crosshair;
+  background: radial-gradient(circle at 36% 30%, #ffffff 0, #f1efe8 32%, #cfccc4 72%, #9d9a93 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .45), inset 0 0 0 1px rgba(0, 0, 0, .25); }
+[data-layout="wide"] #spinPad { width: 64px; height: 64px; }
+/* the safe circle (|spin| <= 1) and a crosshair; past the ring is miscue country */
+#spinPad::before { content: ""; position: absolute; inset: 19%; border-radius: 50%; border: 1px dashed rgba(40, 40, 44, .45); }
+#spinPad::after { content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(rgba(40, 40, 44, .2), rgba(40, 40, 44, .2)) center / 1px 62% no-repeat,
+              linear-gradient(rgba(40, 40, 44, .2), rgba(40, 40, 44, .2)) center / 62% 1px no-repeat; }
+#spinTip { position: absolute; z-index: 1; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #5b95d0, var(--chalk) 60%, #1f4f82); box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .5); pointer-events: none; }
+#spinLabel { font-size: 12px; line-height: 1.25; color: var(--muted); text-align: center; width: 84px; min-height: 30px; display: flex; align-items: center; justify-content: center; }
+[data-layout="portrait"] #spinLabel { justify-content: flex-start; min-height: 0; }
+#powerBar { position: relative; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; touch-action: none; cursor: grab; }
+#powerBar.live { cursor: grabbing; border-color: #74747e; }
+#powerFill { position: absolute; left: 0; top: 0; width: 0; height: 100%; background: linear-gradient(90deg, #cfc6b2, var(--cream)); }
+#powerFill.hot { background: linear-gradient(90deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
+/* the last power used: a tick on both edges of the track, clear of the label */
+#powerMark { position: absolute; left: 0; top: 0; width: 2px; height: 100%; background: linear-gradient(rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
+#powerLab { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; font-size: 13px; color: var(--muted); pointer-events: none; }
+#powerBar.live #powerLab { justify-content: flex-end; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; }
+[data-layout="wide"] #powerFill, [data-layout="short"] #powerFill { width: 100%; height: 0; background: linear-gradient(180deg, #cfc6b2, var(--cream)); }
+[data-layout="wide"] #powerFill.hot, [data-layout="short"] #powerFill.hot { background: linear-gradient(180deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
+[data-layout="wide"] #powerMark, [data-layout="short"] #powerMark { width: 100%; height: 2px; background: linear-gradient(90deg, rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
+[data-layout="wide"] #powerLab, [data-layout="short"] #powerLab { writing-mode: vertical-rl; padding: 10px 0; }
+[data-layout="wide"] #powerBar.live #powerLab, [data-layout="short"] #powerBar.live #powerLab { writing-mode: horizontal-tb; align-items: flex-end; justify-content: center; }
 
-#side { position: fixed; right: 12px; top: 68px; bottom: 16px; width: 64px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-#powerBar { position: relative; flex: 1; width: 44px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; touch-action: none; cursor: ns-resize; }
-#powerFill { position: absolute; left: 0; right: 0; top: 0; height: 0; background: var(--signal); }
-#powerBar .lab { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-size: 11px; color: #f4f4f5; }
-#spin { position: relative; width: 64px; height: 64px; flex: none; border-radius: 50%; border: 0; background: radial-gradient(circle at 38% 34%, #fff, #d9d9d9 60%, #a9a9a9); }
-#spinDot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; left: 50%; top: 50%; border-radius: 50%; background: var(--signal); pointer-events: none; }
-
-.overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(10, 10, 11, .86); }
-.overlay.show { display: flex; }
-.card { width: 100%; max-width: 420px; padding: 24px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-h1 { margin: 0; font-size: 44px; line-height: 1; letter-spacing: -0.02em; }
-.sub { margin: 6px 0 20px; color: var(--muted); }
-.label { margin: 16px 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.seg button, .ghost { min-height: 48px; border-radius: var(--radius); border: 2px solid var(--line); background: var(--panel-2); }
-.seg button[aria-pressed="true"] { border-color: var(--signal); }
-.big { min-height: 52px; border-radius: var(--radius); border: 0; background: var(--signal); color: #fff; font-size: 18px; font-weight: 700; }
+/* ---- overlays: the menu and game over ---- */
+.overlay { position: fixed; inset: 0; display: none; overflow-y: auto; padding: max(16px, var(--sat)) max(16px, var(--sar)) max(16px, var(--sab)) max(16px, var(--sal));
+  background: rgba(10, 10, 11, .82); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.overlay.show { display: grid; place-items: center; }
+.sheet { width: 100%; max-width: 440px; padding: 26px 24px 22px; border-radius: 20px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
+.brand { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 46px; line-height: 1; letter-spacing: -.035em; font-weight: 800; }
+h1 i { font-style: normal; color: var(--signal); }
+.sub { margin: 0; color: var(--muted); font-size: 14px; }
+.opts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; }
+.opts .label { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.opts [hidden] { display: none; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.seg button { min-height: 44px; padding: 0 6px; border-radius: 10px; border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; }
+.seg button:hover { color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--panel-3); color: var(--text); box-shadow: inset 0 0 0 1px #55555e, 0 1px 2px rgba(0, 0, 0, .4); }
+.sect { margin: 22px 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.big { min-height: 56px; border-radius: 14px; border: 0; background: var(--signal); color: #fff; font-size: 17px; font-weight: 700; }
 .big:hover { background: var(--signal-dk); }
-.how { margin: 20px 0 0; padding-left: 18px; color: var(--muted); font-size: 13px; }
-.how li { margin: 3px 0; }
-#overText { margin: 0 0 6px; font-size: 26px; }
-#overWhy { margin: 0 0 20px; color: var(--muted); }
-.row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-@media (max-width: 520px) {
-  #topbar { height: 60px; padding: 8px; gap: 6px; }
-  .chip { padding: 6px 8px; }
-  .chip .dots { display: none; }
-  #msg { position: fixed; top: 60px; left: 16px; right: 88px; font-size: 13px; text-align: left; }
+.big small { display: block; font-size: 12px; font-weight: 500; opacity: .92; }
+.ghost { min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); font-size: 16px; font-weight: 600; }
+.ghost:hover { background: var(--panel-3); }
+.ghost small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+/* the two games: equal weight, each with its ball */
+.game { min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; }
+.game:hover { background: var(--panel-3); border-color: #5a5a62; }
+.game b { display: block; font-size: 17px; }
+.game small { display: block; font-size: 12px; color: var(--muted); }
+.ball { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 800 11px/1 var(--font); color: #141414; box-shadow: inset -4px -5px 8px rgba(0, 0, 0, .35); }
+.b8, .b9 { background-color: #f6f4ec; }
+.b8 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #4a4a4e, #161618 70%); }
+.b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
+#resumeBtn { width: 100%; margin-bottom: 4px; }
+#resumeBtn[hidden] { display: none; }
+details.how { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 4px; }
+details.how summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; list-style: none; }
+details.how summary::-webkit-details-marker { display: none; }
+details.how summary::after { content: "+"; font-size: 20px; color: var(--muted); }
+details.how[open] summary::after { content: "\2212"; }
+.how dl { margin: 2px 0 4px; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px 12px; font-size: 13px; }
+.how dt { color: var(--text); font-weight: 600; }
+.how dd { margin: 0; color: var(--muted); }
+kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
+/* game over */
+.kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+#overText { margin: 0; font-size: 34px; line-height: 1.1; letter-spacing: -.02em; font-weight: 800; }
+#overWhy { margin: 6px 0 18px; color: var(--muted); }
+.stats { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-variant-numeric: tabular-nums; }
+.stats th, .stats td { padding: 9px 6px; text-align: left; border-top: 1px solid var(--line); font-size: 14px; }
+.stats thead th { border-top: 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+.stats thead th.win { color: var(--text); }
+.stats thead th.win::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 50%; background: var(--signal); vertical-align: 1px; }
+.stats tbody th { color: var(--muted); font-weight: 500; width: 28%; }
+.stats td { width: 36%; }
+.stats .dots { display: flex; flex-wrap: wrap; gap: 3px; }
+@media (max-height: 560px) and (min-width: 700px) {
+  .sheet.wide { max-width: 760px; display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+  .sheet.wide .col2 { padding-top: 6px; }
+  .sheet.wide .sect:first-child { margin-top: 0; }
+  .brand { margin-bottom: 14px; }
 }
 </style>
 </head>
 <body>
-<canvas id="table" aria-label="pool table"></canvas>
-<div id="topbar">
-  <div class="chip" id="p0"><span class="name" id="p0name">Player 1</span><span class="dots" id="p0dots"></span></div>
-  <div id="msg" role="status" aria-live="polite"></div>
-  <div class="chip" id="p1"><span class="name" id="p1name">Player 2</span><span class="dots" id="p1dots"></span></div>
-  <button class="icon" id="soundBtn" aria-label="sound" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor" stroke="none"/><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/><path class="cross" d="M16 9l5 6M21 9l-5 6"/></svg></button>
-  <button class="icon" id="menuBtn" aria-label="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-</div>
-<div id="side">
-  <div id="powerBar" role="slider" aria-label="power, pull down and release to shoot" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="powerFill"></div><div class="lab">pull</div></div>
-  <button id="spin" aria-label="spin: tap high for follow, low for draw"><span id="spinDot"></span></button>
-</div>
-<div class="overlay show" id="menu">
-  <div class="card">
-    <h1>felt</h1>
-    <p class="sub">8-ball and 9-ball.</p>
-    <div class="label">Opponent</div>
-    <div class="seg"><button id="vs2p" aria-pressed="true">Two players</button><button id="vsCpu" aria-pressed="false">CPU</button></div>
-    <div class="label">Game</div>
-    <div class="row"><button class="big" id="play8">8-ball</button><button class="big" id="play9">9-ball</button></div>
-    <ul class="how">
-      <li>Point to aim. Arrow keys fine-tune, shift for bigger steps.</li>
-      <li>Shoot: press on the table and pull back, or pull the bar down and let go. Space shoots at the bar's power.</li>
-      <li>Tap the cue ball on the right high for follow, low for draw.</li>
-      <li>Ball in hand: click or drag where the cue ball goes.</li>
-    </ul>
+<canvas id="table" aria-label="Pool table. Point or tap to aim, drag back to shoot."></canvas>
+<div id="ui">
+  <div id="hudBar">
+    <div class="pc" id="p0"><span class="turn" aria-hidden="true"></span><span class="name" id="p0name">Player 1</span><span class="line"><span class="meta" id="p0meta"></span><span class="dots" id="p0dots"></span></span></div>
+    <div id="msg" role="status" aria-live="polite"></div>
+    <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
+  </div>
+  <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
+  <div id="ctl">
+    <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
+    <div id="spinBox">
+      <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
+      <span id="spinLabel" aria-hidden="true">center</span>
+    </div>
+    <div id="powerBar" role="slider" tabindex="0" aria-label="Power: drag and let go to shoot. Arrow keys set it, Enter shoots." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Drag to shoot</div>
+    </div>
   </div>
 </div>
-<div class="overlay" id="over">
-  <div class="card">
-    <p id="overText"></p>
+
+<div class="overlay show" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+  <div class="sheet wide">
+    <div class="col1">
+      <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball and 9-ball, one device.</p></div>
+      <button class="big" id="resumeBtn" hidden>Resume game</button>
+      <div class="sect">New game</div>
+      <div class="opts">
+        <span class="label">Opponent</span>
+        <div class="seg" role="group" aria-label="Opponent"><button id="vs2p" aria-pressed="true">Two players</button><button id="vsCpu" aria-pressed="false">CPU</button></div>
+        <span class="label" id="levelLab">CPU level</span>
+        <div class="seg" id="levelSeg" role="group" aria-label="CPU level"><button id="lvEasy" aria-pressed="false">Easy</button><button id="lvMedium" aria-pressed="true">Medium</button><button id="lvHard" aria-pressed="false">Hard</button></div>
+      </div>
+      <div class="row" style="margin-top: 14px"><button class="game" id="play8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball</b><small>Solids and stripes</small></span></button><button class="game" id="play9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball</b><small>Lowest ball first</small></span></button></div>
+    </div>
+    <div class="col2">
+      <div class="sect">Table</div>
+      <div class="opts">
+        <span class="label">Aim guide</span>
+        <div class="seg" role="group" aria-label="Aim guide"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div>
+        <span class="label">Sound</span>
+        <div class="seg" role="group" aria-label="Sound"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div>
+      </div>
+      <details class="how" id="how">
+        <summary>How to play</summary>
+        <dl>
+          <dt>Aim</dt><dd>Point with the mouse, or tap where the cue ball should go. Drag across the line to fine-tune; start the drag further from the cue ball for finer steps. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> also aim (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine).</dd>
+          <dt>Shoot</dt><dd>Drag back along the line, away from the target, and let go: the further, the harder. Slide back to the start to cancel. Or drag the power bar and let go. <kbd>Space</kbd> shoots at the marked power, <kbd>&uarr;</kbd> <kbd>&darr;</kbd> set it.</dd>
+          <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it or press <kbd>R</kbd> to centre.</dd>
+          <dt>In hand</dt><dd>Drag anywhere to slide the cue ball, or tap a spot. Let go to place it. You can pick it up again until you shoot.</dd>
+          <dt>Pause</dt><dd>The pause button or <kbd>Esc</kbd>. The game waits.</dd>
+        </dl>
+      </details>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="over" role="dialog" aria-modal="true" aria-labelledby="overText">
+  <div class="sheet">
+    <p class="kicker" id="overKind"></p>
+    <h2 id="overText"></h2>
     <p id="overWhy"></p>
+    <table class="stats" id="overStats"></table>
     <div class="row"><button class="big" id="rematch">Rematch</button><button class="ghost" id="overMenu">Menu</button></div>
   </div>
 </div>
@@ -769,16 +925,31 @@ function tableXform(c) {
 const LIGHT = [-0.55, -0.835];
 const tdir = (sx, sy) => view.portrait ? [-sy, sx] : [sx, sy];
 const sdir = (tx, ty) => view.portrait ? [ty, -tx] : [tx, ty];
+/* layout (U): CSS lays out the hud, the controls and an empty #stage; the table is fitted into
+   the stage. Up to three arrangements are tried (portrait strip, wide, short landscape) and the
+   one that gives the biggest table wins, so a tablet in portrait can take its controls to the
+   side while a phone keeps them in a strip under a full-width table. */
+function fitTable(r) {
+  const W = TL + 2 * RAIL, H = TW + 2 * RAIL;
+  const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
+  return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
+}
 function layout() {
-  const w = innerWidth, h = innerHeight;
+  const w = innerWidth, h = innerHeight, root = document.documentElement;
   dpr = Math.min(2, window.devicePixelRatio || 1);
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
-  const L = 16, Rt = 16 + 64 + 8, T = w <= 520 ? 92 : 68, B = 16, aw = w - L - Rt, ah = h - T - B;
-  const portrait = ah > aw * 1.05;
-  const tw = (portrait ? TW : TL) + 2 * RAIL, th = (portrait ? TL : TW) + 2 * RAIL;
-  const k = Math.max(10, Math.min(aw / tw, ah / th));
-  view = { k, portrait, ox: L + (aw - tw * k) / 2 + RAIL * k, oy: T + (ah - th * k) / 2 + RAIL * k };
+  const tries = h > w ? ['portrait', 'wide'] : h < 600 ? ['short', 'wide'] : ['wide'];
+  let best = null;
+  for (const m of tries) {
+    root.dataset.layout = m;
+    const f = fitTable(stage.getBoundingClientRect());
+    if (!best || f.k > best.k * 1.04) best = { m, k: f.k };
+  }
+  root.dataset.layout = best.m;
+  const r = stage.getBoundingClientRect(), f = fitTable(r), k = Math.max(10, f.k);
+  const tw = (f.portrait ? TW : TL) + 2 * RAIL, th = (f.portrait ? TL : TW) + 2 * RAIL;
+  view = { k, portrait: f.portrait, ox: r.left + (r.width - tw * k) / 2 + RAIL * k, oy: r.top + (r.height - th * k) / 2 + RAIL * k };
   tableImg = drawTableImage();
 }
 
@@ -788,7 +959,7 @@ function layout() {
    is that image, cached ball sprites and a few vector shapes. */
 const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3: [208, 42, 36], 4: [92, 46, 146], 5: [242, 112, 26], 6: [22, 120, 66], 7: [122, 30, 32], 8: [20, 20, 22] };
 const colorOf = n => BALL_COLOR[n > 8 ? n - 8 : n];
-const CLOTH = '#1b5d47', CUSHION = '#1d6450', ILLEGAL = '#ffa597';   /* ILLEGAL: 3.2:1 or better on any lit cloth */
+const CLOTH = '#1b5d47', CUSHION = '#1d6450', ILLEGAL = '#ffa597';   /* ILLEGAL: 3.7:1 on the brightest lit cloth (render-check measures it) */
 const IVORY = '#f7f4ea';
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const ease = (a, b, u) => { const t = clamp((u - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -1086,22 +1257,17 @@ function rotate(m, axis, ang) {
   for (let j = 0; j < 3; j++) { const l = Math.hypot(o[j], o[3 + j], o[6 + j]); o[j] /= l; o[3 + j] /= l; o[6 + j] /= l; }
   return o;
 }
-/* roll every ball by how far it moved since the last frame; the top turns toward the motion */
+/* frame() rolls each ball by its displacement: the top turns toward the motion */
+function rollBall(n, dx, dy) {
+  const d = Math.hypot(dx, dy);
+  if (d > 0 && d < 0.5) orient[n] = rotate(orient[n] || IDENT, [-dy, dx, 0], d / BALL_R);
+}
+/* where every ball was at the last frame drawn, for placing hit effects (onHits) */
 let rollTab = null;
 const lastPos = {};
-function rollBalls() {
-  if (tab !== rollTab) {
-    rollTab = tab;
-    for (const b of game.balls) lastPos[b.n] = [b.x, b.y];
-  }
-  for (const b of (tab || game).balls) {
-    const p = lastPos[b.n];
-    if (tab && b.on && p) {
-      const dx = b.x - p[0], dy = b.y - p[1], d = Math.hypot(dx, dy);
-      if (d > 0 && d < 0.5) orient[b.n] = rotate(orient[b.n] || IDENT, [-dy, dx, 0], d / BALL_R);
-    }
-    lastPos[b.n] = [b.x, b.y];
-  }
+function trackBalls() {
+  if (tab !== rollTab) { rollTab = tab; for (const b of game.balls) lastPos[b.n] = [b.x, b.y]; }
+  for (const b of (tab || game).balls) lastPos[b.n] = [b.x, b.y];
 }
 /* a ball's local axes as screen directions (x right, y down, z toward the eye) */
 function axesOf(m, screen) {
@@ -1220,7 +1386,9 @@ function onPot(n, k, from, now) {
   pots.push({ n, k, from: [from[0], from[1]], t: now });
 }
 function trayGeom() {
-  const H = table.height / dpr, rb = BALL_R * view.k;
+  const st = document.getElementById('stage');
+  stageBox = st ? st.getBoundingClientRect() : null;
+  const H = stageBox ? stageBox.bottom : table.height / dpr, rb = BALL_R * view.k;
   const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL);
   const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y1 = Math.max(a[1], b[1]), gap = H - y1;
   const r = clamp((gap - 10) / 2.2, Math.max(4, rb * 0.6), rb * 0.85), pad = Math.max(2, r * 0.2), step = 2 * r + 2;
@@ -1532,7 +1700,7 @@ function drawPlace(now) {
   }
 }
 function draw(now) {
-  rollBalls();
+  trackBalls();
   if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
   prevState = state;
   if (!tab && game.shots === 0) trayList = [];
@@ -1558,58 +1726,142 @@ function draw(now) {
   drawFx(now);
   /* the cue: pulled back by power while aiming, driven through during the stroke, carried a few
      centimetres on and faded as the shot starts, then gone while anything rolls */
-  const rest = BALL_R + 0.01, back = 0.27;
+  const rest = BALL_R + 0.012, back = 0.27, follow = 180 / felt.speed;
+  ctx.save();
+  clipStage();
   if (aiming) {
-    let gap = rest + back * clamp(power, 0, 1);
+    let gap = rest + back * (pull ? clamp(power, 0, 1) : 0);
     if (state === 'stroke' && stroke) {
-      const u = clamp((now - stroke.t0) / STROKE_MS, 0, 1), g0 = rest + back * clamp(stroke.power, 0, 1);
+      const u = clamp((now - stroke.t0) * felt.speed / STROKE_MS, 0, 1), g0 = rest + back * clamp(stroke.power, 0, 1);
       gap = g0 + (BALL_R - g0) * u * u;
     }
     drawCue(c, aimAngle, gap);
     lastCue = { x: c.x, y: c.y, ang: aimAngle };
-  } else if (state === 'rolling' && lastCue && now - shotAt < 180) {
-    const u = (now - shotAt) / 180;
+  } else if (state === 'rolling' && lastCue && now - shotAt < follow) {
+    const u = (now - shotAt) / follow;
     drawCue(lastCue, lastCue.ang, BALL_R - 0.035 * ease(0, 1, u * 2), 1 - u);
   } else if (state !== 'rolling') lastCue = null;
+  ctx.restore();
+}
+/* the cue may run off the table but not into the controls: clip to the stage layout() fits the
+   table into, or the whole canvas without one */
+let stageBox = null;
+function clipStage() {
+  const r = stageBox;
+  if (!r) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.beginPath(); ctx.rect(r.left, r.top, r.width, r.height); ctx.clip();
 }
 
 /* ============ 5. PLAY ============ */
-let game = newGame('8'), state = 'menu', cpuMode = false, tab = null, aimAngle = 0, power = 0.5, cueSpin = { x: 0, y: 0 };   /* STUB(T2.1): cueSpin is {x, y} */
-let stroke = null, settings = { guide: 'full' };   /* STUB(T2.1) */
-const STROKE_MS = 110;   /* STUB(T2.1) */
-let pull = null, barDrag = null, placeAt = null, cpuIt = null, cpuPlan = null, cpuAnim = 0, cpuSeed = 1;
+/* The state machine. menu -> place (ball in hand) -> aim -> stroke (the cue travels forward for
+   STROKE_MS) -> rolling -> judged -> place | aim | thinking (the CPU) -> ... -> over.
+   Pausing parks the state in `paused` and shows the menu; resuming puts it back. */
+const STROKE_MS = 110;            /* cue travel before the physics starts, at speed 1 */
+const TAP_PX = 8;                 /* a press that moves less than this is a tap */
+const MIN_PULL = 0.03;            /* release a pull below this power and the shot is cancelled */
+const TURN_GAIN = 0.25;           /* a sideways drag turns the aim a quarter as fast as the finger circles the cue ball */
+const SETTINGS_KEY = 'felt.settings';
+const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, as a share of its radius */
+let game = newGame('8'), state = 'menu', cpuMode = false, cpuLevel = 'medium', tab = null;
+let aimAngle = 0, power = 0.5, markPower = 0.5, cueSpin = { x: 0, y: 0 };
+let pull = null, placeAt = null, stroke = null, cpuIt = null, cpuPlan = null, cpuAnim = 0, cpuSeed = 1;
+let gest = null, paused = null, stats = newStats();
+let settings = loadSettings();
 const felt = window.felt = {
-  speed: 1, lastResult: null,
+  speed: 1, lastResult: null, lastShot: null, lastCpu: null,
   get state() { return state; }, get game() { return game; }, get cpu() { return cpuMode; }, get power() { return power; }, get aim() { return aimAngle; },
-  start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAngle = a; power = p; cueSpin = typeof s === 'number' ? { x: 0, y: s } : s; /* STUB(T2.1) */ shoot(); return true; },
-  toScreen, forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
+  get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
+  get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; },
+  start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
+  toScreen, toTable, pause, resume,
+  forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
+  /* the table and its rails on screen, in CSS px */
+  tableRect() { const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
 const cueBall = () => game.balls.find(b => b.n === 0);
 const human = () => !(cpuMode && game.turn === 1);
 const nameOf = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `Player ${p + 1}`;
+const turnOf = p => cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
+/* full power is this long a pull, in CSS px: a thumb's reach on a phone, more with a mouse */
+const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300);
+function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []] }; }
 
 function start(kind) {
+  cpuMode = settings.cpu; cpuLevel = settings.level;
   game = newGame(kind);
   randomOrient();
-  tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; /* STUB(T2.1) */ power = 0.5; pull = null; barDrag = null;
-  menu.classList.remove('show'); over.classList.remove('show');
+  tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
+  pull = null; stroke = null; gest = null; paused = null; stats = newStats();
+  hideOverlays();
   aimAngle = 0;
-  placeAt = null;
-  state = 'place';
-  say(`${nameOf(0)} to break. Place the cue ball behind the line.`);
+  enterPlace();
+  const who = cpuMode ? 'You break' : 'Player 1 breaks';
+  flash('turn', who, 'Ball in hand behind the head string');
+  hud();
+}
+/* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
+function commit(p) {
+  power = markPower = clamp(p, 0, 1);
+  pull = null;
+  stroke = { t0: performance.now(), power };
+  state = 'stroke';
   hud();
 }
 function shoot() {
   audioOn();
+  stroke = null; pull = null;
+  felt.lastShot = { angle: aimAngle, power, spin: Object.assign({}, cueSpin) };
   tab = strike(newTable(game.balls), aimAngle, power, cueSpin);
-  state = 'rolling'; pull = null; barDrag = null;
+  state = 'rolling';
+  say('');
   hud();
 }
+function enterPlace() {
+  state = 'place';
+  const c = cueBall();
+  placeAt = c.on && canPlace(game, c.x, c.y) ? [c.x, c.y] : nearestLegal(game.inHand === 'kitchen' ? HEAD_X - 0.15 : TL / 4, TW / 2);
+  say(placeHint());
+}
+const placeHint = () => game.inHand === 'kitchen' ? 'Ball in hand, behind the line: drag or tap to place.' : 'Ball in hand: drag or tap to place.';
+/* why a ball-in-hand spot is refused, in words */
+function placeWhy(p) {
+  if (game.inHand === 'kitchen' && p[0] > HEAD_X) return 'Behind the head string: the cue ball goes in the kitchen.';
+  const hit = game.balls.find(b => b.on && b.n > 0 && Math.hypot(b.x - p[0], b.y - p[1]) < 2 * BALL_R);
+  if (hit) return `Too close to the ${hit.n}.`;
+  return 'Keep the cue ball on the cloth.';
+}
+/* the nearest legal spot to (x, y): clamp into the allowed area, then search outward a few
+   ball widths. Null when the area there is crowded. Forgiving, so placing needs no precision. */
+function nearestLegal(x, y) {
+  const hi = game.inHand === 'kitchen' ? HEAD_X : TL - BALL_R;
+  x = clamp(x, BALL_R, hi); y = clamp(y, BALL_R, TW - BALL_R);
+  if (canPlace(game, x, y)) return [x, y];
+  for (let r = 0.004; r <= 4 * BALL_R; r += 0.004) {
+    for (let i = 0; i < 24; i++) {
+      const a = i * Math.PI / 12, px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+      if (canPlace(game, px, py)) return [px, py];
+    }
+  }
+  return null;
+}
+function movePlace(p) {
+  placeAt = [clamp(p[0], -0.02, TL + 0.02), clamp(p[1], -0.02, TW + 0.02)];
+  say(canPlace(game, placeAt[0], placeAt[1]) ? placeHint() : placeWhy(placeAt));
+}
+function tryPlace(p) {
+  const q = p && nearestLegal(p[0], p[1]);
+  if (!q) { say(p ? placeWhy(p) : placeHint()); return false; }
+  game = placeCue(game, q[0], q[1]);
+  placeAt = null; state = 'aim';
+  say(`${turnOf(game.turn)}.`);
+  hud();
+  return true;
+}
 function finish() {
-  over.classList.add('show');
-  overText.textContent = `${nameOf(game.winner)} ${cpuMode && game.winner === 0 ? 'win' : 'wins'}`;
-  overWhy.textContent = game.verdict && game.verdict.why ? 'On ' + game.verdict.why + '.' : '';
-  state = 'over';
+  state = 'over'; stroke = null; pull = null; gest = null; paused = null;
+  showOver();
+  sfx('win', 1);
   hud();
 }
 function settle() {
@@ -1618,39 +1870,79 @@ function settle() {
   const shooter = game.turn;
   game = judge(game, r);
   tab = null;
-  const v = game.verdict, who = nameOf(game.turn);
-  if (game.winner !== null) { say(`${nameOf(game.winner)} on ${v.why}.`); finish(); return; }
-  let line = v.foul ? `Foul: ${v.foul}. ${who}, ball in hand${game.inHand === 'kitchen' ? ' behind the line' : ''}.` : v.keep ? `${who} again.` : `${who} to shoot.`;
-  if (v.grouped) line = `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'are' : 'is'} ${game.groups[shooter]}. ` + line;
-  if (game.kind === '9' && game.winner === null) line += ` Ball on: ${legalTargets(game)[0]}.`;
-  say(line);
-  cueSpin = { x: 0, y: 0 }; power = 0.5;   /* STUB(T2.1) */
-  if (!human()) { state = 'thinking'; cpuIt = cpuSearch(game, cpuSeed++); cpuPlan = null; }
-  else state = game.inHand ? 'place' : 'aim';
+  const v = game.verdict, who = game.turn;
+  stats.shots[shooter]++;
+  if (v.foul) stats.fouls[shooter]++;
+  stats.potted[shooter].push(...v.potted);
+  if (game.winner !== null) { say(`${nameOf(game.winner)} ${cpuMode && game.winner === 0 ? 'win' : 'wins'}.`); finish(); return; }
+  const kitchen = game.inHand === 'kitchen' ? ' behind the line' : '';
+  const group = v.grouped ? `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'are' : 'is'} ${game.groups[shooter]}. ` : '';
+  const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
+  if (v.foul) {
+    const hand = cpuMode ? (who === 0 ? 'Ball in hand for you' : 'Ball in hand for the CPU') : `Ball in hand, ${nameOf(who)}`;
+    flash('foul', `Foul: ${v.foul}`, hand + kitchen, 2000);
+    say(`Foul: ${v.foul}. ${hand}${kitchen}.${ballOn}`);
+    sfx('foul', 1);
+  } else if (who !== shooter) {
+    flash('turn', turnOf(who), group.trim(), 1300);
+    say(`${group}${turnOf(who)}.${ballOn}`);
+    sfx('turn', 1);
+  } else {
+    if (group) flash('turn', `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'are' : 'is'} ${game.groups[shooter]}`, 'and shoots again', 1500);
+    say(`${group}${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again.${ballOn}`);
+  }
+  cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null;
+  if (!human()) {
+    state = 'thinking'; cpuPlan = null;
+    felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
+    cpuIt = cpuSearch(game, cpuSeed++, cpuLevel);
+  } else if (game.inHand) { enterPlace(); say(v.foul ? `Foul: ${v.foul}. ${placeHint()}` : placeHint()); }
+  else state = 'aim';
   hud();
 }
-function say(t) { msg.textContent = t; }
+function say(t) { if (msg.textContent !== t) msg.textContent = t; }
+
+function pause() {
+  if (state === 'menu' || state === 'over') return;
+  gest = null;
+  if (pull) { pull = null; power = markPower; }
+  if (state === 'place' && !placeAt) placeAt = [cueBall().x, cueBall().y];
+  paused = { state, at: performance.now() };
+  state = 'menu';
+  showMenu();
+  hud();
+}
+function resume() {
+  if (!paused) return;
+  const dt = performance.now() - paused.at;
+  if (stroke) stroke.t0 += dt;
+  cpuAnim += dt;
+  state = paused.state; paused = null;
+  hideOverlays();
+  hud();
+}
 
 function frame(now) {
   const dtMs = Math.min(50, now - (frame.last || now));
   frame.last = now;
+  if (state === 'stroke' && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
   if (state === 'rolling' && tab) {
     const before = tab.balls.map(b => [b.x, b.y, b.on]);
-    const steps = Math.max(1, Math.round(dtMs * felt.speed));
+    const steps = Math.max(1, Math.round(dtMs / 1000 / SIM_DT * felt.speed));   /* real time, whatever the step */
     let live = true;
     for (let i = 0; i < steps && live; i++) live = stepTable(tab);
-    tab.balls.forEach((b, i) => {
-      if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now);   /* STUB(T2.1) */
-    });
-    onHits(tab.hits, now);   /* STUB(T2.1) */
+    tab.balls.forEach((b, i) => { if (before[i][2]) rollBall(b.n, b.x - before[i][0], b.y - before[i][1]); });
+    onHits(tab.hits, now);
     for (const h of tab.hits) sfx(h[0], h[1]);
     tab.hits.length = 0;
+    tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
     if (!live) settle();
   } else if (state === 'thinking') think(now);
   draw(now);
   requestAnimationFrame(frame);
 }
+/* the CPU: search a slice per frame, then turn the cue onto the line, pull back, stroke */
 function think(now) {
   if (!cpuPlan) {
     const t0 = performance.now();
@@ -1660,146 +1952,348 @@ function think(now) {
         cpuPlan = r.value; cpuAnim = now;
         if (cpuPlan.place) game = placeCue(game, cpuPlan.place[0], cpuPlan.place[1]);
         cpuPlan.from = aimAngle;
+        cueSpin = spinOf(cpuPlan.spin || 0);
+        hud();
         break;
       }
     }
     return;
   }
-  const dur = 700 / felt.speed, u = clamp((now - cpuAnim) / dur, 0, 1);
+  const dur = 900 / felt.speed, u = clamp((now - cpuAnim) / dur, 0, 1);
   let d = cpuPlan.angle - cpuPlan.from;
   d = Math.atan2(Math.sin(d), Math.cos(d));
-  aimAngle = cpuPlan.from + d * (u < 0.7 ? 1 - (1 - u / 0.7) ** 3 : 1);
-  power = cpuPlan.power * clamp((u - 0.7) / 0.3, 0, 1);
-  hud();
-  if (u >= 1) { aimAngle = cpuPlan.angle; power = cpuPlan.power; cueSpin = typeof cpuPlan.spin === 'number' ? { x: 0, y: cpuPlan.spin } : cpuPlan.spin; /* STUB(T2.1) */ cpuPlan = null; shoot(); }
+  aimAngle = cpuPlan.from + d * (u < 0.6 ? 1 - (1 - u / 0.6) ** 3 : 1);
+  if (u > 0.6) { power = cpuPlan.power * (1 - (1 - (u - 0.6) / 0.4) ** 2); pull = pull || { kind: 'cpu' }; }
+  hudControls();
+  if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuPlan = null; commit(p); }
 }
-/* ---- input ---- */
+/* ---- input ----
+   One grammar for mouse and touch on the table:
+   - tap (or click) the cloth: aim at that spot; with a mouse, pointing aims too;
+   - drag across the aim line: turn the aim finely, finer the further from the cue ball you start;
+   - drag back along the aim line (away from the target): pull the cue, let go to shoot,
+     come back to the start to cancel; the aim is locked while pulling;
+   - ball in hand: drag anywhere slides the cue ball (relative, so the finger never hides it),
+     a tap drops it at the tap, a mouse carries it under the pointer.
+   The power bar is the other way to shoot; the english pad sets cueSpin. */
 const pointAt = e => toTable(e.clientX, e.clientY);
+const angleTo = p => { const c = cueBall(); return Math.atan2(p[1] - c.y, p[0] - c.x); };
+function aimOnScreen() {
+  const c = cueBall(), a = toScreen(c.x, c.y), b = toScreen(c.x + Math.cos(aimAngle) * 0.1, c.y + Math.sin(aimAngle) * 0.1);
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  return { cx: a[0], cy: a[1], ux: (b[0] - a[0]) / L, uy: (b[1] - a[1]) / L };
+}
+function nearCue(e) {
+  const c = cueBall(), s = toScreen(c.x, c.y);
+  return c.on && Math.hypot(e.clientX - s[0], e.clientY - s[1]) < Math.max(26, BALL_R * view.k * 2.2);
+}
 table.addEventListener('pointerdown', e => {
   audioOn();
-  if (!human()) return;
-  const [x, y] = pointAt(e), c = cueBall();
-  if (state === 'aim' && game.inHand && c.on && Math.hypot(x - c.x, y - c.y) < BALL_R * 2.5) {
-    state = 'place'; placeAt = [x, y]; table.setPointerCapture(e.pointerId); return;
-  }
-  if (state === 'place') { placeAt = [x, y]; table.setPointerCapture(e.pointerId); return; }
-  if (state !== 'aim') return;
-  if (e.pointerType === 'mouse') {
-    aimAngle = Math.atan2(y - c.y, x - c.x);
-    pull = { sx: e.clientX, sy: e.clientY }; power = 0;
-    table.setPointerCapture(e.pointerId);
-  } else aimAngle = Math.atan2(y - c.y, x - c.x);
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+  if (gest || !human() || e.button > 0) return;
+  const mouse = e.pointerType === 'mouse', p = pointAt(e);
+  const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, last: [e.clientX, e.clientY], moved: false, mode: null };
+  if (state === 'aim' && game.inHand && nearCue(e)) { const c = cueBall(); state = 'place'; placeAt = [c.x, c.y]; }
+  if (state === 'place') {
+    g.mode = 'place'; g.from = (placeAt || [cueBall().x, cueBall().y]).slice();
+    if (mouse) movePlace(p);
+  } else if (state === 'aim') {
+    if (mouse) aimAngle = angleTo(p);
+    g.a0 = aimAngle;
+    Object.assign(g, aimOnScreen());
+  } else return;
+  gest = g;
+  table.setPointerCapture(e.pointerId);
 });
 table.addEventListener('pointermove', e => {
   if (!human()) return;
-  const [x, y] = pointAt(e), c = cueBall();
-  if (state === 'place') { placeAt = [x, y]; return; }
-  if (state !== 'aim') return;
-  if (pull) {
-    const a = toScreen(c.x, c.y), b = toScreen(c.x + Math.cos(aimAngle), c.y + Math.sin(aimAngle));
-    const ux = b[0] - a[0], uy = b[1] - a[1], L = Math.hypot(ux, uy);
-    const back = -((e.clientX - pull.sx) * ux + (e.clientY - pull.sy) * uy) / L;
-    power = clamp(back / 220, 0, 1);
-    hud();
-  } else if (e.pointerType === 'mouse' && !e.buttons) aimAngle = Math.atan2(y - c.y, x - c.x);
-  else if (e.pointerType !== 'mouse') aimAngle = Math.atan2(y - c.y, x - c.x);
-});
-table.addEventListener('pointerup', e => {
-  if (!human()) return;
-  if (state === 'place') {
-    const [x, y] = pointAt(e);
-    if (canPlace(game, x, y)) { game = placeCue(game, x, y); state = 'aim'; placeAt = null; say(`${nameOf(game.turn)} to shoot.`); }
-    else say(game.inHand === 'kitchen' ? 'Behind the head string, and clear of the other balls.' : 'Clear of the other balls, on the cloth.');
+  if (!gest) {
+    if (e.pointerType !== 'mouse') return;
+    if (state === 'aim') aimAngle = angleTo(pointAt(e));
+    else if (state === 'place') movePlace(pointAt(e));
     return;
   }
-  if (pull) {
-    const p = power;
-    pull = null;
-    if (p > 0.02) shoot(); else { power = 0.5; hud(); }
+  const g = gest;
+  if (g.bar || e.pointerId !== g.id) return;
+  const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
+  if (!g.moved && Math.hypot(dx, dy) > TAP_PX) g.moved = true;
+  if (g.mode === 'place') {
+    if (g.mouse) movePlace(pointAt(e));
+    else if (g.moved) { const p = pointAt(e), p0 = toTable(g.x0, g.y0); movePlace([g.from[0] + p[0] - p0[0], g.from[1] + p[1] - p0[1]]); }
+    return;
   }
+  if (!g.moved || state !== 'aim') return;
+  if (!g.mode) {
+    const along = dx * g.ux + dy * g.uy, side = dy * g.ux - dx * g.uy;
+    g.mode = along < 0 && -along > 1.2 * Math.abs(side) ? 'pull' : 'turn';
+    if (g.mode === 'pull') { pull = { kind: 'table' }; power = 0; }
+  }
+  if (g.mode === 'pull') {
+    aimAngle = g.a0;
+    power = clamp(-(dx * g.ux + dy * g.uy) / pullFull(), 0, 1);
+    hudControls();
+  } else {
+    /* rotate by the finger's angular step about the cue ball, scaled down: a lever */
+    const rx = g.last[0] - g.cx, ry = g.last[1] - g.cy, mx = e.clientX - g.last[0], my = e.clientY - g.last[1];
+    aimAngle += TURN_GAIN * (rx * my - ry * mx) / Math.max(3600, rx * rx + ry * ry);
+  }
+  g.last = [e.clientX, e.clientY];
 });
+function endTable(e, cancel) {
+  const g = gest;
+  if (!g || g.bar || e.pointerId !== g.id) return;
+  gest = null;
+  if (g.mode === 'place') {
+    if (cancel) return;
+    if (g.mouse || !g.moved) movePlace(pointAt(e));
+    tryPlace(placeAt);
+  } else if (g.mode === 'pull') {
+    pull = null;
+    if (!cancel && power >= MIN_PULL && state === 'aim') commit(power);
+    else { power = markPower; hudControls(); }
+  } else if (!g.mode && !g.moved && !cancel && state === 'aim') aimAngle = angleTo(pointAt(e));
+}
+table.addEventListener('pointerup', e => endTable(e, false));
+table.addEventListener('pointercancel', e => endTable(e, true));
+
+/* the power bar: press, drag along it (right, or down when it stands upright), let go */
+function barPos(e) { const r = powerBar.getBoundingClientRect(); return r.height > r.width ? [e.clientY, r.top, r.bottom] : [e.clientX, r.left, r.right]; }
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
-  if (state !== 'aim' || !human()) return;
-  barDrag = { y0: e.clientY, h: powerBar.getBoundingClientRect().height };
-  power = 0;
+  if (state !== 'aim' || !human() || gest) return;
+  const [pos, lo, hi] = barPos(e);
+  gest = { id: e.pointerId, bar: true, pos0: pos, span: Math.max(hi - pos, (hi - lo) * 0.5) * 0.92 };
+  pull = { kind: 'bar' }; power = 0;
   powerBar.setPointerCapture(e.pointerId);
-  hud();
+  hudControls();
 });
 powerBar.addEventListener('pointermove', e => {
-  if (!barDrag) return;
-  power = clamp((e.clientY - barDrag.y0) / (barDrag.h * 0.8), 0, 1);
-  hud();
+  if (!gest || !gest.bar || e.pointerId !== gest.id) return;
+  power = clamp((barPos(e)[0] - gest.pos0) / gest.span, 0, 1);
+  hudControls();
 });
-powerBar.addEventListener('pointerup', () => {
-  if (!barDrag) return;
-  barDrag = null;
-  if (power > 0.02 && state === 'aim') shoot(); else hud();
+function endBar(e, cancel) {
+  if (!gest || !gest.bar || e.pointerId !== gest.id) return;
+  gest = null; pull = null;
+  if (!cancel && power >= MIN_PULL && state === 'aim') commit(power);
+  else { power = markPower; hudControls(); }
+}
+powerBar.addEventListener('pointerup', e => endBar(e, false));
+powerBar.addEventListener('pointercancel', e => endBar(e, true));
+
+/* the english pad: tap or drag the tip anywhere inside the safe circle, double tap to centre */
+const spinOk = () => human() && (state === 'aim' || state === 'place');
+let spinTap = 0, spinDrag = null;
+function spinAt(e) {
+  const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE;
+  let x = (e.clientX - (r.left + r.width / 2)) / R, y = -(e.clientY - (r.top + r.height / 2)) / R;
+  const L = Math.hypot(x, y);
+  if (L > 1) { x /= L; y /= L; }
+  if (L < 0.08) { x = 0; y = 0; }
+  cueSpin = { x, y };
+  hudControls();
+}
+spinPad.addEventListener('pointerdown', e => {
+  audioOn();
+  if (!spinOk()) return;
+  const now = performance.now();
+  if (now - spinTap < 320) { spinTap = 0; cueSpin = { x: 0, y: 0 }; hudControls(); return; }
+  spinTap = now; spinDrag = e.pointerId;
+  spinPad.setPointerCapture(e.pointerId);
+  spinAt(e);
 });
-spin.addEventListener('click', e => {
-  if (!human() || state === 'rolling') return;
-  const r = e.currentTarget.getBoundingClientRect(), dy = e.clientY - (r.top + r.height / 2);
-  cueSpin = { x: 0, y: Math.abs(dy) < r.height * 0.12 ? 0 : clamp(-dy / (r.height * 0.4), -1, 1) };   /* STUB(T2.1) */
-  hud();
-});
+spinPad.addEventListener('pointermove', e => { if (spinDrag === e.pointerId && spinOk()) spinAt(e); });
+spinPad.addEventListener('pointerup', () => { spinDrag = null; });
+spinPad.addEventListener('pointercancel', () => { spinDrag = null; });
+
+/* pointing at the pad or the bar does not focus them, so the arrows keep aiming afterwards;
+   Tab still reaches both */
+for (const el of [spinPad, powerBar]) el.addEventListener('mousedown', e => e.preventDefault());
+
+/* keyboard: arrows aim (Shift coarse, Alt or Ctrl very fine), up and down set the power, Space
+   shoots, R centres the english, Esc pauses. With the english pad focused, arrows move the tip;
+   while placing, arrows move the cue ball and Enter or Space drops it. */
 addEventListener('keydown', e => {
-  if (state !== 'aim' || !human()) return;
-  const step = e.shiftKey ? 0.02 : 0.0015;
-  if (e.key === 'ArrowLeft') aimAngle -= step;
-  else if (e.key === 'ArrowRight') aimAngle += step;
-  else if (e.key === 'ArrowUp') power = clamp(power + 0.05, 0.05, 1);
-  else if (e.key === 'ArrowDown') power = clamp(power - 0.05, 0.05, 1);
-  else if (e.key === ' ') { if (pull || barDrag) return; shoot(); }
-  else return;
+  if (e.key === 'Escape') { if (state === 'menu' && paused) resume(); else pause(); e.preventDefault(); return; }
+  if (state === 'menu' || state === 'over' || !human()) return;
+  const k = e.key, arrow = k.startsWith('Arrow'), dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0, dy = k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0;
+  if (k === 'r' || k === 'R') { if (spinOk()) { cueSpin = { x: 0, y: 0 }; hudControls(); } }
+  else if (arrow && document.activeElement === spinPad) {
+    if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s }); hudControls(); }
+  } else if (state === 'place') {
+    const s = e.shiftKey ? 0.05 : 0.01, p = placeAt || [cueBall().x, cueBall().y];
+    if (arrow) { const t = toTable(...toScreen(p[0], p[1]).map((v, i) => v + (i ? -dy : dx) * s * view.k)); movePlace(t); }
+    else if (k === 'Enter' || k === ' ') tryPlace(p);
+    else return;
+  } else if (state === 'aim') {
+    const bar = document.activeElement === powerBar;
+    if (dx && !bar) aimAngle += dx * (e.shiftKey ? 0.03 : e.altKey || e.ctrlKey ? 0.0005 : 0.004);
+    else if (dy || (bar && dx)) { markPower = power = clamp(power + (dy || dx) * (e.shiftKey ? 0.01 : 0.05), 0.05, 1); hudControls(); }
+    else if (k === ' ' || (k === 'Enter' && bar)) { if (!pull) commit(power); }
+    else return;
+  } else return;
   e.preventDefault();
-  hud();
 });
 
 /* ============ 6. HUD ============ */
-function dotsFor(p) {
-  const out = [];
+/* settings, remembered in localStorage when it works and harmlessly forgotten when it does not */
+function loadSettings() {
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted };
+  try {
+    const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
+    if (typeof o.cpu === 'boolean') s.cpu = o.cpu;
+    if (['easy', 'medium', 'hard'].includes(o.level)) s.level = o.level;
+    if (typeof o.sound === 'boolean') s.sound = o.sound;
+  } catch (e) { }
+  return s;
+}
+function setSetting(k, v) {
+  settings[k] = v;
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
+  if (k === 'sound') { muted = !v; audioOn(); }
+  syncMenu();
+}
+const SEGS = [
+  ['cpu', [[vs2p, false], [vsCpu, true]]],
+  ['level', [[lvEasy, 'easy'], [lvMedium, 'medium'], [lvHard, 'hard']]],
+  ['guide', [[gFull, 'full'], [gShort, 'short'], [gOff, 'off']]],
+  ['sound', [[sndOn, true], [sndOff, false]]],
+];
+for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
+function syncMenu() {
+  for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.setAttribute('aria-pressed', String(settings[k] === v));
+  levelLab.hidden = levelSeg.hidden = !settings.cpu;
+  resumeBtn.hidden = !paused;
+}
+function showMenu() {
+  over.classList.remove('show');
+  menu.classList.add('show');
+  syncMenu();
+  if (byKeys) (paused ? resumeBtn : play8).focus({ preventScroll: true });
+}
+function hideOverlays() {
+  menu.classList.remove('show'); over.classList.remove('show');
+  if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+}
+
+function dotEl(n, big) {
+  const d = document.createElement('span'), c = colorOf(n);
+  d.className = 'dot' + (n > 8 ? ' stripe' : '') + (big ? ' big' : '');
+  d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
+  d.title = String(n);
+  return d;
+}
+function fillDots(box, list, big) {
+  const key = list.join(',') + (big ? 'b' : '');
+  if (box.dataset.key === key) return;
+  box.dataset.key = key;
+  box.replaceChildren(...list.map(n => dotEl(n, big)));
+}
+/* what a player's card says: their group and what is left of it, or the ball on */
+function cardOf(p) {
+  const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n);
   if (game.kind === '8') {
     const gr = game.groups[p];
-    if (gr) for (const b of game.balls) if (b.on && groupOf(b.n) === gr) out.push(b.n);
-    if (gr && !out.length && game.balls.find(b => b.n === 8).on) out.push(8);
-  } else if (game.turn === p && game.winner === null) out.push(legalTargets(game)[0]);
-  return out;
+    if (!gr) return { meta: 'Open table', dots: [] };
+    const left = on.filter(n => groupOf(n) === gr);
+    if (!left.length) return { meta: 'On the 8', dots: on.includes(8) ? [8] : [] };
+    return { meta: gr[0].toUpperCase() + gr.slice(1), dots: left };
+  }
+  const f = game.fouls[p];
+  if (game.turn === p && game.winner === null && on.length) return { meta: f ? `${f} foul${f > 1 ? 's' : ''}, ball on` : 'Ball on', dots: [Math.min(...on)], warn: f > 0 };
+  const pot = stats.potted[p].length;
+  return { meta: f ? `${f} foul${f > 1 ? 's' : ''}` : pot ? `${pot} potted` : '', dots: stats.potted[p], warn: f > 0 };
 }
 function hud() {
   for (const p of [0, 1]) {
-    document.getElementById('p' + p).classList.toggle('on', state !== 'menu' && game.turn === p && game.winner === null);
+    const card = document.getElementById('p' + p), meta = document.getElementById('p' + p + 'meta'), c = cardOf(p);
+    card.classList.toggle('on', state !== 'menu' && game.turn === p && game.winner === null);
     document.getElementById('p' + p + 'name').textContent = nameOf(p);
-    const box = document.getElementById('p' + p + 'dots');
-    box.innerHTML = '';
-    for (const n of dotsFor(p)) {
-      const d = document.createElement('span'), c = colorOf(n);
-      d.className = 'dot' + (n > 8 ? ' stripe' : '');
-      d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
-      d.title = String(n);
-      box.appendChild(d);
-    }
+    const think = state === 'thinking' && cpuMode && p === 1 && !cpuPlan;
+    meta.textContent = think ? 'thinking' : c.meta;
+    meta.classList.toggle('thinking', think);
+    meta.classList.toggle('warn', !think && !!c.warn);
+    fillDots(document.getElementById('p' + p + 'dots'), c.dots);
   }
-  powerFill.style.height = Math.round(power * 100) + '%';
-  powerBar.setAttribute('aria-valuenow', String(Math.round(power * 100)));
-  spinDot.style.top = (50 - cueSpin.y * 32) + '%';   /* STUB(T2.1) */
-  soundBtn.setAttribute('aria-pressed', String(!muted));
+  hudControls();
 }
-soundBtn.addEventListener('click', () => {
-  muted = !muted;
-  try { localStorage.setItem('felt.muted', muted ? '1' : '0'); } catch (e) { }
-  audioOn(); hud();
-});
-menuBtn.addEventListener('click', () => { state = 'menu'; tab = null; over.classList.remove('show'); menu.classList.add('show'); hud(); });
-function pickOpponent(cpu) { cpuMode = cpu; vs2p.setAttribute('aria-pressed', String(!cpu)); vsCpu.setAttribute('aria-pressed', String(cpu)); }
-vs2p.addEventListener('click', () => pickOpponent(false));
-vsCpu.addEventListener('click', () => pickOpponent(true));
+const spinWords = s => {
+  const parts = [];
+  if (Math.abs(s.y) >= 0.15) parts.push((Math.abs(s.y) > 0.7 ? 'strong ' : '') + (s.y > 0 ? 'follow' : 'draw'));
+  if (Math.abs(s.x) >= 0.15) parts.push((s.x < 0 ? 'left' : 'right') + ' english');
+  return parts.length ? parts.join(', ') : 'center';
+};
+/* the cheap part of the hud, called on every drag */
+function hudControls() {
+  const vert = document.documentElement.dataset.layout !== 'portrait', live = !!pull;
+  const shown = live ? power : 0, pct = Math.round(shown * 100);
+  powerFill.style.width = vert ? '' : pct + '%';
+  powerFill.style.height = vert ? pct + '%' : '';
+  powerFill.classList.toggle('hot', shown > 0.85);
+  powerMark.style.left = vert ? '' : `calc(${markPower * 100}% - 1px)`;
+  powerMark.style.top = vert ? `calc(${markPower * 100}% - 1px)` : '';
+  powerBar.classList.toggle('live', live);
+  const lab = live ? pct + '%' : state === 'aim' && human() ? 'Drag to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'place' ? 'Place the ball' : '';
+  if (powerLab.textContent !== lab) powerLab.textContent = lab;
+  powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
+  spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';
+  spinTip.style.top = 50 - cueSpin.y * SPIN_SAFE * 50 + '%';
+  const w = spinWords(cueSpin);
+  if (spinLabel.textContent !== w) { spinLabel.textContent = w; spinPad.setAttribute('aria-valuetext', w); }
+}
+let flashT = 0, byKeys = false;
+/* overlays take focus only when the player is on the keyboard, so a tap shows no focus ring */
+addEventListener('keydown', () => { byKeys = true; }, true);
+addEventListener('pointerdown', () => { byKeys = false; }, true);
+/* a banner over the table for a moment: a foul in signal red, a turn in the panel colour */
+function flash(kind, head, sub, ms = 1300) {
+  clearTimeout(flashT);
+  banner.dataset.kind = kind;
+  bannerHead.textContent = head; bannerSub.textContent = sub || '';
+  banner.classList.remove('show');
+  void banner.offsetWidth;
+  banner.classList.add('show');
+  flashT = setTimeout(() => banner.classList.remove('show'), ms);
+}
+function showOver() {
+  const w = game.winner, v = game.verdict || {}, kind = game.kind + '-ball';
+  const n = stats.shots[0] + stats.shots[1];
+  overKind.textContent = `${kind}, ${n} shot${n === 1 ? '' : 's'}`;
+  overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
+  const why = v.why && v.why !== 'forced' ? v.why : '';
+  overWhy.textContent = why ? `On ${why}.` : 'Game over.';
+  const row = (head, cells, isHead) => {
+    const tr = document.createElement('tr'), th = document.createElement('th');
+    th.textContent = head; tr.appendChild(th);
+    cells.forEach((c, p) => {
+      const td = document.createElement(isHead ? 'th' : 'td');
+      if (typeof c === 'string') td.textContent = c; else td.appendChild(c);
+      if (isHead && p === w) td.className = 'win';
+      tr.appendChild(td);
+    });
+    return tr;
+  };
+  const dots = p => { const s = document.createElement('span'); s.className = 'dots'; s.append(...stats.potted[p].map(n => dotEl(n))); if (!stats.potted[p].length) s.textContent = 'none'; return s; };
+  const head = document.createElement('thead'), body = document.createElement('tbody');
+  head.appendChild(row('', [0, 1].map(p => nameOf(p)), true));
+  body.append(row('Shots', stats.shots.map(String)), row('Fouls', stats.fouls.map(String)), row('Potted', [dots(0), dots(1)]));
+  overStats.replaceChildren(head, body);
+  menu.classList.remove('show');
+  over.classList.add('show');
+  if (byKeys) rematch.focus({ preventScroll: true });
+}
+menuBtn.addEventListener('click', () => { audioOn(); pause(); });
+resumeBtn.addEventListener('click', () => resume());
 play8.addEventListener('click', () => { audioOn(); start('8'); });
 play9.addEventListener('click', () => { audioOn(); start('9'); });
-rematch.addEventListener('click', () => start(game.kind));
-overMenu.addEventListener('click', () => { over.classList.remove('show'); menu.classList.add('show'); state = 'menu'; hud(); });
+rematch.addEventListener('click', () => { audioOn(); start(game.kind); });
+overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); });
 
 /* ============ 7. BOOT ============ */
-addEventListener('resize', layout);
+muted = !settings.sound;
+addEventListener('resize', () => { layout(); hud(); });
+syncMenu();
 layout();
 randomOrient();
 hud();
@@ -1807,4 +2301,3 @@ requestAnimationFrame(frame);
 window.booted = true;
 </script>
 </body>
-</html>

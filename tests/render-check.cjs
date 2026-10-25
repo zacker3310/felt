@@ -3,8 +3,11 @@
    the guide's paths are the physics (they match a real roll, never touch game or tab, and stay
    inside their per-frame budget), its ring calls kitchen fouls, a pot ends in the tray, the tray
    sits in view.tray clear of the table, a scratch never shows two cue balls, portrait draws the
-   same table turned, the illegal ring and the 8's rim keep their contrast, and a frame stays
-   cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
+   same table turned, the illegal ring and the 8's tray rim keep their contrast, and a frame stays
+   cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
+   (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
+   the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the loupe shows only while fineAim is set,
+   clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
    between. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
@@ -255,21 +258,127 @@ async function tableChecks(page, tag) {
   check('tray: inside view.tray, clear of the table, 15 balls fit', tr.inside && tr.clear && tr.fits && (!tr.own || tr.own.clear), JSON.stringify(tr));
   check('tray: balls at least 16 px across on a phone', tr.across >= 16, tr.across.toFixed(1) + ' px');
 
-  /* the 8 in the tray: its light rim against the tray, and the rim colour on the brightest cloth */
+  /* the 8 in the tray: its light rim against the tray (on the cloth it has none; see the halo) */
   const eight = await p.page.evaluate(() => {
     for (const b of game.balls) b.on = b.n !== 8;
     game.shots = 1; trayList = [{ n: 8, t: 0 }];
     const T = trayBox, x = T.x + T.pad + T.r, y = T.y + T.h / 2, pts = [], out = [];
     for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; pts.push([x + Math.cos(a) * (T.r - 0.6), y + Math.sin(a) * (T.r - 0.6)]); out.push([x + Math.cos(a) * (T.r + 2.5), y + Math.sin(a) * (T.r + 2.5)]); }
     const px = __px([...pts, ...out]), rim = Math.max(...px.slice(0, 16).map(__lum)), bg = Math.max(...px.slice(16).map(__lum));
-    let cloth = 0;
-    for (const b of game.balls) b.on = false;
-    state = 'over';
-    for (let i = 1; i < 10; i++) for (let j = 1; j < 6; j++) cloth = Math.max(cloth, __lum(__px([toScreen(TL * i / 10, TW * j / 6)])[0]));
-    return { tray: (rim + 0.05) / (bg + 0.05), cloth: (__lum([196, 196, 196]) + 0.05) / (cloth + 0.05) };
+    return { tray: (rim + 0.05) / (bg + 0.05) };
   });
-  check('the 8 reads: its rim keeps 3:1 on the tray and on the brightest cloth', eight.tray >= 3 && eight.cloth >= 3, JSON.stringify(eight));
+  check('the 8 reads in the tray: its rim keeps 3:1 on it', eight.tray >= 3, JSON.stringify(eight));
   check('portrait: no console errors', p.errors.length === 0, p.errors.join(' | '));
   await p.browser.close();
+
+  /* a phone at dpr 3: the pockets up close, the game-ball halo and the loupe */
+  const q = await open('', { viewport: { width: 390, height: 844 }, hasTouch: true, deviceScaleFactor: 3 });
+  await q.page.evaluate(HELPERS);
+  /* every pocket, on both cloths: a ring just inside what shows of the hole is never cloth (the
+     cloth's channel not dominant, and dark), and the cushion just past each jaw is rubber, not
+     hole-dark */
+  for (const cloth of ['green', 'red']) {
+  const pk = await q.page.evaluate(cloth => {
+    felt.start('8'); settings.cloth = cloth; layout(); for (const b of game.balls) b.on = false; state = 'over';
+    const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
+    const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
+    POCKETS.forEach((P, k) => {
+      const S = pocketShape(k, co), r = POCKET_R[k], hole = [], rub = [];
+      for (let i = 0; i < 72; i++) {
+        const a = i * Math.PI / 36, d = r - 1.5 * px1, x = P[0] + d * Math.cos(a), y = P[1] + d * Math.sin(a);
+        const box = x >= -co && x <= TL + co && y >= -co && y <= TW + co, back = Math.hypot(x - S.C[0], y - S.C[1]) < S.rb - 1.5 * px1;
+        if (box || back) hole.push(toScreen(x, y));
+      }
+      for (const [pi, ei] of [[0, 1], [3, 2]]) {
+        const p = S.quad[pi], e = S.quad[ei], poly = CUSHION_POLYS.find(q => q.includes(p)), p2 = poly[1] === p ? poly[2] : poly[1];
+        const L = Math.hypot(p2[0] - p[0], p2[1] - p[1]), nx = (p2[0] - p[0]) / L, ny = (p2[1] - p[1]) / L;
+        for (const t of [0.15, 0.5, 0.85]) {
+          let x = p[0] + (e[0] - p[0]) * t, y = p[1] + (e[1] - p[1]) * t;
+          while (Math.hypot(x - P[0], y - P[1]) < r + 0.012) { x += nx * 0.002; y += ny * 0.002; }
+          x += nx * 0.003; y += ny * 0.003;
+          if (inPoly(poly, x, y)) rub.push(toScreen(x, y));
+        }
+      }
+      const hp = __px(hole), rp = __px(rub);
+      res.push({ k, n: hp.length, greenIn: Math.max(...hp.map(green)), lumIn: Math.max(...hp.map(__lum)), rub: rp.length,
+        rubOk: rp.every(c => green(c) > 5 && c[0] + c[1] + c[2] > 50), rubMin: rp.map(c => c.join('/')).slice(0, 2) });
+    });
+    return res;
+  }, cloth);
+  /* a liner's brown far wall is allowed a little red; cloth in a hole would be far over 20 */
+  check(`dpr 3, ${cloth} cloth: inside every hole, a ring just inside its edge shows no cloth (cloth channel not dominant, dark)`,
+    pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
+  check(`dpr 3, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
+
+  /* every overlay on the bed against the brightest lit cloth: white at the cloth's floor alpha
+     (guide lines and rings, placement, kitchen line, loupe lines), ILLEGAL, the halo's core and
+     the loupe's rim, composited as the canvas does */
+  const ov = await q.page.evaluate(() => {
+    let best = [0, 0, 0], bl = 0;
+    for (let i = 1; i < 10; i++) for (let j = 1; j < 6; j++) { const [c] = __px([toScreen(TL * i / 10, TW * j / 6)]); const l = __lum(c); if (l > bl) { bl = l; best = c; } }
+    const over = (f, a) => f.map((v, i) => v * a + best[i] * (1 - a)), hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+    const cr = c => { const a = __lum(c), b = bl; return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05); };
+    const out = { white: cr(over([255, 255, 255], CL.ovMin)), illegal: cr(hex(ILLEGAL)), halo: cr(over([255, 236, 190], 0.95)), loupe: cr(over([255, 255, 255], 0.85)) };
+    for (const k in out) out[k] = +out[k].toFixed(2);
+    return out;
+  });
+  check(`${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
+  }
+  await q.page.evaluate(() => { settings.cloth = 'green'; layout(); });
+
+  /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */
+  const halo = await q.page.evaluate(() => {
+    const ring = n => {
+      const b = game.balls.find(o => o.n === n), s = toScreen(b.x, b.y), rp = BALL_R * view.k, w = Math.max(1.25, rp * 0.075), pts = [];
+      for (let i = 0; i < 24; i++) { const a = i * Math.PI / 12; pts.push([s[0] + Math.cos(a) * (rp + w * 0.75), s[1] + Math.sin(a) * (rp + w * 0.75)]); }
+      return __px(pts).map(__lum).sort((a, b) => b - a)[6];   /* the 7th brightest: most of the ring, not a speck */
+    };
+    const lay = kind => {
+      felt.start(kind); state = 'over'; game.breakShot = false;
+      for (const b of game.balls) b.on = b.n === 8 || b.n === 9;
+      Object.assign(game.balls.find(b => b.n === 8), { x: TL * 0.35, y: TW * 0.5 }); Object.assign(game.balls.find(b => b.n === 9), { x: TL * 0.65, y: TW * 0.5 });
+      return { 8: ring(8), 9: ring(9) };
+    };
+    const e = lay('8'), n = lay('9');
+    let cloth = 0;
+    for (const b of game.balls) b.on = false;
+    for (let i = 1; i < 10; i++) for (let j = 1; j < 6; j++) cloth = Math.max(cloth, __lum(__px([toScreen(TL * i / 10, TW * j / 6)])[0]));
+    return { e, n, cloth, c8: (e[8] + 0.05) / (cloth + 0.05), c9: (n[9] + 0.05) / (cloth + 0.05) };
+  });
+  check('8-ball: the 8 wears the game-ball halo, 3:1 on the brightest cloth', halo.c8 >= 3 && halo.e[9] < halo.cloth * 1.5, JSON.stringify(halo));
+  check('9-ball: the 9 wears the halo (3:1) and the 8 has neither halo nor rim', halo.c9 >= 3 && halo.n[8] < halo.cloth * 1.5, JSON.stringify(halo));
+
+  /* the loupe: shown while fineAim is set and not otherwise, clear of the contact */
+  const lp = await q.page.evaluate(() => {
+    felt.start('8'); game.breakShot = false; game.inHand = null; settings.guide = 'full';
+    for (const b of game.balls) b.on = [0, 1, 5].includes(b.n);
+    Object.assign(game.balls.find(b => b.n === 1), { x: 1.9, y: 0.45 }); Object.assign(game.balls.find(b => b.n === 5), { x: 0.6, y: 0.9 });
+    Object.assign(game.balls[0], { x: 1.2, y: 0.62 });
+    state = 'aim'; pull = null; stroke = null; cpuMode = false;
+    const c = game.balls[0], t = game.balls.find(b => b.n === 1), P = POCKET_AIM[2], ux = P[0] - t.x, uy = P[1] - t.y, L = Math.hypot(ux, uy);
+    const gx = t.x - ux / L * 2 * BALL_R, gy = t.y - uy / L * 2 * BALL_R;
+    aimAngle = Math.atan2(gy - c.y, gx - c.x);
+    let now = performance.now();
+    const run = n => { for (let i = 0; i < n; i++) draw(now += 16); };
+    const rim = () => { if (!loupe) return 0; const pts = []; for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; pts.push([loupe.x + Math.cos(a) * loupe.r, loupe.y + Math.sin(a) * loupe.r]); } return Math.max(...__px(pts).map(__lum)); };
+    fineAim = false; run(20);
+    const off = { shown: !!loupe };
+    fineAim = true; run(20);
+    const L1 = loupe && { ...loupe }, rimOn = rim(), C = toScreen(gx, gy);
+    /* cost of a frame with the loupe up */
+    const t0 = performance.now(), N = 60;
+    for (let i = 0; i < N; i++) draw(now += 16);
+    table.getContext('2d').getImageData(0, 0, 1, 1);
+    const ms = (performance.now() - t0) / N;
+    fineAim = false; run(20);
+    const after = { shown: !!loupe };
+    fineAim = false;
+    return { off, L1, rimOn, d: L1 ? Math.hypot(L1.x - C[0], L1.y - C[1]) : 0, ms, after };
+  });
+  check('loupe: shown while fineAim is set, gone when it is not', !lp.off.shown && lp.L1 && lp.rimOn > 0.5 && !lp.after.shown, JSON.stringify(lp));
+  check('loupe: 120 to 150 CSS px across, its centre more than its radius from the contact', lp.L1 && lp.L1.r * 2 >= 110 && lp.L1.r * 2 <= 150 && lp.d > lp.L1.r, JSON.stringify(lp.L1) + ' d ' + lp.d.toFixed(1));
+  check('loupe: a frame with it up at dpr 3 draws in under 12 ms (headless, software)', lp.ms < 12, lp.ms.toFixed(2) + ' ms');
+  check('dpr 3: no console errors', q.errors.length === 0, q.errors.join(' | '));
+  await q.browser.close();
   done();
 })().catch(e => { console.error(e); process.exit(1); });

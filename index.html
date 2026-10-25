@@ -1402,7 +1402,21 @@ function layout() {
    is that image, cached ball sprites and a few vector shapes. */
 const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3: [208, 42, 36], 4: [92, 46, 146], 5: [242, 112, 26], 6: [22, 120, 66], 7: [122, 30, 32], 8: [20, 20, 22] };
 const colorOf = n => BALL_COLOR[n > 8 ? n - 8 : n];
-const CLOTH = '#1b5d47', CUSHION = '#1d6450', ILLEGAL = '#ffa597';   /* ILLEGAL: 3.7:1 on the brightest lit cloth (render-check measures it) */
+/* the cloths (settings.cloth): bed, cushion rubber, the illegal colour, the floor under every
+   white overlay on the bed, and the bed's colour bounced into the balls' shadow sides. Each
+   overlay (guide lines and rings, placement rings and chevrons, the kitchen line, the loupe) is
+   white at least ovMin opaque, or ILLEGAL, and so keeps 3:1 on the brightest lit cloth of
+   either colour; the halo is near white. render-check measures them all on both. ILLEGAL is
+   #ffa597 on green (over 3:1; the signal red only reaches 2.2:1) and a warm yellow on red, where
+   no red or pink can read. */
+const CLOTHS = {
+  green: { base: '#1b5d47', cushion: '#1d6450', illegal: '#ffa597', ovMin: 0.6, bounce: '120,200,160', lamp: '255,248,220' },
+  red: { base: '#9a1f26', cushion: '#a2242b', illegal: '#ffe27a', ovMin: 0.68, bounce: '236,122,118', lamp: '255,196,160' },
+};
+let CL = CLOTHS.green, CLOTH = CL.base, CUSHION = CL.cushion, ILLEGAL = CL.illegal;
+const clothOf = () => CLOTHS[settings && settings.cloth] || CLOTHS.green;
+function useCloth() { CL = clothOf(); CLOTH = CL.base; CUSHION = CL.cushion; ILLEGAL = CL.illegal; }
+const wa = a => `rgba(255,255,255,${Math.max(a, CL.ovMin)})`;
 const IVORY = '#f7f4ea';
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
 const ease = (a, b, u) => { const t = clamp((u - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -1445,6 +1459,7 @@ function pageColor() {
 }
 let trayBox = null;
 function drawTableImage() {
+  useCloth();
   const c = document.createElement('canvas');
   c.width = table.width; c.height = table.height;
   const g = c.getContext('2d'), co = cushionDepth(), L = tdir(LIGHT[0], LIGHT[1]), K = view.k * dpr, px = 1 / K, rnd = rng(0x5eed);
@@ -1459,17 +1474,18 @@ function drawTableImage() {
   g.save();
   g.shadowColor = 'rgba(0,0,0,0.65)'; g.shadowBlur = 0.07 * K;
   g.shadowOffsetX = -LIGHT[0] * 0.025 * K; g.shadowOffsetY = -LIGHT[1] * 0.025 * K;
-  g.fillStyle = '#2a140a'; roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, 0.045); g.fill();
+  g.fillStyle = '#2a140a'; railOutline(g); g.fill();
   g.restore();
   paintRails(g, co, L, px, rnd);
-  paintPocketCaps(g, co, L);
   paintSights(g, co, L, px);
   /* the cloth runs under the cushions to the wood */
   g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
-  paintHoles(g, L);
+  paintPocketCaps(g, co, L, px);
+  paintHoles(g, co, L, px);
   paintCushions(g, co, K);
   paintClothLight(g, co, rnd);
   paintBevels(g, co, L, px);
+  paintPocketLips(g, co, L, px);
   /* head string, foot spot and head spot: just enough to find */
   g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 1.2 * px;
   g.beginPath(); g.moveTo(HEAD_X, 0); g.lineTo(HEAD_X, TW); g.stroke();
@@ -1500,7 +1516,7 @@ function paintRails(g, co, L, px, rnd) {
   for (const b of boards) {
     const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * RAIL, [a0, a1] = b.a, w = a1 - a0;
     g.save();
-    roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, 0.045); g.clip();
+    railOutline(g); g.clip();
     g.beginPath(); polyPath(g, b.q); g.clip();
     g.fillStyle = '#4f2714'; g.fillRect(-RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL);
     /* broad figure first, then fine grain lines */
@@ -1536,29 +1552,68 @@ function paintRails(g, co, L, px, rnd) {
     g.beginPath(); g.moveTo(x + Math.sign(sx - x) * 0.01, y + Math.sign(sy - y) * 0.01); g.lineTo(sx, sy); g.stroke();
   }
 }
-/* leather pocket caps over the rail, edged in nickel lit from the lamp's side */
-function paintPocketCaps(g, co, L) {
+/* The pockets. Each drop is a POCKET_R hole. The rubber and its cloth stop at the hole's edge
+   (the facings turn down into the drop), and the cloth on the shelf and the jaw ends rolls over
+   the edge: dark where it turns under, a little sheen on the far side where it faces the lamp.
+   A drop reaches further out than a thin rail does (a side hole is 2 POCKET_R deep past the
+   nose), so its back runs under the rail. Round each drop sits a round leather cap, edged in
+   nickel, capW wider than the hole and slid out from the mouth until it touches the rail's
+   outer edge, so it never overflows the rail. What shows of the hole stops capBack inside the
+   cap's edge (the back), with the leather's rolled lip and its shadow on the far wall there. On
+   a wide rail the cap is all but concentric with the drop; on a thin one the back cuts the hole
+   in an arc. All of it reads POCKETS, POCKET_R, POCKET_AIM, RAIL, TL and TW at paint time. */
+const capW = co => clamp(0.5 * (RAIL - co), 0.012, 0.032);
+const capBack = co => clamp(0.3 * (RAIL - co), 0.006, 0.014);
+/* the rail's outer edge; its corners round with the rail's width */
+function railOutline(g) {
+  roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, Math.min(0.045, 0.4 * RAIL));
+}
+/* pocket k: drop centre P, radius r; the cap: centre C on the line from the mouth's middle A
+   through P, radius rc, touching the rail's edge; the back: radius rb about C; the mouth's shelf:
+   the quad between its two jaw facings, nose to rail */
+function pocketShape(k, co) {
+  const P = POCKETS[k], A = POCKET_AIM[k], r = POCKET_R[k], rc = r + capW(co);
+  const d = Math.hypot(P[0] - A[0], P[1] - A[1]), ux = (P[0] - A[0]) / d, uy = (P[1] - A[1]) / d;
+  let t = Infinity;
+  if (ux < -1e-9) t = Math.min(t, (rc - RAIL - A[0]) / ux); else if (ux > 1e-9) t = Math.min(t, (TL + RAIL - rc - A[0]) / ux);
+  if (uy < -1e-9) t = Math.min(t, (rc - RAIL - A[1]) / uy); else if (uy > 1e-9) t = Math.min(t, (TW + RAIL - rc - A[1]) / uy);
+  const jaws = CUSHION_POLYS.flatMap(q => [[q[1], q[0]], [q[2], q[3]]])
+    .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
+  return { P, C: [A[0] + ux * t, A[1] + uy * t], r, rc, rb: rc - capBack(co), quad: [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]] };
+}
+function circle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); }
+/* clip to what shows of hole k (also used by the pot animation) */
+function holeClip(g, k, co) {
+  const { P, C, r, rb } = pocketShape(k, co);
+  circle(g, C[0], C[1], rb); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
+  circle(g, P[0], P[1], r); g.clip();
+}
+function paintPocketCaps(g, co, L, px) {
+  const lw = Math.max(1.6 * px, Math.min(0.0035, 0.11 * capW(co)));
   g.save();
-  roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, 0.045);
-  g.rect(-co, -co, TL + 2 * co, TW + 2 * co);
+  /* everywhere but the bed and the mouths' shelves: the cushions are painted over it */
+  const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
+  g.beginPath(); g.rect(-RAIL - 1, -RAIL - 1, TL + 2 * RAIL + 2, TW + 2 * RAIL + 2); polyPath(g, noses);
+  POCKETS.forEach((_, k) => polyPath(g, pocketShape(k, co).quad));
   g.clip('evenodd');
-  POCKETS.forEach((P, k) => {
-    const r = POCKET_R[k] + 0.032;
-    const gr = g.createRadialGradient(P[0], P[1], POCKET_R[k], P[0], P[1], r);
-    gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.6, '#1f1b17'); gr.addColorStop(1, '#2d2722');
-    g.fillStyle = gr; g.beginPath(); g.arc(P[0], P[1], r, 0, Math.PI * 2); g.fill();
-    const metal = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+  POCKETS.forEach((_, k) => {
+    const { C, rc, rb } = pocketShape(k, co);
+    const gr = g.createRadialGradient(C[0], C[1], rb - 0.02, C[0], C[1], rc);
+    gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.55, '#1f1b17'); gr.addColorStop(1, '#2d2722');
+    g.fillStyle = gr; circle(g, C[0], C[1], rc); g.fill();
+    /* nickel round the edge, lit from the lamp's side, and a dark groove inside it */
+    const metal = g.createLinearGradient(C[0] + L[0] * rc, C[1] + L[1] * rc, C[0] - L[0] * rc, C[1] - L[1] * rc);
     metal.addColorStop(0, '#cfccc4'); metal.addColorStop(0.45, '#77746e'); metal.addColorStop(1, '#2f2d2a');
-    g.strokeStyle = metal; g.lineWidth = 0.0035;
-    g.beginPath(); g.arc(P[0], P[1], r - 0.0022, 0, Math.PI * 2); g.stroke();
-    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 0.0012;
-    g.beginPath(); g.arc(P[0], P[1], r - 0.0052, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = metal; g.lineWidth = lw;
+    circle(g, C[0], C[1], rc - lw / 2); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = Math.max(px, lw * 0.35);
+    circle(g, C[0], C[1], rc - lw * 1.45); g.stroke();
   });
   g.restore();
 }
-/* mother-of-pearl sights at the quarter marks of each side, halfway across the wood */
+/* mother-of-pearl sights at the quarter marks of each side, halfway across the wood, sized to it */
 function paintSights(g, co, L, px) {
-  const mid = (co + RAIL) / 2, hl = 0.0105, hw = 0.0062, at = [];
+  const mid = (co + RAIL) / 2, hw = Math.min(0.0062, 0.3 * (RAIL - co)), hl = hw * 1.7, at = [];
   for (const i of [1, 2, 3, 5, 6, 7]) at.push([TL * i / 8, -mid, 0], [TL * i / 8, TW + mid, 0]);
   for (const i of [1, 2, 3]) at.push([-mid, TW * i / 4, 1], [TL + mid, TW * i / 4, 1]);
   for (const [x, y, v] of at) {
@@ -1573,35 +1628,63 @@ function paintSights(g, co, L, px) {
     g.strokeStyle = 'rgba(25,10,4,0.6)'; g.lineWidth = 1.2 * px; g.stroke();
   }
 }
-/* the drops: a leather lip, then dark all the way down except the far wall, which catches a
-   little of the lamp */
-function paintHoles(g, L) {
-  POCKETS.forEach((P, k) => {
-    const r = POCKET_R[k];
-    g.fillStyle = '#16110d'; g.beginPath(); g.arc(P[0], P[1], r + 0.006, 0, Math.PI * 2); g.fill();
-    const gr = g.createRadialGradient(P[0] + L[0] * r * 0.4, P[1] + L[1] * r * 0.4, r * 0.1, P[0], P[1], r);
-    gr.addColorStop(0, '#000'); gr.addColorStop(0.62, '#030202'); gr.addColorStop(0.9, '#120d0a'); gr.addColorStop(1, '#2b2119');
-    g.fillStyle = gr; g.beginPath(); g.arc(P[0], P[1], r, 0, Math.PI * 2); g.fill();
-    const a = Math.atan2(-L[1], -L[0]);
-    g.strokeStyle = 'rgba(255,232,205,0.16)'; g.lineWidth = 0.0024;
-    g.beginPath(); g.arc(P[0], P[1], r + 0.003, a - 1.1, a + 1.1); g.stroke();
+/* the drops: dark all the way down, the far wall (away from the lamp, so facing it) catching a
+   little light, and the rail's shadow where it overhangs the back */
+function paintHoles(g, co, L, px) {
+  POCKETS.forEach((_, k) => {
+    const { P, C, r, rb } = pocketShape(k, co), fx = P[0] + L[0] * r * 0.35, fy = P[1] + L[1] * r * 0.35;
+    g.save();
+    holeClip(g, k, co);
+    g.fillStyle = '#040303'; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);
+    const gr = g.createRadialGradient(fx, fy, 0, fx, fy, r * 1.35);
+    gr.addColorStop(0, 'rgba(40,30,22,0)'); gr.addColorStop(0.6, 'rgba(40,30,22,0)');
+    gr.addColorStop(0.86, 'rgba(48,37,28,0.5)'); gr.addColorStop(1, 'rgba(74,57,42,0.85)');
+    g.fillStyle = gr; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);
+    g.beginPath(); g.rect(-RAIL - 1, -RAIL - 1, TL + 2 * RAIL + 2, TW + 2 * RAIL + 2); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip('evenodd');
+    const sh = g.createRadialGradient(C[0], C[1], rb - 0.012, C[0], C[1], rb);
+    sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.7)');
+    g.fillStyle = sh; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);
+    /* the back's rolled lip */
+    g.strokeStyle = 'rgba(255,236,212,0.16)'; g.lineWidth = Math.max(1.2 * px, 0.0012);
+    circle(g, C[0], C[1], rb - g.lineWidth / 2); g.stroke();
+    g.restore();
   });
 }
-/* rubber cushions from the sim's polygons, casting a soft shadow onto the bed away from the lamp */
+/* rubber cushions from the sim's polygons, cut where the drop begins, casting a soft shadow onto
+   the bed away from the lamp */
 function paintCushions(g, co, K) {
   g.save();
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
+  clipOutHoles(g);
   g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 0.014 * K;
   g.shadowOffsetX = -LIGHT[0] * 0.007 * K; g.shadowOffsetY = -LIGHT[1] * 0.007 * K;
   g.fillStyle = CUSHION;
   for (const p of CUSHION_POLYS) { g.beginPath(); polyPath(g, p); g.fill(); }
   g.restore();
 }
-/* clip to everywhere but the holes and their lips */
+/* clip to everywhere but the holes */
 function clipOutHoles(g) {
   g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
-  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k] + 0.006, P[1]); g.arc(P[0], P[1], POCKET_R[k] + 0.006, 0, Math.PI * 2); });
+  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 0, Math.PI * 2); });
   g.clip('evenodd');
+}
+/* the cloth on the shelf and the jaw ends rolling over the hole's edge */
+function paintPocketLips(g, co, L, px) {
+  g.save();
+  g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
+  clipOutHoles(g);
+  POCKETS.forEach((P, k) => {
+    /* the turn-under is wider on the near side (it faces away from the lamp) */
+    const r = POCKET_R[k], d = 0.014, o = 0.0035, fx = P[0] + L[0] * o, fy = P[1] + L[1] * o;
+    const gr = g.createRadialGradient(fx, fy, r, fx, fy, r + d);
+    gr.addColorStop(0, 'rgba(0,0,0,0.62)'); gr.addColorStop(0.3, 'rgba(0,0,0,0.3)'); gr.addColorStop(0.65, 'rgba(0,0,0,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(P[0] - r - d, P[1] - r - d, 2 * (r + d), 2 * (r + d));
+    const sh = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+    sh.addColorStop(0, 'rgba(255,246,225,0)'); sh.addColorStop(0.55, 'rgba(255,246,225,0)'); sh.addColorStop(1, 'rgba(255,246,225,0.22)');
+    g.strokeStyle = sh; g.lineWidth = Math.max(1.5 * px, 0.002);
+    g.beginPath(); g.arc(P[0], P[1], r + g.lineWidth / 2, 0, Math.PI * 2); g.stroke();
+  });
+  g.restore();
 }
 /* nap and overhead light on everything covered in cloth (not down the holes) */
 function paintClothLight(g, co, rnd) {
@@ -1617,7 +1700,7 @@ function paintClothLight(g, co, rnd) {
   tableXform(g);
   g.translate(TL / 2, TW / 2); g.scale(TL / 2, TW / 2);
   const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1.3);
-  gr.addColorStop(0, 'rgba(255,248,220,0.09)'); gr.addColorStop(0.4, 'rgba(255,248,220,0.03)');
+  gr.addColorStop(0, `rgba(${CL.lamp},0.09)`); gr.addColorStop(0.4, `rgba(${CL.lamp},0.03)`);
   gr.addColorStop(0.72, 'rgba(0,0,0,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0.3)');
   g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);
   g.restore();
@@ -1625,12 +1708,12 @@ function paintClothLight(g, co, rnd) {
 let napCache = null;
 function napTile(rnd) {
   if (napCache) return napCache;
-  const c = document.createElement('canvas'), n = 128;
+  const c = document.createElement('canvas'), n = 256;   /* tall enough that the streaks' repeat does not read as a pattern */
   c.width = c.height = n;
   const g = c.getContext('2d'), img = g.createImageData(n, n), row = [];
   for (let y = 0; y < n; y++) row.push(rnd() - 0.5);
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-    const i = (y * n + x) * 4, v = 0.55 * (rnd() - 0.5) + 0.45 * row[y] * (0.6 + 0.4 * Math.sin(x / n * Math.PI * 4 + y));
+    const i = (y * n + x) * 4, v = 0.55 * (rnd() - 0.5) + 0.45 * row[y] * (0.6 + 0.4 * Math.sin(x / n * Math.PI * 8 + y));
     img.data[i] = img.data[i + 1] = img.data[i + 2] = v > 0 ? 255 : 0;
     img.data[i + 3] = Math.floor(Math.abs(v) * 30);
   }
@@ -1644,6 +1727,7 @@ function paintBevels(g, co, L, px) {
   g.beginPath();
   for (const p of CUSHION_POLYS) polyPath(g, p);
   g.clip();
+  clipOutHoles(g);
   const bw = 0.0105;
   for (const { s, L: len, nx, ny } of noseNormals()) {
     const f = nx * L[0] + ny * L[1], ux = (s[2] - s[0]) / len, uy = (s[3] - s[1]) / len, e = 0.02;
@@ -1667,7 +1751,9 @@ function paintBevels(g, co, L, px) {
   g.restore();
   /* the seam between cushion and wood, and the wood's lip catching light beside it */
   g.save();
-  clipOutHoles(g);
+  g.beginPath(); g.rect(-RAIL - 1, -RAIL - 1, TL + 2 * RAIL + 2, TW + 2 * RAIL + 2);
+  POCKETS.forEach((_, k) => { const { C, rc } = pocketShape(k, co); g.moveTo(C[0] + rc, C[1]); g.arc(C[0], C[1], rc, 0, Math.PI * 2); });
+  g.clip('evenodd');
   g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 1.6 * px;
   g.strokeRect(-co, -co, TL + 2 * co, TW + 2 * co);
   g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
@@ -1747,7 +1833,7 @@ const NUM_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 const spriteCache = {};
 /* per ball size: the lamp's shading and highlight, and the contact shadow */
 function ballSprites(r) {
-  const key = Math.round(r * 4);
+  const key = Math.round(r * 4) + CL.bounce;
   if (spriteCache[key]) return spriteCache[key];
   const sz = Math.ceil(2 * r) + 2, c = sz / 2, shade = document.createElement('canvas');
   shade.width = shade.height = sz;
@@ -1760,7 +1846,7 @@ function ballSprites(r) {
     g.fillStyle = gr; g.fillRect(-c, -c, sz, sz);
   };
   fill(lx * 0.45, ly * 0.45, 0, r * 1.6, [[0, 'rgba(255,255,255,0.12)'], [0.3, 'rgba(255,255,255,0)'], [0.6, 'rgba(0,0,0,0.16)'], [0.82, 'rgba(0,0,0,0.42)'], [1, 'rgba(0,0,0,0.66)']], lx * 0.25, ly * 0.25);
-  fill(-lx * 0.85, -ly * 0.85, 0, r * 0.75, [[0, 'rgba(120,200,160,0.16)'], [1, 'rgba(120,200,160,0)']]);
+  fill(-lx * 0.85, -ly * 0.85, 0, r * 0.75, [[0, `rgba(${CL.bounce},0.16)`], [1, `rgba(${CL.bounce},0)`]]);
   fill(0, 0, r * 0.72, r, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.3)']]);
   fill(lx * 0.5, ly * 0.5, 0, r * 0.7, [[0, 'rgba(255,255,255,0.3)'], [1, 'rgba(255,255,255,0)']]);
   fill(lx * 0.52, ly * 0.52, 0, r * 0.22, [[0, 'rgba(255,255,255,1)'], [0.4, 'rgba(255,255,255,0.85)'], [1, 'rgba(255,255,255,0)']]);
@@ -1778,8 +1864,9 @@ function ballSprites(r) {
   return (spriteCache[key] = { r, shade, c, shadow, sc });
 }
 /* one ball at device pixel (X, Y), radius r device px, axes from axesOf(). dark sinks it into
-   shadow (0..1) for the pot animation. */
-function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0) {
+   shadow (0..1) for the pot animation. rim: the ball is over something dark (a drop, the tray,
+   the floor), where the near-black 8 needs a light rim to keep its outline. */
+function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
   const g = ctx, P = PAINT[n], S = ballSprites(r), k = r / S.r;
   g.globalAlpha = alpha;
   g.setTransform(r, 0, 0, r, X, Y);
@@ -1806,11 +1893,23 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0) {
   }
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.drawImage(S.shade, X - S.c * k, Y - S.c * k, S.shade.width * k, S.shade.height * k);
-  /* the 8 is near black: a light rim keeps its outline at 3:1 on the brightest cloth and in the
-     dark tray and pockets (#c4c4c4: 3.4:1 on the brightest cloth, about 7:1 on the tray;
-     render-check measures both) */
-  if (n === 8) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+  /* the 8 is near black: over the dark tray, a drop or the floor a light rim keeps its outline
+     (#c4c4c4: about 7:1 on the tray; render-check measures it). On the cloth it needs none: it
+     is dark on a mid green, and in 8-ball the game ball's halo rings it. */
+  if (n === 8 && rim) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
   if (dark > 0) { g.fillStyle = `rgba(0,0,0,${dark})`; g.beginPath(); g.arc(X, Y, r + 0.5, 0, Math.PI * 2); g.fill(); }
+  g.globalAlpha = 1;
+}
+/* the game ball (the 8 in 8-ball, the 9 in 9-ball) wears a thin soft halo on the cloth, under
+   its edge: a pale gold core (about 7:1 on the brightest cloth, render-check measures it) in a
+   faint glow. It is a ring round the ball, so it rolls with nothing. */
+const gameBall = () => game.kind === '9' ? 9 : 8;
+function drawHalo(X, Y, r, alpha = 1) {
+  const g = ctx, w = Math.max(1.25 * dpr, r * 0.075), R = r + w * 0.75;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalAlpha = alpha;
+  g.strokeStyle = 'rgba(255,222,140,0.22)'; g.lineWidth = w * 3; circle(g, X, Y, R + w * 0.6); g.stroke();
+  g.strokeStyle = 'rgba(255,236,190,0.95)'; g.lineWidth = w; circle(g, X, Y, R); g.stroke();
   g.globalAlpha = 1;
 }
 function drawShadow(X, Y, r, alpha = 1) {
@@ -1860,14 +1959,17 @@ function drawPots(now) {
     if (p.n !== 0) { trayList = trayList.filter(e => e.n !== p.n); trayList.push({ n: p.n, t: now, k: p.k }); }
     return false;
   });
-  const rb = BALL_R * view.k * dpr;
+  const rb = BALL_R * view.k * dpr, co = cushionDepth();
   for (const p of pots) {
     const u = (now - p.t) / dur, P = POCKETS[p.k], m = 1 - (1 - Math.min(1, u / 0.5)) ** 2, sink = ease(0.15, 1, u);
     const x = p.from[0] + (P[0] - p.from[0]) * m, y = p.from[1] + (P[1] - p.from[1]) * m, s = toScreen(x, y);
     ctx.save();
     tableXform(ctx);
+    /* it goes under the rail where the rail overhangs the back of the drop */
+    const ps = pocketShape(p.k, co);
+    circle(ctx, ps.C[0], ps.C[1], ps.rb); ctx.rect(-co, -co, TL + 2 * co, TW + 2 * co); ctx.clip();
     ctx.beginPath(); ctx.arc(P[0], P[1], POCKET_R[p.k] + (1 - ease(0.1, 0.55, u)) * 3 * BALL_R, 0, Math.PI * 2); ctx.clip();
-    drawBall(p.n, s[0] * dpr, s[1] * dpr, rb * (1 - 0.32 * sink), axesOf(orient[p.n] || IDENT), 1, 0.88 * sink);
+    drawBall(p.n, s[0] * dpr, s[1] * dpr, rb * (1 - 0.32 * sink), axesOf(orient[p.n] || IDENT), 1, 0.88 * sink, true);
     ctx.restore();
   }
 }
@@ -1884,14 +1986,14 @@ function drawTray(now) {
     const to = T.x + T.pad + T.r + i * T.step, u = e.t && e.k >= 0 ? (now - e.t) / flyMs() : 1;
     if (u < 1) { fly.push([e, to, u]); return; }
     drawShadow(to * dpr, cy * dpr, T.r * dpr, 0.7);
-    drawBall(e.n, to * dpr, cy * dpr, T.r * dpr, axesOf(TRAY_TILT, true));
+    drawBall(e.n, to * dpr, cy * dpr, T.r * dpr, axesOf(TRAY_TILT, true), 1, 0, true);
   });
   /* in flight from the pocket: it comes up out of the dark at the size it sank to, arcs over
      the rail and grows (or shrinks) to the tray's size, turning as it goes */
   for (const [e, to, u] of fly) {
     const P = toScreen(POCKETS[e.k][0], POCKETS[e.k][1]), m = ease(0, 1, u), lift = Math.sin(Math.PI * m) * Math.min(40, Math.abs(cy - P[1]) * 0.3 + 10);
     const x = P[0] + (to - P[0]) * m, y = P[1] + (cy - P[1]) * m - lift, r = rb * 0.68 + (T.r - rb * 0.68) * m;
-    drawBall(e.n, x * dpr, y * dpr, r * dpr, axesOf(rotate(TRAY_TILT, [0, 1, 0], -(1 - m) * 6), true), 1, 0.88 * (1 - ease(0, 0.35, u)));
+    drawBall(e.n, x * dpr, y * dpr, r * dpr, axesOf(rotate(TRAY_TILT, [0, 1, 0], -(1 - m) * 6), true), 1, 0.88 * (1 - ease(0, 0.35, u)), true);
   }
 }
 /* onHits (called by frame() with tab.hits before they are drained): hits carry no position, so
@@ -2163,7 +2265,7 @@ function trimStart(pts, d) {
    the paths out, 'short' keeps the ghost ball and short stubs, 'off' draws nothing. */
 function guide(c, ang) {
   const mode = settings.guide;
-  if (mode === 'off') return;
+  if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
   const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
   const first = P.first === null ? null : game.balls.find(b => b.n === P.first);
@@ -2175,7 +2277,7 @@ function guide(c, ang) {
   const legal = first ? !wrong && !kitchen : !P.done;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], 'rgba(255,255,255,0.5)', 1.25);
+  if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.5), 1.25);
   guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
   if (first && !legal) guideRing(first.x, first.y, rp + 3, ILLEGAL, 2);
   /* the object ball */
@@ -2183,13 +2285,13 @@ function guide(c, ang) {
     const o = trimStart(P.obj, R), end = P.obj[P.obj.length - 1];
     if (o.length > 1) strokeLine(o, 'rgba(255,255,255,0.9)', 2);
     if (P.objPot >= 0) guideRing(POCKETS[P.objPot][0], POCKETS[P.objPot][1], POCKET_R[P.objPot] * view.k * 0.8, 'rgba(255,255,255,0.7)', 1.5);
-    else if (full && P.objHit) guideRing(end[0], end[1], rp, 'rgba(255,255,255,0.35)', 1.25);
+    else if (full && P.objHit) guideRing(end[0], end[1], rp, wa(0.35), 1.25);
   }
   /* the cue ball after contact, and where it stops if that is inside the horizon */
   if (P.cue.length > 1) {
-    strokeLine(P.cue, 'rgba(255,255,255,0.55)', 1.5, [5, 5]);
+    strokeLine(P.cue, wa(0.55), 1.5, [5, 5]);
     const end = P.cue[P.cue.length - 1];
-    if (full && P.cueStop) guideRing(end[0], end[1], rp, 'rgba(255,255,255,0.3)', 1.25);
+    if (full && P.cueStop) guideRing(end[0], end[1], rp, wa(0.3), 1.25);
     if (P.cuePot >= 0) {
       let tail = P.cue.slice().reverse(), len = 0;
       for (let i = 1; i < tail.length; i++) len += Math.hypot(tail[i][0] - tail[i - 1][0], tail[i][1] - tail[i - 1][1]);
@@ -2198,6 +2300,7 @@ function guide(c, ang) {
     }
   }
   if (P.cuePot >= 0) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, ILLEGAL, 2);
+  return { c, gx, gy, dx, dy, h, P, legal, first };
 }
 
 /* ---- 4e. the cue ---- */
@@ -2270,7 +2373,7 @@ function drawPlace(now) {
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (placing) guideRing(at[0], at[1], rp * 1.4, ok ? 'rgba(255,255,255,0.75)' : ILLEGAL, 1.5);
   const a = (placing ? 0.8 : 0.4) * (0.75 + 0.25 * Math.sin(now / 280)), d = rp * 2.1 + 3, w = 4;
-  ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = wa(a); ctx.lineWidth = 1.5;
   for (const [ux, uy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
     const x = s[0] + ux * d, y = s[1] + uy * d;
     ctx.beginPath(); ctx.moveTo(x - ux * w + uy * w, y - uy * w - ux * w); ctx.lineTo(x, y); ctx.lineTo(x - ux * w - uy * w, y - uy * w + ux * w); ctx.stroke();
@@ -2282,21 +2385,23 @@ function draw(now) {
   prevState = state;
   if (!tab && game.shots === 0) trayList = [];
   const balls = tab ? tab.balls : game.balls, rb = BALL_R * view.k * dpr;
+  if (tableImg && CL !== clothOf()) tableImg = drawTableImage();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (tableImg) ctx.drawImage(tableImg, 0, 0); else ctx.clearRect(0, 0, table.width, table.height);
   if (state === 'place' && game.inHand === 'kitchen') {
     tableXform(ctx);
     ctx.fillStyle = 'rgba(255,255,240,0.045)'; ctx.fillRect(0, 0, HEAD_X, TW);
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1.5 / view.k;
+    ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k;
     ctx.beginPath(); ctx.moveTo(HEAD_X, 0); ctx.lineTo(HEAD_X, TW); ctx.stroke();
   }
   const ghost = state === 'place' && placeAt, list = balls.filter(b => b.on && !(ghost && b.n === 0)), pos = list.map(b => toScreen(b.x, b.y));
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const s of pos) drawShadow(s[0] * dpr, s[1] * dpr, rb);
   const c = game.balls.find(b => b.n === 0), aiming = (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && c.on;
-  if (aiming) guide(c, aimAngle);
+  const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
+  list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
@@ -2320,6 +2425,7 @@ function draw(now) {
     drawCue(lastCue, lastCue.ang, BALL_R - 0.035 * ease(0, 1, u * 2), 1 - u);
   } else if (state !== 'rolling') lastCue = null;
   ctx.restore();
+  drawLoupe(now, gi);
 }
 /* the cue may run off the table but not into the controls: clip to the stage layout() fits the
    table into, or the whole canvas without one */
@@ -2329,6 +2435,118 @@ function clipStage() {
   if (!r) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.beginPath(); ctx.rect(r.left, r.top, r.width, r.height); ctx.clip();
+}
+
+/* ---- 4g. the loupe ---- */
+/* While the fine-aim control is dragged (fineAim, set by play), a round magnifier, LOUPE_MAG
+   times, shows the ghost-ball contact: the table behind it, then the balls, the aim line, the
+   ghost ring and the object ball's line drawn again at the larger scale, so they stay crisp at
+   any dpr. It sits off the contact (its centre more than its radius away, never over the cue
+   ball if it can help it), inside the stage, toward the table's middle, and stays put while it
+   still fits so it does not jump about as the aim turns. An Alt or Ctrl arrow (fine aim from
+   the keyboard) shows a smaller one for LOUPE_KEY_MS. Nothing shows with the guide off. */
+/* STUB(T2.2) */ let fineAim = false;
+const LOUPE_MAG = 3, LOUPE_KEY_MS = 600, LOUPE_FADE_MS = 90;
+let loupeKey = -Infinity, loupeA = 0, loupeT = 0, loupe = null;
+addEventListener('keydown', e => {
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (e.altKey || e.ctrlKey)) loupeKey = performance.now();
+}, true);
+/* where it goes: { x, y, r } in CSS px for the contact at (cx, cy). It must lie inside the
+   stage and the table and clear of the contact; among the places that do, it keeps off the cue
+   ball, the aim line, the object ball's line and the other balls, then leans to the middle. */
+const segDist = (x, y, a, b) => { const q = closestOnSeg(a[0], a[1], b[0], b[1], x, y); return Math.hypot(x - q[0], y - q[1]); };
+function loupePlace(cx, cy, r, keep) {
+  const t = felt.tableRect(), B = stageBox || { left: 0, top: 0, right: table.width / dpr, bottom: table.height / dpr };
+  const mx = (t.left + t.right) / 2, my = (t.top + t.bottom) / 2, m = 4;
+  const fits = (x, y) => x - r >= Math.max(B.left, t.left) - m && x + r <= Math.min(B.right, t.right) + m
+    && y - r >= Math.max(B.top, t.top) - m && y + r <= Math.min(B.bottom, t.bottom) + m && Math.hypot(x - cx, y - cy) > r * 1.25;
+  const cost = (x, y) => keep.lines.reduce((s, [a, b, w]) => s + (segDist(x, y, a, b) < r + 6 ? w : 0), 0)
+    + keep.balls.reduce((s, [bx, by, w]) => s + (Math.hypot(x - bx, y - by) < r + keep.rp ? w : 0), 0);
+  if (loupe && Math.abs(loupe.r - r) < 0.5 && fits(loupe.x, loupe.y) && cost(loupe.x, loupe.y) === 0) return loupe;
+  let best = null, bs = Infinity;
+  for (const d of [1.45, 1.9, 2.5, 3.2]) for (let i = 0; i < 24; i++) {
+    const a = i * Math.PI / 12, x = cx + Math.cos(a) * r * d, y = cy + Math.sin(a) * r * d;
+    if (!fits(x, y)) continue;
+    const sc = cost(x, y) * 1000 + Math.hypot(x - mx, y - my) + d * r * 0.3;
+    if (sc < bs) { bs = sc; best = { x, y, r }; }
+  }
+  if (best) return best;
+  /* nothing fits round the contact: the middle of the half of the table away from it */
+  const p = t.right - t.left > t.bottom - t.top;
+  return { x: p ? (cx < mx ? (mx + t.right) / 2 : (t.left + mx) / 2) : mx, y: p ? my : (cy < my ? (my + t.bottom) / 2 : (t.top + my) / 2), r };
+}
+function drawLoupe(now, gi) {
+  const key = now - loupeKey < LOUPE_KEY_MS, on = !!gi && state === 'aim' && human() && (fineAim || key);
+  const dt = loupeT ? Math.min(100, Math.max(0, now - loupeT)) : 16;
+  loupeT = now;
+  loupeA = on ? Math.min(1, loupeA + dt / LOUPE_FADE_MS) : Math.max(0, loupeA - dt / LOUPE_FADE_MS);
+  if (!on) { if (loupeA === 0) loupe = null; if (!gi || loupeA === 0) return; }
+  const t = felt.tableRect(), small = !fineAim, rp = BALL_R * view.k, M = LOUPE_MAG;
+  const r = clamp(Math.min(t.right - t.left, t.bottom - t.top) * 0.2, 56, 72) * (small ? 0.8 : 1);
+  const C = toScreen(gi.gx, gi.gy), cue = toScreen(gi.c.x, gi.c.y), lines = [[cue, C, 8]];
+  const o = gi.P.obj, pc = gi.P.cue;
+  if (o) for (let i = 1; i < o.length; i++) lines.push([toScreen(o[i - 1][0], o[i - 1][1]), toScreen(o[i][0], o[i][1]), 4]);
+  for (let i = 1; i < pc.length; i++) lines.push([toScreen(pc[i - 1][0], pc[i - 1][1]), toScreen(pc[i][0], pc[i][1]), 2]);
+  const balls = game.balls.filter(b => b.on).map(b => [...toScreen(b.x, b.y), b.n === 0 ? 16 : 1]);
+  loupe = loupePlace(C[0], C[1], r, { lines, balls, rp });
+  const L = loupe, at = (x, y) => { const s = toScreen(x, y); return [L.x + (s[0] - C[0]) * M, L.y + (s[1] - C[1]) * M]; };
+  const g = ctx, a = loupeA * loupeA * (3 - 2 * loupeA);
+  g.save();
+  g.globalAlpha = a;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* the lens: a soft shadow under it, then everything inside clipped to it */
+  g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 14 * dpr; g.shadowOffsetY = 3 * dpr;
+  g.fillStyle = CLOTH; circle(g, L.x, L.y, L.r); g.fill();
+  g.shadowColor = 'transparent';
+  circle(g, L.x, L.y, L.r); g.clip();
+  if (tableImg) {
+    g.imageSmoothingQuality = 'high';
+    g.setTransform(M, 0, 0, M, (L.x - C[0] * M) * dpr, (L.y - C[1] * M) * dpr);
+    g.drawImage(tableImg, 0, 0);
+  }
+  /* the balls near the contact, and their halo where one is the game ball */
+  const reach = L.r / M + 2 * rp, gb = gameBall();
+  for (const b of game.balls) {
+    if (!b.on) continue;
+    const s = toScreen(b.x, b.y);
+    if (Math.hypot(s[0] - C[0], s[1] - C[1]) > reach) continue;
+    const q = at(b.x, b.y), X = q[0] * dpr, Y = q[1] * dpr, R = rp * M * dpr;
+    drawShadow(X, Y, R, a);
+    if (b.n === gb) drawHalo(X, Y, R, a);
+    drawBall(b.n, X, Y, R, axesOf(orient[b.n] || IDENT), a);
+  }
+  /* the lines, a little heavier than on the table but not three times */
+  g.globalAlpha = a;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const line = (pts, style, w, dash) => {
+    g.beginPath();
+    pts.forEach((p, i) => { const q = at(p[0], p[1]); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
+    g.setLineDash(dash || []);
+    g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = w + 2.5; g.stroke();
+    g.strokeStyle = style; g.lineWidth = w; g.stroke();
+    g.setLineDash([]);
+  };
+  const { c, gx, gy, dx, dy, h, P, legal } = gi, R = BALL_R;
+  if (h.t > 2 * R) line([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.6), 1.75);
+  if (legal && P.obj && P.obj.length > 1) { const o = trimStart(P.obj, R); if (o.length > 1) line(o, 'rgba(255,255,255,0.92)', 2.5); }
+  if (P.cue.length > 1) line(P.cue, wa(0.55), 2, [7, 6]);
+  const q = at(gx, gy);
+  circle(g, q[0], q[1], rp * M); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
+  g.strokeStyle = legal ? 'rgba(255,255,255,0.92)' : ILLEGAL; g.lineWidth = 2; g.stroke();
+  /* the contact point itself */
+  if (h.kind === 'ball') {
+    const k = at(gx + (h.ball.x - gx) / 2, gy + (h.ball.y - gy) / 2);
+    circle(g, k[0], k[1], 2.25); g.fillStyle = legal ? '#fff' : ILLEGAL; g.fill();
+  }
+  g.restore();
+  /* the rim: a thin bright ring over a dark one */
+  g.save();
+  g.globalAlpha = a;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 3; circle(g, L.x, L.y, L.r + 0.5); g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.25; circle(g, L.x, L.y, L.r); g.stroke();
+  g.restore();
 }
 
 /* ============ 5. PLAY ============ */

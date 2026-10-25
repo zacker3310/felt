@@ -22,7 +22,8 @@ Indicators: `I`ntent `S`pec `P`lan `B`uild `V`erify `D`eploy `W`atch
 
 ## Phase 3: modes
 
-- [ ] T3.0: bumper pool, practice, trick shots, real side pockets   [I-PB---] (in progress)
+- [x] T3.0: bumper pool, practice, trick shots (14, solver-checked), real side pockets   [I-PBV--]
+  - octagon bumper table and classic side pockets (reference image) in progress
 - [ ] T3.1: POV stroke challenge: 3D down-the-cue view, puttX-style stroke where a crooked stroke misses   [IP-----]
   - `.buildloop/intent/T3.1.md`, `.buildloop/plan/T3.1.md` (planned, not started; needs puttX's stroke code)
 

@@ -2089,7 +2089,9 @@ function guide(c, ang) {
   const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
   const first = P.first === null ? null : game.balls.find(b => b.n === P.first);
   const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
-  const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed;
+  /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
+  const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
+    && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
   /* a preview still running with no contact yet says nothing either way */
   const legal = first ? !wrong && !kitchen : !P.done;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

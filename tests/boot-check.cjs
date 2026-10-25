@@ -50,11 +50,9 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('phone portrait: hud above and controls below never overlap the table', ph.gapBelow >= 0 && ph.gapAbove >= 0, JSON.stringify(ph));
   check('phone targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
   check('phone text is 4.5:1 or better', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
-  /* AC1 (T2.2): on the default 7 ft table a ball is at least 17 px across at 390x844. Until
-     stream P's setTable lands the geometry is still 9 ft; then the 9 ft floor applies */
-  const bp = await page.evaluate(() => ({ px: +felt.ballPx.toFixed(2), table: felt.table, def: felt.settings.table, seven: TL < 2.2, rail: RAIL }));
-  check(`AC1 phone portrait: a ball is ${bp.seven ? 'at least 17 px across on the 7 ft table' : 'at least 13.5 px across (setTable still a stub, 9 ft geometry)'}`,
-    bp.def === '7' && bp.px >= (bp.seven ? 17 : 13.5) && bp.rail >= 0.1, JSON.stringify(bp));
+  /* AC1 (T2.2): on the default 7 ft table a ball is at least 17 px across at 390x844 */
+  const bp = await page.evaluate(() => ({ px: +felt.ballPx.toFixed(2), table: felt.table, def: felt.settings.table, TL, rail: RAIL }));
+  check('AC1 phone portrait: a ball is at least 17 px across on the default 7 ft table', bp.def === '7' && bp.table === '7' && bp.px >= 17 && bp.rail >= 0.1, JSON.stringify(bp));
 
   /* phone landscape: the table is as big as the height allows, controls to the side */
   await page.setViewportSize({ width: 844, height: 390 });

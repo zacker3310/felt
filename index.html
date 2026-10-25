@@ -2418,10 +2418,6 @@ function clipStage() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.beginPath(); ctx.rect(r.left, r.top, r.width, r.height); ctx.clip();
 }
-/* stand-ins until the sim's T2.2 code lands: the integrator deletes these three lines */
-/* STUB(T2.2) */ let TABLE = '9';
-/* STUB(T2.2) */ function setTable(size) { }
-/* STUB(T2.2) */ function suggestAim(g) { const c = g.balls.find(b => b.n === 0), n = legalTargets(g)[0], b = n !== undefined && g.balls.find(x => x.n === n); return c && b ? { angle: Math.atan2(b.y - c.y, b.x - c.x), n, k: -1 } : null; }
 
 /* ============ 5. PLAY ============ */
 /* The state machine. menu -> place (ball in hand) -> aim -> stroke (the cue travels forward for

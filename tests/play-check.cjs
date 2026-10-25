@@ -453,7 +453,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('auto aim: the setting persists across a reload', aaSt.on === false && aaSt.off === 'true', JSON.stringify(aaSt));
 
   /* 15. the table size: the menu control persists, and start() sets that table before the rack.
-     setTable is wrapped to record its calls (the stub until stream P lands does nothing else). */
+     setTable is wrapped to record its calls. */
   const wrapTable = () => page.evaluate(() => { window.tableCalls = []; const f = setTable; window.setTable = s => { tableCalls.push(s); f(s); }; });
   await wrapTable();
   const t7 = await page.evaluate(() => ({ s: felt.settings.table, p: tb7.getAttribute('aria-pressed') }));
@@ -466,10 +466,20 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#play8');
   const g9 = await page.evaluate(() => ({ calls: tableCalls.slice(), table: felt.table, s: felt.state }));
   check('table size: 7 ft by default, the menu choice persists, and a new game starts on that table', t7.s === '7' && t7.p === 'true' && preview.includes('9') && t9.s === '9' && t9.p === 'true' && g9.calls[g9.calls.length - 1] === '9' && g9.table === '9' && g9.s === 'place', JSON.stringify({ t7, preview, t9, g9 }));
+  /* the 9 ft table plays too: the live roll still equals simulateShot byte for byte */
+  const nine = await page.evaluate(async () => {
+    felt.speed = 40; tryPlace([HEAD_X - 0.2, TW / 2]);
+    const c = game.balls[0], a = Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x);
+    const want = JSON.stringify(simulateShot(game.balls, { angle: a, power: 0.9, spin: 0 }).balls.map(b => [b.n, b.on, b.x, b.y]));
+    felt.shoot(a, 0.9, 0);
+    while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 50));
+    return { same: JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])) === want, TL };
+  });
+  check('9 ft table: the live break matches simulateShot exactly', nine.same && nine.TL > 2.5, JSON.stringify(nine));
   await page.click('#menuBtn');
   await page.click('#tb7');
-  const g7 = await page.evaluate(() => { tableCalls.length = 0; felt.start('8'); return { calls: tableCalls.slice(), table: felt.table, stub: TL > 2.5 }; });
-  check('table size: back to 7 ft, the next game asks for the 7 ft table' + (g7.stub ? ' (setTable is still the stub: geometry stays 9 ft)' : ''), g7.calls[0] === '7' && (g7.table === '7' || g7.stub), JSON.stringify(g7));
+  const g7 = await page.evaluate(() => { tableCalls.length = 0; felt.start('8'); return { calls: tableCalls.slice(), table: felt.table, TL }; });
+  check('table size: back to 7 ft, the next game is on the 7 ft table (1.981 m)', g7.calls[0] === '7' && g7.table === '7' && Math.abs(g7.TL - 1.981) < 1e-9, JSON.stringify(g7));
 
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
@@ -528,7 +538,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     if (!hand) game.inHand = null;
     aimAngle = 0; felt.speed = 40;
     const c = felt.game.balls[0], s = felt.toScreen(c.x, c.y), u = felt.toScreen(c.x + 0.1, c.y);
-    return { c: s, ang: Math.atan2(u[1] - s[1], u[0] - s[0]), q: felt.toScreen(TL - 0.4, TW / 2 + 0.2), want: Math.atan2(0.2, TL - 0.4 - x), full: felt.pullFull, arm: felt.armPx, shots: felt.game.shots, tw: TW };
+    return { c: s, ang: Math.atan2(u[1] - s[1], u[0] - s[0]), q: felt.toScreen(TL - 0.4, TW / 2 + 0.2), want: Math.atan2(0.2, TL - 0.4 - x), full: felt.pullFull, arm: felt.armPx, shots: felt.game.shots, tw: TW, bx: c.x };
   }, [x, hand]);
   const mstate = () => mp.evaluate(() => ({ s: felt.state, shots: felt.game.shots, pulling: felt.pulling, aim: felt.aim, power: felt.power, x: felt.game.balls[0].x, fine: felt.fineAim }));
   /* portrait: aim 0 points up the screen, so "back" is down */
@@ -582,7 +592,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await tch('touchEnd');
   await mp.waitForTimeout(150);
   const cpAfter = await mstate();
-  check('touch: ball in hand, placed: a backward drag from the cue ball never pulls or shoots, the ball stays put', cp.s === 'aim' && !cp.pulling && Math.abs(cp.x - 0.6) < 1e-9 && cpAfter.s === 'aim' && cpAfter.shots === M.shots, JSON.stringify({ cp, cpAfter }));
+  check('touch: ball in hand, placed: a backward drag from the cue ball never pulls or shoots, the ball stays put', cp.s === 'aim' && !cp.pulling && cp.x === M.bx && cpAfter.x === M.bx && cpAfter.s === 'aim' && cpAfter.shots === M.shots, JSON.stringify({ cp, cpAfter }));
   M = await msetup(0.6, true);
   await tch('touchStart', M.c[0], M.c[1]);
   await tch('touchEnd');

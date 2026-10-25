@@ -2599,6 +2599,18 @@ function loupePlace(cx, cy, r, keep) {
   const p = t.right - t.left > t.bottom - t.top;
   return { x: p ? (cx < mx ? (mx + t.right) / 2 : (t.left + mx) / 2) : mx, y: p ? my : (cy < my ? (my + t.bottom) / 2 : (t.top + my) / 2), r };
 }
+/* the lens's drop shadow, blurred once per radius and dpr */
+let loupeShadowC = null;
+function loupeShadow(r) {
+  const key = r + ':' + dpr;
+  if (loupeShadowC && loupeShadowC.key === key) return loupeShadowC.c;
+  const pad = 20, c = document.createElement('canvas'), n = Math.ceil((2 * r + 2 * pad) * dpr), x = c.getContext('2d');
+  c.width = c.height = n;
+  x.shadowColor = 'rgba(0,0,0,0.55)'; x.shadowBlur = 14 * dpr; x.shadowOffsetX = n;
+  x.beginPath(); x.arc(n / 2 - n, n / 2, r * dpr, 0, Math.PI * 2); x.fill();
+  loupeShadowC = { key, c };
+  return c;
+}
 function drawLoupe(now, gi) {
   const key = now - loupeKey < LOUPE_KEY_MS, on = !!gi && state === 'aim' && human() && (fineAim || key);
   const dt = loupeT ? Math.min(100, Math.max(0, now - loupeT)) : 16;
@@ -2618,15 +2630,20 @@ function drawLoupe(now, gi) {
   g.save();
   g.globalAlpha = a;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  /* the lens: a soft shadow under it, then everything inside clipped to it */
-  g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 14 * dpr; g.shadowOffsetY = 3 * dpr;
+  /* the lens: a soft shadow under it (a cached sprite: shadowBlur every frame is costly), then
+     everything inside clipped to it. Only the patch of tableImg under the lens is resampled. */
+  const sh = loupeShadow(L.r);
+  g.drawImage(sh, L.x - sh.width / dpr / 2, L.y - sh.height / dpr / 2 + 3, sh.width / dpr, sh.height / dpr);
   g.fillStyle = CLOTH; circle(g, L.x, L.y, L.r); g.fill();
-  g.shadowColor = 'transparent';
   circle(g, L.x, L.y, L.r); g.clip();
   if (tableImg) {
-    g.imageSmoothingQuality = 'high';
-    g.setTransform(M, 0, 0, M, (L.x - C[0] * M) * dpr, (L.y - C[1] * M) * dpr);
-    g.drawImage(tableImg, 0, 0);
+    const half = L.r / M + 2, sx = Math.max(0, (C[0] - half) * dpr), sy = Math.max(0, (C[1] - half) * dpr);
+    const sw = Math.min(tableImg.width - sx, 2 * half * dpr), shh = Math.min(tableImg.height - sy, 2 * half * dpr);
+    if (sw > 0 && shh > 0) {
+      g.imageSmoothingQuality = 'medium';
+      g.setTransform(M, 0, 0, M, (L.x - C[0] * M) * dpr, (L.y - C[1] * M) * dpr);
+      g.drawImage(tableImg, sx, sy, sw, shh, sx, sy, sw, shh);
+    }
   }
   /* the balls near the contact, and their halo where one is the game ball */
   const reach = L.r / M + 2 * rp, gb = gameBall();

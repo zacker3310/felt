@@ -11,6 +11,8 @@
    cloth, and untouched by a frame's overlays); the auto-aim hint's ring and pocket chevron; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
    between. */
+/* Bumper pool at dpr 3, upright and on its side, both cloths: cups dark through with no cloth,
+   posts drawn, the marked ball's spot. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -461,5 +463,53 @@ async function tableChecks(page, tag) {
     lp.ms < 16.7 && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without`);
   check('dpr 3: no console errors', q.errors.length === 0, q.errors.join(' | '));
   await q.browser.close();
+  /* bumper pool at dpr 3, upright and on its side, both cloths: both cups are dark through and
+     never cloth-coloured, a frame paints nothing in them, every post is drawn (a bright nickel
+     cap in a dark rubber ring, apart from the cloth), and a marked ball shows its spot */
+  for (const [w, h] of [[440, 956], [956, 440]]) {
+    const b = await open('', { viewport: { width: w, height: h }, hasTouch: true, deviceScaleFactor: 3 });
+    await b.page.evaluate(HELPERS);
+    for (const cloth of ['green', 'red']) {
+      const r = await b.page.evaluate(cloth => {
+        settings.cloth = cloth; felt.start('bumper'); layout();
+        const ch = cloth === 'red' ? 0 : 1, W = table.width, px1 = 1 / view.k;
+        const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
+        const img = tableImg.getContext('2d').getImageData(0, 0, W, table.height).data;
+        const at = (x, y) => { const s = toScreen(x, y); return Math.round(s[1] * dpr) * W + Math.round(s[0] * dpr); };
+        const rgb = (d, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+        const cups = POCKETS.map((P, k) => {
+          const list = [], r = POCKET_R[k] - 2 * px1;
+          for (let x = P[0] - r; x <= P[0] + r; x += 1.5 * px1) for (let y = P[1] - r; y <= P[1] + r; y += 1.5 * px1) if (Math.hypot(x - P[0], y - P[1]) <= r) list.push(at(x, y));
+          return list;
+        });
+        const art = cups.map(l => ({ n: l.length, lum: Math.max(...l.map(i => __lum(rgb(img, i)))), cloth: Math.max(...l.map(i => green(rgb(img, i)))) }));
+        state = 'over'; cpuMode = false; draw(performance.now());
+        const d = table.getContext('2d').getImageData(0, 0, W, table.height).data;
+        const frame = Math.max(...cups.flat().map(i => Math.max(...[0, 1, 2].map(j => Math.abs(d[i * 4 + j] - img[i * 4 + j])))));
+        const bed = __lum(rgb(img, at(TL / 2, 0.08)));
+        const posts = BUMPERS.map(([x, y]) => ({ cap: __lum(rgb(img, at(x, y + BUMPER_R * 0.3))), ring: __lum(rgb(img, at(x - BUMPER_R * 0.85, y))) }));
+        /* the marked ball's spots: pixels far whiter than the red around them, against an unmarked red ball */
+        const white = n => {
+          const o = game.balls.find(q => q.n === n), s = toScreen(o.x, o.y), rp = BALL_R * view.k * dpr * 0.8;
+          let c = 0;
+          for (let u = -rp; u <= rp; u++) for (let v = -rp; v <= rp; v++) {
+            if (u * u + v * v > rp * rp) continue;
+            const i = Math.round(s[1] * dpr + v) * W + Math.round(s[0] * dpr + u), q = rgb(d, i);
+            if (q[1] > 170 && q[2] > 150) c++;
+          }
+          return c;
+        };
+        return { art, frame, bed, posts, spot: white(21) - white(22), view: [TL, TW, view.portrait], n: POCKETS.length, b: BUMPERS.length };
+      }, cloth);
+      const tag = `bumper ${w}x${h} dpr 3, ${cloth} cloth`;
+      check(`${tag}: the table is the bumper table (two cups, twelve posts)`, r.n === 2 && r.b === 12 && Math.abs(r.view[0] - 1.219) < 1e-9, JSON.stringify(r.view));
+      check(`${tag}: both cups are dark through and never cloth-coloured`, r.art.every(p => p.n > 300 && p.lum < 0.05 && p.cloth < 20), JSON.stringify(r.art));
+      check(`${tag}: a frame (balls, no cue over it) paints nothing inside a cup`, r.frame <= 2, String(r.frame));
+      check(`${tag}: every post is drawn: a bright cap in a dark rubber ring, apart from the cloth`, r.posts.every(p => p.cap > 0.15 && p.ring < 0.03 && p.ring < r.bed * 0.6), JSON.stringify({ bed: r.bed, posts: r.posts.slice(0, 3) }));
+      check(`${tag}: the marked red ball shows its white spot (an unmarked red has none)`, r.spot > 40, String(r.spot));
+    }
+    check(`bumper ${w}x${h}: no console errors`, b.errors.length === 0, b.errors.join(' | '));
+    await b.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

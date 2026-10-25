@@ -13,7 +13,8 @@ const vm = require('vm');
 const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_SIM_T',
   'cushions', 'pockets', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM', 'POCKET_LIP', 'MU_SLIDE', 'powerFor', 'spinOf', 'energyOf', 'newBall', 'rack', 'speedOf', 'newTable', 'strike', 'stepTable', 'resultOf', 'simulateShot',
   'newGame', 'legalTargets', 'judge', 'canPlace', 'placeCue', 'spot', 'rng', 'cpuShot', 'cpuSearch',
-  'CPU_LEVELS', 'setTable', 'TABLE', 'suggestAim', 'setPockets', 'POCKETS_STYLE'];
+  'CPU_LEVELS', 'setTable', 'TABLE', 'suggestAim', 'setPockets', 'POCKETS_STYLE',
+  'BUMPERS', 'BUMPER_R', 'CUP_IN', 'CUP_R', 'CUP_LIP', 'B_MARK', 'B_BALLS', 'bumperStrikers', 'bumperFree', 'CPU_BUMPER'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

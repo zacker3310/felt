@@ -7,7 +7,8 @@
    shoots), the fine-aim wheel, the english pad, the keyboard, auto aim, the table size, the turn
    passing with a banner and the turn chip, the CPU taking its turn at the chosen level (the
    chip pulses while it thinks), the two-fouls warning in the banner, the chip and the pause
-   menu's card, settings surviving a reload, rematch after a win, and touch on a phone. */
+   menu's card, settings surviving a reload, rematch after a win, touch on a phone, and bumper pool
+   (its card, the chosen ball, the bar, byte-for-byte rolls, the CPU, the pause cards, a win). */
 'use strict';
 const { check, done, open, settled } = require('./lib.cjs');
 const DEG = Math.PI / 180;
@@ -917,5 +918,96 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('touch 440: the bar shot plays from where the ball was left, the live roll equal to simulateShot byte for byte', hcm.same && hcm.cue[0] === hi3.x && hcm.cue[1] === hi3.y, JSON.stringify(hcm));
   check('touch 440: no console errors', h.errors.length === 0, h.errors.join(' | '));
   await h.browser.close();
+  /* bumper pool through the page, on a 440x956 phone: started from the menu's card, the bar
+     shoots the chosen ball and the live roll equals simulateShot byte for byte (bar and hook),
+     a tap on one of your balls picks it (B cycles), nothing else shoots, the turn chip shows the
+     colour and balls left, the pause menu's cards too, the CPU plays its own balls, a win */
+  {
+    const k = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, deviceScaleFactor: 1 });
+    const kp = k.page;
+    await kp.evaluate(() => { localStorage.clear(); settings.cpu = false; settings.autoAim = true; });
+    await kp.click('#playB');
+    await kp.waitForTimeout(300);
+    const s0 = await kp.evaluate(() => ({ kind: felt.game.kind, st: felt.state, striker: felt.striker, table: felt.table, chip: chipBalls.textContent, chipName: chipName.textContent, hint: felt.hint, sub: bannerSub.textContent }));
+    check('bumper: the menu card starts a bumper game on the bumper table, red to open with the marked ball, auto aim on it',
+      s0.kind === 'bumper' && s0.st === 'aim' && s0.striker === 21 && s0.table === 'bumper' && s0.chip === '5' && s0.hint && s0.hint.n === 21 && s0.hint.k === 1 && /marked ball/.test(s0.sub), JSON.stringify(s0));
+    const tdrag = async (from, to, n = 6) => {
+      const cdp = await kp.context().newCDPSession(kp), pt = p => [{ x: p[0], y: p[1], id: 1 }];
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pt(from) });
+      for (let i = 1; i <= n; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt([from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n]) });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+    /* a bar shot: the live roll equals simulateShot of the same shot from the same balls */
+    const barShot = async frac => {
+      const snap = await kp.evaluate(() => JSON.stringify(felt.game.balls)), n0 = await kp.evaluate(() => felt.game.shots);
+      const hb = await kp.evaluate(() => { const r = powerBar.getBoundingClientRect(); return { lo: r.left, hi: r.right, y: r.y + r.height / 2 }; });
+      await tdrag([hb.lo + 10, hb.y], [hb.lo + 10 + (hb.hi - hb.lo) * frac, hb.y]);
+      await kp.waitForFunction(n => felt.game.shots === n + 1, n0, { timeout: 30000 });
+      return kp.evaluate(b => {
+        const s = felt.lastShot, row = x => JSON.stringify(x.map(o => [o.n, o.on, o.x, o.y]));
+        return { same: row(simulateShot(JSON.parse(b), s).balls) === row(felt.lastResult.balls), ball: s.ball, cue: felt.lastResult.cue };
+      }, snap);
+    };
+    await kp.evaluate(() => { felt.speed = 40; });
+    const o1 = await barShot(0.35);
+    await settled(kp);
+    const s1 = await kp.evaluate(() => ({ turn: felt.game.turn, striker: felt.striker, opening: felt.game.opening, msg: msg.textContent }));
+    check('bumper: the bar shoots red\'s marked ball, the live roll equal to simulateShot byte for byte', o1.same && o1.ball === 21 && o1.cue === 21, JSON.stringify(o1));
+    check('bumper: then white plays its opening shot with its marked ball', s1.turn === 1 && s1.striker === 31 && s1.opening === 2 && /Player 2/.test(s1.msg), JSON.stringify(s1));
+    /* white's opening through the hook, its own ball named: still byte for byte */
+    const o2 = await kp.evaluate(async () => {
+      const snap = JSON.stringify(felt.game.balls), s = suggestAim(felt.game);
+      felt.shoot(s.angle, 0.3, { x: 0.2, y: -0.3 }, s.n);
+      while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 30));
+      const row = x => JSON.stringify(x.map(o => [o.n, o.on, o.x, o.y]));
+      return { same: row(simulateShot(JSON.parse(snap), felt.lastShot).balls) === row(felt.lastResult.balls), ball: felt.lastShot.ball, opening: felt.game.opening };
+    });
+    check('bumper: a shot through felt.shoot with english, the live roll equal to simulateShot byte for byte', o2.same && o2.ball === 31 && o2.opening === 0, JSON.stringify(o2));
+    /* past the opening: a tap on one of your balls picks it; B cycles; a tap elsewhere aims */
+    const pk = await kp.evaluate(() => {
+      felt.game.turn = 0; felt.game.winner = null; state = 'aim';
+      const mine = felt.game.balls.filter(b => b.on && b.n < 30 && b.n !== felt.striker);
+      const b = mine[0];
+      return { n: b.n, s: felt.toScreen(b.x, b.y) };
+    });
+    await kp.touchscreen.tap(pk.s[0], pk.s[1]);
+    await kp.waitForTimeout(100);
+    const p1 = await kp.evaluate(() => ({ striker: felt.striker, st: felt.state, shots: felt.game.shots, hint: felt.hint }));
+    check('bumper: a tap on one of your own balls picks it to strike (and shoots nothing)', p1.striker === pk.n && p1.st === 'aim' && p1.shots === 2, JSON.stringify({ p1, want: pk.n }));
+    await kp.keyboard.press('b');
+    const p2 = await kp.evaluate(() => felt.striker);
+    await kp.keyboard.press('Space');
+    await kp.keyboard.press('Enter');
+    await kp.waitForTimeout(100);
+    const p3 = await kp.evaluate(() => ({ st: felt.state, shots: felt.game.shots }));
+    check('bumper: B picks the next of your balls; no key shoots', p2 !== pk.n && p2 < 30 && p3.st === 'aim' && p3.shots === 2, JSON.stringify({ p2, p3 }));
+    const o3 = await barShot(0.3);
+    check('bumper: the bar shoots the picked ball, byte for byte', o3.same && o3.ball === p2, JSON.stringify(o3));
+    await settled(kp);
+    await kp.click('#menuBtn');
+    const card = await kp.evaluate(() => [p0meta.textContent, p1meta.textContent, p0dots.children.length + p1dots.children.length]);
+    check('bumper: the pause menu\'s cards show each colour and the balls left', /^Red, \d left/.test(card[0]) && /^White, \d left/.test(card[1]) && card[2] >= 2, JSON.stringify(card));
+    await kp.click('#resumeBtn');
+    /* the CPU: it plays its own balls, at a level, and hands the turn back */
+    const cpu = await kp.evaluate(async () => {
+      settings.cpu = true; settings.level = 'hard'; felt.start('bumper'); felt.speed = 40;
+      const s = suggestAim(felt.game);
+      felt.shoot(s.angle, 0.3, 0, s.n);
+      const seen = [];
+      for (let i = 0; i < 400 && (felt.game.turn === 1 || felt.game.shots < 2); i++) { if (felt.state === 'thinking') seen.push('t'); await new Promise(r => setTimeout(r, 25)); if (felt.game.winner !== null) break; }
+      return { shots: felt.game.shots, last: felt.lastShot.ball, thought: seen.length > 0, st: felt.state };
+    });
+    check('bumper vs CPU: the CPU thinks, strikes its own (white) ball and the turn comes back', cpu.thought && cpu.last >= 31 && cpu.shots >= 2, JSON.stringify(cpu));
+    const won = await kp.evaluate(() => { for (const b of felt.game.balls) if (b.n >= 30) b.on = false; felt.forceWin(1); return { st: felt.state, kind: overKind.textContent, text: overText.textContent }; });
+    check('bumper: a win shows the game-over sheet for bumper pool', won.st === 'over' && /^Bumper pool/.test(won.kind) && /CPU wins/.test(won.text), JSON.stringify(won));
+    await kp.click('#rematch');
+    const re = await kp.evaluate(() => ({ kind: felt.game.kind, table: felt.table, shots: felt.game.shots }));
+    check('bumper: rematch starts another bumper game', re.kind === 'bumper' && re.table === 'bumper' && re.shots === 0, JSON.stringify(re));
+    await kp.evaluate(() => { settings.cpu = false; felt.start('8'); });
+    const back = await kp.evaluate(() => ({ table: felt.table, n: POCKETS.length, b: BUMPERS.length }));
+    check('bumper: an 8-ball game after it is back on the pool table', back.table === '7' && back.n === 6 && back.b === 0, JSON.stringify(back));
+    check('bumper: no console errors', k.errors.length === 0, k.errors.join(' | '));
+    await k.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

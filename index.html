@@ -1490,7 +1490,7 @@ function sfx(kind, v) {
    so the head string is at the bottom. RAIL (the wood around the cushions, m) is set by
    layout(): full width on a big screen, slimmer on a phone so the cloth and balls get the room. */
 let RAIL = 0.115;
-const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the pocket holes and their caps overflow the wood */
+const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the corner caps overflow the wood (the side caps have ears) */
 /* the rail for a viewport: RAIL_MIN up to a 430 px short side, RAIL_MAX from 700 px, smooth between */
 const railFor = (w, h) => RAIL_MIN + (RAIL_MAX - RAIL_MIN) * ease(430, 700, Math.min(w, h));
 const ctx = table.getContext('2d');
@@ -1518,11 +1518,36 @@ const sdir = (tx, ty) => view.portrait ? [ty, -tx] : [tx, ty];
 /* layout (U): CSS lays out the controls and an empty #stage; the table is fitted into the
    stage. Upright, the strip under the table and the column beside it are both tried and the one
    that gives the bigger table wins, so a tablet in portrait can take its controls to the side
-   while a phone keeps them in a strip under a full-width table; on its side, the column. */
-function fitTable(r) {
-  const W = TL + 2 * RAIL, H = TW + 2 * RAIL;
-  const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
+   while a phone keeps them in a strip under a full-width table; on its side, the column.
+   The table's footprint is the rail plus the side pockets' ears: a side drop's back is 2 POCKET_R
+   past the nose, further out than a phone's rail, so its casting bulges past the long rails'
+   outer edge (sideReach, section 4). The rail fits the stage; the ears may also take the stage's
+   padding where the stage runs to the screen's safe edge on both sides (room), so a phone held
+   upright spends no more width on them than it must. */
+function fitTable(r, room = r) {
+  const W = TL + 2 * RAIL, H = TW + 2 * RAIL, E = TW + 2 * sideReach();
+  const kp = Math.min(r.width / H, r.height / W, room.width / E), kl = Math.min(r.width / W, r.height / H, room.height / E);
   return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
+}
+/* the safe area, measured by a fixed probe inset by the --sa* variables (env() resolved) */
+let safeProbe = null;
+function safeRect() {
+  if (!safeProbe) {
+    safeProbe = document.createElement('div');
+    safeProbe.setAttribute('aria-hidden', 'true');
+    safeProbe.style.cssText = 'position:fixed;top:var(--sat);right:var(--sar);bottom:var(--sab);left:var(--sal);visibility:hidden;pointer-events:none;z-index:-1';
+    document.body.appendChild(safeProbe);
+  }
+  return safeProbe.getBoundingClientRect();
+}
+/* the stage grown, evenly on an axis, to the safe edge where only the screen's padding (3 px or
+   less) lies between them on both sides; a side against the controls stays put. On its side the
+   table already runs over the home indicator, so the bottom bound there is the screen's. */
+function roomOf(r, wide) {
+  const s = safeRect(), bottom = wide ? appSize()[1] : s.bottom;
+  const grow = (a, b) => a >= -0.5 && b >= -0.5 && a <= 3 && b <= 3 ? Math.max(0, Math.min(a, b)) : 0;
+  const ex = grow(r.left - s.left, s.right - r.right), ey = grow(r.top - s.top, bottom - r.bottom);
+  return { left: r.left - ex, top: r.top - ey, width: r.width + 2 * ex, height: r.height + 2 * ey };
 }
 /* The size the app really has. An iOS home-screen app with a translucent status bar can report
    innerHeight short by the status bar (worst at launch), which left a dead strip under the
@@ -1559,12 +1584,12 @@ function layout() {
   let best = null;
   for (const m of tries) {
     root.dataset.layout = m;
-    const f = fitTable(stage.getBoundingClientRect());
+    const sr = stage.getBoundingClientRect(), f = fitTable(sr, roomOf(sr, m === 'wide'));
     /* a phone held upright keeps the strip unless the side layout is clearly bigger */
     if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
-  const r = stage.getBoundingClientRect(), f = fitTable(r), k = Math.max(10, f.k);
+  const r = stage.getBoundingClientRect(), f = fitTable(r, roomOf(r, best.m === 'wide')), k = Math.max(10, f.k);
   const tw = (f.portrait ? TW : TL) + 2 * RAIL, th = (f.portrait ? TL : TW) + 2 * RAIL;
   view = { k, portrait: f.portrait, ox: r.left + (r.width - tw * k) / 2 + RAIL * k, oy: r.top + (r.height - th * k) / 2 + RAIL * k };
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
@@ -1672,49 +1697,65 @@ function drawTableImage() {
   g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1; g.stroke();
   return c;
 }
-/* four mitred boards with wavy grain running along each, a bullnose edge that catches the lamp
-   on the sides facing it, and a dark seam where the wood meets the rubber */
+/* four mitred boards with wavy grain running along each (the long ones out into the side ears), a
+   bullnose edge that follows the rail's outline (round the corners and the ears) and catches the
+   lamp on the sides facing it, and a dark seam where the wood meets the rubber */
 function paintRails(g, co, L, px, rnd) {
+  const E = sideReach();
   const boards = [
-    { q: [[-RAIL, -RAIL], [TL + RAIL, -RAIL], [TL + co, -co], [-co, -co]], along: 0, a: [-co, -RAIL], n: [0, -1] },
-    { q: [[-RAIL, TW + RAIL], [TL + RAIL, TW + RAIL], [TL + co, TW + co], [-co, TW + co]], along: 0, a: [TW + co, TW + RAIL], n: [0, 1] },
-    { q: [[-RAIL, -RAIL], [-RAIL, TW + RAIL], [-co, TW + co], [-co, -co]], along: 1, a: [-co, -RAIL], n: [-1, 0] },
-    { q: [[TL + RAIL, -RAIL], [TL + RAIL, TW + RAIL], [TL + co, TW + co], [TL + co, -co]], along: 1, a: [TL + co, TL + RAIL], n: [1, 0] },
+    { q: [[-E, -E], [TL + E, -E], [TL + co, -co], [-co, -co]], along: 0, a: [-co, -E], n: [0, -1] },
+    { q: [[-E, TW + E], [TL + E, TW + E], [TL + co, TW + co], [-co, TW + co]], along: 0, a: [TW + co, TW + E], n: [0, 1] },
+    { q: [[-E, -E], [-E, TW + E], [-co, TW + co], [-co, -co]], along: 1, a: [-co, -RAIL], n: [-1, 0] },
+    { q: [[TL + E, -E], [TL + E, TW + E], [TL + co, TW + co], [TL + co, -co]], along: 1, a: [TL + co, TL + RAIL], n: [1, 0] },
   ];
   const DARK = [44, 19, 9], LITE = [140, 78, 40];
   for (const b of boards) {
-    const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * RAIL, [a0, a1] = b.a, w = a1 - a0;
+    const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * E, [a0, a1] = b.a, w = a1 - a0;
+    const ws = Math.sign(w) * (RAIL - co);   /* the figure's scale: the rail's width, ears or not */
     g.save();
     railOutline(g, co); g.clip();
     g.beginPath(); polyPath(g, b.q); g.clip();
-    g.fillStyle = '#4f2714'; g.fillRect(-RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL);
+    g.fillStyle = '#4f2714'; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
     /* broad figure first, then fine grain lines */
     const lines = Math.ceil(Math.abs(w) / (1.4 * px));
     for (let i = 0; i < lines + 6; i++) {
-      const broad = i < 6, t = rnd(), base = a0 + w * (broad ? rnd() : (i - 6 + rnd()) / lines);
+      const broad = i < 6, t = rnd(), base = a0 + (broad ? ws * rnd() : w * (i - 6 + rnd()) / lines);
       const f1 = 2 * Math.PI / (0.5 + rnd() * 1.2), f2 = 2 * Math.PI / (0.09 + rnd() * 0.12), p1 = rnd() * 7, p2 = rnd() * 7;
-      const A1 = Math.abs(w) * (broad ? 0.25 : 0.06 + rnd() * 0.08), A2 = Math.abs(w) * 0.01;
+      const A1 = Math.abs(ws) * (broad ? 0.25 : 0.06 + rnd() * 0.08), A2 = Math.abs(ws) * 0.01;
       const col = DARK.map((d, j) => Math.round(d + (LITE[j] - d) * t));
       g.strokeStyle = `rgba(${col[0]},${col[1]},${col[2]},${broad ? 0.16 : 0.16 + rnd() * 0.3})`;
-      g.lineWidth = broad ? Math.abs(w) * (0.15 + rnd() * 0.2) : px * (0.7 + rnd() * 1.8);
+      g.lineWidth = broad ? Math.abs(ws) * (0.15 + rnd() * 0.2) : px * (0.7 + rnd() * 1.8);
       g.beginPath();
-      for (let u = -RAIL; u <= len - RAIL + 0.02; u += 0.02) {
+      for (let u = -E; u <= len - E + 0.02; u += 0.02) {
         const [x, y] = at(u, base + A1 * Math.sin(u * f1 + p1) + A2 * Math.sin(u * f2 + p2));
-        u === -RAIL ? g.moveTo(x, y) : g.lineTo(x, y);
+        u === -E ? g.moveTo(x, y) : g.lineTo(x, y);
       }
       g.stroke();
     }
-    /* the light across the board: flat top, then the rounded outer edge falling away */
-    const f = Math.max(0, b.n[0] * L[0] + b.n[1] * L[1]), [ix, iy] = at(0, a0), [ox, oy] = at(0, a1);
+    /* the light across the board's flat top, from the seam out to where the bullnose begins */
+    const f = Math.max(0, b.n[0] * L[0] + b.n[1] * L[1]), [ix, iy] = at(0, a0), [ox, oy] = at(0, a0 + ws);
     const gr = g.createLinearGradient(ix, iy, ox, oy);
     gr.addColorStop(0, 'rgba(0,0,0,0.18)'); gr.addColorStop(0.1, 'rgba(255,225,190,0.03)');
-    gr.addColorStop(0.55, `rgba(255,225,190,${0.04 + 0.08 * f})`);
-    gr.addColorStop(0.72, `rgba(255,232,205,${0.06 + 0.22 * f})`);
-    gr.addColorStop(0.86, `rgba(0,0,0,${0.12 + 0.2 * (1 - f)})`);
-    gr.addColorStop(1, 'rgba(0,0,0,0.5)');
-    g.fillStyle = gr; g.fillRect(-RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL);
+    gr.addColorStop(0.55, `rgba(255,225,190,${0.04 + 0.08 * f})`); gr.addColorStop(1, `rgba(255,225,190,${0.04 + 0.08 * f})`);
+    g.fillStyle = gr; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
     g.restore();
   }
+  /* the bullnose, following the outline wherever it goes: inner shadows of the world outside
+     it. A crest of lamp light on the edges that face the lamp, the far edges falling into shade,
+     and every edge rolling away dark at the very rim. Shadow offsets are in screen pixels, and
+     LIGHT is a screen direction, so the light agrees whichever way the table lies. */
+  const K = 1 / px, edge = (color, blur, off) => {
+    g.shadowColor = color; g.shadowBlur = blur * K; g.shadowOffsetX = LIGHT[0] * off * K; g.shadowOffsetY = LIGHT[1] * off * K;
+    g.beginPath(); g.rect(-E - 1, -E - 1, TL + 2 * E + 2, TW + 2 * E + 2); railPath(g, co);
+    g.fill('evenodd');
+  };
+  g.save();
+  railOutline(g, co); g.clip();
+  g.fillStyle = '#000';
+  edge('rgba(255,232,205,0.3)', 0.014, -0.008);
+  edge('rgba(0,0,0,0.32)', 0.012, 0.007);
+  edge('rgba(0,0,0,0.7)', 0.005, 0);
+  g.restore();
   /* mitre joints and the seam against the cushions */
   g.save();
   railOutline(g, co); g.clip();
@@ -1724,30 +1765,65 @@ function paintRails(g, co, L, px, rnd) {
   }
   g.restore();
 }
-/* The pockets. Each drop is a POCKET_R hole. The rubber and its cloth stop at the hole's edge
-   (the facings turn down into the drop), and the cloth on the shelf and the jaw ends rolls over
-   the edge: dark where it turns under, a little sheen on the far side where it faces the lamp.
-   A drop reaches further out than the rail's top does (a side hole is 2 POCKET_R deep past the
-   nose), so its back runs under the rail. Round each drop sits a round leather cap, edged in
-   nickel, slid out from the mouth until it is capGap from the rail's outer edge; the rail's
-   corners round about the corner caps by that same gap, so the wood wraps them like a casting.
-   What shows of the hole is the hole inside the back, a circle capBack inside the cap's edge,
-   with the leather's rolled lip and its shadow on the far wall. The cap is at least capW wider
-   than the hole, and grows (sliding in as it does) until the back takes in all of the hole
-   that lies over the cloth, so a hole is one round opening: never cut along the seam where the
-   rubber meets the wood. All of it reads POCKETS, POCKET_R, POCKET_AIM, CUSHION_POLYS, RAIL, TL
-   and TW at paint time; the shapes are cached per table and rail. */
+/* The pockets, as a real table's are seen from above. Each drop is the true POCKET_R hole, all of
+   it open: the rubber and its cloth stop at the hole's edge (the facings turn down into the
+   drop), the cloth on the shelf and the jaw ends rolls over the edge, dark where it turns under,
+   a little sheen on the far side where it faces the lamp. Round each drop sits a pocket cap:
+   black leather, the liner's rolled lip at the hole, edged in nickel, on the wood.
+   A corner's cap is round, at least capW wider than the hole, slid out from the mouth until it is
+   capGap from the rail's outer edge, and grown (sliding in as it goes) until its back, capBack
+   inside its edge, takes in the whole drop; the rail's corner rounds about it by capGap, so the
+   wood wraps it like a casting. A side drop's back is 2 POCKET_R past the nose, past a slim
+   rail's outer edge, so its cap is a horseshoe set SIDE_SET in from the drop (SIDE_BAND of cap
+   behind the hole, more at its flanks) and the wood flows round it in an ear: a circle SIDE_WOOD
+   outside the cap, faired into the long rail's edge by EAR_FILLET coves. sideReach() is how far
+   the ear (or the rail, where it is wide enough) reaches past the nose; layout() fits it.
+   All of it reads POCKETS, POCKET_R, POCKET_AIM, CUSHION_POLYS, RAIL, TL and TW at paint time;
+   the shapes are cached per table and rail. */
 const capW = co => clamp(0.5 * (RAIL - co), 0.012, 0.032);
 const capBack = co => clamp(0.3 * (RAIL - co), 0.006, 0.014);
 const capGap = co => clamp(0.12 * (RAIL - co), 0.004, 0.008);
-/* the rail's outer edge: its corners wrap the corner caps */
-function railOutline(g, co) {
-  const S = pocketShape(0, co);
-  roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, Math.min(S.rc + capGap(co), RAIL + co));
+const SIDE_SET = 0.014, SIDE_BAND = 0.0035, SIDE_WOOD = 0.0025, EAR_FILLET = 0.08;
+/* a side pocket's ear, in its own frame (u along the rail, v out from the nose line): the cap's
+   centre at v = vc, the wood's circle rw about it, the coves' centres at (+-uf, RAIL + EAR_FILLET).
+   null where the rail is wide enough to hold the cap with SIDE_WOOD to spare. */
+function earOf(S) {
+  const vc = Math.abs(S.C[1] - (S.P[1] < TW / 2 ? 0 : TW)), rw = S.rc + SIDE_WOOD, F = EAR_FILLET;
+  if (vc + rw <= RAIL) return null;
+  const uf = Math.sqrt((rw + F) ** 2 - (RAIL + F - vc) ** 2);
+  return { vc, rw, uf, reach: vc + rw };
+}
+/* how far the table reaches past the long cushions' nose line: the rail, or the side ears */
+function sideReach() {
+  const co = cushionDepth(), e = pocketShape(1, co).ear;
+  return Math.max(RAIL, e ? e.reach : 0);
+}
+/* the rail's outer edge: its corners round about the corner caps, its long sides swell into an
+   ear round each side cap. railPath adds it as a subpath, clockwise from the top left. */
+function railOutline(g, co) { g.beginPath(); railPath(g, co); }
+function railPath(g, co) {
+  const R = Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co), F = EAR_FILLET, h = TL / 2;
+  /* an ear on the top rail (o = 0) or the bottom (o = 1, the same turned half a turn about the bed's middle) */
+  const ear = (k, o) => {
+    const e = pocketShape(k, co).ear;
+    if (!e) return;
+    const t = o ? Math.PI : 0, sg = o ? -1 : 1, y0 = o ? TW : 0, a = Math.atan2(RAIL + F - e.vc, e.uf);
+    g.arc(h - sg * e.uf, y0 - sg * (RAIL + F), F, Math.PI / 2 + t, a + t, true);
+    g.arc(h, y0 - sg * e.vc, e.rw, a + Math.PI + t, 2 * Math.PI - a + t, false);
+    g.arc(h + sg * e.uf, y0 - sg * (RAIL + F), F, Math.PI - a + t, Math.PI / 2 + t, true);
+  };
+  g.moveTo(-RAIL + R, -RAIL);
+  ear(1, 0);
+  g.arc(TL + RAIL - R, -RAIL + R, R, -Math.PI / 2, 0);
+  g.arc(TL + RAIL - R, TW + RAIL - R, R, 0, Math.PI / 2);
+  ear(4, 1);
+  g.arc(-RAIL + R, TW + RAIL - R, R, Math.PI / 2, Math.PI);
+  g.arc(-RAIL + R, -RAIL + R, R, Math.PI, 1.5 * Math.PI);
+  g.closePath();
 }
 /* pocket k: drop centre P, radius r; the cap: centre C on the line from the mouth's middle A
-   through P, radius rc; the back: radius rb about C; the mouth's shelf: the quad between its two
-   jaw facings, nose to rail */
+   through P, radius rc; the back: radius rb about C (it holds the whole drop); a side's ear; the
+   mouth's shelf: the quad between its two jaw facings, nose to rail */
 let shapeCache = { key: '', polys: null, list: [] };
 function pocketShape(k, co) {
   const key = [RAIL, co, TL, TW, ...POCKETS.flat(), ...POCKET_R].join();
@@ -1757,6 +1833,14 @@ function pocketShape(k, co) {
 function pocketFit(k, co) {
   const P = POCKETS[k], A = POCKET_AIM[k], r = POCKET_R[k], cb = capBack(co), m = capGap(co);
   const d = Math.hypot(P[0] - A[0], P[1] - A[1]), ux = (P[0] - A[0]) / d, uy = (P[1] - A[1]) / d;
+  const jaws = CUSHION_POLYS.flatMap(q => [[q[1], q[0]], [q[2], q[3]]])
+    .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
+  const quad = [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]];
+  if (k === 1 || k === 4) {
+    const S = { P, C: [P[0] - ux * SIDE_SET, P[1] - uy * SIDE_SET], r, rb: r + SIDE_SET, rc: r + SIDE_SET + SIDE_BAND, quad, side: true };
+    S.ear = earOf(S);
+    return S;
+  }
   const centre = rc => {
     let t = Infinity;
     const e = rc + m;
@@ -1764,62 +1848,18 @@ function pocketFit(k, co) {
     if (uy < -1e-9) t = Math.min(t, (e - RAIL - A[1]) / uy); else if (uy > 1e-9) t = Math.min(t, (TW + RAIL - e - A[1]) / uy);
     return [A[0] + ux * t, A[1] + uy * t];
   };
-  /* the hole's edge over the cloth, and the cloth's corners inside the hole */
-  const inBox = (x, y) => x >= -co - 1e-9 && x <= TL + co + 1e-9 && y >= -co - 1e-9 && y <= TW + co + 1e-9, pts = [];
-  for (let i = 0; i < 180; i++) { const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a); if (inBox(x, y)) pts.push([x, y]); }
-  for (const x of [-co, TL + co]) for (const y of [-co, TW + co]) if (Math.hypot(x - P[0], y - P[1]) < r) pts.push([x, y]);
-  const fits = rc => { const C = centre(rc); return pts.every(q => Math.hypot(q[0] - C[0], q[1] - C[1]) <= rc - cb - 0.0005); };
-  let rc = r + capW(co);
-  if (!fits(rc)) {
-    let lo = rc, hi = rc * 1.25;
-    while (!fits(hi) && hi < 0.5) { lo = hi; hi *= 1.25; }
-    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
-    rc = hi;
+  /* the whole of the drop's edge */
+  const pts = [];
+  for (let i = 0; i < 180; i++) { const a = i * Math.PI / 90; pts.push([P[0] + r * Math.cos(a), P[1] + r * Math.sin(a)]); }
+  /* the smallest cap, from capW wider than the drop (a bigger cap slides in, so try each size),
+     whose back holds the drop; where the rail is too slim for that with capBack of cap behind it
+     (generous pockets on a phone), the back thins, down to a third of capBack */
+  const lo = r + capW(co);
+  for (const b of [cb, 0.8 * cb, 0.65 * cb, 0.5 * cb, 0.4 * cb, cb / 3]) {
+    const fits = rc => { const C = centre(rc); return pts.every(q => Math.hypot(q[0] - C[0], q[1] - C[1]) <= rc - b - 0.0003); };
+    for (let rc = lo; rc < 2 * lo; rc += 0.0005) if (fits(rc)) return { P, C: centre(rc), r, rc, rb: rc - b, quad, side: false, ear: null };
   }
-  const jaws = CUSHION_POLYS.flatMap(q => [[q[1], q[0]], [q[2], q[3]]])
-    .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
-  const quad = [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]], C = centre(rc);
-  const under = (x, y) => CUSHION_POLYS.some(q => inPoly(q, x, y));
-  let whole = true;
-  for (let i = 0; i < 180 && whole; i++) {
-    const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a);
-    if (!under(x, y) && Math.hypot(x - C[0], y - C[1]) > rc - cb + 1e-4) whole = false;
-  }
-  /* a corner's drop always fits the rail's rounded corner well enough to read round */
-  if (whole || !(k === 1 || k === 4)) return { P, C, r, rc, rb: rc - cb, quad, cup: false };
-  return cupFit(P, A, r, ux, uy, quad, co, m);
-}
-/* A drop that reaches past what the rail can frame (a side hole on a phone's slim rail: its back
-   is 2 POCKET_R past the nose, the wood ends sooner) is framed as a real side pocket is seen from
-   above: the cloth-covered facings run straight back into the rail, and the rail's cut, lined in
-   leather, rounds off between their ends. The back is the circle through the two facings' ends
-   (where they meet the wood) with its centre on the pocket's axis, as deep as the rail allows
-   with a band of leather and capGap of wood behind it, and never deeper than a half circle. So
-   the opening is one U as wide as the throat all the way back, and holds every bit of the hole
-   that lies between the facings. The rest of the drop runs on under the rubber and the wood. */
-function cupFit(P, A, r, ux, uy, quad, co, m) {
-  const e1 = quad[1], e2 = quad[2], half = Math.hypot(e1[0] - e2[0], e1[1] - e2[1]) / 2;
-  const s = ((e1[0] + e2[0]) / 2 - A[0]) * ux + ((e1[1] + e2[1]) / 2 - A[1]) * uy;
-  let edge = Infinity;
-  if (ux < -1e-9) edge = Math.min(edge, (-RAIL - A[0]) / ux); else if (ux > 1e-9) edge = Math.min(edge, (TL + RAIL - A[0]) / ux);
-  if (uy < -1e-9) edge = Math.min(edge, (-RAIL - A[1]) / uy); else if (uy > 1e-9) edge = Math.min(edge, (TW + RAIL - A[1]) / uy);
-  const band = clamp(0.16 * (RAIL - co), 0.006, 0.012);
-  const D = Math.max(s + 0.002, Math.min(edge - m - band, s + half));
-  const c = (D * D - half * half - s * s) / (2 * (D - s));
-  const C = [A[0] + ux * c, A[1] + uy * c];
-  /* the hole between the facings: its edge inside the quad, and the facings inside the hole */
-  let rb = D - c;
-  for (let i = 0; i < 180; i++) {
-    const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a);
-    if (inPoly(quad, x, y)) rb = Math.max(rb, Math.hypot(x - C[0], y - C[1]));
-  }
-  for (let j = 0; j < 4; j++) for (let i = 0; i <= 20; i++) {
-    const p = quad[j], q = quad[(j + 1) % 4], x = p[0] + (q[0] - p[0]) * i / 20, y = p[1] + (q[1] - p[1]) * i / 20;
-    if (Math.hypot(x - P[0], y - P[1]) < r) rb = Math.max(rb, Math.hypot(x - C[0], y - C[1]));
-  }
-  rb += 0.0004;   /* no hairline of cloth along the facings' ends */
-  const rc = Math.max(rb + 0.003, Math.min(rb + band, edge - m - c));
-  return { P, C, r, rc, rb, quad, cup: true };
+  return { P, C: centre(lo), r, rc: lo, rb: lo - cb / 3, quad, side: false, ear: null };
 }
 function circle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); }
 /* clip to what shows of hole k (also used by the pot animation) */
@@ -1836,10 +1876,16 @@ function paintPocketCaps(g, co, L, px) {
   POCKETS.forEach((_, k) => polyPath(g, pocketShape(k, co).quad));
   g.clip('evenodd');
   POCKETS.forEach((_, k) => {
-    const { C, rc, rb } = pocketShape(k, co), lw = Math.max(1.6 * px, Math.min(0.0035, 0.11 * capW(co), 0.32 * (rc - rb)));
-    const gr = g.createRadialGradient(C[0], C[1], Math.max(0, rb - 0.02), C[0], C[1], rc);
+    const { P, r, C, rc, rb, side } = pocketShape(k, co);
+    const lw = Math.max(1.6 * px, side ? 0.8 * SIDE_BAND : Math.min(0.0035, 0.11 * capW(co), 0.32 * (rc - rb)));
+    const gr = g.createRadialGradient(C[0], C[1], Math.max(0, side ? r - 0.006 : rb - 0.02), C[0], C[1], rc);
     gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.55, '#1f1b17'); gr.addColorStop(1, '#2d2722');
     g.fillStyle = gr; circle(g, C[0], C[1], rc); g.fill();
+    /* the liner's lip, rolled over the drop's edge: worn leather catching the lamp on the far side */
+    const lip = Math.min(0.004, 0.5 * (rc - r)), sh = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+    sh.addColorStop(0, 'rgba(92,70,50,0.35)'); sh.addColorStop(0.6, 'rgba(110,84,60,0.45)'); sh.addColorStop(1, 'rgba(150,118,86,0.6)');
+    g.strokeStyle = sh; g.lineWidth = lip;
+    circle(g, P[0], P[1], r + lip / 2); g.stroke();
     /* nickel round the edge, lit from the lamp's side, and a dark groove inside it */
     const metal = g.createLinearGradient(C[0] + L[0] * rc, C[1] + L[1] * rc, C[0] - L[0] * rc, C[1] - L[1] * rc);
     metal.addColorStop(0, '#cfccc4'); metal.addColorStop(0.45, '#77746e'); metal.addColorStop(1, '#2f2d2a');
@@ -1889,10 +1935,8 @@ function paintHoles(g, co, L, px) {
   });
 }
 /* rubber cushions from the sim's polygons, casting a soft shadow onto the bed away from the
-   lamp. Where a side drop reaches under a jaw (past the facing, where no ball's centre can go)
-   the rubber is whole and its facing runs straight back to the wood, framing the side pocket's
-   U as a real one does; a corner's round hole cuts its jaw ends instead, the rubber turning down
-   at the hole's edge (a whole jaw would end in a spike over the hole there). Each jaw point is
+   lamp. Every round hole cuts its jaw ends (a side drop reaches under its jaws, past the facing
+   where no ball's centre can go), the rubber turning down at the hole's edge. Each jaw point is
    rounded a little, the cloth wrapping round it from the nose to the facing. */
 const JAW_ROUND = 0.0035;
 /* a rubber [facing end, jaw point, jaw point, facing end], its jaw points rounded; open leaves
@@ -1904,11 +1948,10 @@ function rubberPath(g, p, open) {
   g.lineTo(p[3][0], p[3][1]);
   if (!open) g.closePath();
 }
-const area2 = p => p.reduce((a, q, i) => { const n = p[(i + 1) % p.length]; return a + q[0] * n[1] - n[0] * q[1]; }, 0);
 function paintCushions(g, co, K) {
   g.save();
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
-  clipOutHoles(g, cutting(co));
+  clipOutHoles(g);
   g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 0.014 * K;
   g.shadowOffsetX = -LIGHT[0] * 0.007 * K; g.shadowOffsetY = -LIGHT[1] * 0.007 * K;
   g.fillStyle = CUSHION;
@@ -1921,8 +1964,6 @@ function clipOutHoles(g, ks = POCKETS.map((_, k) => k)) {
   for (const k of ks) { const P = POCKETS[k]; g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 0, Math.PI * 2); }
   g.clip('evenodd');
 }
-/* the holes that cut the rubber: the round ones (a cup's rubber is whole) */
-const cutting = co => POCKETS.map((_, k) => k).filter(k => !pocketShape(k, co).cup);
 /* clip to the bare cloth: the bed and the mouths' shelves, not a hole and not under the rubber */
 function clipBed(g, co) {
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
@@ -1931,15 +1972,10 @@ function clipBed(g, co) {
   for (const p of CUSHION_POLYS) rubberPath(g, p);
   g.clip('evenodd');
 }
-/* clip to all the cloth: the bare cloth and the rubber, the rubber over a side drop included.
-   One nonzero path: the box one way round, the holes the other way, the rubbers the box's way. */
+/* clip to all the cloth: the bare cloth and the rubber, not a hole */
 function clipCloth(g, co) {
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
-  clipOutHoles(g, cutting(co));
-  g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
-  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 2 * Math.PI, 0, true); });
-  for (const p of CUSHION_POLYS) rubberPath(g, area2(p) > 0 ? p : p.slice().reverse());
-  g.clip();
+  clipOutHoles(g);
 }
 /* the throat: the shelf between the facings falls into shadow toward the drop, and the cloth
    rolls over the hole's edge, dark where it turns under, a little sheen on the far side where it
@@ -1948,18 +1984,13 @@ function paintPocketLips(g, co, L, px) {
   g.save();
   clipBed(g, co);
   POCKETS.forEach((P, k) => {
-    const r = POCKET_R[k], S = pocketShape(k, co), quad = S.quad;
+    const r = POCKET_R[k], quad = pocketShape(k, co).quad;
     const R = Math.max(...[quad[0], quad[3]].map(q => Math.hypot(q[0] - P[0], q[1] - P[1])));
     g.save();
     g.beginPath(); polyPath(g, quad); g.clip();
     const th = g.createRadialGradient(P[0], P[1], r, P[0], P[1], Math.max(R, r + 0.02));
     th.addColorStop(0, 'rgba(0,0,0,0.6)'); th.addColorStop(0.3, 'rgba(0,0,0,0.32)'); th.addColorStop(0.7, 'rgba(0,0,0,0.09)'); th.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = th; g.fillRect(P[0] - R, P[1] - R, 2 * R, 2 * R);
-    if (S.cup) {   /* a side pocket's shelf inside the rail's cut is in the cut's shadow: the U reads whole */
-      const cu = g.createRadialGradient(S.C[0], S.C[1], Math.max(0, S.rb - 0.025), S.C[0], S.C[1], S.rb + 0.01);
-      cu.addColorStop(0, 'rgba(0,0,0,0.45)'); cu.addColorStop(0.7, 'rgba(0,0,0,0.3)'); cu.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = cu; g.fillRect(P[0] - R, P[1] - R, 2 * R, 2 * R);
-    }
     g.restore();
     /* the turn-under is wider on the near side (it faces away from the lamp) */
     const d = 0.014, o = 0.0035, fx = P[0] + L[0] * o, fy = P[1] + L[1] * o;
@@ -2028,7 +2059,7 @@ function paintBevels(g, co, L, px) {
   g.beginPath();
   for (const p of CUSHION_POLYS) rubberPath(g, p);
   g.clip();
-  clipOutHoles(g, cutting(co));
+  clipOutHoles(g);
   for (const poly of CUSHION_POLYS) {
     const [ea, pa, pb, eb] = poly, cx = poly.reduce((v, q) => v + q[0], 0) / 4, cy = poly.reduce((v, q) => v + q[1], 0) / 4;
     /* each edge's normal into play (away from the rubber), and its length */
@@ -3004,8 +3035,8 @@ const felt = window.felt = {
   start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAnim = null; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
-  /* the table and its rails on screen, in CSS px */
-  tableRect() { const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
+  /* the table's footprint on screen, CSS px: the rail and the side pockets' ears */
+  tableRect() { const e = sideReach(), a = toScreen(-RAIL, -e), b = toScreen(TL + RAIL, TW + e); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
 const cueBall = () => game.balls.find(b => b.n === 0);
 const human = () => !(cpuMode && game.turn === 1);

@@ -132,6 +132,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dot.ring { margin: 0 1.5px; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .35), 0 0 0 1.5px #a3a3aa; }
 .dot.stripe { background-image: linear-gradient(#f6f4ec 0 24%, transparent 24% 76%, #f6f4ec 76%) !important; }
 .dot.big { width: 18px; height: 18px; }
+/* bumper pool: a marked ball's dot carries its spot (--mk) */
+.dot.mark { background-image: radial-gradient(circle at 50% 50%, var(--mk, #f6f4ec) 0 26%, transparent 31%); }
 .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 #potRow { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-top: 10px; padding: 0 2px; }
@@ -236,6 +238,8 @@ h1 i { font-style: normal; color: var(--signal); }
 .ball { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; font: 800 11px/1 var(--font); color: #141414; box-shadow: inset -4px -5px 8px rgba(0, 0, 0, .35); }
 .b8, .b9 { background-color: #f6f4ec; }
 .b8 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #4a4a4e, #161618 70%); }
+.bb { background-color: #c8262c; background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 17%, transparent 19%), radial-gradient(circle at 35% 30%, #e0473f, #8e1a1d 72%); }
+.game.wide { grid-column: 1 / -1; }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
 #resumeBtn { width: 100%; margin-bottom: 4px; }
 #resumeBtn:not([hidden]) + .brand { margin: 22px 0 0; }
@@ -312,7 +316,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <p id="menuMsg"></p>
       </section>
       <button class="big" id="resumeBtn" hidden>Resume game</button>
-      <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball and 9-ball, one device.</p></div>
+      <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball, 9-ball and bumper pool, one device.</p></div>
       <div class="sect">New game</div>
       <div class="opts">
         <span class="label">Opponent</span>
@@ -320,7 +324,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <span class="label" id="levelLab">CPU level</span>
         <div class="seg" id="levelSeg" role="group" aria-label="CPU level"><button id="lvEasy" aria-pressed="false">Easy</button><button id="lvMedium" aria-pressed="true">Medium</button><button id="lvHard" aria-pressed="false">Hard</button></div>
       </div>
-      <div class="row" style="margin-top: 14px"><button class="game" id="play8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball</b><small>Solids and stripes</small></span></button><button class="game" id="play9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball</b><small>Lowest ball first</small></span></button></div>
+      <div class="row" style="margin-top: 14px"><button class="game" id="play8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball</b><small>Solids and stripes</small></span></button><button class="game" id="play9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball</b><small>Lowest ball first</small></span></button><button class="game wide" id="playB"><span class="ball bb" aria-hidden="true"></span><span><b>Bumper pool</b><small>Red against white, five each, round the posts</small></span></button></div>
     </div>
     <div class="col2">
       <div class="sect">Table</div>
@@ -356,6 +360,13 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
           <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it to centre.</dd>
           <dt>In hand</dt><dd>The cue ball starts on a legal spot. Drag it (start on or next to it) to move it, as often as you like: letting go never locks it, only the shot does. Let go somewhere illegal and it goes back to the last good spot. A drag anywhere else still aims.</dd>
           <dt>Pause</dt><dd>The pause button. The game waits.</dd>
+        </dl>
+        <dl class="rules" id="bumperRules">
+          <dt>Bumper</dt><dd>Red against white, five balls each, on a small table with two cups and twelve rubber posts. You strike your own balls (no cue ball) at the cup at the far end; the marked ball (the one with the spot) must go down before any other of yours. Tap one of your balls (or press <kbd>B</kbd>) to choose the one to strike; auto aim picks one and a line.</dd>
+          <dt>Opening</dt><dd>Red shoots the marked ball, then white. Whoever potted theirs shoots next (red if both); if neither did, the one nearer the far cup. A foul on white's opening gives red the table.</dd>
+          <dt>Turn</dt><dd>Pot one of yours in the far cup and you go again; otherwise the turn passes.</dd>
+          <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
+          <dt>Win</dt><dd>The first with all five down. Table size and pockets are for 8-ball and 9-ball; the cloth colour applies to all three.</dd>
         </dl>
       </details>
       <p class="diag" id="diag"></p>
@@ -426,6 +437,15 @@ const CUSH_W = 0.05;              /* cushion depth, nose to rail */
 const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
 const ESCAPE_R = 0.16;            /* a centre off the bed this far from every mouth got out: the fail-safe */
 const RACK_GAP = 0.0002;
+/* Bumper pool (setTable('bumper'), 1g): a 33 x 48 in bed between the cushion noses, closed on
+   all four sides; a round cup set into the bed CUP_IN from each short end, on the long string;
+   twelve rubber posts (BUMPER_R, 1 in): eight in a diamond round the middle and a pair in front of
+   each cup, closer together than a ball is wide, so no ball goes straight in from the front. A
+   moving ball drops when its centre is within the cup's radius less CUP_LIP (the lip it skates
+   over at speed, CUP_V and up), a dying one when its centre is over the hole at all. */
+const BUMPER_SIZE = [1.219, 0.838];
+const BUMPER_R = 0.0254;
+const CUP_IN = 0.15, CUP_R = 0.041, CUP_LIP = 0.006, CUP_V = 1;
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre */
@@ -485,8 +505,13 @@ function pockets() {
    (CPU_MOUTH_N: the CPU's entry test, kept here so it follows the table) */
 let POCKETS_STYLE = 'regulation', CORNER_W, SIDE_W, CORNER_FACE, SIDE_FACE, CORNER_SHELF;
 let MOUTHS, RUBBERS, CUSH, CUSHION_POLYS, POCKET_R, POCKET_AIM, POCKETS, CPU_MOUTH_N;
+/* the bumper table's posts, [x, y] centres of radius BUMPER_R; empty on a pool table. POOL_TABLE
+   is the last pool size set, which a pool game goes back to after a bumper game. */
+let BUMPERS = [], POOL_TABLE = '7';
 /* one rebuild from TABLE and POCKETS_STYLE, so setTable and setPockets compose in either order */
 function buildTable() {
+  if (TABLE === 'bumper') { buildBumper(); return; }
+  BUMPERS = [];
   const st = POCKET_STYLES[POCKETS_STYLE];
   [TL, TW] = TABLE_SIZES[TABLE];
   HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
@@ -502,11 +527,11 @@ function buildTable() {
   CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
 }
-/* size '7' or '9' (anything else is '7'). Ball, mouths, jaws, shelf and cushions are the same on
+/* size '7' or '9' (anything else is '7'), or 'bumper' (1g). Ball, mouths, jaws, shelf and cushions are the same on
    both; only the bed changes, with the head string and foot spot at a quarter from each end.
    Never mid-game: a game's balls keep their coordinates. Returns the size set. */
 function setTable(size) {
-  TABLE = String(size) === '9' ? '9' : '7';
+  TABLE = size === 'bumper' ? 'bumper' : (POOL_TABLE = String(size) === '9' ? '9' : '7');
   buildTable();
   return TABLE;
 }
@@ -626,14 +651,15 @@ function hitBalls(tab, a, b) {
     kick(a, -ux * f, -uy * f, -uz * f, R * nx, R * ny, 0);
     kick(b, ux * f, uy * f, uz * f, -R * nx, -R * ny, 0);
   }
-  const cue = a.n === 0 ? a : b.n === 0 ? b : null;
+  const cue = a.n === tab.cue ? a : b.n === tab.cue ? b : null;
   if (cue && tab.first === null) tab.first = (cue === a ? b : a).n;
   tab.hits.push(['ball', vn]);
 }
 
 /* ---- 1d. the table in motion ---- */
-function newTable(balls) {
-  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
+/* cue: the ball the cue strikes (the cue ball; in bumper pool one of the shooter's own) */
+function newTable(balls, cue = 0) {
+  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), cue, t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
    further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
@@ -642,7 +668,7 @@ function newTable(balls) {
    natural roll), side is english about the vertical. Side english also squirts the ball off
    the cue line, away from the side struck. */
 function strike(tab, angle, power, spin) {
-  const c = tab.balls.find(b => b.n === 0), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
+  const c = tab.balls.find(b => b.n === tab.cue), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
   const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * TIP_LOSS * (ox * ox + oy * oy));
   const dx = Math.cos(angle), dy = Math.sin(angle), a = angle - SQUIRT * sp.x, k = 2.5 * v / BALL_R;
   c.vx = Math.cos(a) * v; c.vy = Math.sin(a) * v;
@@ -678,8 +704,8 @@ function pot(tab, b, k, v) {
    flat) but steeper than rolling resistance: a ball that dies on it creeps in. Returns the
    pocket whose lip the ball's centre is on, or -1. */
 function onLip(b) {
-  for (let k = 0; k < 6; k++) {
-    const p = POCKETS[k], r = POCKET_R[k] + POCKET_LIP;
+  for (let k = 0; k < POCKETS.length; k++) {
+    const p = POCKETS[k], r = POCKET_R[k] + (BUMPERS.length ? 0 : POCKET_LIP);
     if ((b.x - p[0]) ** 2 + (b.y - p[1]) ** 2 < r * r) return k;
   }
   return -1;
@@ -692,7 +718,7 @@ function stepTable(tab) {
     cloth(b, dt);
     b.x += b.vx * dt; b.y += b.vy * dt;
     /* the kitchen rule: did the cue ball's centre reach the head string by first contact */
-    if (b.n === 0 && b.x >= HEAD_X && tab.first === null) tab.crossed = true;
+    if (b.n === tab.cue && b.x >= HEAD_X && tab.first === null) tab.crossed = true;
   }
   /* fixed pair order; pairs at rest and pairs apart are skipped cheaply */
   for (let i = 0; i < B.length; i++) {
@@ -710,6 +736,8 @@ function stepTable(tab) {
   let moving = false;
   for (const b of B) {
     if (!b.on) continue;
+    /* bumper pool: the posts and the cups in the open bed (1g) */
+    if (BUMPERS.length && !still(b) && bumperStep(tab, b)) continue;
     /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
     if (b.x < lo || b.x > TL - lo || b.y < lo || b.y > TW - lo) {
       for (let k = 0; k < CUSH.length; k++) {
@@ -720,12 +748,14 @@ function stepTable(tab) {
          A centre off the bed and nowhere near a mouth means something got through: pot it. */
       const off = b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
       let hole = -1, near = -1, nd = Infinity;
-      for (let k = 0; k < 6; k++) {
+      for (let k = 0; k < POCKETS.length; k++) {
         const p = POCKETS[k], dx = b.x - p[0], dy = b.y - p[1], d2 = dx * dx + dy * dy;
         if (d2 < POCKET_R[k] * POCKET_R[k]) { hole = k; break; }
         const m = POCKET_AIM[k], e2 = (b.x - m[0]) ** 2 + (b.y - m[1]) ** 2;
         if (e2 < nd) { nd = e2; near = k; }
       }
+      /* a bumper table has no mouths: off the bed is always an escape, the ball off the table */
+      if (hole < 0 && off && BUMPERS.length) { tab.escaped++; pot(tab, b, -1, Math.hypot(b.vx, b.vy)); continue; }
       if (hole < 0 && off) { hole = near; if (nd > ESCAPE_R * ESCAPE_R) tab.escaped++; }
       if (hole >= 0) { pot(tab, b, hole, Math.hypot(b.vx, b.vy)); continue; }
     }
@@ -744,10 +774,10 @@ function stepTable(tab) {
   return true;
 }
 function resultOf(tab) {
-  return { balls: tab.balls.map(b => Object.assign({}, b)), first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), end: tab.end, t: tab.t, steps: tab.steps };
+  return { balls: tab.balls.map(b => Object.assign({}, b)), cue: tab.cue, first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), pocketOf: Object.assign({}, tab.pocketOf), end: tab.end, t: tab.t, steps: tab.steps };
 }
 function simulateShot(balls, shot) {
-  const tab = strike(newTable(balls), shot.angle, shot.power, shot.spin || 0);
+  const tab = strike(newTable(balls, shot.ball || 0), shot.angle, shot.power, shot.spin || 0);
   while (stepTable(tab));
   return resultOf(tab);
 }
@@ -758,10 +788,13 @@ const otherGroup = gr => gr === 'solids' ? 'stripes' : 'solids';
 const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
 const copyGame = g => JSON.parse(JSON.stringify(g));
 function newGame(kind) {
+  if (kind === 'bumper') return bumperGame();
+  if (TABLE === 'bumper') setTable(POOL_TABLE);
   return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null };
 }
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
+  if (g.kind === 'bumper') return onTable(g);   /* any ball may be touched first */
   const on = onTable(g);
   if (g.kind === '9') return on.slice(0, 1);
   if (g.open) { const t = on.filter(n => n !== 8); return t.length ? t : [8]; }
@@ -786,6 +819,7 @@ function segGap(ax, ay, bx, by, x, y) {
 /* on the cloth, clear of every cushion surface (jaws too) and of the pocket mouths, touching
    no ball, and behind the head string when the hand is the kitchen */
 function canPlace(g, x, y) {
+  if (g.kind === 'bumper') return bumperFree(g.balls, x, y, -1);
   if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
   if (g.inHand === 'kitchen' && x > HEAD_X) return false;
   if (CUSH.some(c => segGap(c[0], c[1], c[2], c[3], x, y) < BALL_R - 1e-9)) return false;
@@ -810,6 +844,7 @@ function placeCue(g, x, y) {
    also counts `dry`, shots in a row with no object ball down, which the CPU reads to break
    safety loops. */
 function judge(g, r) {
+  if (g.kind === 'bumper') return judgeBumper(g, r);
   const n = copyGame(g), me = g.turn, op = 1 - me;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
@@ -1185,6 +1220,7 @@ function cpuBreak(g, rnd, L) {
    same way. The best mean wins among the shots simulated as legal; a foul only when nothing
    legal turned up. The shot played carries the level's aim noise. */
 function* cpuSearch(g, seed, level = 'medium') {
+  if (g.kind === 'bumper') return yield* cpuBumper(g, seed, level);
   const L = CPU_LEVELS[level] || CPU_LEVELS.medium, rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
@@ -1314,6 +1350,7 @@ function cpuShot(g, seed, level) {
 const SUGGEST = { minCos: 0.2, noise: 1 };
 function suggestAim(g) {
   const c = g.balls.find(b => b.n === 0);
+  if (g.kind === 'bumper') return suggestBumper(g);
   if (g.winner !== null || !c || !c.on) return null;
   const targets = cpuTargets(g), at = n => g.balls.find(b => b.n === n), toward = t => ({ angle: Math.atan2(t.y - c.y, t.x - c.x), n: t.n, k: -1 });
   if (g.breakShot) {
@@ -1324,6 +1361,283 @@ function suggestAim(g) {
   if (l) return { angle: l.angle, n: l.n, k: l.k };
   const near = targets.map(at).filter(t => t && t.on).reduce((a, b) => !a || Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a, null);
   return near ? toward(near) : null;
+}
+/* ---- 1g. bumper pool ---- */
+/* The table (setTable('bumper')): the same globals a pool table sets, so every reader works on
+   it unchanged. CUSH is the four noses with no gaps, CUSHION_POLYS the four rubbers back to the
+   rail, POCKETS and POCKET_AIM the two cup centres (a cup has no mouth: its aim point is its
+   centre), POCKET_R their radii, CPU_MOUTH_N the way in from the table's middle, and BUMPERS the
+   twelve posts. Player 0 (red) sets up at the x = 0 end and shoots at cup 1, player 1 (white) the
+   other way round. */
+function buildBumper() {
+  [TL, TW] = BUMPER_SIZE;
+  HEAD_X = TL / 2; FOOT = [TL / 2, TW / 2];
+  const c = CUSH_W, cx = TL / 2, cy = TW / 2, a = 0.19, b = 0.15;
+  MOUTHS = []; RUBBERS = [];
+  CUSH = [[0, 0, TL, 0], [TL, 0, TL, TW], [TL, TW, 0, TW], [0, TW, 0, 0]];
+  CUSHION_POLYS = [[[-c, -c], [0, 0], [TL, 0], [TL + c, -c]], [[TL + c, -c], [TL, 0], [TL, TW], [TL + c, TW + c]],
+    [[TL + c, TW + c], [TL, TW], [0, TW], [-c, TW + c]], [[-c, TW + c], [0, TW], [0, 0], [-c, -c]]];
+  POCKETS = [[CUP_IN, cy], [TL - CUP_IN, cy]];
+  POCKET_R = [CUP_R, CUP_R];
+  POCKET_AIM = POCKETS.map(p => p.slice());
+  CPU_MOUTH_N = [[1, 0], [-1, 0]];
+  BUMPERS = [[cx - a, cy], [cx + a, cy], [cx, cy - b], [cx, cy + b],
+    [cx - a / 2, cy - b / 2], [cx + a / 2, cy - b / 2], [cx - a / 2, cy + b / 2], [cx + a / 2, cy + b / 2]];
+  /* each cup's pair: 7 cm in front of it, 10 cm apart centre to centre (a 4.9 cm gap: a ball is 5.7) */
+  for (const [px, s] of [[CUP_IN, 1], [TL - CUP_IN, -1]]) BUMPERS.push([px + s * 0.07, cy - 0.05], [px + s * 0.07, cy + 0.05]);
+}
+/* one step of a moving ball against the posts and the cups; true when it dropped. A post is a
+   rubber cylinder: the cushion's own impulse model along the line of centres. */
+function bumperStep(tab, b) {
+  const D = BALL_R + BUMPER_R;
+  for (const p of BUMPERS) {
+    let nx = b.x - p[0], ny = b.y - p[1];
+    const d2 = nx * nx + ny * ny;
+    if (d2 >= D * D || d2 < 1e-24) continue;
+    const d = Math.sqrt(d2);
+    nx /= d; ny /= d;
+    b.x = p[0] + nx * D; b.y = p[1] + ny * D;
+    const v = rail(b, nx, ny);
+    if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['rail', v]); }
+  }
+  const v = Math.hypot(b.vx, b.vy);
+  for (let k = 0; k < POCKETS.length; k++) {
+    const p = POCKETS[k], r = POCKET_R[k] - CUP_LIP * Math.min(1, v / CUP_V);
+    if ((b.x - p[0]) ** 2 + (b.y - p[1]) ** 2 < r * r) { pot(tab, b, k, v); return true; }
+  }
+  return false;
+}
+/* the balls: red 21-25 for player 0, white 31-35 for player 1; 21 and 31 are the marked balls */
+const B_BALLS = [[21, 22, 23, 24, 25], [31, 32, 33, 34, 35]], B_MARK = [21, 31];
+const bOwner = n => n >= 30 ? 1 : 0;
+/* where a player's five start, marked ball first: it on the long string in front of their own
+   cup's posts, two beside the cup and two out wide */
+const bStart = p => [[0.31, TW / 2], [0.1, TW / 2 - 0.17], [0.1, TW / 2 + 0.17], [0.26, TW / 2 - 0.22], [0.26, TW / 2 + 0.22]].map(([x, y]) => [p ? TL - x : x, y]);
+function bumperRack() {
+  const out = [];
+  for (const p of [0, 1]) bStart(p).forEach(([x, y], i) => out.push(newBall(B_BALLS[p][i], x, y)));
+  return out;
+}
+/* a new game switches to the bumper table. opening: 1 while red plays the opening shot, 2 while
+   white does, then 0. striker: the ball the shooter will strike. */
+function bumperGame() {
+  if (TABLE !== 'bumper') setTable('bumper');
+  return { kind: 'bumper', balls: bumperRack(), turn: 0, groups: [null, null], open: false, breakShot: false, inHand: null, fouls: [0, 0], winner: null,
+    shots: 0, dry: 0, verdict: null, opening: 1, openPot: [false, false], striker: B_MARK[0] };
+}
+/* the balls player p may strike: the marked ball on an opening shot, else any of their own */
+function bumperStrikers(g, p = g.turn) {
+  if (g.opening) return [B_MARK[p]];
+  return g.balls.filter(b => b.on && bOwner(b.n) === p).map(b => b.n);
+}
+/* a ball may stand at (x, y): on the bed, clear of the posts and the cups, touching no ball but `skip` */
+function bumperFree(balls, x, y, skip) {
+  if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
+  if (BUMPERS.some(p => Math.hypot(p[0] - x, p[1] - y) < BALL_R + BUMPER_R + 0.002)) return false;
+  if (POCKETS.some((p, k) => Math.hypot(p[0] - x, p[1] - y) < POCKET_R[k] + BALL_R)) return false;
+  return balls.every(b => b.n === skip || !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R);
+}
+/* a ball returned to the table: on its owner's marked spot, or the nearest free point to it */
+function bumperSpot(balls, n) {
+  const b = balls.find(o => o.n === n), [sx, sy] = bStart(bOwner(n))[0];
+  let at = null;
+  for (let r = 0; !at && r < 0.5; r += 0.01) {
+    for (let i = 0, m = r ? Math.ceil(2 * Math.PI * r / 0.01) : 1; i < m; i++) {
+      const x = sx + r * Math.cos(i * 2 * Math.PI / m), y = sy + r * Math.sin(i * 2 * Math.PI / m);
+      if (bumperFree(balls, x, y, n)) { at = [x, y]; break; }
+    }
+  }
+  if (at) Object.assign(b, { x: at[0], y: at[1], vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, on: true });
+  return balls;
+}
+/* the foul's penalty: one of player p's balls goes down for them, their marked ball while it is
+   on the table, else the one furthest from their cup. The number, or null. */
+function bumperBonus(balls, p) {
+  const T = POCKETS[1 - p], mine = balls.filter(b => b.on && bOwner(b.n) === p);
+  if (!mine.length) return null;
+  const b = mine.find(o => o.n === B_MARK[p]) || mine.reduce((a, o) => Math.hypot(o.x - T[0], o.y - T[1]) > Math.hypot(a.x - T[0], a.y - T[1]) ? o : a);
+  Object.assign(b, { on: false, vx: 0, vy: 0 });
+  return b.n;
+}
+/* the ball a player strikes by default: the marked ball while it is on, else the one nearest the cup */
+function bumperStriker(g, p) {
+  const T = POCKETS[1 - p], mine = g.balls.filter(b => b.on && bOwner(b.n) === p);
+  if (!mine.length) return null;
+  return (mine.find(b => b.n === B_MARK[p]) || mine.reduce((a, b) => Math.hypot(b.x - T[0], b.y - T[1]) < Math.hypot(a.x - T[0], a.y - T[1]) ? b : a)).n;
+}
+/* The rules (How to play says the same):
+   1. Opening: red shoots their marked ball, then white theirs. After both, a foul on white's
+      opening gives red the table; else whoever potted their marked ball shoots (red if both); if
+      neither did, the one whose marked ball lies nearer the cup they shoot at.
+   2. You strike your own balls (only the marked one on the opening) at the far cup. Potting
+      one of your own there keeps the turn; anything else passes it.
+   3. Fouls: striking a ball not your own; any of your balls into your own cup; any unmarked ball
+      of yours before your marked ball is down; potting an opponent's ball (it counts for them);
+      a ball off the table (it comes back).
+   4. On a foul the turn passes, every ball of yours that dropped on that shot comes back (to
+      your marked spot, or the nearest free point), the opponent's that dropped stay down for
+      them, and the opponent drops one more of theirs: the marked ball if it is still up, else
+      the one furthest from their cup.
+   5. The first with all five down wins (a foul's penalty can finish the opponent's set).
+   The verdict: foul, keep, win, why, potted (the shooter's balls that stayed down), gave (the
+   opponent's that went down for them), back (balls returned), dropped (the penalty ball). */
+function judgeBumper(g, r) {
+  const n = copyGame(g), me = g.turn, op = 1 - me, mark = B_MARK[me], pk = r.pocketOf || {};
+  n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
+  n.shots++;
+  const struck = r.cue === undefined ? g.striker : r.cue, kept = [], back = [], gave = [];
+  let foul = null, markDown = !g.balls.some(b => b.n === mark && b.on);
+  if (struck === null || struck === undefined || bOwner(struck) !== me || !g.balls.some(b => b.n === struck && b.on)) foul = 'struck a ball not your own';
+  else if (g.opening && struck !== mark) foul = 'the opening shot is the marked ball';
+  for (const x of r.potted) {
+    const k = pk[x];
+    if (k === undefined || k < 0) { foul = foul || 'a ball left the table'; back.push(x); }
+    else if (bOwner(x) === op) { foul = foul || "potted the opponent's ball"; gave.push(x); }
+    else if (k === me) { foul = foul || 'into your own cup'; back.push(x); }
+    else if (x !== mark && !markDown) { foul = foul || 'an unmarked ball before the marked one'; back.push(x); }
+    else { if (x === mark) markDown = true; kept.push(x); }
+  }
+  if (foul) back.push(...kept.splice(0));
+  for (const x of back) bumperSpot(n.balls, x);
+  const dropped = foul ? bumperBonus(n.balls, op) : null, left = p => n.balls.filter(b => b.on && bOwner(b.n) === p).length;
+  let win = null, why = '', turn = !foul && kept.length ? me : op;
+  if (!left(op)) { win = op; why = 'all five balls down'; } else if (!foul && !left(me)) { win = me; why = 'all five balls down'; }
+  if (g.opening === 1) { turn = 1; n.opening = 2; n.openPot = [kept.includes(B_MARK[0]), false]; }
+  else if (g.opening === 2) {
+    n.opening = 0;
+    const pot = [!!(g.openPot && g.openPot[0]), kept.includes(B_MARK[1])];
+    if (foul || pot[0]) turn = 0;
+    else if (pot[1]) turn = 1;
+    else {
+      const d = p => { const b = n.balls.find(o => o.n === B_MARK[p]), T = POCKETS[1 - p]; return b.on ? Math.hypot(b.x - T[0], b.y - T[1]) : 9; };
+      turn = d(1) < d(0) ? 1 : 0;
+    }
+  }
+  n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
+  n.winner = win; n.inHand = null;
+  n.turn = win !== null ? me : turn;
+  n.striker = win !== null ? null : n.opening ? B_MARK[n.turn] : bumperStriker(n, n.turn);
+  n.dry = kept.length || gave.length || dropped !== null ? 0 : (g.dry || 0) + 1;
+  n.verdict = { foul, keep: win === null && n.turn === me, win, why, potted: kept, gave, back, dropped, scratch: false, grouped: false, twoFouls: false, opening: g.opening || 0 };
+  return n;
+}
+/* the CPU at bumper pool: the same simulate-and-score idea as pool. Geometry proposes: for each
+   ball it may strike, the straight line to the cup, the one-cushion bank off each rail, and a fan
+   of angles all round (the posts make the table busy, and a bank off a post is a shot too), each
+   at a ladder of powers sized to the path. The physics decides: each runs through strike and
+   stepTable (CPU_BT seconds, then the rest of the roll is cut off) and is judged and scored on
+   pots, fouls and the leave, plus, while nothing drops, how near the struck ball came to the
+   cup. Then the best few are refined by small changes of angle and power that are kept when they
+   score better, and the finalists re-run slightly mis-hit and scored on the mean. Levels differ
+   in breadth, refinement and aim noise. */
+const CPU_BUMPER = {
+  easy: { sims: 26, fan: 8, ladder: [1.1, 1.7], refine: 6, robust: 0, noise: 0.03, pnoise: 0.08, strikers: 1 },
+  medium: { sims: 70, fan: 14, ladder: [0.9, 1.3, 1.9], refine: 20, robust: 2, noise: 0.011, pnoise: 0.04, strikers: 2 },
+  hard: { sims: 150, fan: 20, ladder: [0.85, 1.2, 1.7, 2.4], refine: 50, robust: 3, noise: 0.004, pnoise: 0.015, strikers: 3 },
+  /* auto aim's search when no line is clear: small and without noise */
+  hint: { sims: 30, fan: 12, ladder: [1.2, 1.8], refine: 6, robust: 0, noise: 0, pnoise: 0, strikers: 1 },
+};
+const CPU_BT = 5;
+/* the cue speed that rolls a ball about d metres (rolling resistance, the slide's loss), as a power */
+const bPowerFor = d => powerFor(Math.sqrt(2 * MU_ROLL * G * Math.max(0.05, d)) * 1.4);
+function bRun(g, shot) {
+  const tab = strike(newTable(g.balls, shot.ball), shot.angle, shot.power, shot.spin), T = POCKETS[1 - g.turn];
+  const b = tab.balls.find(o => o.n === shot.ball), cap = Math.round(CPU_BT / SIM_DT);
+  let minD = Math.hypot(b.x - T[0], b.y - T[1]), live = true;
+  for (let i = 0; live && i < cap; i++) {
+    live = stepTable(tab);
+    if (b.on) minD = Math.min(minD, Math.hypot(b.x - T[0], b.y - T[1]));
+    tab.hits.length = 0;
+  }
+  if (live) { for (const o of tab.balls) { o.vx = 0; o.vy = 0; o.wx = 0; o.wy = 0; o.wz = 0; } tab.end = 'rest'; }
+  return { r: resultOf(tab), minD: b.on ? minD : 0 };
+}
+/* the score of a judged outcome j for the player who shot from g, and its shaping by minD */
+function bValue(g, j, minD) {
+  const me = g.turn;
+  if (j.winner !== null) return j.winner === me ? 10000 : -10000;
+  let v = (j.verdict.foul ? -500 : 0) + 400 * j.verdict.potted.length + (j.turn === me ? 150 : 0);
+  for (const b of j.balls) {
+    if (!b.on) continue;
+    const p = bOwner(b.n), T = POCKETS[1 - p], d = Math.min(1, Math.hypot(b.x - T[0], b.y - T[1]));
+    if (p === me) v -= (b.n === B_MARK[me] ? 120 : 60) * d;
+    else v += 60 * d - (d < 0.2 ? 120 : 0);
+  }
+  return v - (j.verdict.potted.length ? 0 : 300 * Math.min(minD, 0.5));
+}
+function* cpuBumper(g, seed, level) {
+  const L = CPU_BUMPER[level] || CPU_BUMPER.medium, rnd = rng(seed * 2654435761 + 7), me = g.turn, T = POCKETS[1 - me];
+  const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2, none = { x: 0, y: 0 };
+  const play = s => ({ angle: s.angle + gauss() * L.noise, power: clamp(powerFor(speedOf(s.power) * (1 + gauss() * L.pnoise)), 0, 1), spin: none, place: null, ball: s.ball });
+  const balls = bumperStrikers(g, me).map(n => g.balls.find(b => b.n === n)).filter(b => b && b.on);
+  if (!balls.length) return { angle: 0, power: 0.2, spin: none, place: null, ball: g.striker };
+  /* the marked ball first, then the rest nearest the cup first */
+  const dT = b => Math.hypot(b.x - T[0], b.y - T[1]);
+  balls.sort((a, b) => (b.n === B_MARK[me]) - (a.n === B_MARK[me]) || dT(a) - dT(b));
+  const recs = [];
+  let sims = 0;
+  const sim = shot => { const o = bRun(g, shot), j = judge(g, o.r); sims++; const r = { shot, value: bValue(g, j, o.minD) }; recs.push(r); return r; };
+  /* A: lines and fans, the likeliest first */
+  const cands = [];
+  for (const b of balls.slice(0, L.strikers)) {
+    const R = BALL_R, lines = [[T[0], T[1], 0]];
+    for (const [mx, my] of [[2 * R - T[0], T[1]], [2 * (TL - R) - T[0], T[1]], [T[0], 2 * R - T[1]], [T[0], 2 * (TW - R) - T[1]]]) lines.push([mx, my, 1]);
+    for (const [x, y, bank] of lines) {
+      const d = Math.hypot(x - b.x, y - b.y);
+      for (const f of L.ladder) cands.push({ pri: -d - bank * 0.2 - Math.abs(f - 1.2) * 0.1, shot: { angle: Math.atan2(y - b.y, x - b.x), power: bPowerFor(d * f + 0.2), spin: none, ball: b.n } });
+    }
+    const off = rnd() * 2 * Math.PI / L.fan;
+    for (let i = 0; i < L.fan; i++) cands.push({ pri: -3 - rnd(), shot: { angle: off + i * 2 * Math.PI / L.fan, power: bPowerFor(1.4 + rnd() * 1.6), spin: none, ball: b.n } });
+  }
+  cands.sort((a, b) => b.pri - a.pri);
+  const budgetA = Math.max(4, L.sims - L.refine - 2 * L.robust);
+  for (const c of cands) { if (sims >= budgetA) break; sim(c.shot); yield; }
+  /* B: refine the best three by keeping what scores better */
+  const top = recs.slice().sort((a, b) => b.value - a.value).slice(0, 3);
+  for (let i = 0; i < L.refine && top.length; i++) {
+    const j = i % top.length, base = top[j], step = 0.03 / (1 + Math.floor(i / top.length));
+    const r = sim(Object.assign({}, base.shot, { angle: base.shot.angle + (rnd() - 0.5) * 2 * step, power: clamp(base.shot.power * (1 + (rnd() - 0.5) * 0.3), 0.02, 1) }));
+    yield;
+    if (r.value > base.value) top[j] = r;
+  }
+  /* C: the finalists slightly mis-hit, scored on the mean */
+  const best = recs.slice().sort((a, b) => b.value - a.value);
+  for (const r of best) r.mean = r.value;
+  for (const r of best.slice(0, L.robust)) {
+    let sum = r.value;
+    for (const k of [1, -1]) { sum += sim(Object.assign({}, r.shot, { angle: r.shot.angle + k * Math.max(L.noise, 0.003) * 1.5 })).value; yield; }
+    r.mean = sum / 3;
+  }
+  const pick = best.slice(0, Math.max(1, L.robust)).reduce((a, b) => b.mean > a.mean ? b : a, best[0]);
+  return play(pick.shot);
+}
+/* auto aim's suggestion: the ball to strike and a clear line for it to the far cup (straight,
+   or off one cushion), the shortest, the marked ball first while it is up; with none clear,
+   the best of a small noiseless CPU search (the 'hint' level). { angle, n: the ball, k: the cup }. */
+function suggestBumper(g) {
+  if (g.winner !== null) return null;
+  const me = g.turn, k = 1 - me, T = POCKETS[k], R = BALL_R;
+  const balls = bumperStrikers(g, me).map(n => g.balls.find(b => b.n === n)).filter(b => b && b.on);
+  if (!balls.length) return null;
+  const clear = (ax, ay, bx, by, skip) => BUMPERS.every(p => segGap(ax, ay, bx, by, p[0], p[1]) >= R + BUMPER_R)
+    && g.balls.every(o => !o.on || o.n === skip || segGap(ax, ay, bx, by, o.x, o.y) >= 2 * R);
+  const markOn = balls.some(b => b.n === B_MARK[me]);
+  let best = null;
+  for (const b of balls) {
+    const extra = markOn && b.n !== B_MARK[me] ? 2 : 0, paths = [[T[0], T[1], null]];
+    for (const [mx, my, ax, at] of [[2 * R - T[0], T[1], 0, R], [2 * (TL - R) - T[0], T[1], 0, TL - R], [T[0], 2 * R - T[1], 1, R], [T[0], 2 * (TW - R) - T[1], 1, TW - R]]) {
+      const u = ax ? (at - b.y) / (my - b.y) : (at - b.x) / (mx - b.x);
+      if (u > 0 && u < 1) paths.push([mx, my, [b.x + (mx - b.x) * u, b.y + (my - b.y) * u]]);
+    }
+    for (const [x, y, bounce] of paths) {
+      const ok = bounce ? clear(b.x, b.y, bounce[0], bounce[1], b.n) && clear(bounce[0], bounce[1], T[0], T[1], b.n) : clear(b.x, b.y, T[0], T[1], b.n);
+      const len = Math.hypot(x - b.x, y - b.y) + (bounce ? 0.3 : 0) + extra;
+      if (ok && (!best || len < best.len)) best = { len, angle: Math.atan2(y - b.y, x - b.x), n: b.n, k };
+    }
+  }
+  if (best) return { angle: best.angle, n: best.n, k: best.k };
+  const s = cpuShot(g, 1, 'hint');
+  return { angle: s.angle, n: s.ball, k };
 }
 // #endregion sim
 
@@ -1603,7 +1917,9 @@ function layout() {
    places a pocket or cushion by hand. The table is painted once per layout into tableImg; a frame
    is that image, cached ball sprites and a few vector shapes. */
 const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3: [208, 42, 36], 4: [92, 46, 146], 5: [242, 112, 26], 6: [22, 120, 66], 7: [122, 30, 32], 8: [20, 20, 22] };
-const colorOf = n => BALL_COLOR[n > 8 ? n - 8 : n];
+/* bumper pool's red and white (balls 21-25 and 31-35, 1g) */
+const BUMPER_COLOR = [[200, 38, 44], [244, 241, 230]];
+const colorOf = n => n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
 /* the cloths (settings.cloth): bed, cushion rubber, the illegal colour, the floor under every
    white overlay on the bed, and the bed's colour bounced into the balls' shadow sides. Each
    overlay (guide lines and rings, placement rings and chevrons, the kitchen line, the loupe) is
@@ -1670,6 +1986,7 @@ function drawTableImage() {
   g.fillStyle = '#2a140a'; railOutline(g, co); g.fill();
   g.restore();
   paintRails(g, co, L, px, rnd);
+  if (BUMPERS.length) { paintBumperTable(g, co, L, px, K, rnd); trayBox = trayGeom(); return c; }
   paintSights(g, co, L, px);
   /* the cloth runs under the cushions to the wood */
   g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
@@ -1795,6 +2112,7 @@ function earOf(S) {
 }
 /* how far the table reaches past the long cushions' nose line: the rail, or the side ears */
 function sideReach() {
+  if (BUMPERS.length) return RAIL;   /* bumper pool: a plain rail, no pockets in it */
   const co = cushionDepth(), e = pocketShape(1, co).ear;
   return Math.max(RAIL, e ? e.reach : 0);
 }
@@ -1802,6 +2120,11 @@ function sideReach() {
    ear round each side cap. railPath adds it as a subpath, clockwise from the top left. */
 function railOutline(g, co) { g.beginPath(); railPath(g, co); }
 function railPath(g, co) {
+  if (BUMPERS.length) {   /* bumper pool: a plain rounded rail, no caps to wrap */
+    const r = Math.min(0.045, RAIL), x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL;
+    g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); g.closePath();
+    return;
+  }
   const R = Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co), F = EAR_FILLET, h = TL / 2;
   /* an ear on the top rail (o = 0) or the bottom (o = 1, the same turned half a turn about the bed's middle) */
   const ear = (k, o) => {
@@ -2110,14 +2433,112 @@ function paintBevels(g, co, L, px) {
   g.restore();
 }
 
+/* ---- 4a'. the bumper pool table ---- */
+/* The same rails and cloth as the pool table, read from the same globals (CUSHION_POLYS: four
+   rubbers meeting in mitres, no mouths; POCKETS and POCKET_R: the two cups in the bed; BUMPERS:
+   the posts). Each cup is a round hole straight down through the cloth with a dark rubber liner
+   and a thin nickel rim flush with the bed, the cloth turning under round it. Each post is a
+   black rubber ring on a turned nickel cap, lit from the lamp, standing in its own shadow. */
+function paintBumperTable(g, co, L, px, K, rnd) {
+  g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
+  POCKETS.forEach((P, k) => {
+    const r = POCKET_R[k], fx = P[0] + L[0] * r * 0.35, fy = P[1] + L[1] * r * 0.35;
+    g.fillStyle = '#040303'; circle(g, P[0], P[1], r + 0.0005); g.fill();
+    const gr = g.createRadialGradient(fx, fy, 0, fx, fy, r * 1.35);
+    gr.addColorStop(0, 'rgba(40,30,22,0)'); gr.addColorStop(0.6, 'rgba(40,30,22,0)');
+    gr.addColorStop(0.86, 'rgba(48,37,28,0.5)'); gr.addColorStop(1, 'rgba(74,57,42,0.85)');
+    g.save(); circle(g, P[0], P[1], r); g.clip();
+    g.fillStyle = gr; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);
+    g.restore();
+  });
+  paintCushions(g, co, K);
+  paintClothLight(g, co, rnd);
+  paintBumperBevels(g, co, L, px);
+  /* the cups' turn-under, liner and rim */
+  g.save(); clipBed(g, co);
+  POCKETS.forEach((P, k) => {
+    const r = POCKET_R[k], d = 0.016, o = 0.003, fx = P[0] + L[0] * o, fy = P[1] + L[1] * o;
+    const gr = g.createRadialGradient(fx, fy, r, fx, fy, r + d);
+    gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(0.35, 'rgba(0,0,0,0.24)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(P[0] - r - d, P[1] - r - d, 2 * (r + d), 2 * (r + d));
+  });
+  g.restore();
+  POCKETS.forEach((P, k) => {
+    const r = POCKET_R[k], lw = Math.max(1.5 * px, 0.0042), rim = Math.max(px, 0.0013);
+    g.strokeStyle = '#17120f'; g.lineWidth = lw; circle(g, P[0], P[1], r + lw / 2); g.stroke();
+    const metal = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+    metal.addColorStop(0, '#d8d5cd'); metal.addColorStop(0.5, '#7b7872'); metal.addColorStop(1, '#3a3834');
+    g.strokeStyle = metal; g.lineWidth = rim; circle(g, P[0], P[1], r + lw + rim / 2); g.stroke();
+    /* the liner's lip catches a little light on the far side, inside the hole */
+    const sh = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+    sh.addColorStop(0, 'rgba(255,240,220,0)'); sh.addColorStop(0.6, 'rgba(255,240,220,0)'); sh.addColorStop(1, 'rgba(255,240,220,0.18)');
+    g.strokeStyle = sh; g.lineWidth = Math.max(px, 0.0012); circle(g, P[0], P[1], r - g.lineWidth / 2); g.stroke();
+  });
+  paintPosts(g, L, px);
+}
+/* the four rubbers' lit noses: a band along each nose shaded by how squarely it faces the lamp,
+   a crease highlight, a dark line where it meets the bed, the mitres, and the seam to the wood */
+function paintBumperBevels(g, co, L, px) {
+  const bw = 0.0105, f = bw / CUSH_W;
+  const shade = v => v > 0 ? `rgba(255,255,240,${0.03 + 0.11 * v})` : `rgba(0,0,0,${0.06 - 0.22 * v})`;
+  g.save();
+  g.beginPath(); for (const q of CUSHION_POLYS) polyPath(g, q); g.clip();
+  for (const [ea, pa, pb, eb] of CUSHION_POLYS) {
+    const dx = pb[0] - pa[0], dy = pb[1] - pa[1], l = Math.hypot(dx, dy);
+    let nx = -dy / l, ny = dx / l;
+    if ((TL / 2 - pa[0]) * nx + (TW / 2 - pa[1]) * ny < 0) { nx = -nx; ny = -ny; }
+    const fN = nx * L[0] + ny * L[1], ia = [pa[0] + (ea[0] - pa[0]) * f, pa[1] + (ea[1] - pa[1]) * f], ib = [pb[0] + (eb[0] - pb[0]) * f, pb[1] + (eb[1] - pb[1]) * f];
+    g.fillStyle = shade(fN); g.beginPath(); polyPath(g, [pa, pb, ib, ia]); g.fill();
+    const gr = g.createLinearGradient(ia[0], ia[1], ia[0] - nx * (co - bw), ia[1] - ny * (co - bw));
+    gr.addColorStop(0, 'rgba(255,255,255,0.035)'); gr.addColorStop(1, 'rgba(0,0,0,0.14)');
+    g.fillStyle = gr; g.beginPath(); polyPath(g, [ia, ib, eb, ea]); g.fill();
+    g.strokeStyle = `rgba(255,255,245,${0.07 + 0.16 * Math.max(0, fN)})`; g.lineWidth = 1.1 * px;
+    g.beginPath(); g.moveTo(ia[0], ia[1]); g.lineTo(ib[0], ib[1]); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.38)'; g.lineWidth = 1.4 * px;
+    g.beginPath(); g.moveTo(pa[0], pa[1]); g.lineTo(pb[0], pb[1]); g.stroke();
+    g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = px;
+    g.beginPath(); g.moveTo(pa[0], pa[1]); g.lineTo(ea[0], ea[1]); g.stroke();
+  }
+  g.restore();
+  g.strokeStyle = 'rgba(0,0,0,0.55)'; g.lineWidth = 1.6 * px;
+  g.strokeRect(-co, -co, TL + 2 * co, TW + 2 * co);
+  g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
+  g.strokeRect(-co - 1.5 * px, -co - 1.5 * px, TL + 2 * co + 3 * px, TW + 2 * co + 3 * px);
+}
+/* the posts: a soft shadow away from the lamp, the black rubber ring with a sheen on its lit
+   side, the nickel cap (lit toward the lamp, a dark groove at its edge, a hot spot) and its screw */
+function paintPosts(g, L, px) {
+  const R = BUMPER_R, rc = R * 0.6, sx = -L[0] * 0.007, sy = -L[1] * 0.007;
+  for (const [x, y] of BUMPERS) {
+    let gr = g.createRadialGradient(x + sx, y + sy, R * 0.6, x + sx, y + sy, R * 1.45);
+    gr.addColorStop(0, 'rgba(0,0,0,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; circle(g, x + sx, y + sy, R * 1.45); g.fill();
+    gr = g.createRadialGradient(x + L[0] * R * 0.3, y + L[1] * R * 0.3, R * 0.2, x, y, R);
+    gr.addColorStop(0, '#3a3633'); gr.addColorStop(0.7, '#1b1918'); gr.addColorStop(1, '#0a0909');
+    g.fillStyle = gr; circle(g, x, y, R); g.fill();
+    const rim = g.createLinearGradient(x + L[0] * R, y + L[1] * R, x - L[0] * R, y - L[1] * R);
+    rim.addColorStop(0, 'rgba(255,255,255,0.32)'); rim.addColorStop(0.45, 'rgba(255,255,255,0.04)'); rim.addColorStop(1, 'rgba(0,0,0,0.4)');
+    g.strokeStyle = rim; g.lineWidth = Math.max(1.2 * px, R * 0.12); circle(g, x, y, R - g.lineWidth / 2); g.stroke();
+    g.fillStyle = 'rgba(0,0,0,0.55)'; circle(g, x - L[0] * R * 0.06, y - L[1] * R * 0.06, rc + R * 0.08); g.fill();
+    gr = g.createRadialGradient(x + L[0] * rc * 0.45, y + L[1] * rc * 0.45, 0, x, y, rc);
+    gr.addColorStop(0, '#fbfaf6'); gr.addColorStop(0.35, '#cfccc4'); gr.addColorStop(0.8, '#7d7a73'); gr.addColorStop(1, '#4a4843');
+    g.fillStyle = gr; circle(g, x, y, rc); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = Math.max(px, rc * 0.08); circle(g, x, y, rc * 0.82); g.stroke();
+    g.fillStyle = '#5d5a54'; circle(g, x, y, rc * 0.2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.85)'; circle(g, x + L[0] * rc * 0.45, y + L[1] * rc * 0.45, rc * 0.14); g.fill();
+  }
+}
+
 /* ---- 4b. balls ---- */
 /* Orientation is a matrix rolled from each ball's displacement. A frame paints each ball as
    vectors: the base colour, the white areas as exact projections of spherical caps (stripe
    ends, number circles), the number as a decal mapped onto its circle, then one cached sprite
    with the lamp's shading and highlight. No per-pixel work per frame. */
 const orient = {}, IDENT = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+/* every ball number: pool's 0-15 and bumper pool's red and white */
+const ALL_BALLS = [...Array(16).keys(), 21, 22, 23, 24, 25, 31, 32, 33, 34, 35];
 function randomOrient() {
-  for (let n = 0; n <= 15; n++) {
+  for (const n of ALL_BALLS) {
     let m = IDENT;
     for (let i = 0; i < 3; i++) m = rotate(m, [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5], Math.random() * 6.3);
     orient[n] = m;
@@ -2158,6 +2579,12 @@ const PAINT = {};
 for (let n = 0; n <= 15; n++) {
   PAINT[n] = n === 0 ? { base: rgb(BALL_COLOR[0]), caps: [[2, 0.975, '#b3302a']] }
     : { base: rgb(colorOf(n)), caps: n > 8 ? [[0, 0.5, IVORY], [2, 0.866, IVORY]] : [[2, 0.866, IVORY]] };
+}
+/* bumper pool: plain red and white, the marked balls spotted (white on red, red on white) at
+   both ends of all three axes, so a spot faces up however the ball has rolled */
+for (const n of [21, 22, 23, 24, 25, 31, 32, 33, 34, 35]) {
+  const spot = n === 21 ? IVORY : '#c8262c';
+  PAINT[n] = { base: rgb(colorOf(n)), caps: n === 21 || n === 31 ? [[0, 0.94, spot], [1, 0.94, spot], [2, 0.94, spot]] : [] };
 }
 /* The part of the cap {v . p >= ca} on the unit sphere that faces the eye, projected. Its rim
    projects to an ellipse; where the rim goes round the limb the outline follows the limb. */
@@ -2226,7 +2653,7 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
     if (capPath(g, a, ca)) g.fill();
     if (capPath(g, [-a[0], -a[1], -a[2]], ca)) g.fill();
   }
-  if (n > 0) {
+  if (n > 0 && n < 16) {
     let p = ax[2], e2 = ax[1];
     const e1 = ax[0];
     if (p[2] < 0) { p = [-p[0], -p[1], -p[2]]; e2 = [-e2[0], -e2[1], -e2[2]]; }
@@ -2303,6 +2730,8 @@ function drawPots(now) {
   });
   const rb = BALL_R * view.k * dpr, co = cushionDepth();
   for (const p of pots) {
+    if (!POCKETS[p.k]) continue;   /* off the table (bumper pool's fail-safe): nothing to show */
+    if (BUMPERS.length) { drawCupPot(p, (now - p.t) / dur, rb); continue; }
     const u = (now - p.t) / dur, P = POCKETS[p.k], m = 1 - (1 - Math.min(1, u / 0.5)) ** 2, sink = ease(0.15, 1, u);
     const x = p.from[0] + (P[0] - p.from[0]) * m, y = p.from[1] + (P[1] - p.from[1]) * m, s = toScreen(x, y);
     ctx.save();
@@ -2314,6 +2743,16 @@ function drawPots(now) {
     drawBall(p.n, s[0] * dpr, s[1] * dpr, rb * (1 - 0.32 * sink), axesOf(orient[p.n] || IDENT), 1, 0.88 * sink, true);
     ctx.restore();
   }
+}
+/* bumper pool: a ball runs on to the cup's middle, sinking and darkening inside the hole */
+function drawCupPot(p, u, rb) {
+  const P = POCKETS[p.k], m = 1 - (1 - Math.min(1, u / 0.5)) ** 2, sink = ease(0.15, 1, u);
+  const s = toScreen(p.from[0] + (P[0] - p.from[0]) * m, p.from[1] + (P[1] - p.from[1]) * m);
+  ctx.save();
+  tableXform(ctx);
+  ctx.beginPath(); ctx.arc(P[0], P[1], POCKET_R[p.k] + (1 - ease(0.1, 0.55, u)) * 3 * BALL_R, 0, Math.PI * 2); ctx.clip();
+  drawBall(p.n, s[0] * dpr, s[1] * dpr, rb * (1 - 0.32 * sink), axesOf(orient[p.n] || IDENT), 1, 0.88 * sink, true);
+  ctx.restore();
 }
 const TRAY_TILT = rotate(rotate(IDENT, [1, 0, 0], -0.32), [0, 1, 0], 0.26);
 function drawTray(now) {
@@ -2379,9 +2818,13 @@ function onHits(hits, now) {
       if (Math.hypot(b.x - px, b.y - py) < R + 0.004 && !recent(key)) { found++; effects.push({ kind: 'rail', key, x: px, y: py, v: rail, t: now, d: 340 }); }
     }
   }
-  const c = B.find(b => b.n === 0);
+  if (rail > 0.05) for (const b of B) for (const q of BUMPERS) {
+    const d = Math.hypot(b.x - q[0], b.y - q[1]), key = 'p' + b.n;
+    if (d < R + BUMPER_R + 0.004 && !recent(key)) effects.push({ kind: 'rail', key, x: q[0] + (b.x - q[0]) * BUMPER_R / d, y: q[1] + (b.y - q[1]) * BUMPER_R / d, v: rail, t: now, d: 340 });
+  }
+  const c = B.find(b => b.n === tab.cue);
   if (cue > 0 && c) {
-    const p = before[0] || [c.x, c.y], v = Math.hypot(c.vx, c.vy) || 1;
+    const p = before[tab.cue] || [c.x, c.y], v = Math.hypot(c.vx, c.vy) || 1;
     effects.push({ kind: 'cue', key: 'cue', x: p[0] - c.vx / v * R, y: p[1] - c.vy / v * R, v: cue, t: now, d: 200 });
   }
 }
@@ -2438,6 +2881,16 @@ function aimTrace(x, y, dx, dy, skip, far) {
     if (p > 0 && q < rr) { const t = p - Math.sqrt(rr - q); if (t >= 0 && t < out.t) Object.assign(out, { t, kind: 'ball', ball: b }); }
   }
   for (const s of CUSH) { const h = aimSweep(s, x, y, dx, dy); if (h && h.t < out.t) Object.assign(out, h, { kind: 'rail', ball: null }); }
+  /* bumper pool: the posts stop it like a cushion, and a cup in the bed takes it when the line
+     runs near its middle */
+  for (const q of BUMPERS) {
+    const D = BALL_R + BUMPER_R, ox = q[0] - x, oy = q[1] - y, pr = ox * dx + oy * dy, qq = ox * ox + oy * oy - pr * pr;
+    if (pr > 0 && qq < D * D) { const t = pr - Math.sqrt(D * D - qq); if (t >= 0 && t < out.t) Object.assign(out, { t, kind: 'rail', ball: null, nx: (x + dx * t - q[0]) / D, ny: (y + dy * t - q[1]) / D }); }
+  }
+  if (BUMPERS.length) POCKETS.forEach((P, i) => {
+    const tc = (P[0] - x) * dx + (P[1] - y) * dy, d = Math.hypot(x + dx * tc - P[0], y + dy * tc - P[1]);
+    if (tc > 0 && d < POCKET_R[i] * 0.8 && tc < out.t) Object.assign(out, { t: tc, kind: 'pocket', ball: null, k: i });
+  });
   let te = Infinity;
   if (dx > 1e-9) te = Math.min(te, (TL - x) / dx); else if (dx < -1e-9) te = Math.min(te, -x / dx);
   if (dy > 1e-9) te = Math.min(te, (TW - y) / dy); else if (dy < -1e-9) te = Math.min(te, -y / dy);
@@ -2495,12 +2948,12 @@ const PV_GAP = 0.01;              /* polyline points at least this far apart */
 const PV_BUDGET = 3;              /* ms of simulation per frame: most previews finish in the frame that starts them */
 const PV_FULL = [0.7, 2.0], PV_SHORT = [0.2, 0.2];   /* cue path past contact, object path: 'full' and 'short' */
 function previewStart(ang, pw, sp, h, lens) {
-  const R = BALL_R, c = game.balls.find(b => b.n === 0), dx = Math.cos(ang), dy = Math.sin(ang);
+  const R = BALL_R, c = cueBall(), cn = c.n, dx = Math.cos(ang), dy = Math.sin(ang);
   let balls = game.balls.filter(b => b.on);
   if (h.kind === 'ball') {
     const o = h.ball, gx = c.x + dx * h.t, gy = c.y + dy * h.t, nx = (o.x - gx) / (2 * R), ny = (o.y - gy) / (2 * R);
     balls = balls.filter(b => {
-      if (b.n === 0 || b.n === o.n) return true;
+      if (b.n === cn || b.n === o.n) return true;
       const a = (b.x - c.x) * dx + (b.y - c.y) * dy, d = Math.abs((b.y - c.y) * dx - (b.x - c.x) * dy);
       if (a > -2 * R && a < h.t + 2 * R && d < 2 * R + 0.02 + 0.03 * a) return true;
       if (Math.hypot(b.x - gx, b.y - gy) < lens[0] + 3 * R) return true;
@@ -2512,8 +2965,8 @@ function previewStart(ang, pw, sp, h, lens) {
      it runs alone (cheap, and step for step the same) while its clearance to every other ball
      is more than it can cover; then its state moves into the full copy. Its speed can grow
      while follow or draw takes, but never past v + R w. */
-  const full = newTable(balls), solo = strike(newTable(balls.filter(b => b.n === 0)), ang, pw, sp);
-  const S = { lens, full, solo, others: full.balls.filter(b => b.n !== 0), tab: solo, ball: solo.balls[0], safe: 0, s: 0,
+  const full = newTable(balls, cn), solo = strike(newTable(balls.filter(b => b.n === cn), cn), ang, pw, sp);
+  const S = { lens, full, solo, others: full.balls.filter(b => b.n !== cn), tab: solo, ball: solo.balls[0], safe: 0, s: 0,
     ev: false, cueDone: false, cl: 0, o: null, objDone: true, ol: 0, odx: 0, ody: 0,
     cue: [], obj: null, first: null, crossed: c.x > HEAD_X, cuePot: -1, objPot: -1, objHit: false, cueStop: false, done: false };
   return S;
@@ -2530,7 +2983,7 @@ function previewRun(S, ms) {
         for (const b of S.others) gap = Math.min(gap, Math.hypot(b.x - cue.x, b.y - cue.y) - 2 * R);
         const vm = Math.hypot(cue.vx, cue.vy) + R * Math.hypot(cue.wx, cue.wy);
         S.safe = vm > 0 ? Math.floor((gap - 0.002) / (vm * SIM_DT)) : PV_CAP;
-        if (S.safe < 1) { const fc = S.full.balls.find(b => b.n === 0); Object.assign(fc, cue); S.tab = S.full; S.ball = cue = fc; }
+        if (S.safe < 1) { const fc = S.full.balls.find(b => b.n === S.full.cue); Object.assign(fc, cue); S.tab = S.full; S.ball = cue = fc; }
       }
       S.safe--;
     }
@@ -2548,8 +3001,8 @@ function previewRun(S, ms) {
     tab.hits.length = 0;
     if (!S.cueDone) {
       if (!cue.on) {
-        S.cueDone = true; S.cuePot = tab.pocketOf[0];
-        if (S.ev) S.cue.push(POCKETS[S.cuePot].slice());
+        S.cueDone = true; S.cuePot = tab.pocketOf[tab.cue];
+        if (S.ev && POCKETS[S.cuePot]) S.cue.push(POCKETS[S.cuePot].slice());
       } else if (evWas) {
         S.cl += Math.hypot(cue.x - px, cue.y - py);
         /* slow is not stopped while follow or draw (spin about a horizontal axis) can drive it on */
@@ -2558,7 +3011,7 @@ function previewRun(S, ms) {
       }
     }
     if (o && !S.objDone) {
-      if (!o.on) { S.objDone = true; S.objPot = tab.pocketOf[o.n]; S.obj.push(POCKETS[S.objPot].slice()); }
+      if (!o.on) { S.objDone = true; S.objPot = tab.pocketOf[o.n]; if (POCKETS[S.objPot]) S.obj.push(POCKETS[S.objPot].slice()); }
       else {
         const v = Math.hypot(o.vx, o.vy);
         S.ol += Math.hypot(o.x - ox, o.y - oy);
@@ -2615,6 +3068,13 @@ function trimStart(pts, d) {
   }
   return [];
 }
+/* a pot the guide shows as good (white) or not (ILLEGAL): in pool any object ball, never the
+   cue ball; in bumper pool a ball of the shooter's into the far cup, the marked ball first */
+function potOk(n, k) {
+  if (game.kind !== 'bumper') return n !== 0;
+  const me = game.turn, mark = B_MARK[me];
+  return bOwner(n) === me && k === 1 - me && (n === mark || !game.balls.some(b => b.n === mark && b.on));
+}
 /* The aim guide: the cue ball's line to a ghost ball where it first touches something (pure
    geometry, so it sits where the aim says), then the preview's paths: the object ball's solid
    line to where it goes and the cue ball's dashed path after contact. The ghost ring turns
@@ -2629,7 +3089,7 @@ function guide(c, ang) {
   const mode = settings.guide;
   if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
-  const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
+  const h = aimTrace(c.x, c.y, dx, dy, [c.n], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
   /* the verdict comes from a complete preview only; with none yet (a turn's first frame on a
      slow device) the last one stands, so the ring never flips on half-known data */
   let first = null, legal = guideLegal, cue = [];
@@ -2639,7 +3099,8 @@ function guide(c, ang) {
     /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
     const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
       && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
-    legal = guideLegal = first ? !wrong && !kitchen : false;
+    /* bumper pool: any contact, or none, is legal */
+    legal = guideLegal = game.kind === 'bumper' || (first ? !wrong && !kitchen : false);
     /* a preview a frame or two behind a moving aim that still meets the same ball or cushion:
        its cue ball path moves with the ghost ball, so the two never come apart */
     const same = P.hb === (h.ball ? h.ball.n : -1) && P.hk === h.kind && (h.kind === 'ball' || h.kind === 'rail') && P.cuePot < 0 && Math.abs(P.ang - ang) < 0.03;
@@ -2656,10 +3117,12 @@ function guide(c, ang) {
   if (legal && P.obj && P.obj.length > 1) {
     const o = trimStart(P.obj, R), end = P.obj[P.obj.length - 1];
     if (o.length > 1) strokeLine(o, 'rgba(255,255,255,0.9)', 2);
-    if (P.objPot >= 0) guideRing(POCKETS[P.objPot][0], POCKETS[P.objPot][1], POCKET_R[P.objPot] * view.k * 0.8, 'rgba(255,255,255,0.7)', 1.5);
+    if (POCKETS[P.objPot]) guideRing(POCKETS[P.objPot][0], POCKETS[P.objPot][1], POCKET_R[P.objPot] * view.k * 0.8, potOk(P.first, P.objPot) ? 'rgba(255,255,255,0.7)' : ILLEGAL, 1.5);
     else if (full && P.objHit) guideRing(end[0], end[1], rp, wa(0.35), 1.25);
   }
-  /* the cue ball after contact, and where it stops if that is inside the horizon */
+  /* the cue ball after contact, and where it stops if that is inside the horizon; a pot of it is
+     a scratch (ILLEGAL), but in bumper pool the struck ball dropping in the far cup is the point */
+  const cueCol = potOk(c.n, P.cuePot) ? 'rgba(255,255,255,0.9)' : ILLEGAL;
   if (cue.length > 1) {
     strokeLine(cue, wa(0.55), 1.5, [5, 5]);
     const end = cue[cue.length - 1];
@@ -2668,10 +3131,10 @@ function guide(c, ang) {
       let tail = cue.slice().reverse(), len = 0;
       for (let i = 1; i < tail.length; i++) len += Math.hypot(tail[i][0] - tail[i - 1][0], tail[i][1] - tail[i - 1][1]);
       tail = cutLine(tail, Math.min(len, 0.1));
-      strokeLine(tail, ILLEGAL, 2);
+      strokeLine(tail, cueCol, 2);
     }
   }
-  if (P.cuePot >= 0) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, ILLEGAL, 2);
+  if (POCKETS[P.cuePot]) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, cueCol, 2);
   return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: legal ? P.obj : null };
 }
 
@@ -2780,7 +3243,7 @@ function draw(now) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const s of pos) drawShadow(s[0] * dpr, s[1] * dpr, rb);
   /* no aim line from a ghost on an illegal spot (the ball is not there) */
-  const c = game.balls.find(b => b.n === 0), aiming = (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && c.on && !dropping && !(ghost && !ghostOk);
+  const c = cueBall(), aiming = (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
@@ -2886,7 +3349,7 @@ function drawLoupe(now, gi) {
   const o = gi.obj, pc = gi.cue;
   if (o) for (let i = 1; i < o.length; i++) lines.push([toScreen(o[i - 1][0], o[i - 1][1]), toScreen(o[i][0], o[i][1]), 4]);
   for (let i = 1; i < pc.length; i++) lines.push([toScreen(pc[i - 1][0], pc[i - 1][1]), toScreen(pc[i][0], pc[i][1]), 2]);
-  const balls = game.balls.filter(b => b.on).map(b => [...toScreen(b.x, b.y), b.n === 0 ? 16 : 1]);
+  const balls = game.balls.filter(b => b.on).map(b => [...toScreen(b.x, b.y), b.n === gi.c.n ? 16 : 1]);
   /* it glides to a new spot rather than jumping there */
   const to = loupePlace(C[0], C[1], r, { lines, balls, rp }, loupe && loupe.to);
   if (!loupe || loupeA <= dt / LOUPE_FADE_MS) loupe = { x: to.x, y: to.y, r, to };
@@ -3018,6 +3481,8 @@ let fineAim = false, aimAnim = null, wheelRoll = 0;
    (tap, sweep, wheel, arrows), so a move keeps their aim. hint: auto aim's suggestion,
    { n: the ball, k: the pocket index or -1 }, on human turns with auto aim on; null otherwise. */
 let move = null, placeBack = null, handAimed = false, hint = null;
+/* bumper pool: the player chose the ball to strike this turn (a tap on it, or B), so auto aim keeps it */
+let picked = false;
 let settings = loadSettings();
 const felt = window.felt = {
   speed: 1, lastResult: null, lastShot: null, lastCpu: null,
@@ -3032,13 +3497,17 @@ const felt = window.felt = {
   place(x, y) { if (state !== 'aim' || !game.inHand || !human()) return false; beginMove(false); moveBall([x, y]); const ok = !!placeAt && canPlace(game, x, y); endMove(true); return ok; },
   /* a ball's diameter on screen, CSS px */
   get ballPx() { return 2 * BALL_R * view.k; },
-  start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAnim = null; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
+  start, shoot: (a, p, s = 0, n) => { if (state !== 'aim') return false; if (n !== undefined && game.kind === 'bumper') game.striker = n; aimAnim = null; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
+  /* bumper pool: pick the ball to strike, as a tap on it does */
+  pick: n => pickBall(n), get striker() { return game.striker; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
   /* the table's footprint on screen, CSS px: the rail and the side pockets' ears */
   tableRect() { const e = sideReach(), a = toScreen(-RAIL, -e), b = toScreen(TL + RAIL, TW + e); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
-const cueBall = () => game.balls.find(b => b.n === 0);
+/* the ball the cue strikes: the cue ball, or in bumper pool the shooter's chosen ball (game.striker) */
+const cueN = () => game.kind === 'bumper' ? game.striker : 0;
+const cueBall = () => game.balls.find(b => b.n === cueN());
 const human = () => !(cpuMode && game.turn === 1);
 const nameOf = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `Player ${p + 1}`;
 const turnOf = p => cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
@@ -3060,14 +3529,14 @@ function start(kind) {
   pull = null; stroke = null; paused = null; stats = newStats(); aimAnim = null;
   cancelGestures(); aimLock = null;
   hideOverlays();
-  aimAngle = 0; handAimed = false; hint = null; placeAt = null; placeBack = null; move = null;
+  aimAngle = 0; handAimed = false; hint = null; placeAt = null; placeBack = null; move = null; picked = false;
   state = 'aim';
   enterHand();
   keepAim();
   autoAim();
   say(handHint());
-  const who = cpuMode ? 'You break' : 'Player 1 breaks';
-  flash('turn', who, 'Ball in hand behind the line', 1400);
+  if (kind === 'bumper') flash('turn', 'Opening shots', `${cpuMode ? 'You shoot' : 'Red shoots'} the marked ball at the far cup`, 1600);
+  else flash('turn', cpuMode ? 'You break' : 'Player 1 breaks', 'Ball in hand behind the line', 1400);
   hud();
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
@@ -3084,8 +3553,8 @@ function shoot() {
   audioOn();
   stroke = null; pull = null;
   dropBall();
-  felt.lastShot = { angle: aimAngle, power, spin: Object.assign({}, cueSpin) };
-  tab = strike(newTable(game.balls), aimAngle, power, cueSpin);
+  felt.lastShot = { angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() };
+  tab = strike(newTable(game.balls, cueN()), aimAngle, power, cueSpin);
   state = 'rolling';
   say('');
   hud();
@@ -3190,11 +3659,14 @@ const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').match
 function autoAim() {
   aimAnim = null; hint = null;
   if (!settings.autoAim || state !== 'aim' || !human()) return;
-  const s = suggestAim(game), c = cueBall(), t = s && game.balls.find(b => b.n === s.n);
+  const s = suggestAim(game), t = s && game.balls.find(b => b.n === s.n);
   if (!t) return;
   hint = { n: s.n, k: s.k };
   if (handAimed) return;
-  const to = Math.atan2(t.y - c.y, t.x - c.x);
+  /* bumper pool: the suggested ball becomes the one to strike, on the suggested line */
+  if (game.kind === 'bumper' && !picked) game.striker = s.n;
+  const c = cueBall(), T = POCKETS[s.k] || [t.x, t.y];
+  const to = game.kind !== 'bumper' ? Math.atan2(t.y - c.y, t.x - c.x) : game.striker === s.n ? s.angle : Math.atan2(T[1] - c.y, T[0] - c.x);
   if (!Number.isFinite(to)) return;
   lockAim();
   if (reducedMotion()) { aimAngle = to; keepAim(); return; }
@@ -3242,7 +3714,7 @@ function settle() {
   stats.potted[shooter].push(...v.potted);
   if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
-  placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
+  placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null; picked = false;
   if (!human()) {
     state = 'thinking'; cpuPlan = null;
     felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
@@ -3255,6 +3727,7 @@ function settle() {
   const group = v.grouped ? `${isOf(shooter)} ${game.groups[shooter]}.` : '';
   const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
+  if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
   if (v.foul) {
     const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
     flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2400 : 1500);
@@ -3270,6 +3743,43 @@ function settle() {
     say(`${group ? group + ' ' : ''}${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again.${ballOn}`);
   }
   hud();
+}
+/* bumper pool's banners and status line after a shot */
+const colourOf = p => p ? 'White' : 'Red';
+function bumperWords(v, shooter, who) {
+  const left = p => game.balls.filter(b => b.on && bOwner(b.n) === p).length;
+  const tail = `${colourOf(who).toLowerCase()}, ${left(who)} left`;
+  if (v.foul) {
+    const pen = v.dropped !== null ? `${nameOf(1 - shooter)} ${cpuMode && shooter === 1 ? 'drop' : 'drops'} a ball in` : '';
+    flash('foul', `Foul: ${v.foul}`, [pen, turnOf(who)].filter(Boolean).join('\n'), 1700);
+    say(`Foul: ${v.foul}. ${pen ? pen + '. ' : ''}${turnOf(who)}: ${tail}.`);
+    sfx('foul', 1);
+  } else if (v.opening === 1) {
+    flash('turn', turnOf(who), 'Opening shot: the marked ball', 1100);
+    say(`${turnOf(who)}: the opening shot, the marked ball.`);
+    sfx('turn', 1);
+  } else if (who !== shooter || v.opening === 2) {
+    flash('turn', turnOf(who), v.opening === 2 ? 'The opening is over' : `${colourOf(who)}, ${left(who)} left`, 1000);
+    say(`${turnOf(who)}: ${tail}.`);
+    if (who !== shooter) sfx('turn', 1);
+  } else say(`${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again: ${left(who)} left.`);
+}
+/* bumper pool: strike ball n from now on (a ball of the shooter's, any but on the opening) */
+function pickBall(n) {
+  if (game.kind !== 'bumper' || !bumperStrikers(game).includes(n) || state !== 'aim' || !human()) return false;
+  if (game.striker !== n) { game.striker = n; picked = true; handAimed = false; finishAutoAim(); autoAim(); }
+  return true;
+}
+/* the shooter's ball nearest a tap at screen (sx, sy), within reach of a finger, or null */
+function ballAt(sx, sy) {
+  if (game.kind !== 'bumper') return null;
+  const reach = Math.max(22, 1.5 * BALL_R * view.k);
+  let best = null, bd = reach;
+  for (const n of bumperStrikers(game)) {
+    const b = game.balls.find(o => o.n === n), s = b && b.on ? toScreen(b.x, b.y) : null, d = s ? Math.hypot(s[0] - sx, s[1] - sy) : Infinity;
+    if (d < bd) { bd = d; best = n; }
+  }
+  return best;
 }
 function say(t) { if (msg.textContent !== t) msg.textContent = t; }
 
@@ -3321,6 +3831,7 @@ function think(now) {
       if (r.done) {
         cpuPlan = r.value; cpuAnim = now;
         if (cpuPlan.place) game = placeCue(game, cpuPlan.place[0], cpuPlan.place[1]);
+        if (game.kind === 'bumper' && cpuPlan.ball != null) game.striker = cpuPlan.ball;
         cpuPlan.from = aimAngle;
         cueSpin = spinOf(cpuPlan.spin || 0);
         hud();
@@ -3502,6 +4013,8 @@ function endTable(e, cancel) {
   }
   if (state !== 'aim' || g.mode === 'dead' || cancel) return;
   const k = kindOf(g), tap = g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS);
+  /* bumper pool: a tap on one of the shooter's own balls picks it to strike */
+  if (tap && game.kind === 'bumper') { const n = ballAt(g.x0, g.y0); if (n !== null && n !== cueN()) { pickBall(n); return; } }
   if (tap) {
     aimAngle = angleTo(toTable(g.x0, g.y0));
     handAimed = true;
@@ -3655,6 +4168,10 @@ addEventListener('keydown', e => {
   if (state === 'menu' || state === 'over' || !human()) return;
   const k = e.key, arrow = k.startsWith('Arrow'), dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0, dy = k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0;
   if (k === 'r' || k === 'R') { if (spinOk()) { cueSpin = { x: 0, y: 0 }; hudControls(); } }
+  else if ((k === 'b' || k === 'B') && game.kind === 'bumper' && state === 'aim') {
+    const list = bumperStrikers(game);
+    if (list.length > 1) pickBall(list[(list.indexOf(cueN()) + 1) % list.length]);
+  }
   else if (arrow && document.activeElement === spinPad) {
     if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s }); hudControls(); }
   } else if ((k === 'm' || k === 'M') && canMove() && !gest) {
@@ -3741,7 +4258,9 @@ const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 
 const darkBall = n => (lumOf(colorOf(n)) + 0.05) / (lumOf([38, 38, 42]) + 0.05) < 3;
 function dotEl(n, big) {
   const d = document.createElement('span'), c = colorOf(n);
-  d.className = 'dot' + (n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
+  d.className = 'dot' + (n > 20 ? (n === 21 || n === 31 ? ' mark' : '') : n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
+  if (n === 21) d.style.setProperty('--mk', IVORY);
+  if (n === 31) d.style.setProperty('--mk', '#c8262c');
   d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
   d.title = String(n);
   return d;
@@ -3755,6 +4274,10 @@ function fillDots(box, list, big) {
 /* what a player's card says: their group and what is left of it, or the ball on */
 function cardOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n);
+  if (game.kind === 'bumper') {
+    const mine = on.filter(n => bOwner(n) === p).sort((a, b) => a - b);
+    return { meta: `${colourOf(p)}, ${mine.length} left` + (mine.includes(B_MARK[p]) && mine.length > 1 ? ', marked first' : ''), dots: mine, warn: false };
+  }
   if (game.kind === '8') {
     const gr = game.groups[p];
     if (!gr) return { meta: 'Open table', dots: [] };
@@ -3773,6 +4296,7 @@ function cardOf(p) {
 const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `P${p + 1}`;
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
+  if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
   if (game.kind === '9') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
   if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
@@ -3871,7 +4395,7 @@ function flash(kind, head, sub, ms = 1100) {
    landscape it also moves to the far end, so the start banner clears the kitchen. */
 function placeBanner() {
   const t = felt.tableRect(), st = stage.getBoundingClientRect(), c = cueBall();
-  const at = game.inHand === 'kitchen' ? [HEAD_X / 2, TW / 2] : placeAt || [c.x, c.y];
+  const at = game.inHand === 'kitchen' ? [HEAD_X / 2, TW / 2] : placeAt || (c ? [c.x, c.y] : [TL / 2, TW / 2]);
   const s = toScreen(at[0], at[1]), W = t.right - t.left, H = t.bottom - t.top;
   let x = t.left + W / 2, y = t.top + H / 2;
   if (view.portrait) y = t.top + H * (s[1] > y ? 0.27 : 0.73);
@@ -3893,10 +4417,11 @@ function overLine(g) {
     if (/before|clear|early/.test(why)) return `${who(l)} potted the 8 before clearing ${their(l)} group.`;
   }
   if (/\b9\b/.test(why)) return `${who(w)} potted the 9 to win.`;
+  if (/all five/.test(why)) return `${who(w)} got all five ${cpuMode && w === 0 ? 'of yours' : w ? 'whites' : 'reds'} down${v.foul ? ` (${who(l)} fouled: ${v.foul})` : ''}.`;
   return `${who(w)} won: ${why}.`;
 }
 function showOver() {
-  const w = game.winner, kind = game.kind + '-ball';
+  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind + '-ball';
   const n = stats.shots[0] + stats.shots[1];
   overKind.textContent = `${kind}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
@@ -3912,7 +4437,9 @@ function showOver() {
     });
     return tr;
   };
-  const dots = p => { const s = document.createElement('span'); s.className = 'dots'; s.append(...stats.potted[p].map(n => dotEl(n))); if (!stats.potted[p].length) s.textContent = 'none'; return s; };
+  /* bumper pool: a player's balls down, however they got there (a foul's penalty included) */
+  const down = p => game.kind === 'bumper' ? game.balls.filter(b => !b.on && bOwner(b.n) === p).map(b => b.n).sort((a, b) => a - b) : stats.potted[p];
+  const dots = p => { const s = document.createElement('span'), l = down(p); s.className = 'dots'; s.append(...l.map(n => dotEl(n))); if (!l.length) s.textContent = 'none'; return s; };
   const head = document.createElement('thead'), body = document.createElement('tbody');
   head.appendChild(row('', [0, 1].map(p => nameOf(p)), true));
   body.append(row('Shots', stats.shots.map(String)), row('Fouls', stats.fouls.map(String)), row('Potted', [dots(0), dots(1)]));
@@ -3925,6 +4452,7 @@ menuBtn.addEventListener('click', () => { audioOn(); pause(); });
 resumeBtn.addEventListener('click', () => resume());
 play8.addEventListener('click', () => { audioOn(); start('8'); });
 play9.addEventListener('click', () => { audioOn(); start('9'); });
+playB.addEventListener('click', () => { audioOn(); start('bumper'); });
 rematch.addEventListener('click', () => { audioOn(); start(game.kind); });
 overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); });
 

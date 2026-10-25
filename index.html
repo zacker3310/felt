@@ -1804,8 +1804,6 @@ function onPot(n, k, from, now) {
   pots.push({ n, k, from: [from[0], from[1]], t: now });
 }
 function trayGeom() {
-  /* STUB(T2.1 U fix): use the strip layout() reserves in view.tray; V owns the real version */
-  if (view.tray) { const T = view.tray, pad = 3, r = (T.h - 2 * pad) / 2; stageBox = stage.getBoundingClientRect(); return { x: T.x, y: T.y, w: T.w, h: T.h, r, pad, step: 2 * r + 2 }; }
   const st = document.getElementById('stage');
   stageBox = st ? st.getBoundingClientRect() : null;
   const V = view.tray;
@@ -2424,7 +2422,7 @@ function handWords(p, kitchen) {
   return cpuMode ? `Ball in hand for ${p === 0 ? 'you' : 'the CPU'}${where}` : `${nameOf(p)}: ball in hand${where}`;
 }
 /* 9-ball: a player on two fouls in a row loses with a third (stream C may say so in the verdict) */
-const onTwo = (g, p) => g.kind === '9' && g.winner === null && (g.fouls[p] >= 2 || !!(g.verdict && g.verdict.twoFouls && g.verdict.twoFouls[p]));
+const onTwo = (g, p) => g.kind === '9' && g.winner === null && g.fouls[p] >= 2;
 function settle() {
   const r = resultOf(tab);
   felt.lastResult = r;

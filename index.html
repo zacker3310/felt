@@ -349,10 +349,12 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    ball-ball friction falling with slip speed, cushion friction 0.2 (0.3 along the rail). */
 const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a quarter radius */
 const BALL_R = 0.028575;          /* 2 1/4 in */
-const TL = 2.54, TW = 1.27;       /* 9 ft table, playing surface between cushion noses */
-const HEAD_X = TL / 4, FOOT = [TL * 3 / 4, TW / 2];
+/* playing surfaces between cushion noses: 7 ft (78 x 39 in) and 9 ft (100 x 50 in). The table
+   globals below are set by setTable (1b); read them at call time, never cache them. */
+const TABLE_SIZES = { 7: [1.981, 0.991], 9: [2.54, 1.27] };
+let TABLE = '7', TL = 0, TW = 0, HEAD_X = 0, FOOT = [0, 0];
 const MIN_V = 0.2, MAX_V = 8.5;   /* centre-ball speed at power 0 and power 1 (a hard break) */
-const POWER_EXP = 1.7;            /* power curve: 0.25 rolls a lone ball about a table length, 0.5 is firm */
+const POWER_EXP = 1.7;            /* power curve: 0.25 rolls a lone ball 2-3 m (about a 9 ft table's length), 0.5 is firm */
 const V_CAP = 9;                  /* belt and braces: energy already keeps every ball under MAX_V */
 const G = 9.8;
 const MU_SLIDE = 0.2;             /* ball on cloth, sliding */
@@ -396,7 +398,7 @@ function jaw(px, py, ax, ay, ox, oy, face) {
   const t = CUSH_W / Math.sin(face);
   return { p: [px, py], e: [px + dx * t, py + dy * t] };
 }
-/* a = along the rail toward the mouth, o = outward from the bed */
+/* a = along the rail toward the mouth, o = outward from the bed. Built for the current TL, TW. */
 function mouths() {
   const c = CORNER_W / Math.SQRT2, s = SIDE_W / 2, h = TL / 2, out = [];
   for (const [cx, cy, side] of [[0, 0], [h, 0, 1], [TL, 0], [0, TW], [h, TW, 1], [TL, TW]]) {
@@ -407,23 +409,19 @@ function mouths() {
   }
   return out;
 }
-const MOUTHS = mouths();
 /* six rubbers, each between two jaw points: [jaw point, jaw point] */
-const RUBBERS = [[MOUTHS[0][0], MOUTHS[1][0]], [MOUTHS[1][1], MOUTHS[2][0]], [MOUTHS[3][0], MOUTHS[4][0]],
-  [MOUTHS[4][1], MOUTHS[5][0]], [MOUTHS[0][1], MOUTHS[3][1]], [MOUTHS[2][1], MOUTHS[5][1]]];
+const rubbers = M => [[M[0][0], M[1][0]], [M[1][1], M[2][0]], [M[3][0], M[4][0]],
+  [M[4][1], M[5][0]], [M[0][1], M[3][1]], [M[2][1], M[5][1]]];
 /* collision segments: the six noses, then the twelve jaw facings; JAW_FROM is the first jaw */
 function cushions() {
   const out = RUBBERS.map(([a, b]) => [a.p[0], a.p[1], b.p[0], b.p[1]]);
   for (const [a, b] of RUBBERS) out.push([a.p[0], a.p[1], a.e[0], a.e[1]], [b.p[0], b.p[1], b.e[0], b.e[1]]);
   return out;
 }
-const CUSH = cushions(), JAW_FROM = 6;
-const CUSHION_POLYS = RUBBERS.map(([a, b]) => [a.e, a.p, b.p, b.e].map(q => q.slice()));
+const JAW_FROM = 6;
 /* drop centres and hole radii. A corner hole sits CORNER_SHELF behind its mouth line; the side
    holes start at the mouth line (WPA allows 0 to 3/8 in of side shelf), and any centre past
    the nose line, which only a mouth allows, drops too. */
-const POCKET_R = [0.056, 0.062, 0.056, 0.056, 0.062, 0.056];
-const POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
 function pockets() {
   return POCKET_AIM.map((m, k) => {
     const ox = m[0] < TL / 2 ? -1 : 1, oy = m[1] < TW / 2 ? -1 : 1;
@@ -432,7 +430,29 @@ function pockets() {
     return [m[0] + ox * d, m[1] + oy * d];
   });
 }
-const POCKETS = pockets();
+/* the table geometry, all rebuilt by setTable: mouths, rubbers, collision segments, cushion
+   polygons, hole radii (the same on both sizes), mouth middles, drop centres, and the inward
+   normal at each mouth (CPU_MOUTH_N: the CPU's entry test, kept here so it follows the table) */
+let MOUTHS, RUBBERS, CUSH, CUSHION_POLYS, POCKET_R, POCKET_AIM, POCKETS, CPU_MOUTH_N;
+/* size '7' or '9' (anything else is '7'). Ball, mouths, jaws, shelf and cushions are the same on
+   both; only the bed changes, with the head string and foot spot at a quarter from each end.
+   Never mid-game: a game's balls keep their coordinates. Returns the size set. */
+function setTable(size) {
+  TABLE = String(size) === '9' ? '9' : '7';
+  [TL, TW] = TABLE_SIZES[TABLE];
+  HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
+  MOUTHS = mouths();
+  RUBBERS = rubbers(MOUTHS);
+  CUSH = cushions();
+  CUSHION_POLYS = RUBBERS.map(([a, b]) => [a.e, a.p, b.p, b.e].map(q => q.slice()));
+  POCKET_R = [0.056, 0.062, 0.056, 0.056, 0.062, 0.056];
+  POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
+  POCKETS = pockets();
+  CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
+    : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
+  return TABLE;
+}
+setTable('7');
 function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
 /* 8-ball: a triangle with the 8 in the middle, a solid and a stripe in the back corners.
    9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. */
@@ -803,14 +823,14 @@ const CPU_LEVELS = {
 };
 const CPU_T = 4;          /* seconds of a candidate simulated in full; the rest of its roll is coasted */
 const CPU_MOUTH = 0.05;   /* a coasting ball this close to a mouth's middle at the cushion drops */
-const CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
-  : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
 const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 /* what the physics does with a stroke, measured once instead of trusted from constants: cue
    speed by power (inverted by cpuPower), and from a lone ball struck down the table the
    rolling deceleration (roll) and the share of its speed a ball keeps through the slide into
-   a roll (keep), from which cpuSpeedFor gives the speed to roll a distance */
+   a roll (keep), from which cpuSpeedFor gives the speed to roll a distance. It is table
+   independent, so setTable need not rerun it: the strike is measured in place and the lone ball
+   runs 1.2 m down the long string from x = 0.25, clear of every cushion on either size. */
 let cpuCal = null;
 function cpuCalibrate() {
   if (cpuCal) return cpuCal;
@@ -1091,7 +1111,8 @@ function cpuBreak(g, rnd, L) {
 /* a generator so the page can spread the search over frames; it yields after each simulation.
    Phases: A each pot line over the power ladder, correcting the aim from the object ball's real
    direction; B spin and power variants on the best lines, for position; C the finalists re-run
-   slightly mis-hit and scored on the mean (hard also simulates the next shot from the leave);
+   slightly mis-hit and scored on the mean (hard also tries each a little short, so a pot that
+   only just drops loses to a firmer one, and simulates the next shot from the leave);
    D safeties and kicks when the best mean is below the level's bar, the best of them tested the
    same way. The best mean wins among the shots simulated as legal; a foul only when nothing
    legal turned up. The shot played carries the level's aim noise. */
@@ -1155,7 +1176,9 @@ function* cpuSearch(g, seed, level = 'medium') {
     }
   }
 
-  /* C: the finalists slightly mis-hit, scored on the mean; hard also plays the next shot from the leave */
+  /* C: the finalists slightly mis-hit, scored on the mean; hard also strikes each 2 pnoise soft
+     (a slow pot along a rail that dies in the jaw at its own speed noise was its commonest miss
+     on the 7 ft table) and plays the next shot from the leave */
   const d = Math.max(L.noise, 0.0005), tested = [];
   function* test(r) {
     let sum = r.value, w = 1;
@@ -1165,6 +1188,11 @@ function* cpuSearch(g, seed, level = 'medium') {
       yield;
       const wt = Math.abs(k) > 1 ? 0.5 : 1;
       sum += wt * o.value; w += wt;
+    }
+    if (L.look && sims < L.sims) {
+      const o = sim(Object.assign({}, r.shot, { power: cpuPower(cpuSpeedAt(r.shot.power) * (1 - 2 * L.pnoise)) }));
+      yield;
+      sum += o.value; w += 1;
     }
     r.mean = sum / w;
     if (L.look && r.j.turn === me && r.j.winner === null && sims < L.sims) {
@@ -1208,6 +1236,26 @@ function* cpuSearch(g, seed, level = 'medium') {
 function cpuShot(g, seed, level) {
   const it = cpuSearch(g, seed, level);
   for (;;) { const r = it.next(); if (r.done) return r.value; }
+}
+/* the aim to start a human turn on: the cue angle of the easiest pot for the player to shoot,
+   { angle, n, k } (object ball, pocket), from the CPU's ghost-ball lines and clearance tests, no
+   simulation. Legal balls only, and from the kitchen only those past the head string when any
+   is. Easiest is the widest cue-angle tolerance (the line's q with a noise so wide tanh stays
+   linear). No clean line: straight at the nearest legal ball's centre, k = -1; on the break, at
+   the head ball. null when the game is over or the cue ball is off the table. */
+const SUGGEST = { minCos: 0.2, noise: 1 };
+function suggestAim(g) {
+  const c = g.balls.find(b => b.n === 0);
+  if (g.winner !== null || !c || !c.on) return null;
+  const targets = cpuTargets(g), at = n => g.balls.find(b => b.n === n), toward = t => ({ angle: Math.atan2(t.y - c.y, t.x - c.x), n: t.n, k: -1 });
+  if (g.breakShot) {
+    const objs = g.balls.filter(b => b.on && b.n > 0);
+    return objs.length ? toward((g.kind === '9' && at(1)) || objs.reduce((a, b) => b.x < a.x ? b : a)) : null;
+  }
+  const l = cpuLines(g.balls, c.x, c.y, targets, SUGGEST)[0];
+  if (l) return { angle: l.angle, n: l.n, k: l.k };
+  const near = targets.map(at).filter(t => t && t.on).reduce((a, b) => !a || Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a, null);
+  return near ? toward(near) : null;
 }
 // #endregion sim
 

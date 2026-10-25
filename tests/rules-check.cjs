@@ -1,5 +1,7 @@
 /* rules-check (Node): 8-ball and 9-ball judging, one case per rule in the spec, plus cue
-   placement and re-spotting. Results are built by hand so each case isolates one rule. */
+   placement and re-spotting. Results are built by hand so each case isolates one rule. The
+   cases that hang on the bed (foot spot, head string, placement, re-spotting) run on both the
+   7 ft and the 9 ft table. */
 'use strict';
 const { check, done } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
@@ -21,6 +23,8 @@ function midGame(kind, left, over = {}) {
   return Object.assign(g, over);
 }
 const on = (g, n) => g.balls.find(b => b.n === n).on;
+/* run body(tag) once per table size, then go back to the default 7 ft table */
+const eachTable = body => { for (const size of ['7', '9']) { S.setTable(size); body(`${size} ft: `); } S.setTable('7'); };
 
 /* ---- 8-ball ---- */
 {
@@ -75,9 +79,12 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
 }
 
 /* ---- 9-ball ---- */
+eachTable(T => {
+  const g = S.newGame('9'), one = g.balls.find(b => b.n === 1);
+  check(T + '9: the 1 is on the foot spot, three quarters down the table', Math.abs(one.x - S.FOOT[0]) < 1e-9 && Math.abs(one.x - 0.75 * S.TL) < 1e-9 && one.y === S.TW / 2);
+});
 {
   const g = S.newGame('9');
-  check('9: the 1 is on the foot spot', Math.abs(g.balls.find(b => b.n === 1).x - S.FOOT[0]) < 1e-9);
   const a = S.judge(g, res(g, { first: 1, potted: [9] }));
   check('9: the 9 on the break wins', a.winner === 0);
 }
@@ -121,27 +128,27 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   const d1 = S.judge(m, res(m, { first: 3 })), d2 = S.judge(d1, res(d1, { first: 3 })), d3 = S.judge(d2, res(d2, { first: 3, potted: [5] }));
   check('game.dry counts shots in a row with nothing potted', g.dry === 0 && d1.dry === 1 && d2.dry === 2 && d3.dry === 0, JSON.stringify([d1.dry, d2.dry, d3.dry]));
 }
-{
+eachTable(T => {
   /* after a break scratch: in hand behind the head string, a ball behind it is not on */
   const g = midGame('8', [1, 2, 9], { inHand: 'kitchen' });
   Object.assign(g.balls.find(b => b.n === 1), { x: S.HEAD_X - 0.3, y: 0.3 });
   Object.assign(g.balls.find(b => b.n === 2), { x: S.HEAD_X + 0.6, y: 0.6 });
   const a = S.judge(g, res(g, { first: 1, crossed: false }));
-  check('8: in hand in the kitchen, hitting a ball behind the head string first is a foul', a.verdict.foul && a.turn === 1 && a.inHand === 'table', JSON.stringify(a.verdict));
+  check(T + '8: in hand in the kitchen, hitting a ball behind the head string first is a foul', a.verdict.foul && a.turn === 1 && a.inHand === 'table', JSON.stringify(a.verdict));
   const b = S.judge(g, res(g, { first: 2, crossed: true }));
-  check('8: in hand in the kitchen, a ball past the head string is fine', !b.verdict.foul && b.turn === 1 && b.inHand === null);
+  check(T + '8: in hand in the kitchen, a ball past the head string is fine', !b.verdict.foul && b.turn === 1 && b.inHand === null);
   /* the rule is crossing, not where the ball sits: a bank off the foot rail onto the 1 is legal */
   const c = S.judge(g, res(g, { first: 1, crossed: true }));
-  check('8: in hand in the kitchen, the cue ball crossing the string first makes a ball behind it fair', !c.verdict.foul && c.turn === 1, JSON.stringify(c.verdict));
+  check(T + '8: in hand in the kitchen, the cue ball crossing the string first makes a ball behind it fair', !c.verdict.foul && c.turn === 1, JSON.stringify(c.verdict));
   /* a ball whose centre is past the string is fair even if the cue ball touches it before its own centre gets there */
   const d = S.judge(g, res(g, { first: 2, crossed: false }));
-  check('8: in hand in the kitchen, a ball past the head string is fair without the cue ball crossing', !d.verdict.foul, JSON.stringify(d.verdict));
+  check(T + '8: in hand in the kitchen, a ball past the head string is fair without the cue ball crossing', !d.verdict.foul, JSON.stringify(d.verdict));
   const e = S.judge(g, res(g, { first: 1 }));
-  check('8: a result without `crossed` is judged on the first ball\'s position', e.verdict.foul === a.verdict.foul && !!e.verdict.foul);
+  check(T + '8: a result without `crossed` is judged on the first ball\'s position', e.verdict.foul === a.verdict.foul && !!e.verdict.foul);
   const f = midGame('8', [1, 2, 9], { inHand: 'table' });
   Object.assign(f.balls.find(b => b.n === 1), { x: S.HEAD_X - 0.3, y: 0.3 });
-  check('8: ball in hand anywhere: the head string does not matter', !S.judge(f, res(f, { first: 1, crossed: false })).verdict.foul);
-}
+  check(T + '8: ball in hand anywhere: the head string does not matter', !S.judge(f, res(f, { first: 1, crossed: false })).verdict.foul);
+});
 {
   /* the kitchen rule cannot force a foul: when no legal ball lies past the head string, any is on */
   const g = midGame('9', [1, 9], { inHand: 'kitchen' });
@@ -165,29 +172,38 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   const b = S.judge(m, res(m, { first: 3, potted: [3, 0] }));
   check('9: a scratch with a legal pot is a foul, the pot stays down, the turn passes', b.verdict.foul && b.turn === 1 && b.inHand === 'table' && !on(b, 3) && b.fouls[0] === 1);
 }
-{
+/* ---- placement and spotting, both tables ---- */
+eachTable(T => {
   const g = midGame('9', [3], { inHand: 'table' });
-  check('placement refused in a pocket mouth', S.POCKET_AIM.every(p => !S.canPlace(g, p[0], p[1])));
-  check('placement refused against a cushion', !S.canPlace(g, S.TL / 3, S.BALL_R * 0.6));
-}
-
-/* ---- placement and spotting ---- */
-{
+  check(T + 'placement refused in a pocket mouth', S.POCKET_AIM.every(p => !S.canPlace(g, p[0], p[1])));
+  check(T + 'placement refused against a cushion', !S.canPlace(g, S.TL / 3, S.BALL_R * 0.6) && !S.canPlace(g, S.TL - S.BALL_R * 0.6, S.TW / 3));
+  check(T + 'placement allowed in the open, up to a radius off the cushion nose', S.canPlace(g, S.TL / 3, S.TW / 3) && S.canPlace(g, S.TL / 3, S.BALL_R + 1e-6));
+});
+eachTable(T => {
   const g = S.newGame('8');
-  check('kitchen placement allowed behind the head string', S.canPlace(g, S.HEAD_X - 0.05, S.TW / 2));
-  check('kitchen placement refused past the head string', !S.canPlace(g, S.HEAD_X + 0.05, S.TW / 2));
+  check(T + 'kitchen placement allowed behind the head string', S.canPlace(g, S.HEAD_X - 0.05, S.TW / 2));
+  check(T + 'kitchen placement refused past the head string', !S.canPlace(g, S.HEAD_X + 0.05, S.TW / 2));
   const f = midGame('8', [1], { inHand: 'table' });
   const one = f.balls.find(b => b.n === 1);
-  check('placement refused on top of a ball', !S.canPlace(f, one.x + R, one.y));
-  check('placement refused off the cloth', !S.canPlace(f, -0.01, 0.5) && !S.canPlace(f, 1, S.TW - R / 2));
+  check(T + 'placement refused on top of a ball', !S.canPlace(f, one.x + R, one.y));
+  check(T + 'placement refused off the cloth', !S.canPlace(f, -0.01, 0.5) && !S.canPlace(f, 1, S.TW - R / 2) && !S.canPlace(f, S.TL + 0.01, 0.5));
   const p = S.placeCue(f, 1.0, 0.4);
-  check('placeCue puts the cue ball there', p.balls[0].on && p.balls[0].x === 1.0 && p.balls[0].y === 0.4);
+  check(T + 'placeCue puts the cue ball there', p.balls[0].on && p.balls[0].x === 1.0 && p.balls[0].y === 0.4);
   const crowd = [S.newBall(0, 0.5, 0.5), S.newBall(1, S.FOOT[0], S.FOOT[1])];
   crowd.push(S.newBall(9, 0, 0)); crowd[2].on = false;
   S.spot(crowd, 9);
   const nine = crowd[2];
-  check('spot: an occupied foot spot puts the ball behind it, touching nothing',
+  check(T + 'spot: an occupied foot spot puts the ball behind it, touching nothing',
     nine.on && nine.x > S.FOOT[0] && Math.hypot(nine.x - crowd[1].x, nine.y - crowd[1].y) >= 2 * R - 1e-9, JSON.stringify(nine));
-}
+  /* a full foot string: every spot from the foot spot to the foot rail is taken, so the ball
+     goes the other way, in front of the spot, still on the long string and on the cloth */
+  const wall = [S.newBall(0, 0.3, 0.3)];
+  for (let x = S.FOOT[0], n = 1; x < S.TL - R; x += 2 * R, n++) wall.push(S.newBall(n < 9 ? n : n + 1, x, S.FOOT[1]));
+  wall.push(Object.assign(S.newBall(9, 0, 0), { on: false }));
+  S.spot(wall, 9);
+  const w9 = wall[wall.length - 1];
+  check(T + 'spot: a full foot string sends the ball in front of the foot spot', w9.on && w9.x < S.FOOT[0] && w9.x > R && w9.y === S.FOOT[1]
+    && wall.every(b => b === w9 || Math.hypot(b.x - w9.x, b.y - w9.y) >= 2 * R - 1e-9), JSON.stringify({ x: w9.x, n: wall.length }));
+});
 
 done();

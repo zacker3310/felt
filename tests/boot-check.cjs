@@ -158,10 +158,9 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
   /* the ball, the target metric: at least 20 px across at 956x440 with the iOS insets, and never
      smaller than before the maximised layout at any listed viewport */
-  /* floors from before the table-max layout; 440x956 without insets moved to 20.1 when the side
-     pockets became real full drops with a casting past the rail (the bare hole alone caps that
-     view at 20.30 px; Zac chose the real pocket over the last 1%) */
-  const BEFORE = { '440x956 ios': 18.13, '956x440 ios': 17.19, '390x844': 17.4, '440x956': 20.1, '844x390': 17.08, '1280x800': 30.29, '375x667': 12.76, '768x1024': 23.37 };
+  /* floors from before the table-max layout (440x956 without insets went to 20.1 while the side
+     pockets' casting bulged past the rail; with the side holes set inside the rail it is back) */
+  const BEFORE = { '440x956 ios': 18.13, '956x440 ios': 17.19, '390x844': 17.4, '440x956': 20.33, '844x390': 17.08, '1280x800': 30.29, '375x667': 12.76, '768x1024': 23.37 };
   const INSETS = { '440x956 ios': [62, 0, 34, 0], '956x440 ios': [0, 62, 21, 62] };
   const sizes = {};
   for (const key of Object.keys(BEFORE)) {
@@ -181,43 +180,29 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
       return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe };
     }, ins);
   }
-  /* the side pockets' ears: a side drop is 2 POCKET_R deep past the nose, past a phone's rail, so
-     its cap swells past the long rails in an ear. At each listed viewport (insets simulated), both
-     pocket styles, 7 and 9 ft: each ear is on the screen, inside the safe area (the bottom on its
-     side may run over the home indicator, as the table does), and clear of every control; and the
-     ball loses at most 4% (regulation) or 6% (generous) against fitting the rail alone. */
-  const ears = [];
+  /* the side pockets sit inside the rail: at each listed viewport (insets simulated), both pocket
+     styles, 7 and 9 ft, each side hole and its ring end at least SIDE_WOOD inside the rail's outer
+     edge, so the table's footprint is the rail and the ball is as big as fitting the rail allows */
+  const sides = [];
   for (const key of ['440x956 ios', '956x440 ios', '390x844', '1280x800', '844x390', '430x932']) {
     const [w, h] = key.split(' ')[0].split('x').map(Number), ins = INSETS[key] || [0, 0, 0, 0];
     await page.setViewportSize({ width: w, height: h });
     for (const pk of ['regulation', 'generous']) for (const size of ['7', '9']) {
-      ears.push(await page.evaluate(([i, pk, size, key]) => {
+      sides.push(await page.evaluate(([i, pk, size, key]) => {
         let st = document.getElementById('insets');
         if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
         st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
         settings.table = size; settings.pockets = pk; felt.start('8'); relayout();
-        const co = cushionDepth(), cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
-        const wide = document.documentElement.dataset.layout === 'wide';
-        const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: wide ? innerHeight : innerHeight - px('--sab') };
-        const ctls = [menuBtn, turnChip, spinPad, powerBar, fineWheel, ctl].map(el => el.getBoundingClientRect());
-        const hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
-        const out = [];
-        for (const k of [1, 4]) {
-          const e = pocketShape(k, co).ear;
-          if (!e) continue;
-          const s = k === 1 ? -1 : 1, y0 = k === 1 ? 0 : TW, pts = [[TL / 2 - e.uf, y0 + s * RAIL], [TL / 2 + e.uf, y0 + s * RAIL], [TL / 2 - e.rw, y0 + s * e.vc], [TL / 2 + e.rw, y0 + s * e.vc], [TL / 2, y0 + s * e.reach]].map(p => toScreen(p[0], p[1]));
-          const r = { left: Math.min(...pts.map(p => p[0])), right: Math.max(...pts.map(p => p[0])), top: Math.min(...pts.map(p => p[1])), bottom: Math.max(...pts.map(p => p[1])) };
-          if (r.left < safe.l - 0.5 || r.right > safe.r + 0.5 || r.top < safe.t - 0.5 || r.bottom > safe.b + 0.5 || ctls.some(c => hit(c, r))) out.push(k);
-        }
+        const co = cushionDepth(), wood = [1, 4].map(k => { const S = pocketShape(k, co); return +(1000 * (RAIL - Math.abs(S.C[1] - (k === 1 ? 0 : TW)) - S.rc)).toFixed(2); });
         const sr = stage.getBoundingClientRect(), W = TL + 2 * RAIL, H = TW + 2 * RAIL;
         const k0 = view.portrait ? Math.min(sr.width / H, sr.height / W) : Math.min(sr.width / W, sr.height / H);
-        return { key, pk, size, bad: out, ball: +felt.ballPx.toFixed(2), loss: +(100 * (1 - view.k / k0)).toFixed(2) };
+        return { key, pk, size, wood, min: 1000 * SIDE_WOOD, ball: +felt.ballPx.toFixed(2), loss: +(100 * (1 - view.k / k0)).toFixed(2) };
       }, [ins, pk, size, key]));
     }
   }
-  console.log('side ears, ball px and loss %: ' + ears.map(e => `${e.key} ${e.pk[0]}${e.size} ${e.ball} (${e.loss}%)`).join(', '));
-  check('side ears: on screen, inside the safe area and clear of the controls at every listed viewport, both pocket styles, 7 and 9 ft', ears.every(e => !e.bad.length), JSON.stringify(ears.filter(e => e.bad.length)));
-  check('side ears: the ball loses at most 4% (regulation) or 6% (generous) against fitting the rail alone', ears.every(e => e.loss <= (e.pk === 'regulation' ? 4 : 6)), JSON.stringify(ears.filter(e => e.loss > 0)));
+  console.log('side pockets, ball px: ' + sides.map(e => `${e.key} ${e.pk[0]}${e.size} ${e.ball}`).join(', '));
+  check('side pockets: every side hole and its ring inside the rail, SIDE_WOOD from its outer edge, at every listed viewport, both pocket styles, 7 and 9 ft', sides.every(e => e.wood.every(v => v >= e.min - 0.01)), JSON.stringify(sides.filter(e => !e.wood.every(v => v >= e.min - 0.01))));
+  check('side pockets: the table fits by its rail alone (no ball size lost to the pockets)', sides.every(e => Math.abs(e.loss) < 0.01), JSON.stringify(sides.filter(e => Math.abs(e.loss) >= 0.01)));
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; felt.start('8'); });
   await page.evaluate(() => { document.getElementById('insets').remove(); relayout(); });

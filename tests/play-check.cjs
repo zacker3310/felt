@@ -574,7 +574,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#menuBtn');
   await page.click('#pkReg');
   const pz = await page.evaluate(() => { pkCalls.length = 0; felt.start('8'); return { calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }; });
-  check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.062, JSON.stringify(pz));
+  check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.058, JSON.stringify(pz));
 
   /* 17. ball in hand after a foul by the CPU, then after a break scratch. cpuSearch is swapped for
      a stub that thinks for a while, then rolls the cue ball gently into nothing: a foul. */

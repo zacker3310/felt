@@ -207,11 +207,11 @@ function layouts(count) {
       const r = S.rng(500 + i), g = midGame('9', [2, 9]);
       g.inHand = 'table'; ball(g, 0).on = false;
       if (i === 12) { put(g, 2, S.TL - 0.0238, 0.0222); set.push(g); continue; }
-      /* a side ball on the mouth line, a micron onto the bed: the line is the hole's edge, so a
-         centre exactly on it drops or not by rounding (it did on the 7 ft table, untouched). A
-         corner ball a third of the way into the shelf. */
-      const k = i % 6, P = S.POCKETS[k], A = S.POCKET_AIM[k], f = 0.68;
-      if (k === 1 || k === 4) put(g, 2, A[0], A[1] + (A[1] > S.TW / 2 ? -1e-6 : 1e-6));
+      /* a side ball as close to its hole as a ball can rest: the side hole reaches onto the bed,
+         so just outside the hole's lip (inside it, a dying ball creeps in), 30 degrees round
+         toward a jaw, alternately left and right. A corner ball a third of the way into the shelf. */
+      const k = i % 6, P = S.POCKETS[k], A = S.POCKET_AIM[k], f = 0.68, d = S.POCKET_R[k] + S.POCKET_LIP + 1e-4, sg = i % 4 === 1 ? 1 : -1;
+      if (k === 1 || k === 4) put(g, 2, P[0] + sg * d * Math.sin(Math.PI / 6), P[1] + (A[1] > S.TW / 2 ? -1 : 1) * d * Math.cos(Math.PI / 6));
       else put(g, 2, P[0] + (A[0] - P[0]) * f, P[1] + (A[1] - P[1]) * f);
       for (let n = 3; n < 9; n++) if (r() < 0.5) {
         for (;;) {

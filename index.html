@@ -550,16 +550,24 @@ const CUE_RATIO = 6 / 19;         /* ball over cue mass: off-centre hits send th
 const TIP_LOSS = 0.6;             /* share of the two-mass speed loss a follow-through keeps (the tip stays on longer) */
 const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, away from the english */
 /* Pocket styles (setPockets, 1b). Regulation: mouths between jaw points 4.75 in corner and
-   5.25 in side, WPA facing angles, holes of 0.056 and 0.062 m, the corner hole 0.032 m behind
-   its mouth line. Generous is a bar table's buckets: half an inch wider at both, facings a few
-   degrees more open so a ball that brushes one is turned in rather than back out, and holes
-   grown with the mouths so the shelf stays the same depth of cloth. */
+   5.25 in side, WPA facing angles, a corner hole of 0.056 m 0.032 m behind its mouth line.
+   Generous is a bar table's buckets: half an inch wider at both, facings a few degrees more open
+   so a ball that brushes one is turned in rather than back out, and holes grown with the mouths.
+   A side hole is a round drop set into the rail with its centre sideBack behind the nose, so the
+   whole of it and its ring fit inside the slimmest rail (sideBack + sideR + ring under RAIL_MIN)
+   and its front cuts a little into the cloth between the jaws, the rubber ending at its edge.
+   Its radius is tuned against the acceptance measures (physics-check 0c): regulation sides take
+   within about 10% of what the old tangent 0.062 m hole took in every category, generous more. */
 const POCKET_STYLES = {
-  regulation: { corner: 0.1207, side: 0.1334, cornerFace: 142, sideFace: 104, cornerR: 0.056, sideR: 0.062, shelf: 0.032 },
-  generous: { corner: 0.1334, side: 0.1461, cornerFace: 139, sideFace: 100, cornerR: 0.062, sideR: 0.068, shelf: 0.030 },
+  regulation: { corner: 0.1207, side: 0.1334, cornerFace: 142, sideFace: 104, cornerR: 0.056, sideR: 0.058, shelf: 0.032, sideBack: 0.034 },
+  generous: { corner: 0.1334, side: 0.1461, cornerFace: 139, sideFace: 100, cornerR: 0.062, sideR: 0.064, shelf: 0.030, sideBack: 0.029 },
 };
 const CUSH_W = 0.05;              /* cushion depth, nose to rail */
 const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
+/* where a side hole reaches onto the bed, a rolling ball skates over its edge: it drops once its
+   centre is SIDE_SKIM inside the hole at CUP_V and up (less when slower, none at rest). Past the
+   nose line a mouth drops it anyway. */
+const SIDE_SKIM = 0.008;
 const ESCAPE_R = 0.16;            /* a centre off the bed this far from every mouth got out: the fail-safe */
 const RACK_GAP = 0.0002;
 /* Bumper pool (setTable('bumper'), 1g): a 33 x 48 in bed between the cushion noses, closed on
@@ -613,13 +621,13 @@ function cushions() {
   return out;
 }
 const JAW_FROM = 6;
-/* drop centres and hole radii. A corner hole sits CORNER_SHELF behind its mouth line; the side
-   holes start at the mouth line (WPA allows 0 to 3/8 in of side shelf), and any centre past
-   the nose line, which only a mouth allows, drops too. */
+/* drop centres and hole radii. A corner hole sits CORNER_SHELF behind its mouth line; a side
+   hole's centre is SIDE_BACK behind the nose, its front over the bed between the jaws; and any
+   centre past the nose line, which only a mouth allows, drops too. */
 function pockets() {
   return POCKET_AIM.map((m, k) => {
     const ox = m[0] < TL / 2 ? -1 : 1, oy = m[1] < TW / 2 ? -1 : 1;
-    if (k === 1 || k === 4) return [m[0], m[1] + oy * POCKET_R[k]];
+    if (k === 1 || k === 4) return [m[0], m[1] + oy * SIDE_BACK];
     const d = (CORNER_SHELF + POCKET_R[k]) / Math.SQRT2;
     return [m[0] + ox * d, m[1] + oy * d];
   });
@@ -628,7 +636,7 @@ function pockets() {
    facings and shelf, then mouths, rubbers, collision segments, cushion polygons, hole radii (the
    same on both sizes), mouth middles, drop centres, and the inward normal at each mouth
    (CPU_MOUTH_N: the CPU's entry test, kept here so it follows the table) */
-let POCKETS_STYLE = 'regulation', CORNER_W, SIDE_W, CORNER_FACE, SIDE_FACE, CORNER_SHELF;
+let POCKETS_STYLE = 'regulation', CORNER_W, SIDE_W, CORNER_FACE, SIDE_FACE, CORNER_SHELF, SIDE_BACK, SKIMS, HOLE_IN = 0;
 let MOUTHS, RUBBERS, CUSH, CUSHION_POLYS, POCKET_R, POCKET_AIM, POCKETS, CPU_MOUTH_N;
 /* the bumper table's posts, [x, y] centres of radius BUMPER_R; empty on a pool table. POOL_TABLE
    is the last pool size set, which a pool game goes back to after a bumper game. */
@@ -640,7 +648,7 @@ function buildTable() {
   const st = POCKET_STYLES[POCKETS_STYLE];
   [TL, TW] = TABLE_SIZES[TABLE];
   HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
-  CORNER_W = st.corner; SIDE_W = st.side; CORNER_SHELF = st.shelf;
+  CORNER_W = st.corner; SIDE_W = st.side; CORNER_SHELF = st.shelf; SIDE_BACK = st.sideBack;
   CORNER_FACE = st.cornerFace * Math.PI / 180; SIDE_FACE = st.sideFace * Math.PI / 180;
   MOUTHS = mouths();
   RUBBERS = rubbers(MOUTHS);
@@ -649,6 +657,9 @@ function buildTable() {
   POCKET_R = [st.cornerR, st.sideR, st.cornerR, st.cornerR, st.sideR, st.cornerR];
   POCKET_AIM = MOUTHS.map(([a, b]) => [(a.p[0] + b.p[0]) / 2, (a.p[1] + b.p[1]) / 2]);
   POCKETS = pockets();
+  /* the skate over a side hole's front, and how far onto the bed any hole reaches (stepTable's drop band) */
+  SKIMS = [0, SIDE_SKIM, 0, 0, SIDE_SKIM, 0];
+  HOLE_IN = Math.max(0, st.sideR - st.sideBack);
   CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
 }
@@ -841,7 +852,7 @@ function onLip(b) {
 }
 /* one fixed step. Returns true while anything is still rolling. */
 function stepTable(tab) {
-  const dt = SIM_DT, B = tab.balls, R = BALL_R, R2 = 4 * R * R, lo = R + 1e-6;
+  const dt = SIM_DT, B = tab.balls, R = BALL_R, R2 = 4 * R * R, lo = R + 1e-6, edge = Math.max(lo, HOLE_IN + 1e-6);
   for (const b of B) {
     if (!b.on || still(b)) continue;
     cloth(b, dt);
@@ -868,7 +879,7 @@ function stepTable(tab) {
     /* bumper pool: the posts and the cups in the open bed (1g) */
     if (BUMPERS.length && !still(b) && bumperStep(tab, b)) continue;
     /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
-    if (b.x < lo || b.x > TL - lo || b.y < lo || b.y > TW - lo) {
+    if (b.x < lo || b.x > TL - lo || b.y < edge || b.y > TW - edge) {
       for (let k = 0; k < CUSH.length; k++) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
         if (v) {
@@ -883,7 +894,8 @@ function stepTable(tab) {
       let hole = -1, near = -1, nd = Infinity;
       for (let k = 0; k < POCKETS.length; k++) {
         const p = POCKETS[k], dx = b.x - p[0], dy = b.y - p[1], d2 = dx * dx + dy * dy;
-        if (d2 < POCKET_R[k] * POCKET_R[k]) { hole = k; break; }
+        const r = SKIMS[k] ? POCKET_R[k] - SKIMS[k] * Math.min(1, Math.hypot(b.vx, b.vy) / CUP_V) : POCKET_R[k];
+        if (d2 < r * r) { hole = k; break; }
         const m = POCKET_AIM[k], e2 = (b.x - m[0]) ** 2 + (b.y - m[1]) ** 2;
         if (e2 < nd) { nd = e2; near = k; }
       }
@@ -1585,7 +1597,7 @@ function buildBumper() {
   CUSHION_POLYS = [[[-c, -c], [0, 0], [TL, 0], [TL + c, -c]], [[TL + c, -c], [TL, 0], [TL, TW], [TL + c, TW + c]],
     [[TL + c, TW + c], [TL, TW], [0, TW], [-c, TW + c]], [[-c, TW + c], [0, TW], [0, 0], [-c, -c]]];
   POCKETS = [[CUP_IN, cy], [TL - CUP_IN, cy]];
-  POCKET_R = [CUP_R, CUP_R];
+  POCKET_R = [CUP_R, CUP_R]; SKIMS = [0, 0]; HOLE_IN = 0;
   POCKET_AIM = POCKETS.map(p => p.slice());
   CPU_MOUTH_N = [[1, 0], [-1, 0]];
   BUMPERS = [[cx - a, cy], [cx + a, cy], [cx, cy - b], [cx, cy + b],
@@ -2132,7 +2144,7 @@ function sfx(kind, v) {
    so the head string is at the bottom. RAIL (the wood around the cushions, m) is set by
    layout(): full width on a big screen, slimmer on a phone so the cloth and balls get the room. */
 let RAIL = 0.115;
-const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the corner caps overflow the wood (the side caps have ears) */
+const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the caps overflow the wood */
 /* the rail for a viewport: RAIL_MIN up to a 430 px short side, RAIL_MAX from 700 px, smooth between */
 const railFor = (w, h) => RAIL_MIN + (RAIL_MAX - RAIL_MIN) * ease(430, 700, Math.min(w, h));
 const ctx = table.getContext('2d');
@@ -2160,36 +2172,12 @@ const sdir = (tx, ty) => view.portrait ? [ty, -tx] : [tx, ty];
 /* layout (U): CSS lays out the controls and an empty #stage; the table is fitted into the
    stage. Upright, the strip under the table and the column beside it are both tried and the one
    that gives the bigger table wins, so a tablet in portrait can take its controls to the side
-   while a phone keeps them in a strip under a full-width table; on its side, the column.
-   The table's footprint is the rail plus the side pockets' ears: a side drop's back is 2 POCKET_R
-   past the nose, further out than a phone's rail, so its casting bulges past the long rails'
-   outer edge (sideReach, section 4). The rail fits the stage; the ears may also take the stage's
-   padding where the stage runs to the screen's safe edge on both sides (room), so a phone held
-   upright spends no more width on them than it must. */
-function fitTable(r, room = r) {
-  const W = TL + 2 * RAIL, H = TW + 2 * RAIL, E = TW + 2 * sideReach();
-  const kp = Math.min(r.width / H, r.height / W, room.width / E), kl = Math.min(r.width / W, r.height / H, room.height / E);
+   while a phone keeps them in a strip under a full-width table; on its side, the column. Every
+   pocket and its ring lie inside the rail, so the rail is the table's footprint. */
+function fitTable(r) {
+  const W = TL + 2 * RAIL, H = TW + 2 * RAIL;
+  const kp = Math.min(r.width / H, r.height / W), kl = Math.min(r.width / W, r.height / H);
   return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
-}
-/* the safe area, measured by a fixed probe inset by the --sa* variables (env() resolved) */
-let safeProbe = null;
-function safeRect() {
-  if (!safeProbe) {
-    safeProbe = document.createElement('div');
-    safeProbe.setAttribute('aria-hidden', 'true');
-    safeProbe.style.cssText = 'position:fixed;top:var(--sat);right:var(--sar);bottom:var(--sab);left:var(--sal);visibility:hidden;pointer-events:none;z-index:-1';
-    document.body.appendChild(safeProbe);
-  }
-  return safeProbe.getBoundingClientRect();
-}
-/* the stage grown, evenly on an axis, to the safe edge where only the screen's padding (3 px or
-   less) lies between them on both sides; a side against the controls stays put. On its side the
-   table already runs over the home indicator, so the bottom bound there is the screen's. */
-function roomOf(r, wide) {
-  const s = safeRect(), bottom = wide ? appSize()[1] : s.bottom;
-  const grow = (a, b) => a >= -0.5 && b >= -0.5 && a <= 3 && b <= 3 ? Math.max(0, Math.min(a, b)) : 0;
-  const ex = grow(r.left - s.left, s.right - r.right), ey = grow(r.top - s.top, bottom - r.bottom);
-  return { left: r.left - ex, top: r.top - ey, width: r.width + 2 * ex, height: r.height + 2 * ey };
 }
 /* The size the app really has. An iOS home-screen app with a translucent status bar can report
    innerHeight short by the status bar (worst at launch), which left a dead strip under the
@@ -2226,12 +2214,12 @@ function layout() {
   let best = null;
   for (const m of tries) {
     root.dataset.layout = m;
-    const sr = stage.getBoundingClientRect(), f = fitTable(sr, roomOf(sr, m === 'wide'));
+    const f = fitTable(stage.getBoundingClientRect());
     /* a phone held upright keeps the strip unless the side layout is clearly bigger */
     if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
-  const r = stage.getBoundingClientRect(), f = fitTable(r, roomOf(r, best.m === 'wide')), k = Math.max(10, f.k);
+  const r = stage.getBoundingClientRect(), f = fitTable(r), k = Math.max(10, f.k);
   const tw = (f.portrait ? TW : TL) + 2 * RAIL, th = (f.portrait ? TL : TW) + 2 * RAIL;
   view = { k, portrait: f.portrait, ox: r.left + (r.width - tw * k) / 2 + RAIL * k, oy: r.top + (r.height - th * k) / 2 + RAIL * k };
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
@@ -2342,11 +2330,11 @@ function drawTableImage() {
   g.strokeStyle = 'rgba(255,255,255,0.07)'; g.lineWidth = 1; g.stroke();
   return c;
 }
-/* four mitred boards with wavy grain running along each (the long ones out into the side ears), a
-   bullnose edge that follows the rail's outline (round the corners and the ears) and catches the
-   lamp on the sides facing it, and a dark seam where the wood meets the rubber */
+/* four mitred boards with wavy grain running along each, a bullnose edge that follows the rail's
+   outline (round the corners) and catches the lamp on the sides facing it, and a dark seam where
+   the wood meets the rubber */
 function paintRails(g, co, L, px, rnd) {
-  const E = sideReach();
+  const E = RAIL;
   const boards = [
     { q: [[-E, -E], [TL + E, -E], [TL + co, -co], [-co, -co]], along: 0, a: [-co, -E], n: [0, -1] },
     { q: [[-E, TW + E], [TL + E, TW + E], [TL + co, TW + co], [-co, TW + co]], along: 0, a: [TW + co, TW + E], n: [0, 1] },
@@ -2356,7 +2344,7 @@ function paintRails(g, co, L, px, rnd) {
   const DARK = [44, 19, 9], LITE = [140, 78, 40];
   for (const b of boards) {
     const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * E, [a0, a1] = b.a, w = a1 - a0;
-    const ws = Math.sign(w) * (RAIL - co);   /* the figure's scale: the rail's width, ears or not */
+    const ws = Math.sign(w) * (RAIL - co);   /* the figure's scale: the rail's width */
     g.save();
     railOutline(g, co); g.clip();
     g.beginPath(); polyPath(g, b.q); g.clip();
@@ -2418,63 +2406,27 @@ function paintRails(g, co, L, px, rnd) {
    A corner's cap is round, at least capW wider than the hole, slid out from the mouth until it is
    capGap from the rail's outer edge, and grown (sliding in as it goes) until its back, capBack
    inside its edge, takes in the whole drop; the rail's corner rounds about it by capGap, so the
-   wood wraps it like a casting. A side drop's back is 2 POCKET_R past the nose, past a slim
-   rail's outer edge, so its cap is a horseshoe set SIDE_SET in from the drop (SIDE_BAND of cap
-   behind the hole, more at its flanks) and the wood flows round it in an ear: a circle SIDE_WOOD
-   outside the cap, faired into the long rail's edge by EAR_FILLET coves. sideReach() is how far
-   the ear (or the rail, where it is wide enough) reaches past the nose; layout() fits it.
-   All of it reads POCKETS, POCKET_R, POCKET_AIM, CUSHION_POLYS, RAIL, TL and TW at paint time;
-   the shapes are cached per table and rail. */
+   wood wraps it like a casting. A side drop lies wholly inside the rail (its centre SIDE_BACK
+   behind the nose, 1b), so its cap is just a ring about it: SIDE_RING of liner and nickel round
+   the hole, thinned to leave SIDE_WOOD of wood behind it on a slim rail. The rail keeps one width
+   all round. All of it reads POCKETS, POCKET_R, POCKET_AIM, CUSHION_POLYS, RAIL, TL and TW at
+   paint time; the shapes are cached per table and rail. */
 const capW = co => clamp(0.5 * (RAIL - co), 0.012, 0.032);
 const capBack = co => clamp(0.3 * (RAIL - co), 0.006, 0.014);
 const capGap = co => clamp(0.12 * (RAIL - co), 0.004, 0.008);
-const SIDE_SET = 0.014, SIDE_BAND = 0.0035, SIDE_WOOD = 0.0025, EAR_FILLET = 0.08;
-/* a side pocket's ear, in its own frame (u along the rail, v out from the nose line): the cap's
-   centre at v = vc, the wood's circle rw about it, the coves' centres at (+-uf, RAIL + EAR_FILLET).
-   null where the rail is wide enough to hold the cap with SIDE_WOOD to spare. */
-function earOf(S) {
-  const vc = Math.abs(S.C[1] - (S.P[1] < TW / 2 ? 0 : TW)), rw = S.rc + SIDE_WOOD, F = EAR_FILLET;
-  if (vc + rw <= RAIL) return null;
-  const uf = Math.sqrt((rw + F) ** 2 - (RAIL + F - vc) ** 2);
-  return { vc, rw, uf, reach: vc + rw };
-}
-/* how far the table reaches past the long cushions' nose line: the rail, or the side ears */
-function sideReach() {
-  if (BUMPERS.length) return RAIL;   /* bumper pool: a plain rail, no pockets in it */
-  const co = cushionDepth(), e = pocketShape(1, co).ear;
-  return Math.max(RAIL, e ? e.reach : 0);
-}
-/* the rail's outer edge: its corners round about the corner caps, its long sides swell into an
-   ear round each side cap. railPath adds it as a subpath, clockwise from the top left. */
+const SIDE_RING = 0.006, SIDE_WOOD = 0.0015;
+/* the rail's outer edge, its corners rounded about the corner caps. railPath adds it as a
+   subpath, clockwise from the top left. */
 function railOutline(g, co) { g.beginPath(); railPath(g, co); }
 function railPath(g, co) {
-  if (BUMPERS.length) {   /* bumper pool: a plain rounded rail, no caps to wrap */
-    const r = Math.min(0.045, RAIL), x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL;
-    g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); g.closePath();
-    return;
-  }
-  const R = Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co), F = EAR_FILLET, h = TL / 2;
-  /* an ear on the top rail (o = 0) or the bottom (o = 1, the same turned half a turn about the bed's middle) */
-  const ear = (k, o) => {
-    const e = pocketShape(k, co).ear;
-    if (!e) return;
-    const t = o ? Math.PI : 0, sg = o ? -1 : 1, y0 = o ? TW : 0, a = Math.atan2(RAIL + F - e.vc, e.uf);
-    g.arc(h - sg * e.uf, y0 - sg * (RAIL + F), F, Math.PI / 2 + t, a + t, true);
-    g.arc(h, y0 - sg * e.vc, e.rw, a + Math.PI + t, 2 * Math.PI - a + t, false);
-    g.arc(h + sg * e.uf, y0 - sg * (RAIL + F), F, Math.PI - a + t, Math.PI / 2 + t, true);
-  };
-  g.moveTo(-RAIL + R, -RAIL);
-  ear(1, 0);
-  g.arc(TL + RAIL - R, -RAIL + R, R, -Math.PI / 2, 0);
-  g.arc(TL + RAIL - R, TW + RAIL - R, R, 0, Math.PI / 2);
-  ear(4, 1);
-  g.arc(-RAIL + R, TW + RAIL - R, R, Math.PI / 2, Math.PI);
-  g.arc(-RAIL + R, -RAIL + R, R, Math.PI, 1.5 * Math.PI);
-  g.closePath();
+  /* bumper pool has no caps to wrap: a plain rounded rail */
+  const r = BUMPERS.length ? Math.min(0.045, RAIL) : Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co);
+  const x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL;
+  g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); g.closePath();
 }
 /* pocket k: drop centre P, radius r; the cap: centre C on the line from the mouth's middle A
-   through P, radius rc; the back: radius rb about C (it holds the whole drop); a side's ear; the
-   mouth's shelf: the quad between its two jaw facings, nose to rail */
+   through P, radius rc; the back: radius rb about C (it holds the whole drop); the mouth's
+   shelf: the quad between its two jaw facings, nose to rail */
 let shapeCache = { key: '', polys: null, list: [] };
 function pocketShape(k, co) {
   const key = [RAIL, co, TL, TW, ...POCKETS.flat(), ...POCKET_R].join();
@@ -2488,9 +2440,8 @@ function pocketFit(k, co) {
     .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
   const quad = [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]];
   if (k === 1 || k === 4) {
-    const S = { P, C: [P[0] - ux * SIDE_SET, P[1] - uy * SIDE_SET], r, rb: r + SIDE_SET, rc: r + SIDE_SET + SIDE_BAND, quad, side: true };
-    S.ear = earOf(S);
-    return S;
+    const back = Math.abs(P[1] - (P[1] < TW / 2 ? 0 : TW)) + r;
+    return { P, C: P, r, rb: r, rc: r + Math.max(0.002, Math.min(SIDE_RING, RAIL - SIDE_WOOD - back)), quad, side: true };
   }
   const centre = rc => {
     let t = Infinity;
@@ -2508,9 +2459,9 @@ function pocketFit(k, co) {
   const lo = r + capW(co);
   for (const b of [cb, 0.8 * cb, 0.65 * cb, 0.5 * cb, 0.4 * cb, cb / 3]) {
     const fits = rc => { const C = centre(rc); return pts.every(q => Math.hypot(q[0] - C[0], q[1] - C[1]) <= rc - b - 0.0003); };
-    for (let rc = lo; rc < 2 * lo; rc += 0.0005) if (fits(rc)) return { P, C: centre(rc), r, rc, rb: rc - b, quad, side: false, ear: null };
+    for (let rc = lo; rc < 2 * lo; rc += 0.0005) if (fits(rc)) return { P, C: centre(rc), r, rc, rb: rc - b, quad, side: false };
   }
-  return { P, C: centre(lo), r, rc: lo, rb: lo - cb / 3, quad, side: false, ear: null };
+  return { P, C: centre(lo), r, rc: lo, rb: lo - cb / 3, quad, side: false };
 }
 function circle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); }
 /* clip to what shows of hole k (also used by the pot animation) */
@@ -2528,22 +2479,24 @@ function paintPocketCaps(g, co, L, px) {
   g.clip('evenodd');
   POCKETS.forEach((_, k) => {
     const { P, r, C, rc, rb, side } = pocketShape(k, co);
-    const lw = Math.max(1.6 * px, side ? 0.8 * SIDE_BAND : Math.min(0.0035, 0.11 * capW(co), 0.32 * (rc - rb)));
+    /* a side's ring: a third of it the liner's lip, the rest nickel */
+    const lw = Math.max(1.6 * px, side ? 0.68 * (rc - r) : Math.min(0.0035, 0.11 * capW(co), 0.32 * (rc - rb)));
     const gr = g.createRadialGradient(C[0], C[1], Math.max(0, side ? r - 0.006 : rb - 0.02), C[0], C[1], rc);
     gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.55, '#1f1b17'); gr.addColorStop(1, '#2d2722');
     g.fillStyle = gr; circle(g, C[0], C[1], rc); g.fill();
     /* the liner's lip, rolled over the drop's edge: worn leather catching the lamp on the far side */
-    const lip = Math.min(0.004, 0.5 * (rc - r)), sh = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
+    const lip = side ? rc - r - lw : Math.min(0.004, 0.5 * (rc - r)), sh = g.createLinearGradient(P[0] + L[0] * r, P[1] + L[1] * r, P[0] - L[0] * r, P[1] - L[1] * r);
     sh.addColorStop(0, 'rgba(92,70,50,0.35)'); sh.addColorStop(0.6, 'rgba(110,84,60,0.45)'); sh.addColorStop(1, 'rgba(150,118,86,0.6)');
     g.strokeStyle = sh; g.lineWidth = lip;
     circle(g, P[0], P[1], r + lip / 2); g.stroke();
     /* nickel round the edge, lit from the lamp's side, and a dark groove inside it */
     const metal = g.createLinearGradient(C[0] + L[0] * rc, C[1] + L[1] * rc, C[0] - L[0] * rc, C[1] - L[1] * rc);
-    metal.addColorStop(0, '#cfccc4'); metal.addColorStop(0.45, '#77746e'); metal.addColorStop(1, '#2f2d2a');
+    metal.addColorStop(0, '#e2dfd8'); metal.addColorStop(0.5, '#a4a19b'); metal.addColorStop(1, '#5d5a55');
     g.strokeStyle = metal; g.lineWidth = lw;
     circle(g, C[0], C[1], rc - lw / 2); g.stroke();
     g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = Math.max(px, lw * 0.35);
-    circle(g, C[0], C[1], rc - lw * 1.45); g.stroke();
+    if (side) { g.lineWidth = px; circle(g, C[0], C[1], rc - px / 2); } else circle(g, C[0], C[1], rc - lw * 1.45);
+    g.stroke();
   });
   g.restore();
 }
@@ -3831,8 +3784,8 @@ const felt = window.felt = {
   pick: n => pickBall(n), get striker() { return game.striker; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
-  /* the table's footprint on screen, CSS px: the rail and the side pockets' ears */
-  tableRect() { const e = sideReach(), a = toScreen(-RAIL, -e), b = toScreen(TL + RAIL, TW + e); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
+  /* the table's footprint on screen, CSS px: the rail's outer edge */
+  tableRect() { const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
 /* the ball the cue strikes: the cue ball, or in bumper pool the shooter's chosen ball (game.striker) */
 const cueN = () => game.kind === 'bumper' ? game.striker : 0;

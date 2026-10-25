@@ -146,6 +146,12 @@ function play(t, limit = Infinity) {
     const reg = (S.setPockets('regulation'), measure()), gen = (S.setPockets('generous'), measure());
     const worse = Object.keys(reg).filter(k => !(gen[k] > reg[k]));
     check(`${size} ft: generous pockets pot more in every category`, !worse.length, JSON.stringify({ reg, gen, worse }));
+    /* the side holes moved into the rail (centre a few cm behind the nose, the front over the
+       bed): regulation sides still take within 10% of what the old hole (centre a radius behind
+       the nose, tangent to the nose line) took, category by category */
+    const OLD = { '7': { 'side straight': 55, 'side cut 20': 96, 'side cut 30': 92, 'side cut 40': 76 }, '9': { 'side straight': 55, 'side cut 20': 96, 'side cut 30': 94, 'side cut 40': 76 } }[size];
+    const off = Object.keys(OLD).filter(k => Math.abs(reg[k] / OLD[k] - 1) > 0.1);
+    check(`${size} ft: regulation side pockets take within 10% of the old side hole in every side category`, !off.length, JSON.stringify({ reg, old: OLD, off }));
   }
   S.setTable('7'); S.setPockets('regulation');
 }
@@ -172,6 +178,18 @@ eachTable((T, style) => {
   const a = S.spinOf(0.5), b = S.spinOf({ x: 3, y: 4 }), c = S.spinOf(undefined), d = S.spinOf(-7);
   check(T + 'spinOf: a number is follow/draw, an object is clamped to the unit disc', a.x === 0 && a.y === 0.5 && Math.abs(b.x - 0.6) < 1e-12 && Math.abs(b.y - 0.8) < 1e-12 && c.x === 0 && c.y === 0 && d.y === -1, JSON.stringify([a, b, c, d]));
   check(T + 'power 1 is a hard break: 8-9 m/s', S.speedOf(1) >= 8 && S.speedOf(1) <= 9, String(S.speedOf(1)));
+}, BOTH);
+
+/* 0d. the side holes fit the slimmest rail: centre SIDE_BACK behind the nose, the back of the hole
+   at most 94 mm out, so a 6 mm ring fits inside a 0.10 m rail; the front reaches onto the bed;
+   a ball rolling frozen along the long rail passes a regulation side (a generous one reaches
+   further and can take a slow one, as a real bucket does) */
+eachTable((T, style) => {
+  const back = [1, 4].map(k => Math.abs(S.POCKETS[k][1] - (k === 1 ? 0 : S.TW)) + S.POCKET_R[k]);
+  const front = S.POCKET_R[1] - Math.abs(S.POCKETS[1][1]);
+  check(T + 'side holes: back at most 94 mm behind the nose, front 1-4 cm onto the bed', back.every(b => b <= 0.094 + 1e-12) && front > 0.01 && front < 0.04, JSON.stringify({ back, front }));
+  const along = v => { const t = S.strike(S.newTable([cueAt(0.3, R + 0.0005)]), 0, P(v), 0); play(t); return t.pocketOf[0]; };
+  if (style === 'regulation') check(T + 'a ball rolling frozen along the long rail at 1.6 m/s passes the side pocket', along(1.6) !== 1, String(along(1.6)));
 }, BOTH);
 
 /* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle; both tables,

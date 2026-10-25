@@ -7,7 +7,7 @@
    the illegal ring keeps its contrast, and a frame stays cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
    (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
    the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the same pocket probes on generous
-   pockets (corner caps inside the rail at RAIL_MIN, side caps in painted ears past it); every drop
+   pockets (corner caps and side rings inside the rail at RAIL_MIN); every drop
    whole and round, and the whole of every drop circle on a grid (dark, never
    cloth, and untouched by a frame's overlays); the auto-aim hint's ring and pocket chevron; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
@@ -437,21 +437,22 @@ async function tableChecks(page, tag) {
   check(`${size} ft${P}, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
   }
   /* the caps on generous pockets at the narrowest rail (RAIL_MIN on this phone): every corner
-     cap's edge stays capGap inside the rail's outer edge; each side cap sits in an ear that
-     swells past the rail, SIDE_WOOD of wood round its back, and the ear is painted (casting and
-     wood just inside its crown, the room just outside it) */
+     cap's edge stays capGap inside the rail's outer edge; each side hole and its ring lie inside
+     the rail, SIDE_WOOD of wood behind the ring, and the ring is painted (nickel, not the hole's
+     dark nor the wood, halfway round its back) */
   const caps = await q.page.evaluate(() => {
-    const co = cushionDepth(), px1 = 1 / view.k, S1 = pocketShape(1, co);
+    const co = cushionDepth();
     const corners = [0, 2, 3, 5].map(k => { const S = pocketShape(k, co);
       return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); });
-    const sides = [1, 4].map(k => { const S = pocketShape(k, co), e = S.ear; return e ? +(1000 * (e.rw - S.rc)).toFixed(2) : -1; });
-    const e = S1.ear, inn = __px([toScreen(TL / 2, -(e.reach - 1.5 * px1))])[0], out = __px([toScreen(TL / 2, -(e.reach + 4 * px1))])[0];
-    return { rail: RAIL, min: RAIL_MIN, corners, want: 1000 * capGap(co), sides, wood: 1000 * SIDE_WOOD, reach: +(1000 * e.reach).toFixed(1), inn, out };
+    const sides = [1, 4].map(k => { const S = pocketShape(k, co), o = k === 1 ? -1 : 1, y0 = k === 1 ? 0 : TW, back = Math.abs(S.C[1] - y0);
+      const [ring, hole] = __px([toScreen(S.C[0], S.C[1] + o * (S.rc - 0.35 * (S.rc - S.r))), toScreen(S.C[0], S.C[1] + o * (S.r - 0.004))]);
+      return { wood: +(1000 * (RAIL - back - S.rc)).toFixed(2), ringW: +(1000 * (S.rc - S.r)).toFixed(2), ring, hole }; });
+    return { rail: RAIL, min: RAIL_MIN, corners, want: 1000 * capGap(co), sides, wood: 1000 * SIDE_WOOD };
   });
   check('generous pockets at RAIL_MIN: every corner cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.corners.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
   const dif = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
-  check('generous pockets at RAIL_MIN: each side cap sits in a painted ear past the rail, SIDE_WOOD of wood round it', caps.sides.every(s => Math.abs(s - caps.wood) < 0.01)
-    && caps.reach > 1000 * caps.rail && dif(caps.inn, caps.out) > 40, JSON.stringify(caps));
+  check('generous pockets at RAIL_MIN: each side hole and its ring (4 mm or more) inside the rail, SIDE_WOOD from its edge, the nickel painted',
+    caps.sides.every(s => s.wood >= caps.wood - 0.01 && s.ringW >= 4 && dif(s.ring, s.hole) > 60 && s.ring[0] + s.ring[1] + s.ring[2] > 240), JSON.stringify(caps));
   await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */

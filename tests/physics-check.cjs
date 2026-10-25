@@ -6,12 +6,19 @@
    the fail-safe pots anything that gets out. The pockets keep nothing half over a hole: balls
    dying at the mouths either drop or rest clear of the hole but for a sliver. The power curve
    makes every part of the bar useful, draw comes back, reverse english reads off a rail, and
-   the table records whether the cue ball crossed the head string before first contact. */
+   the table records whether the cue ball crossed the head string before first contact.
+   Table sizes: setTable rebuilds the geometry for 7 and 9 ft, and the table-dependent sections
+   (shapes, pockets, lags, racks, fuzz) run on both. The rest is ball physics, run on the
+   default 7 ft table in metres; the power curve, whose roll-outs are longer than a 7 ft table,
+   is measured on the 9 ft table so its distances are free rolls, not rail bounces. */
 'use strict';
 const { check, done } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 const R = S.BALL_R, DEG = Math.PI / 180;
+const SIZES = ['7', '9'];
+/* run body(tag) once per table size, then go back to the default 7 ft table */
+const eachTable = body => { for (const size of SIZES) { S.setTable(size); body(`${size} ft: `); } S.setTable('7'); };
 
 const shot = (balls, angle, power, spin = 0) => S.simulateShot(balls, { angle, power, spin });
 /* the power for a cue-ball speed: the checks below are written in m/s so that a new power curve
@@ -30,57 +37,89 @@ function play(t, limit = Infinity) {
   return kinds;
 }
 
-/* 0. the contract's shapes */
+/* 0a. table sizes: 7 ft by default; setTable rebuilds everything that hangs on the bed and
+   nothing else; switching back gives exactly the fresh geometry */
 {
-  check('six pockets, six radii, six aim points', S.pockets().length === 6 && S.POCKETS.length === 6 && S.POCKET_R.length === 6 && S.POCKET_AIM.length === 6);
+  const geo = () => JSON.stringify([S.TABLE, S.TL, S.TW, S.HEAD_X, S.FOOT, S.CUSH, S.CUSHION_POLYS, S.POCKETS, S.POCKET_R, S.POCKET_AIM]);
+  const fresh = geo();
+  check('default table is 7 ft: 1.981 x 0.991 m, head string at TL/4, foot spot at 3TL/4', S.TABLE === '7' && S.TL === 1.981 && S.TW === 0.991
+    && Math.abs(S.HEAD_X - S.TL / 4) < 1e-12 && Math.abs(S.FOOT[0] - 3 * S.TL / 4) < 1e-12 && S.FOOT[1] === S.TW / 2, fresh.slice(0, 60));
+  const k7 = { cush: S.CUSH, polys: S.CUSHION_POLYS, pockets: S.POCKETS, aim: S.POCKET_AIM, R: S.POCKET_R };
+  const r9 = S.setTable('9');
+  check('setTable(\'9\'): 2.54 x 1.27 m, every table global reassigned', r9 === '9' && S.TABLE === '9' && S.TL === 2.54 && S.TW === 1.27 && Math.abs(S.HEAD_X - 0.635) < 1e-12
+    && Math.abs(S.FOOT[0] - 1.905) < 1e-12 && S.CUSH !== k7.cush && S.CUSHION_POLYS !== k7.polys && S.POCKETS !== k7.pockets && S.POCKET_AIM !== k7.aim && S.POCKET_R !== k7.R);
+  /* the same pockets, cushions and jaws, only moved: every segment and polygon keeps its length
+     and shape, a pocket keeps its offset from the nearest bed corner (or side's middle) */
+  const len = c => c.map(q => Math.hypot(q[2] - q[0], q[3] - q[1]));
+  const off = (P, TL, TW) => P.map(([x, y]) => [x < TL / 4 ? x : x > 3 * TL / 4 ? x - TL : x - TL / 2, y < TW / 2 ? y : y - TW]);
+  const near = (a, b) => a.flat(2).every((v, i) => Math.abs(v - b.flat(2)[i]) < 1e-12);
+  const noses7 = len(k7.cush).slice(0, 6), noses9 = len(S.CUSH).slice(0, 6);
+  check('9 ft against 7 ft: hole radii, jaw facings and pocket offsets identical, noses longer by the bed', near(S.POCKET_R, k7.R) && near(len(S.CUSH).slice(6), len(k7.cush).slice(6))
+    && near(off(S.POCKETS, 2.54, 1.27), off(k7.pockets, 1.981, 0.991)) && near(off(S.POCKET_AIM, 2.54, 1.27), off(k7.aim, 1.981, 0.991))
+    && noses9.every((v, i) => v > noses7[i]), JSON.stringify({ noses7: noses7.map(v => +v.toFixed(4)), noses9: noses9.map(v => +v.toFixed(4)) }));
+  const shotGeo = () => JSON.stringify(shot(S.rack('9'), 0.02, 0.9, { x: 0.2, y: -0.3 }));
+  const on9 = shotGeo();
+  S.setTable('7');
+  check('setTable(\'7\') after 9 ft restores the fresh geometry exactly', geo() === fresh);
+  const on7 = shotGeo();
+  check('setTable changes the physics: the same break plays differently, and switching back replays it exactly', on7 !== on9 && (S.setTable('9'), shotGeo()) === on9 && (S.setTable('7'), shotGeo()) === on7);
+  check('setTable: anything but \'9\' is 7 ft', S.setTable('x') === '7' && S.setTable(9) === '9' && S.setTable(7) === '7' && geo() === fresh);
+  const g = S.newGame('8');
+  check('newGame racks on the current table', Math.abs(g.balls.find(b => b.n === 1).x - S.FOOT[0]) < 1e-12 && g.balls[0].x === S.HEAD_X
+    && (S.setTable('9'), Math.abs(S.newGame('9').balls.find(b => b.n === 1).x - 1.905) < 1e-12) && S.setTable('7') === '7');
+}
+
+/* 0. the contract's shapes, on both tables */
+eachTable(T => {
+  check(T + 'six pockets, six radii, six aim points', S.pockets().length === 6 && S.POCKETS.length === 6 && S.POCKET_R.length === 6 && S.POCKET_AIM.length === 6);
   const P = S.POCKETS, ok = P[0][0] < 0 && P[0][1] < 0 && Math.abs(P[1][0] - S.TL / 2) < 1e-9 && P[1][1] < 0 && P[2][0] > S.TL && P[3][1] > S.TW && P[4][1] > S.TW && P[5][0] > S.TL && P[5][1] > S.TW;
-  check('pockets in the contract order: head-top, top side, foot-top, head-bottom, bottom side, foot-bottom', ok, JSON.stringify(P));
+  check(T + 'pockets in the contract order: head-top, top side, foot-top, head-bottom, bottom side, foot-bottom', ok, JSON.stringify(P));
   const segs = new Set(S.CUSH.map(s => s.map(v => v.toFixed(9)).join()));
   const has = (p, q) => segs.has([...p, ...q].map(v => v.toFixed(9)).join()) || segs.has([...q, ...p].map(v => v.toFixed(9)).join());
   const inner = S.CUSHION_POLYS.every(poly => poly.length >= 3 && has(poly[0], poly[1]) && has(poly[1], poly[2]) && has(poly[2], poly[3]));
   const outside = S.CUSHION_POLYS.every(poly => poly.every(([x, y]) => x <= 1e-9 || x >= S.TL - 1e-9 || y <= 1e-9 || y >= S.TW - 1e-9));
-  check('cushion polygons: inner edges are the collision segments, the rest lies off the bed', S.CUSHION_POLYS.length === 6 && inner && outside && S.CUSH.length === 18);
+  check(T + 'cushion polygons: inner edges are the collision segments, the rest lies off the bed', S.CUSHION_POLYS.length === 6 && inner && outside && S.CUSH.length === 18);
   /* mouths between jaw points, from the nose ends: corners 4.5-5 in, sides 5-5.5 in */
   const IN = 0.0254, mouth = k => {
     const m = S.POCKET_AIM[k], ends = S.CUSH.slice(0, 6).flatMap(s => [[s[0], s[1]], [s[2], s[3]]]).filter(p => Math.hypot(p[0] - m[0], p[1] - m[1]) < 0.1);
     return ends.length === 2 ? Math.hypot(ends[0][0] - ends[1][0], ends[0][1] - ends[1][1]) / IN : NaN;
   };
   const w = [0, 1, 2, 3, 4, 5].map(mouth);
-  check('mouths: corners 4.5-5 in, sides 5-5.5 in', w.every((v, k) => k === 1 || k === 4 ? v >= 5 && v <= 5.5 : v >= 4.5 && v <= 5), JSON.stringify(w.map(v => +v.toFixed(2))));
+  check(T + 'mouths: corners 4.5-5 in, sides 5-5.5 in', w.every((v, k) => k === 1 || k === 4 ? v >= 5 && v <= 5.5 : v >= 4.5 && v <= 5), JSON.stringify(w.map(v => +v.toFixed(2))));
   const a = S.spinOf(0.5), b = S.spinOf({ x: 3, y: 4 }), c = S.spinOf(undefined), d = S.spinOf(-7);
-  check('spinOf: a number is follow/draw, an object is clamped to the unit disc', a.x === 0 && a.y === 0.5 && Math.abs(b.x - 0.6) < 1e-12 && Math.abs(b.y - 0.8) < 1e-12 && c.x === 0 && c.y === 0 && d.y === -1, JSON.stringify([a, b, c, d]));
-  check('power 1 is a hard break: 8-9 m/s', S.speedOf(1) >= 8 && S.speedOf(1) <= 9, String(S.speedOf(1)));
-}
+  check(T + 'spinOf: a number is follow/draw, an object is clamped to the unit disc', a.x === 0 && a.y === 0.5 && Math.abs(b.x - 0.6) < 1e-12 && Math.abs(b.y - 0.8) < 1e-12 && c.x === 0 && c.y === 0 && d.y === -1, JSON.stringify([a, b, c, d]));
+  check(T + 'power 1 is a hard break: 8-9 m/s', S.speedOf(1) >= 8 && S.speedOf(1) <= 9, String(S.speedOf(1)));
+});
 
-/* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle */
-{
+/* 1. pockets: straight at a corner, straight at a side, along a rail, a rattle; both tables */
+eachTable(T => {
   const r = shot([cueAt(S.TL - 0.6, S.TW - 0.6)], Math.PI / 4, P(0.93));
-  check('a ball rolled at a corner is potted', r.potted.includes(0), JSON.stringify(r.potted));
+  check(T + 'a ball rolled at a corner is potted', r.potted.includes(0), JSON.stringify(r.potted));
   const s = shot([cueAt(S.TL / 2, S.TW / 2)], -Math.PI / 2, P(0.93));
-  check('a ball rolled at a side pocket is potted', s.potted.includes(0), JSON.stringify(s.potted));
+  check(T + 'a ball rolled at a side pocket is potted', s.potted.includes(0), JSON.stringify(s.potted));
   const t = S.strike(S.newTable([cueAt(1.0, R + 0.0005)]), Math.PI, P(1.57), 0);
   play(t);
-  check('a ball rolling along the rail into a corner drops', t.potted.includes(0) && t.pocketOf[0] === 0, JSON.stringify({ potted: t.potted, k: t.pocketOf }));
+  check(T + 'a ball rolling along the rail into a corner drops', t.potted.includes(0) && t.pocketOf[0] === 0, JSON.stringify({ potted: t.potted, k: t.pocketOf }));
   /* 15 degrees off the long rail, hard, a ball width wide of the mouth's middle: it hits the
      facing, bounces across and comes back out. Dead centre on the same line it drops. */
   const m = S.POCKET_AIM[0], a = Math.PI + 15 * DEG, ux = Math.cos(a), uy = Math.sin(a);
   const from = off => [m[0] - ux * 0.7 - uy * off, m[1] - uy * 0.7 + ux * off];
   const rt = S.strike(S.newTable([cueAt(...from(0.032))]), a, P(3.53), 0), kinds = play(rt);
   const out = rt.balls[0];
-  check('a hard ball into the jaw at a bad angle rattles out', kinds.jaw >= 1 && !rt.potted.length && out.on && out.x > 0 && out.y > 0, JSON.stringify({ kinds, potted: rt.potted }));
+  check(T + 'a hard ball into the jaw at a bad angle rattles out', kinds.jaw >= 1 && !rt.potted.length && out.on && out.x > 0 && out.y > 0, JSON.stringify({ kinds, potted: rt.potted }));
   const ct = S.strike(S.newTable([cueAt(...from(0))]), a, P(3.53), 0);
   play(ct);
-  check('the same line through the middle of the mouth drops', ct.potted.includes(0) && ct.pocketOf[0] === 0);
-  check('a drop is reported as a pocket hit with its speed', (() => { const q = S.strike(S.newTable([cueAt(S.TL / 2, S.TW / 2)]), -Math.PI / 2, P(0.93), 0); let v = 0; while (S.stepTable(q)) for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; return v > 0.1; })());
-}
+  check(T + 'the same line through the middle of the mouth drops', ct.potted.includes(0) && ct.pocketOf[0] === 0);
+  check(T + 'a drop is reported as a pocket hit with its speed', (() => { const q = S.strike(S.newTable([cueAt(S.TL / 2, S.TW / 2)]), -Math.PI / 2, P(0.93), 0); let v = 0; while (S.stepTable(q)) for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; for (const h of q.hits) if (h[0] === 'pocket') v = h[1]; return v > 0.1; })());
+});
 
 /* 1b. nothing hangs half over a hole. A ball that dies on the lip (within POCKET_LIP of the
    hole) creeps in; one that dies just outside it stays. Then 600 lags that die at the mouths,
    from every angle the bed allows, a little wide of the middle, at speeds from short to a
    little long: none rests with its centre over a hole or its lip, none rests more than a third
    of its radius over the drawn hole, and the ones that rest over it at all (genuine hangers,
-   a sliver on the lip) stay rare. */
-{
+   a sliver on the lip) stay rare. Both tables. */
+eachTable(T => {
   const creep = (k, gap) => {
     const p = S.POCKETS[k], m = S.POCKET_AIM[k], d = Math.hypot(m[0] - p[0], m[1] - p[1]), r = S.POCKET_R[k] + gap;
     const b = S.newBall(0, p[0] + (m[0] - p[0]) / d * r, p[1] + (m[1] - p[1]) / d * r);
@@ -91,7 +130,7 @@ function play(t, limit = Infinity) {
     return t.balls[0].on;
   };
   const lip = [0, 1, 2, 3, 4, 5].map(k => [creep(k, S.POCKET_LIP - 0.002), creep(k, S.POCKET_LIP + 0.002)]);
-  check('a ball dying on a hole\'s lip creeps in, one dying just outside it stays', lip.every(([a, b]) => !a && b) && S.POCKET_LIP < R, JSON.stringify(lip));
+  check(T + 'a ball dying on a hole\'s lip creeps in, one dying just outside it stays', lip.every(([a, b]) => !a && b) && S.POCKET_LIP < R, JSON.stringify(lip));
   const rnd = S.rng(11), N = 600;
   let potted = 0, inside = 0, worst = 0, over = 0;
   for (let i = 0; i < N; i++) {
@@ -117,10 +156,10 @@ function play(t, limit = Infinity) {
     worst = Math.max(worst, hang);
   }
   const res = { potted, inside, over, worstMm: +(worst * 1000).toFixed(1) };
-  check('600 lags dying at the mouths: no ball rests with its centre over a hole or its lip', inside === 0 && potted > N / 2, JSON.stringify(res));
-  check('600 lags: no ball rests more than a third of its radius over a hole', worst < R / 3, JSON.stringify(res));
-  check('600 lags: hangers (resting over a hole at all) under 6% of lags that die at a mouth', over < 0.06 * N, JSON.stringify(res));
-}
+  check(T + '600 lags dying at the mouths: no ball rests with its centre over a hole or its lip', inside === 0 && potted > N / 2, JSON.stringify(res));
+  check(T + '600 lags: no ball rests more than a third of its radius over a hole', worst < R / 3, JSON.stringify(res));
+  check(T + '600 lags: hangers (resting over a hole at all) under 6% of lags that die at a mouth', over < 0.06 * N, JSON.stringify(res));
+});
 
 /* 2. cushions reflect, english bends the rebound */
 {
@@ -130,31 +169,31 @@ function play(t, limit = Infinity) {
   for (let i = 0; i < 20000 && S.stepTable(t); i++) if (t.balls[0].vy > 0) back = true;
   const b = t.balls[0];
   check('cushion reflects the ball', back && b.on && b.y >= R - 1e-9, JSON.stringify({ y: b.y, on: b.on }));
-  /* straight into the foot rail; the shooter faces +x, so his right is +y */
+  /* straight into the foot rail from 0.74 m; the shooter faces +x, so his right is +y */
   const off = x => {
-    const q = S.strike(S.newTable([cueAt(1.8, S.TW / 2)]), 0, P(1.57), { x, y: 0 }), c = q.balls[0];
+    const q = S.strike(S.newTable([cueAt(S.TL - 0.74, S.TW / 2)]), 0, P(1.57), { x, y: 0 }), c = q.balls[0];
     let k = -1;
     while (S.stepTable(q)) { if (k < 0 && c.vx < 0) k = 0; if (k >= 0 && ++k === 12) break; }
     return Math.atan2(c.vy, -c.vx) / DEG;
   };
   const right = off(1), left = off(-1), none = off(0);
   check('right english off a straight-in rail sends the cue ball right, left english left', right > 5 && left < -5 && Math.abs(none) < 1e-9, JSON.stringify({ right, left, none }));
-  /* 30 degrees from the normal into the bottom rail: running english (here left) comes off
-     wider, reverse narrower */
+  /* 30 degrees from the normal into the bottom rail, from 0.77 m off it: running english (here
+     left) comes off wider, reverse narrower */
   const reb = x => {
-    const q = S.strike(S.newTable([cueAt(0.4, 0.5)]), 60 * DEG, P(1.57), { x, y: 0 }), c = q.balls[0];
+    const q = S.strike(S.newTable([cueAt(0.4, S.TW - 0.77)]), 60 * DEG, P(1.57), { x, y: 0 }), c = q.balls[0];
     let k = -1;
     while (S.stepTable(q)) { if (k < 0 && c.vy < 0) k = 0; if (k >= 0 && ++k === 6) break; }
     return Math.atan2(c.vx, -c.vy) / DEG;
   };
   const run = reb(-1), plain = reb(0), rev = reb(1);
   check('running english lengthens the rebound angle, reverse shortens it', run > plain + 5 && rev < plain - 5, JSON.stringify({ run, plain, rev }));
-  /* 30 and 40 degrees in, full english at 1.5 and 3 m/s: the rebound angle 5 ms after the hit,
+  /* 30 and 40 degrees in from 0.67 m off the rail, full english at 1.5 and 3 m/s: the rebound angle 5 ms after the hit,
      and (at 1.5 m/s) the direction of the next 0.3 m once the cloth has bent the path. Reverse
      is smaller than running, as on a real cushion, but it reads: at least 4 degrees shorter off
      the cushion, and still shorter once the path has bent. */
   const bend = (deg, x, v) => {
-    const q = S.strike(S.newTable([cueAt(0.3, 0.6)]), (90 - deg) * DEG, P(v), { x, y: 0 }), c = q.balls[0];
+    const q = S.strike(S.newTable([cueAt(0.3, S.TW - 0.67)]), (90 - deg) * DEG, P(v), { x, y: 0 }), c = q.balls[0];
     let k = -1, early = NaN, p0 = null;
     while (S.stepTable(q)) {
       if (k < 0 && c.vy < 0) k = 0;
@@ -172,11 +211,13 @@ function play(t, limit = Infinity) {
     eng.every(e => e.rev[0] < -4 && (e.v > 2 || e.rev[1] < -2) && e.run[0] > 10 && e.run[0] > -e.rev[0]), JSON.stringify(eng));
 }
 
-/* 3. stun, follow, draw. Cue at 0.6, object 0.25-1 m ahead. Stun: velocities 5 ms after
+/* 3. stun, follow, draw. Cue at 0.4, object 0.25-1 m ahead. Stun: velocities 5 ms after
    contact. Follow and draw: what the cue ball does once the cloth has taken out the slip,
-   against its speed at contact, and how far it then goes */
+   against its speed at contact, and how far it then goes. The object ball is lifted off 5 ms
+   after contact, so on the 7 ft table it cannot come back off the foot rail into the cue ball's
+   path; the cue ball's run ends when it stops, turns or meets a rail. */
 {
-  const lay = gap => [cueAt(0.6, S.TW / 2), S.newBall(1, 0.6 + gap, S.TW / 2)];
+  const lay = gap => [cueAt(0.4, S.TW / 2), S.newBall(1, 0.4 + gap, S.TW / 2)];
   const after = (spin, power = 0.5, gap = 0.25) => {
     const t = S.newTable(lay(gap));
     S.strike(t, 0, power, spin);
@@ -185,10 +226,12 @@ function play(t, limit = Infinity) {
     while (t.first === null) { vc = c.vx; if (!S.stepTable(t)) break; }
     for (let i = 0; i < 6; i++) S.stepTable(t);
     const at5 = { cue: c.vx, obj: t.balls[1].vx };
+    t.balls[1].on = false;
     while (slip(c) > 1e-9 && S.stepTable(t));
     const roll = c.vx, x0 = c.x;
     let far = 0;
-    while (S.stepTable(t) && Math.sign(c.vx) === Math.sign(roll) && t.balls[1].x > c.x) far = Math.max(far, Math.abs(c.x - x0));
+    t.hits.length = 0;
+    while (S.stepTable(t) && Math.sign(c.vx) === Math.sign(roll) && !t.hits.length) far = Math.max(far, Math.abs(c.x - x0));
     return { vc, at5, roll, far };
   };
   const v0 = S.speedOf(0.5), stun = after(0).at5;
@@ -306,7 +349,10 @@ function play(t, limit = Infinity) {
 }
 
 /* 6. roll-out grows with power, a soft shot stops on the cloth; the power curve: a quarter is a
-   gentle roll of about a table length, a half is firm, full is the break */
+   gentle roll of 1.9-3.3 m (0.75-1.3 lengths of a 9 ft table), a half is firm, full is the
+   break. Path lengths include cushion bounces, so they are measured on the 9 ft table they were
+   set on; in metres, so the numbers are the same physics whatever table is the default. */
+S.setTable('9');
 {
   const dist = p => ball(shot([cueAt(0.4, S.TW / 2)], 0, p).balls, 0).x - 0.4;
   const d = [0.05, 0.1, 0.15, 0.2].map(dist);
@@ -320,29 +366,32 @@ function play(t, limit = Infinity) {
     const q = S.strike(S.newTable([cueAt(0.4, S.TW / 2 + 0.1)]), 0.05, p, 0);
     let L = 0;
     while (S.stepTable(q)) L += Math.hypot(q.balls[0].vx, q.balls[0].vy) * S.SIM_DT;
-    return L / S.TL;
+    return L;
   };
-  const q25 = lengths(0.25), q10 = lengths(0.1), q50 = path / S.TL;
-  check('power curve: 25% rolls a lone ball 0.75-1.3 table lengths, 10% still rolls a ball width or more', q25 > 0.75 && q25 < 1.3 && q10 * S.TL > 2 * R, JSON.stringify({ q10, q25 }));
-  check('power curve: 50% is a firm shot, 2.3-4 table lengths', q50 > 2.3 && q50 < 4, q50.toFixed(2) + ' lengths');
+  const q25 = lengths(0.25), q10 = lengths(0.1), q50 = path;
+  check('power curve (9 ft table): 25% rolls a lone ball 1.905-3.302 m, 10% still rolls a ball width or more', q25 > 1.905 && q25 < 3.302 && q10 > 2 * R, JSON.stringify({ q10, q25 }));
+  check('power curve (9 ft table): 50% is a firm shot, 5.842-10.16 m of path', q50 > 5.842 && q50 < 10.16, q50.toFixed(2) + ' m');
   const inv = [0, 0.1, 0.25, 0.5, 0.8, 1].every(p => Math.abs(S.powerFor(S.speedOf(p)) - p) < 1e-9);
   check('powerFor inverts speedOf', inv && S.powerFor(0) === 0 && S.powerFor(99) === 1);
 }
+S.setTable('7');
 
-/* 7. rack shapes */
-{
+/* 7. rack shapes, on both tables: on the foot spot, on the cloth, clear of every cushion */
+eachTable(T => {
   const e = S.rack('8'), n = S.rack('9');
-  check('8-ball rack: 15 object balls, 8 in the centre of the triangle', e.length === 16 && ball(e, 8).x > ball(e, 1).x, String(e.length));
-  check('9-ball rack: 9 object balls, 1 on the foot spot', n.length === 10 && Math.abs(ball(n, 1).x - S.FOOT[0]) < 1e-9, String(n.length));
+  check(T + '8-ball rack: 15 object balls, 8 in the centre of the triangle', e.length === 16 && ball(e, 8).x > ball(e, 1).x, String(e.length));
+  check(T + '9-ball rack: 9 object balls, 1 on the foot spot', n.length === 10 && Math.abs(ball(n, 1).x - S.FOOT[0]) < 1e-9, String(n.length));
   const tight = list => { let m = 9; for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) m = Math.min(m, Math.hypot(list[i].x - list[j].x, list[i].y - list[j].y)); return m; };
-  check('racked balls do not overlap', tight(e) >= 2 * R - 1e-9 && tight(n) >= 2 * R - 1e-9, String(tight(e)));
-}
+  check(T + 'racked balls do not overlap', tight(e) >= 2 * R - 1e-9 && tight(n) >= 2 * R - 1e-9, String(tight(e)));
+  const clear = list => list.every(b => b.x > 0.1 && b.x < S.TL - 0.1 && b.y > 0.1 && b.y < S.TW - 0.1);
+  check(T + 'racks and the cue ball sit on the cloth, well clear of the cushions, the cue ball on the head string', clear(e) && clear(n) && e[0].x === S.HEAD_X && e[0].y === S.TW / 2);
+});
 
 /* 8. fuzz: breaks from anywhere in the kitchen, shots on scattered layouts, hard shots at the
    jaws. Nothing NaN, nothing off the bed, nothing through a cushion, no overlap, no timeout,
-   and the fail-safe never needed. */
-{
-  const rnd = S.rng(7);
+   and the fail-safe never needed. Both tables, each with its own shots. */
+eachTable(T => {
+  const rnd = S.rng(T[0] === '7' ? 7 : 9);
   const segD = (b, s) => { const ex = s[2] - s[0], ey = s[3] - s[1], L = ex * ex + ey * ey, u = Math.max(0, Math.min(1, ((b.x - s[0]) * ex + (b.y - s[1]) * ey) / L)); return Math.hypot(b.x - s[0] - ex * u, b.y - s[1] - ey * u); };
   const audit = (t, i) => {
     const on = t.balls.filter(b => b.on);
@@ -375,7 +424,7 @@ function play(t, limit = Infinity) {
     const a = audit(t, i);
     if (a) bad.push(a);
   }
-  check('300 fuzzed shots: no NaN, escape, ball in a cushion, overlap or timeout', bad.length === 0, shots + ' shots, bad: ' + JSON.stringify(bad.slice(0, 3)));
+  check(T + '300 fuzzed shots: no NaN, escape, ball in a cushion, overlap or timeout', bad.length === 0, shots + ' shots, bad: ' + JSON.stringify(bad.slice(0, 3)));
   /* the same, but every shot aimed at a ball, with spin, so they all collide */
   bad = []; let hit = 0, fast = 0, rose = 0;
   for (let i = 0; i < 200; i++) {
@@ -393,9 +442,9 @@ function play(t, limit = Infinity) {
     const a = audit(t, i);
     if (a) bad.push(a);
   }
-  check('200 aimed shots with spin: no NaN, escape or timeout', bad.length === 0 && hit > 150, 'hit ' + hit + ', bad: ' + JSON.stringify(bad.slice(0, 3)));
-  check('no ball ever moves more than 7.1 mm in a step', fast === 0, 'steps over: ' + fast);
-  check('energy never rises in a step of 200 aimed shots', rose === 0, 'rises: ' + rose);
+  check(T + '200 aimed shots with spin: no NaN, escape or timeout', bad.length === 0 && hit > 150, 'hit ' + hit + ', bad: ' + JSON.stringify(bad.slice(0, 3)));
+  check(T + 'no ball ever moves more than 7.1 mm in a step', fast === 0, 'steps over: ' + fast);
+  check(T + 'energy never rises in a step of 200 aimed shots', rose === 0, 'rises: ' + rose);
   /* hard shots at points across every mouth and its jaws, from anywhere, with any spin */
   bad = []; let jaws = 0, potted = 0;
   for (let i = 0; i < 150; i++) {
@@ -408,13 +457,13 @@ function play(t, limit = Infinity) {
     const a = audit(t, i);
     if (a) bad.push(a);
   }
-  check('150 hard shots into the mouths: nothing escapes', bad.length === 0 && jaws > 12 && potted > 30, `jaws ${jaws}, potted ${potted}, bad: ` + JSON.stringify(bad.slice(0, 3)));
+  check(T + '150 hard shots into the mouths: nothing escapes', bad.length === 0 && jaws > 12 && potted > 30, `jaws ${jaws}, potted ${potted}, bad: ` + JSON.stringify(bad.slice(0, 3)));
   /* the fail-safe: a ball put off the bed away from every mouth is potted, and counted */
   const t = S.newTable([cueAt(1.8, S.TW / 2), S.newBall(3, 0.7, -0.3)]);
   Object.assign(t.balls[1], { vx: 0.5 });
   S.stepTable(t);
-  check('the fail-safe pots a ball that got off the bed outside a mouth', !t.balls[1].on && t.potted.includes(3) && t.escaped === 1, JSON.stringify({ on: t.balls[1].on, esc: t.escaped }));
-}
+  check(T + 'the fail-safe pots a ball that got off the bed outside a mouth', !t.balls[1].on && t.potted.includes(3) && t.escaped === 1, JSON.stringify({ on: t.balls[1].on, esc: t.escaped }));
+});
 
 /* 9. the kitchen rule's input: crossed is true once the cue ball's centre reaches the head
    string after the strike, at or before first contact */
@@ -422,13 +471,15 @@ function play(t, limit = Infinity) {
   const cross = (cue, obj, angle, power) => S.simulateShot([cueAt(...cue), ...obj.map(([n, x, y]) => S.newBall(n, x, y))], { angle, power, spin: 0 });
   const over = cross([0.3, 0.6], [[1, 1.5, 0.6]], 0, 0.3), behind = cross([0.3, 0.6], [[1, 0.5, 0.6]], 0, 0.3);
   const soft = cross([0.3, 0.6], [], Math.PI, 0.1), after = cross([0.3, 0.6], [[1, 0.45, 0.6 + 1.8 * R]], 0, 0.4);
+  /* how far the cue ball got on that thin hit, step by step: it does reach the string, later */
+  const reach = (() => { const t = S.strike(S.newTable([cueAt(0.3, 0.6), S.newBall(1, 0.45, 0.6 + 1.8 * R)]), 0, 0.4, 0); let m = 0; while (S.stepTable(t)) m = Math.max(m, t.balls[0].x); return m; })();
   /* an object ball a ball width past the string: contact with the cue ball's centre 3 mm past
      it counts, 3 mm short of it does not */
   const edge = gap => S.simulateShot([cueAt(0.3, 0.6), S.newBall(1, S.HEAD_X + 2 * R + gap, 0.6)], { angle: 0, power: 0.2, spin: 0 });
   const at = edge(0.003), short = edge(-0.003);
   check('crossed: a shot from the kitchen across the head string to a ball past it', over.crossed === true && over.first === 1, JSON.stringify({ crossed: over.crossed, first: over.first }));
   check('crossed: false when the cue ball hits a ball behind the string, or stays behind it', behind.crossed === false && behind.first === 1 && soft.crossed === false, JSON.stringify([behind.crossed, soft.crossed]));
-  check('crossed: false when the cue ball only crosses after first contact', after.first === 1 && after.crossed === false && after.balls[0].x > S.HEAD_X, JSON.stringify({ crossed: after.crossed, x: after.balls[0].x }));
+  check('crossed: false when the cue ball only crosses after first contact', after.first === 1 && after.crossed === false && reach > S.HEAD_X, JSON.stringify({ crossed: after.crossed, reach }));
   check('crossed: judged at first contact, to the millimetre', at.first === 1 && at.crossed === true && short.first === 1 && short.crossed === false, JSON.stringify([at.crossed, short.crossed]));
   check('crossed is in resultOf, and a fresh table has not crossed', 'crossed' in S.resultOf(S.newTable([cueAt(0.3, 0.6)])) && S.newTable([cueAt(0.3, 0.6)]).crossed === false);
 }

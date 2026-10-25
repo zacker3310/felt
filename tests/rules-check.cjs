@@ -99,6 +99,46 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   check('9: a legal shot resets the foul count', reset.fouls[0] === 0);
 }
 
+/* ---- rules tightened in T2.1 ---- */
+{
+  const g = S.newGame('8');
+  const a = S.judge(g, res(g, { first: 1, potted: [8] }));
+  check('8: the 8 on a legal break is spotted and the breaker shoots again', a.turn === 0 && !a.verdict.foul && a.verdict.keep && on(a, 8) && a.open);
+  const b = S.judge(g, res(g, { first: 1, potted: [8, 0] }));
+  check('8: the 8 and the cue ball on the break: 8 spotted, foul, ball in hand in the kitchen', b.winner === null && on(b, 8) && b.verdict.foul && b.turn === 1 && b.inHand === 'kitchen');
+  const snap = JSON.stringify(g);
+  S.judge(g, res(g, { first: 1, potted: [3, 0] }));
+  check('judge does not mutate the game it is given', JSON.stringify(g) === snap);
+}
+{
+  /* after a break scratch: in hand behind the head string, a ball behind it is not on */
+  const g = midGame('8', [1, 2, 9], { inHand: 'kitchen' });
+  Object.assign(g.balls.find(b => b.n === 1), { x: S.HEAD_X - 0.3, y: 0.3 });
+  Object.assign(g.balls.find(b => b.n === 2), { x: S.HEAD_X + 0.6, y: 0.6 });
+  const a = S.judge(g, res(g, { first: 1 }));
+  check('8: in hand in the kitchen, hitting a ball behind the head string first is a foul', a.verdict.foul && a.turn === 1 && a.inHand === 'table', JSON.stringify(a.verdict));
+  const b = S.judge(g, res(g, { first: 2 }));
+  check('8: in hand in the kitchen, a ball past the head string is fine', !b.verdict.foul && b.turn === 1 && b.inHand === null);
+}
+{
+  const g = midGame('8', [1, 2, 9, 10, 8]);
+  const a = S.judge(g, res(g, { first: 2, potted: [10, 1] }));
+  check('8: both groups down on the deciding shot: the first ball down sets the groups', a.groups[0] === 'stripes' && a.turn === 0 && !a.open);
+}
+{
+  const g = S.newGame('9');
+  const a = S.judge(g, res(g, { first: 2, potted: [5] }));
+  check('9: the break must hit the 1 first', a.verdict.foul && a.turn === 1);
+  const m = midGame('9', [3, 5, 9]);
+  const b = S.judge(m, res(m, { first: 3, potted: [3, 0] }));
+  check('9: a scratch with a legal pot is a foul, the pot stays down, the turn passes', b.verdict.foul && b.turn === 1 && b.inHand === 'table' && !on(b, 3) && b.fouls[0] === 1);
+}
+{
+  const g = midGame('9', [3], { inHand: 'table' });
+  check('placement refused in a pocket mouth', S.POCKET_AIM.every(p => !S.canPlace(g, p[0], p[1])));
+  check('placement refused against a cushion', !S.canPlace(g, S.TL / 3, S.BALL_R * 0.6));
+}
+
 /* ---- placement and spotting ---- */
 {
   const g = S.newGame('8');

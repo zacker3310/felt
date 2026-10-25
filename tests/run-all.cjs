@@ -24,7 +24,7 @@ function chromium() {
   if (!fs.existsSync(exe)) { console.error('run-all: no Chromium. Run `npx playwright-core install chromium` or set CHROMIUM.'); process.exit(2); }
   return exe;
 }
-const MIME = { '.html': 'text/html; charset=utf-8', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.js': 'text/javascript; charset=utf-8' };
 function serve() {
   return new Promise(resolve => {
     const srv = http.createServer((req, res) => {

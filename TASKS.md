@@ -20,6 +20,13 @@ Indicators: `I`ntent `S`pec `P`lan `B`uild `V`erify `D`eploy `W`atch
 - [x] T2.2: bigger balls (7 ft table, slimmer rails), pixel-perfect pockets, 1:1 aim sweep + fine wheel + loupe, bar-only shooting, auto aim, game-ball halo, red cloth, iOS home-screen app + icon   [ISPBV--]
   - `.buildloop/spec/T2.2.md`; `manifest.webmanifest`, `sw.js`, `icons/`, `tools/make-icons.cjs`, `tests/pwa-check.cjs`
 
+## Phase 3: modes
+
+- [ ] T3.0: bumper pool, practice, trick shots, real side pockets   [I-PB---] (in progress)
+- [ ] T3.1: POV stroke challenge: 3D down-the-cue view, puttX-style stroke where a crooked stroke misses   [IP-----]
+  - `.buildloop/intent/T3.1.md`, `.buildloop/plan/T3.1.md` (planned, not started; needs puttX's stroke code)
+
 ## Later (not started)
 
-- Push-out in 9-ball, called pockets in 8-ball, bank and combination shots for the CPU, masse.
+- Push-out in 9-ball, called pockets in 8-ball (10-ball), bank and combination shots for the CPU, masse,
+  three-cushion carom, snooker (needs a zoom/follow camera first).

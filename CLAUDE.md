@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `5/5 suites, N/N checks  ok` (about 60 s; physics fuzz and CPU games dominate) |
+| test | `npm test` | `6/6 suites, N/N checks  ok` (about 30 s; CPU match games dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -35,7 +35,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - The live roll calls the same `strike`/`stepTable`/`resultOf` as `simulateShot`; `play-check`
   asserts they agree byte for byte. Never give the page its own physics path.
 - `judge(g, r)` never mutates `g`; it returns the next game with a `verdict`.
-- `window.felt` is the test hook (`state`, `game`, `shoot`, `toScreen`, `speed`, `forceWin`).
+- `window.felt` is the test hook (`state`, `game`, `shoot`, `toScreen`, `speed`, `forceWin`, `view`, `settings`, ...).
+- `.buildloop/spec/T2.1.md` is the contract between the sim, rules/CPU, canvas, DOM and audio code: who owns
+  which globals, and the exported shapes (`CUSH`, `CUSHION_POLYS`, `POCKETS`, `POCKET_R`, `POCKET_AIM`, `spinOf`).
+- `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
 
 ## Conventions
 

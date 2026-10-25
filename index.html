@@ -609,7 +609,7 @@ function placeCue(g, x, y) {
 }
 /* judge a finished shot: returns the next game state with a verdict; g is not touched.
    With the cue ball in hand behind the head string (after a break scratch), the first ball hit
-   must lie past the head string. An 8 potted on a legal break is spotted and the breaker
+   must lie past the head string, unless no legal ball does. An 8 potted on a legal break is spotted and the breaker
    shoots again. */
 function judge(g, r) {
   const n = copyGame(g), me = g.turn, op = 1 - me;
@@ -620,7 +620,7 @@ function judge(g, r) {
   let foul = null, keep = false, win = null, why = '';
   if (r.first === null) foul = 'no ball hit';
   else if (!(g.kind === '8' && g.breakShot) && !targets.includes(r.first)) foul = `hit the ${r.first} first`;
-  else if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X) foul = `hit the ${r.first} behind the head string`;
+  else if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) foul = `hit the ${r.first} behind the head string`;
   else if (!g.breakShot && !pot.length && !r.railAfter) foul = 'no rail after contact';
   if (scratch) foul = 'scratch';
   if (g.kind === '8') {
@@ -646,7 +646,7 @@ function judge(g, r) {
   if (win !== null) { n.winner = win; n.inHand = null; n.turn = me; }
   else { n.turn = keep ? me : op; n.inHand = foul ? (g.breakShot && scratch ? 'kitchen' : 'table') : null; }
   n.breakShot = false;
-  n.verdict = { foul, keep, win, why, potted: pot, scratch, grouped: g.open && !n.open };
+  n.verdict = { foul, keep, win, why, potted: pot.filter(x => !n.balls.find(b => b.n === x).on), scratch, grouped: g.open && !n.open };
   return n;
 }
 
@@ -2072,7 +2072,7 @@ const felt = window.felt = {
   speed: 1, lastResult: null, lastShot: null, lastCpu: null,
   get state() { return state; }, get game() { return game; }, get cpu() { return cpuMode; }, get power() { return power; }, get aim() { return aimAngle; },
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
-  get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; },
+  get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
@@ -2102,7 +2102,8 @@ function start(kind) {
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
 function commit(p) {
-  power = markPower = clamp(p, 0, 1);
+  power = clamp(p, 0, 1);
+  if (human()) markPower = power;
   pull = null;
   stroke = { t0: performance.now(), power };
   state = 'stroke';
@@ -2150,10 +2151,11 @@ function movePlace(p) {
   say(canPlace(game, placeAt[0], placeAt[1]) ? placeHint() : placeWhy(placeAt));
 }
 function tryPlace(p) {
+  if (state !== 'place') return false;
   const q = p && nearestLegal(p[0], p[1]);
   if (!q) { say(p ? placeWhy(p) : placeHint()); return false; }
   game = placeCue(game, q[0], q[1]);
-  placeAt = null; state = 'aim';
+  placeAt = null; state = 'aim'; gest = null;
   say(`${turnOf(game.turn)}.`);
   hud();
   return true;
@@ -2318,6 +2320,7 @@ table.addEventListener('pointermove', e => {
   const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
   if (!g.moved && Math.hypot(dx, dy) > TAP_PX) g.moved = true;
   if (g.mode === 'place') {
+    if (state !== 'place') return;
     if (g.mouse) movePlace(pointAt(e));
     else if (g.moved) { const p = pointAt(e), p0 = toTable(g.x0, g.y0); movePlace([g.from[0] + p[0] - p0[0], g.from[1] + p[1] - p0[1]]); }
     return;
@@ -2344,7 +2347,7 @@ function endTable(e, cancel) {
   if (!g || g.bar || e.pointerId !== g.id) return;
   gest = null;
   if (g.mode === 'place') {
-    if (cancel) return;
+    if (cancel || state !== 'place') return;
     if (g.mouse || !g.moved) movePlace(pointAt(e));
     tryPlace(placeAt);
   } else if (g.mode === 'pull') {
@@ -2355,6 +2358,8 @@ function endTable(e, cancel) {
 }
 table.addEventListener('pointerup', e => endTable(e, false));
 table.addEventListener('pointercancel', e => endTable(e, true));
+/* a capture lost without a pointerup (alt-tab mid-drag) cancels, so no stale gesture survives */
+table.addEventListener('lostpointercapture', e => endTable(e, true));
 
 /* the power bar: press, drag along it (right, or down when it stands upright), let go */
 function barPos(e) { const r = powerBar.getBoundingClientRect(); return r.height > r.width ? [e.clientY, r.top, r.bottom] : [e.clientX, r.left, r.right]; }

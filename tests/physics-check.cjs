@@ -188,15 +188,15 @@ function play(t, limit = Infinity) {
     let prev = null;
     while (t.first === null) {
       const c = t.balls[0];
-      prev = { e: energy(t), lin: lin(t), ce: S.energyOf(c), rot: S.energyOf(c) - (c.vx * c.vx + c.vy * c.vy) / 2 };
+      prev = { e: energy(t), lin: lin(t), v: Math.hypot(c.vx, c.vy), ce: S.energyOf(c), rot: S.energyOf(c) - (c.vx * c.vx + c.vy * c.vy) / 2 };
       if (!S.stepTable(t)) break;
     }
     const c = t.balls[0], v = Math.hypot(c.vx, c.vy);
     n++;
-    const bad = energy(t) > prev.e + 1e-12 || v > Math.sqrt(2 * prev.ce) + 1e-9 || lin(t) > prev.lin + prev.rot + 1e-12;
+    const bad = energy(t) > prev.e + 1e-12 || v > prev.v + 1e-9 || v > Math.sqrt(2 * prev.ce) + 1e-9 || lin(t) > prev.lin + prev.rot + 1e-12;
     if (bad && !worst) worst = { off, spin, p, before: prev, v, e: energy(t), lin: lin(t) };
   }
-  check('cue-ball contacts never create energy', !worst, n + ' contacts ' + JSON.stringify(worst));
+  check('cue-ball contacts never speed the cue ball up or create energy', !worst, n + ' contacts ' + JSON.stringify(worst));
 }
 
 /* 5. determinism */

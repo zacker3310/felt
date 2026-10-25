@@ -42,15 +42,15 @@ const { check, done, open, settled } = require('./lib.cjs');
   await page.evaluate(s => felt.shoot(0.3, 0.6, s), spun);
   await page.waitForTimeout(150);
   await page.click('#menuBtn');
-  const p1 = await page.evaluate(() => ({ s: felt.state, paused: felt.paused, resume: getComputedStyle(resumeBtn).display }));
+  const p1 = await page.evaluate(() => ({ s: felt.state, paused: felt.paused, resume: getComputedStyle(resumeBtn).display, t: felt.simT }));
   await page.waitForTimeout(400);
-  const still = await page.evaluate(() => felt.game.shots);
+  const still = await page.evaluate(() => felt.game.shots), t1 = await page.evaluate(() => felt.simT);
   await page.click('#resumeBtn');
   const p2 = await page.evaluate(() => felt.state);
   await page.evaluate(() => { felt.speed = 40; });
   await settled(page);
   const live2 = await page.evaluate(() => JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])));
-  check('pause mid-roll shows the menu with resume, and the roll waits', p1.s === 'menu' && p1.paused && p1.resume !== 'none' && still === shots0, JSON.stringify(p1));
+  check('pause mid-roll shows the menu with resume, and the roll waits', p1.s === 'menu' && p1.paused && p1.resume !== 'none' && still === shots0 && p1.t > 0 && t1 === p1.t, JSON.stringify({ p1, t1 }));
   check('resume carries on the same game', p2 === 'rolling' && (await page.evaluate(() => felt.game.shots)) === shots0 + 1, p2);
   check('a shot with english, paused and resumed, still matches simulateShot exactly', live2 === exp2);
 
@@ -181,6 +181,24 @@ const { check, done, open, settled } = require('./lib.cjs');
   await page.waitForFunction(() => window.booted === true);
   const st = await page.evaluate(() => ({ s: felt.settings, hard: lvHard.getAttribute('aria-pressed'), short: gShort.getAttribute('aria-pressed'), level: getComputedStyle(levelSeg).display }));
   check('settings persist across a reload', st.s.guide === 'short' && st.s.cpu === true && st.s.level === 'hard' && st.s.sound === false && st.hard === 'true' && st.short === 'true' && st.level !== 'none', JSON.stringify(st));
+
+  /* a cue-ball drag still held through a keyboard place and shot cannot stop the roll */
+  if (!(await page.evaluate(() => menu.classList.contains('show')))) await page.click('#menuBtn');
+  await page.click('#vs2p');
+  await page.click('#play9');
+  const hold = await page.evaluate(() => felt.toScreen(HEAD_X - 0.2, TW / 2));
+  await page.mouse.move(hold[0], hold[1]);
+  await page.mouse.down();
+  await page.keyboard.press('Enter');
+  await page.evaluate(() => { felt.speed = 1; });
+  await page.keyboard.press(' ');
+  await page.waitForFunction(() => felt.state === 'rolling', null, { timeout: 5000 });
+  await page.mouse.move(hold[0] + 40, hold[1] + 30, { steps: 3 });
+  await page.mouse.up();
+  const held = await page.evaluate(() => felt.state);
+  await page.evaluate(() => { felt.speed = 40; });
+  await settled(page);
+  check('letting go of a held cue-ball drag after the shot leaves the roll alone', held === 'rolling' && (await page.evaluate(() => felt.game.shots)) === 1, held);
 
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();

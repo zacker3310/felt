@@ -121,6 +121,16 @@ const on = (g, n) => g.balls.find(b => b.n === n).on;
   check('8: in hand in the kitchen, a ball past the head string is fine', !b.verdict.foul && b.turn === 1 && b.inHand === null);
 }
 {
+  /* the kitchen rule cannot force a foul: when no legal ball lies past the head string, any is on */
+  const g = midGame('9', [1, 9], { inHand: 'kitchen' });
+  Object.assign(g.balls.find(b => b.n === 1), { x: 0.3, y: 0.3 });
+  const a = S.judge(g, res(g, { first: 1 }));
+  check('9: in hand in the kitchen with the ball on behind the line, hitting it is legal', !a.verdict.foul, JSON.stringify(a.verdict));
+  const f = midGame('9', [3, 5, 9]);
+  const b = S.judge(f, res(f, { first: 5, potted: [9] }));
+  check('9: a 9 spotted after a foul is not reported as potted', on(b, 9) && !b.verdict.potted.includes(9), JSON.stringify(b.verdict));
+}
+{
   const g = midGame('8', [1, 2, 9, 10, 8]);
   const a = S.judge(g, res(g, { first: 2, potted: [10, 1] }));
   check('8: both groups down on the deciding shot: the first ball down sets the groups', a.groups[0] === 'stripes' && a.turn === 0 && !a.open);

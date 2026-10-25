@@ -7,7 +7,8 @@
    the illegal ring keeps its contrast, and a frame stays cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
    (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
    the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the same pocket probes on generous
-   pockets, whose caps still fit the rail at RAIL_MIN; the whole of every hole on a grid (dark, never
+   pockets (corner caps inside the rail at RAIL_MIN, side caps in painted ears past it); every drop
+   whole and round, and the whole of every drop circle on a grid (dark, never
    cloth, and untouched by a frame's overlays); the auto-aim hint's ring and pocket chevron; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
    between. */
@@ -275,14 +276,12 @@ async function tableChecks(page, tag) {
     if (TABLE !== size || POCKETS_STYLE !== pockets) return []; for (const b of game.balls) b.on = false; state = 'over';
     const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
-    const underRubber = (x, y, d) => [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([u, v]) => CUSHION_POLYS.some(q => inPoly(q, x + u, y + v)));
     POCKETS.forEach((P, k) => {
       const S = pocketShape(k, co), r = POCKET_R[k], hole = [], rub = [];
+      /* the whole drop shows, all the way round (the rubber stops at its edge) */
       for (let i = 0; i < 72; i++) {
-        const a = i * Math.PI / 36, d = r - 1.5 * px1, x = P[0] + d * Math.cos(a), y = P[1] + d * Math.sin(a);
-        const box = x >= -co && x <= TL + co && y >= -co && y <= TW + co, back = Math.hypot(x - S.C[0], y - S.C[1]) < S.rb - 1.5 * px1;
-        /* what shows of the hole: a side drop runs on under its whole jaws' rubber */
-        if ((box || back) && !(S.cup && underRubber(x, y, 2 * px1))) hole.push(toScreen(x, y));
+        const a = i * Math.PI / 36, d = r - 1.5 * px1;
+        hole.push(toScreen(P[0] + d * Math.cos(a), P[1] + d * Math.sin(a)));
       }
       for (const [pi, ei] of [[0, 1], [3, 2]]) {
         const p = S.quad[pi], e = S.quad[ei], poly = CUSHION_POLYS.find(q => q.includes(p)), p2 = poly[1] === p ? poly[2] : poly[1];
@@ -306,19 +305,20 @@ async function tableChecks(page, tag) {
     pk.length === 6 && pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
   check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.length === 6 && pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
 
-  /* the whole of every hole, not only a ring at its edge: a grid over what shows of each drop
-     (inside the hole and the back, clear of the rubber, 2 CSS px in from every edge), read from
-     the painted table and from a frame in three states (game over, ball in hand in the kitchen
-     with its tint, aiming). The painted hole is dark and never cloth-coloured anywhere; a frame adds nothing
+  /* the whole of every hole, not only a ring at its edge: a grid over the whole drop circle (2
+     CSS px in from its edge; a side drop's part under its jaws and the rail included: the rubber
+     stops at the hole and the cap's back holds all of it), read from the painted table and from
+     a frame in three states (game over, ball in hand in the kitchen with its tint, aiming). The
+     painted hole is dark and never cloth- or rubber-coloured anywhere; a frame adds nothing
      inside a hole (the kitchen's tint once laid a pale square over the head corners). */
   const grid = await q.page.evaluate(([cloth]) => {
     const co = cushionDepth(), px1 = 1 / view.k, ch = cloth === 'red' ? 0 : 1, m = 2 * px1, step = 1.5 * px1, W = table.width;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
-    const underRubber = (x, y) => [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].some(([u, v]) => CUSHION_POLYS.some(q => inPoly(q, x + u, y + v)));
+    const whole = POCKETS.map((P, k) => { const S = pocketShape(k, co); return Math.hypot(P[0] - S.C[0], P[1] - S.C[1]) + S.r <= S.rb + 1e-9; });
     const pts = POCKETS.map((P, k) => {
-      const S = pocketShape(k, co), r = POCKET_R[k], out = [];
+      const r = POCKET_R[k], out = [];
       for (let x = P[0] - r; x <= P[0] + r; x += step) for (let y = P[1] - r; y <= P[1] + r; y += step) {
-        if (Math.hypot(x - P[0], y - P[1]) > r - m || Math.hypot(x - S.C[0], y - S.C[1]) > S.rb - m || underRubber(x, y)) continue;
+        if (Math.hypot(x - P[0], y - P[1]) > r - m) continue;
         const s = toScreen(x, y); out.push(Math.round(s[1] * dpr) * W + Math.round(s[0] * dpr));
       }
       return out;
@@ -337,9 +337,10 @@ async function tableChecks(page, tag) {
       frame[st] = Math.max(...pts.flat().map(i => Math.max(...[0, 1, 2].map(j => Math.abs(d[i * 4 + j] - img[i * 4 + j])))));
     }
     state = 'over';
-    return { art, frame };
+    return { art, frame, whole };
   }, [cloth]);
-  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the whole of every hole (a grid over what shows of it) is dark and never cloth-coloured`,
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: every drop is whole and round: the cap's back holds all of it, sides and corners`, grid.whole.length === 6 && grid.whole.every(Boolean), JSON.stringify(grid.whole));
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the whole of every hole (a grid over the full drop circle) is dark and never cloth-coloured`,
     grid.art.every(p => p.n > 100 && p.lum < 0.05 && p.cloth < 20), JSON.stringify(grid.art.map(p => [p.k, p.n, +p.lum.toFixed(3), p.cloth])));
   check(`dpr 3, ${size} ft${P}, ${cloth} cloth: a frame paints nothing inside a hole (game over, ball in hand in the kitchen, aiming)`,
     Object.values(grid.frame).every(v => v <= 2), JSON.stringify(grid.frame));
@@ -358,14 +359,22 @@ async function tableChecks(page, tag) {
   });
   check(`${size} ft${P}, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
   }
-  /* the caps on generous pockets still fit the rail at its narrowest (RAIL_MIN on this phone):
-     every cap's edge stays capGap inside the rail's outer edge, and the drop it shows is round */
+  /* the caps on generous pockets at the narrowest rail (RAIL_MIN on this phone): every corner
+     cap's edge stays capGap inside the rail's outer edge; each side cap sits in an ear that
+     swells past the rail, SIDE_WOOD of wood round its back, and the ear is painted (casting and
+     wood just inside its crown, the room just outside it) */
   const caps = await q.page.evaluate(() => {
-    const co = cushionDepth();
-    return { rail: RAIL, min: RAIL_MIN, gaps: POCKETS.map((_, k) => { const S = pocketShape(k, co);
-      return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); }), want: 1000 * capGap(co) };
+    const co = cushionDepth(), px1 = 1 / view.k, S1 = pocketShape(1, co);
+    const corners = [0, 2, 3, 5].map(k => { const S = pocketShape(k, co);
+      return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); });
+    const sides = [1, 4].map(k => { const S = pocketShape(k, co), e = S.ear; return e ? +(1000 * (e.rw - S.rc)).toFixed(2) : -1; });
+    const e = S1.ear, inn = __px([toScreen(TL / 2, -(e.reach - 1.5 * px1))])[0], out = __px([toScreen(TL / 2, -(e.reach + 4 * px1))])[0];
+    return { rail: RAIL, min: RAIL_MIN, corners, want: 1000 * capGap(co), sides, wood: 1000 * SIDE_WOOD, reach: +(1000 * e.reach).toFixed(1), inn, out };
   });
-  check('generous pockets at RAIL_MIN: every cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.gaps.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
+  check('generous pockets at RAIL_MIN: every corner cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.corners.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
+  const dif = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+  check('generous pockets at RAIL_MIN: each side cap sits in a painted ear past the rail, SIDE_WOOD of wood round it', caps.sides.every(s => Math.abs(s - caps.wood) < 0.01)
+    && caps.reach > 1000 * caps.rail && dif(caps.inn, caps.out) > 40, JSON.stringify(caps));
   await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */

@@ -52,7 +52,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('no horizontal scroll at 390 px', sc.sw <= sc.w, JSON.stringify(sc));
   const ph = await page.evaluate(() => {
     const t = felt.tableRect(), c = ctl.getBoundingClientRect(), h = stage.getBoundingClientRect();
-    return { w: t.right - t.left, vw: innerWidth, layout: document.documentElement.dataset.layout, portrait: felt.view.portrait, gapBelow: c.top - t.bottom, gapAbove: t.top - h.top, inside: t.left >= 0 && t.right <= innerWidth };
+    return { w: t.right - t.left, vw: innerWidth, layout: document.documentElement.dataset.layout, portrait: felt.view.portrait, gapBelow: c.top - t.bottom, gapAbove: t.top - h.top, inside: t.left >= -0.01 && t.right <= innerWidth + 0.01 };
   });
   check('phone portrait: the table is at least 97% of the viewport width', ph.w >= 0.97 * ph.vw && ph.portrait && ph.layout === 'portrait' && ph.inside, JSON.stringify(ph));
   check('phone portrait: the controls below never overlap the table, which stays inside its stage', ph.gapBelow >= 0 && ph.gapAbove >= 0, JSON.stringify(ph));
@@ -177,6 +177,45 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
       return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe };
     }, ins);
   }
+  /* the side pockets' ears: a side drop is 2 POCKET_R deep past the nose, past a phone's rail, so
+     its cap swells past the long rails in an ear. At each listed viewport (insets simulated), both
+     pocket styles, 7 and 9 ft: each ear is on the screen, inside the safe area (the bottom on its
+     side may run over the home indicator, as the table does), and clear of every control; and the
+     ball loses at most 4% (regulation) or 6% (generous) against fitting the rail alone. */
+  const ears = [];
+  for (const key of ['440x956 ios', '956x440 ios', '390x844', '1280x800', '844x390', '430x932']) {
+    const [w, h] = key.split(' ')[0].split('x').map(Number), ins = INSETS[key] || [0, 0, 0, 0];
+    await page.setViewportSize({ width: w, height: h });
+    for (const pk of ['regulation', 'generous']) for (const size of ['7', '9']) {
+      ears.push(await page.evaluate(([i, pk, size, key]) => {
+        let st = document.getElementById('insets');
+        if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
+        st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
+        settings.table = size; settings.pockets = pk; felt.start('8'); relayout();
+        const co = cushionDepth(), cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
+        const wide = document.documentElement.dataset.layout === 'wide';
+        const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: wide ? innerHeight : innerHeight - px('--sab') };
+        const ctls = [menuBtn, turnChip, spinPad, powerBar, fineWheel, ctl].map(el => el.getBoundingClientRect());
+        const hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+        const out = [];
+        for (const k of [1, 4]) {
+          const e = pocketShape(k, co).ear;
+          if (!e) continue;
+          const s = k === 1 ? -1 : 1, y0 = k === 1 ? 0 : TW, pts = [[TL / 2 - e.uf, y0 + s * RAIL], [TL / 2 + e.uf, y0 + s * RAIL], [TL / 2 - e.rw, y0 + s * e.vc], [TL / 2 + e.rw, y0 + s * e.vc], [TL / 2, y0 + s * e.reach]].map(p => toScreen(p[0], p[1]));
+          const r = { left: Math.min(...pts.map(p => p[0])), right: Math.max(...pts.map(p => p[0])), top: Math.min(...pts.map(p => p[1])), bottom: Math.max(...pts.map(p => p[1])) };
+          if (r.left < safe.l - 0.5 || r.right > safe.r + 0.5 || r.top < safe.t - 0.5 || r.bottom > safe.b + 0.5 || ctls.some(c => hit(c, r))) out.push(k);
+        }
+        const sr = stage.getBoundingClientRect(), W = TL + 2 * RAIL, H = TW + 2 * RAIL;
+        const k0 = view.portrait ? Math.min(sr.width / H, sr.height / W) : Math.min(sr.width / W, sr.height / H);
+        return { key, pk, size, bad: out, ball: +felt.ballPx.toFixed(2), loss: +(100 * (1 - view.k / k0)).toFixed(2) };
+      }, [ins, pk, size, key]));
+    }
+  }
+  console.log('side ears, ball px and loss %: ' + ears.map(e => `${e.key} ${e.pk[0]}${e.size} ${e.ball} (${e.loss}%)`).join(', '));
+  check('side ears: on screen, inside the safe area and clear of the controls at every listed viewport, both pocket styles, 7 and 9 ft', ears.every(e => !e.bad.length), JSON.stringify(ears.filter(e => e.bad.length)));
+  check('side ears: the ball loses at most 4% (regulation) or 6% (generous) against fitting the rail alone', ears.every(e => e.loss <= (e.pk === 'regulation' ? 4 : 6)), JSON.stringify(ears.filter(e => e.loss > 0)));
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; felt.start('8'); });
   await page.evaluate(() => { document.getElementById('insets').remove(); relayout(); });
   console.log('ball px (before -> now): ' + Object.keys(BEFORE).map(k => `${k} ${BEFORE[k]} -> ${sizes[k].ball}`).join(', '));
   check('ball: at least 20 px across at 956x440 with the iOS insets', sizes['956x440 ios'].ball >= 20, JSON.stringify(sizes['956x440 ios']));

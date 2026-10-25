@@ -2448,14 +2448,15 @@ function cutLine(pts, len) {
    cue ball after contact, or near the object ball's line, widened for squirt and throw (a kick,
    with no ball on the aim line, copies them all). It is resumable: each frame runs it for at
    most PV_BUDGET ms, so a slow device or a cluster of moving balls finishes the paths over a
-   few frames instead of dropping one. Never touches game or tab.
+   few frames instead of dropping one (the guide shows the last complete paths meanwhile).
+   Never touches game or tab.
    The state: { cue, obj } polylines (cue from its first contact), first, crossed (the cue ball
    was past the head string before it touched a ball), cuePot / objPot (pocket or -1), objHit
    (it turned off its line), cueStop (it came to rest inside the horizon), done. */
 const PV_CAP = 4800;              /* steps: 4 s of table time, whatever the power */
 const PV_SLOW = 0.03;             /* m/s: a ball this slow has under 5 mm to go, so its path is done */
 const PV_GAP = 0.01;              /* polyline points at least this far apart */
-const PV_BUDGET = 1.5;            /* ms of simulation per frame */
+const PV_BUDGET = 3;              /* ms of simulation per frame: most previews finish in the frame that starts them */
 const PV_FULL = [0.7, 2.0], PV_SHORT = [0.2, 0.2];   /* cue path past contact, object path: 'full' and 'short' */
 function previewStart(ang, pw, sp, h, lens) {
   const R = BALL_R, c = game.balls.find(b => b.n === 0), dx = Math.cos(ang), dy = Math.sin(ang);
@@ -2534,24 +2535,40 @@ function previewRun(S, ms) {
   }
   return S;
 }
-/* the preview for this aim, power, spin and layout, restarted only when one of them changes
-   and otherwise carried on where the last frame left it. The power is the one the shot will
-   have: the stroke's, the CPU's plan, the live pull, else the marked power a Space press would
-   shoot. previewMs keeps the cost of the last frames that ran it. */
-let preview = null;
+/* the preview for this aim, power, spin and layout. It is double-buffered so the guide never
+   shows a path half grown: `preview` is the last COMPLETE one, the one drawn; `previewWork` is
+   the next one, run for at most PV_BUDGET ms a frame and swapped in only when it is done. A
+   change of aim, power or spin restarts the work, unless it has already run PV_STALE frames:
+   then it finishes first (so a sweep that never rests still updates the paths every couple of
+   frames) and the newest aim starts after it. The key snaps the aim to PV_SNAP rad (0.06 mm at
+   3 m) and the power and spin to fine steps, so sub-pixel finger noise starts nothing; the run
+   itself uses the exact values. The layout (every ball but the cue ball, and the guide length)
+   is the hard part of the key: a preview of another layout is never drawn, and with none of
+   this layout yet the work runs up to PV_SYNC ms at once, so a turn's first frame has its paths.
+   The power is the one the shot will have: the stroke's, the CPU's plan, the live pull, else the
+   marked power a Space press would shoot. previewMs keeps the cost of the last frames that ran it. */
+let preview = null, previewWork = null;
 const previewMs = [];
+const PV_SNAP = 2e-5, PV_SYNC = 12, PV_STALE = 2;
 function shotPreview(ang, h, full, budget = PV_BUDGET) {
-  const pw = state === 'stroke' && stroke ? stroke.power : state === 'thinking' && cpuPlan ? cpuPlan.power : pull ? power : markPower;
-  const sp = spinOf(cueSpin), lens = full ? PV_FULL : PV_SHORT;
-  let key = `${ang}|${pw}|${sp.x}|${sp.y}|${lens[0]}`;
-  for (const b of game.balls) key += b.on ? `|${b.x},${b.y}` : '|-';
-  if (preview && preview.key === key && preview.done) return preview;
-  const t0 = performance.now();
-  if (!preview || preview.key !== key) { preview = previewStart(ang, clamp(pw, 0, 1), sp, h, lens); preview.key = key; }
-  previewRun(preview, budget);
+  const pw = clamp(state === 'stroke' && stroke ? stroke.power : state === 'thinking' && cpuPlan ? cpuPlan.power : pull ? power : markPower, 0, 1);
+  const sp = spinOf(cueSpin), lens = full ? PV_FULL : PV_SHORT, c = cueBall(), q = (v, s) => Math.round(v / s);
+  let lay = `${lens[0]}`;
+  for (const b of game.balls) if (b.n) lay += b.on ? `|${b.x},${b.y}` : '|-';
+  const key = `${q(ang, PV_SNAP)}|${q(pw, 0.001)}|${q(sp.x, 0.005)}|${q(sp.y, 0.005)}|${c.x},${c.y}|${lay}`;
+  const have = preview && preview.lay === lay;
+  if (have && preview.key === key) { previewWork = null; return preview; }
+  const t0 = performance.now(), W = previewWork;
+  if (!W || W.lay !== lay || (W.key !== key && (!have || W.frames < PV_STALE))) {
+    previewWork = previewStart(ang, pw, sp, h, lens);
+    Object.assign(previewWork, { key, lay, frames: 0, ang, pw0: pw, sp0: sp, gx: c.x + Math.cos(ang) * h.t, gy: c.y + Math.sin(ang) * h.t, hk: h.kind, hb: h.ball ? h.ball.n : -1 });
+  }
+  previewWork.frames++;
+  previewRun(previewWork, have ? budget : PV_SYNC);
+  if (previewWork.done) { preview = previewWork; previewWork = null; }
   previewMs.push(performance.now() - t0);
   if (previewMs.length > 240) previewMs.shift();
-  return preview;
+  return preview && preview.lay === lay ? preview : null;
 }
 /* a polyline without its first stretch of length d (to start it at a ball's edge) */
 function trimStart(pts, d) {
@@ -2568,23 +2585,36 @@ function trimStart(pts, d) {
    ILLEGAL when the preview's first contact is not a legal target, touches nothing, or (ball in
    hand in the kitchen) comes before the cue ball has crossed the head string; a cue ball the
    preview pots ends its path in ILLEGAL with a ring on the pocket. settings.guide: 'full' runs
-   the paths out, 'short' keeps the ghost ball and short stubs, 'off' draws nothing. */
+   the paths out, 'short' keeps the ghost ball and short stubs, 'off' draws nothing. The ghost
+   ball and the aim line follow the aim every frame; the paths and the verdict are always those
+   of a complete preview (see shotPreview), so nothing in the guide blinks or grows. */
+let guideLegal = true;
 function guide(c, ang) {
   const mode = settings.guide;
   if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
   const h = aimTrace(c.x, c.y, dx, dy, [0], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
-  const first = P.first === null ? null : game.balls.find(b => b.n === P.first);
-  const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
-  /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
-  const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
-    && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
-  /* a preview still running with no contact yet says nothing either way */
-  const legal = first ? !wrong && !kitchen : !P.done;
+  /* the verdict comes from a complete preview only; with none yet (a turn's first frame on a
+     slow device) the last one stands, so the ring never flips on half-known data */
+  let first = null, legal = guideLegal, cue = [];
+  if (P) {
+    first = P.first === null ? null : game.balls.find(b => b.n === P.first);
+    const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
+    /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
+    const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
+      && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
+    legal = guideLegal = first ? !wrong && !kitchen : false;
+    /* a preview a frame or two behind a moving aim that still meets the same ball or cushion:
+       its cue ball path moves with the ghost ball, so the two never come apart */
+    const same = P.hb === (h.ball ? h.ball.n : -1) && P.hk === h.kind && (h.kind === 'ball' || h.kind === 'rail') && P.cuePot < 0 && Math.abs(P.ang - ang) < 0.03;
+    const ox = same ? gx - P.gx : 0, oy = same ? gy - P.gy : 0;
+    cue = ox || oy ? P.cue.map(q => [q[0] + ox, q[1] + oy]) : P.cue;
+  }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.5), 1.25);
   guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
+  if (!P) return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: null };
   if (first && !legal) guideRing(first.x, first.y, rp + 3, ILLEGAL, 2);
   /* the object ball */
   if (legal && P.obj && P.obj.length > 1) {
@@ -2594,19 +2624,19 @@ function guide(c, ang) {
     else if (full && P.objHit) guideRing(end[0], end[1], rp, wa(0.35), 1.25);
   }
   /* the cue ball after contact, and where it stops if that is inside the horizon */
-  if (P.cue.length > 1) {
-    strokeLine(P.cue, wa(0.55), 1.5, [5, 5]);
-    const end = P.cue[P.cue.length - 1];
+  if (cue.length > 1) {
+    strokeLine(cue, wa(0.55), 1.5, [5, 5]);
+    const end = cue[cue.length - 1];
     if (full && P.cueStop) guideRing(end[0], end[1], rp, wa(0.3), 1.25);
     if (P.cuePot >= 0) {
-      let tail = P.cue.slice().reverse(), len = 0;
+      let tail = cue.slice().reverse(), len = 0;
       for (let i = 1; i < tail.length; i++) len += Math.hypot(tail[i][0] - tail[i - 1][0], tail[i][1] - tail[i - 1][1]);
       tail = cutLine(tail, Math.min(len, 0.1));
       strokeLine(tail, ILLEGAL, 2);
     }
   }
   if (P.cuePot >= 0) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, ILLEGAL, 2);
-  return { c, gx, gy, dx, dy, h, P, legal, first };
+  return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: legal ? P.obj : null };
 }
 
 /* ---- 4e. the cue ---- */
@@ -2760,9 +2790,10 @@ function clipStage() {
    ghost ring and the object ball's line drawn again at the larger scale, so they stay crisp at
    any dpr. It sits off the contact (its centre more than its radius away, never over the cue
    ball if it can help it), inside the stage, toward the table's middle, and stays put while it
-   still fits so it does not jump about as the aim turns. An Alt or Ctrl arrow (fine aim from
+   still fits and no other spot is clearer, so it does not jump about as the aim turns; when it
+   must move it glides there (LOUPE_GLIDE_MS). An Alt or Ctrl arrow (fine aim from
    the keyboard) shows a smaller one for LOUPE_KEY_MS. Nothing shows with the guide off. */
-const LOUPE_MAG = 3, LOUPE_KEY_MS = 600, LOUPE_FADE_MS = 90;
+const LOUPE_MAG = 3, LOUPE_KEY_MS = 600, LOUPE_FADE_MS = 90, LOUPE_GLIDE_MS = 60;
 let loupeKey = -Infinity, loupeA = 0, loupeT = 0, loupe = null;
 addEventListener('keydown', e => {
   if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && (e.altKey || e.ctrlKey)) loupeKey = performance.now();
@@ -2771,21 +2802,25 @@ addEventListener('keydown', e => {
    stage and the table and clear of the contact; among the places that do, it keeps off the cue
    ball, the aim line, the object ball's line and the other balls, then leans to the middle. */
 const segDist = (x, y, a, b) => { const q = closestOnSeg(a[0], a[1], b[0], b[1], x, y); return Math.hypot(x - q[0], y - q[1]); };
-function loupePlace(cx, cy, r, keep) {
+function loupePlace(cx, cy, r, keep, prev) {
   const t = felt.tableRect(), B = stageBox || { left: 0, top: 0, right: table.width / dpr, bottom: table.height / dpr };
   const mx = (t.left + t.right) / 2, my = (t.top + t.bottom) / 2, m = 4;
   const fits = (x, y) => x - r >= Math.max(B.left, t.left) - m && x + r <= Math.min(B.right, t.right) + m
     && y - r >= Math.max(B.top, t.top) - m && y + r <= Math.min(B.bottom, t.bottom) + m && Math.hypot(x - cx, y - cy) > r * 1.25;
   const cost = (x, y) => keep.lines.reduce((s, [a, b, w]) => s + (segDist(x, y, a, b) < r + 6 ? w : 0), 0)
     + keep.balls.reduce((s, [bx, by, w]) => s + (Math.hypot(x - bx, y - by) < r + keep.rp ? w : 0), 0);
-  if (loupe && Math.abs(loupe.r - r) < 0.5 && fits(loupe.x, loupe.y) && cost(loupe.x, loupe.y) === 0) return loupe;
-  let best = null, bs = Infinity;
+  /* the spot it has keeps it while it still fits and no other spot is clear of more: the lines
+     shift a little with every turn of the aim, and the lens must not hop after them */
+  const was = prev && Math.abs(prev.r - r) < 0.5 && fits(prev.x, prev.y) ? cost(prev.x, prev.y) : Infinity;
+  if (was === 0) return prev;
+  let best = null, bs = Infinity, bc = Infinity;
   for (const d of [1.45, 1.9, 2.5, 3.2]) for (let i = 0; i < 24; i++) {
     const a = i * Math.PI / 12, x = cx + Math.cos(a) * r * d, y = cy + Math.sin(a) * r * d;
     if (!fits(x, y)) continue;
-    const sc = cost(x, y) * 1000 + Math.hypot(x - mx, y - my) + d * r * 0.3;
-    if (sc < bs) { bs = sc; best = { x, y, r }; }
+    const k = cost(x, y), sc = k * 1000 + Math.hypot(x - mx, y - my) + d * r * 0.3;
+    if (sc < bs) { bs = sc; bc = k; best = { x, y, r }; }
   }
+  if (was <= bc) return prev;
   if (best) return best;
   /* nothing fits round the contact: the middle of the half of the table away from it */
   const p = t.right - t.left > t.bottom - t.top;
@@ -2812,11 +2847,14 @@ function drawLoupe(now, gi) {
   const t = felt.tableRect(), small = !fineAim, rp = BALL_R * view.k, M = LOUPE_MAG;
   const r = clamp(Math.min(t.right - t.left, t.bottom - t.top) * 0.2, 56, 72) * (small ? 0.8 : 1);
   const C = toScreen(gi.gx, gi.gy), cue = toScreen(gi.c.x, gi.c.y), lines = [[cue, C, 8]];
-  const o = gi.P.obj, pc = gi.P.cue;
+  const o = gi.obj, pc = gi.cue;
   if (o) for (let i = 1; i < o.length; i++) lines.push([toScreen(o[i - 1][0], o[i - 1][1]), toScreen(o[i][0], o[i][1]), 4]);
   for (let i = 1; i < pc.length; i++) lines.push([toScreen(pc[i - 1][0], pc[i - 1][1]), toScreen(pc[i][0], pc[i][1]), 2]);
   const balls = game.balls.filter(b => b.on).map(b => [...toScreen(b.x, b.y), b.n === 0 ? 16 : 1]);
-  loupe = loupePlace(C[0], C[1], r, { lines, balls, rp });
+  /* it glides to a new spot rather than jumping there */
+  const to = loupePlace(C[0], C[1], r, { lines, balls, rp }, loupe && loupe.to);
+  if (!loupe || loupeA <= dt / LOUPE_FADE_MS) loupe = { x: to.x, y: to.y, r, to };
+  else { const u = 1 - Math.exp(-dt / LOUPE_GLIDE_MS); loupe = { x: loupe.x + (to.x - loupe.x) * u, y: loupe.y + (to.y - loupe.y) * u, r, to }; }
   const L = loupe, at = (x, y) => { const s = toScreen(x, y); return [L.x + (s[0] - C[0]) * M, L.y + (s[1] - C[1]) * M]; };
   const g = ctx, a = loupeA * loupeA * (3 - 2 * loupeA);
   g.save();
@@ -2860,10 +2898,10 @@ function drawLoupe(now, gi) {
     g.strokeStyle = style; g.lineWidth = w; g.stroke();
     g.setLineDash([]);
   };
-  const { c, gx, gy, dx, dy, h, P, legal } = gi, R = BALL_R;
+  const { c, gx, gy, dx, dy, h, legal } = gi, R = BALL_R;
   if (h.t > 2 * R) line([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.6), 1.75);
-  if (legal && P.obj && P.obj.length > 1) { const o = trimStart(P.obj, R); if (o.length > 1) line(o, 'rgba(255,255,255,0.92)', 2.5); }
-  if (P.cue.length > 1) line(P.cue, wa(0.55), 2, [7, 6]);
+  if (o && o.length > 1) { const ot = trimStart(o, R); if (ot.length > 1) line(ot, 'rgba(255,255,255,0.92)', 2.5); }
+  if (pc.length > 1) line(pc, wa(0.55), 2, [7, 6]);
   const q = at(gx, gy);
   circle(g, q[0], q[1], rp * M); g.fillStyle = 'rgba(255,255,255,0.08)'; g.fill();
   g.strokeStyle = legal ? 'rgba(255,255,255,0.92)' : ILLEGAL; g.lineWidth = 2; g.stroke();

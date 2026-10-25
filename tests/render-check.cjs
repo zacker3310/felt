@@ -191,6 +191,81 @@ async function tableChecks(page, tag) {
   check('preview: under 2 ms a frame with the aim changing every frame (mean, headless)', cost.mean < 2, `mean ${cost.mean.toFixed(2)} ms, p90 ${cost.p90.toFixed(2)} ms`);
   check('preview: a resting aim finishes its paths within a few frames', cost.frames <= 10, cost.frames + ' frames');
 
+  /* flicker: drive the aim frame by frame (a steady sweep across balls, cushions and a pocket, a
+     fine-wheel drag a pixel and a half a frame, the auto-aim swing, a power-bar pull) and record
+     what every frame's guide drew. Every drawn preview must be complete and identical to the
+     same preview run to its end in one go (so no path is ever partly grown), the guide must be
+     there every frame, the ring may change colour only when the drawn preview changes to one with
+     another first contact, the drawn paths may lag the aim by at most PV_STALE + 1 frames, a
+     resting aim must show its own full preview within 2 frames, and the loupe must not jump. */
+  const flick = await page.evaluate(() => {
+    felt.start('8'); game.breakShot = false; game.inHand = null; settings.guide = 'full'; settings.autoAim = false; hint = null;
+    const at = { 0: [0.45, 0.5], 1: [0.72, 0.36], 3: [0.62, 0.7], 9: [0.85, 0.62], 12: [0.3, 0.25], 13: [0.78, 0.5] };
+    for (const b of game.balls) { b.on = b.n in at; if (b.on) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; } }
+    state = 'aim'; pull = null; stroke = null; cpuMode = false; aimAnim = null; cueSpin = { x: 0, y: 0 }; markPower = 0.55; power = 0.55; fineAim = false;
+    const og = guide;
+    let gi = null;
+    guide = (c, a) => (gi = og(c, a));
+    const plen = p => { let s = 0; if (p) for (let i = 1; i < p.length; i++) s += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return s; };
+    const c = game.balls[0], ref = new Map();
+    /* the same preview, run to its end at once, for the inputs the drawn one was started with */
+    const whole = P => {
+      if (ref.has(P)) return ref.get(P);
+      const h = aimTrace(c.x, c.y, Math.cos(P.ang), Math.sin(P.ang), [0], 6);
+      const S = previewStart(P.ang, P.pw0, P.sp0, h, P.lens);
+      previewRun(S, 1e9);
+      ref.set(P, S);
+      return S;
+    };
+    let now = performance.now();
+    const out = {};
+    const run = (name, n, step) => {
+      const f = [];
+      for (let i = 0; i < n; i++) {
+        step(i, now += 16);
+        gi = null; draw(now);
+        const P = gi && gi.P;
+        f.push({ i, gi: !!gi, P, ang: aimAngle, legal: gi && gi.legal, cue: gi ? plen(gi.cue) : 0, obj: gi ? plen(gi.obj) : 0, loupe: loupe && { x: loupe.x, y: loupe.y } });
+      }
+      let missing = 0, partial = 0, wrongPath = 0, badFlip = 0, lag = 0, maxLag = 0, jumps = 0, flips = 0;
+      for (let k = 0; k < f.length; k++) {
+        const r = f[k], p = f[k - 1];
+        if (!r.gi || !r.P) { missing++; continue; }
+        if (!r.P.done) partial++;
+        const W = whole(r.P);
+        if (W.cue.length !== r.P.cue.length || W.first !== r.P.first || plen(W.cue) !== plen(r.P.cue) || plen(W.obj) !== plen(r.P.obj)) wrongPath++;
+        if (p && p.P && r.legal !== p.legal) { flips++; if (r.P === p.P || r.P.first === p.P.first) badFlip++; }
+        lag = Math.abs(r.P.ang - r.ang) > 2 * PV_SNAP ? lag + 1 : 0; maxLag = Math.max(maxLag, lag);
+        if (p && p.loupe && r.loupe && Math.hypot(r.loupe.x - p.loupe.x, r.loupe.y - p.loupe.y) > 12) jumps++;
+      }
+      /* then rest: the aim stays put */
+      let settle = 0;
+      for (; settle < 10; settle++) { gi = null; draw(now += 16); if (gi && gi.P && gi.P.done && Math.abs(gi.P.ang - aimAngle) <= 2 * PV_SNAP && gi.P === preview && !previewWork) break; }
+      out[name] = { frames: f.length, missing, partial, wrongPath, flips, badFlip, maxLag, jumps, settle: settle + 1, sample: f.filter((_, k) => k % 15 === 0).map(r => [+r.cue.toFixed(3), +r.obj.toFixed(3), r.legal]) };
+    };
+    const a0 = Math.atan2(game.balls.find(b => b.n === 1).y - c.y, game.balls.find(b => b.n === 1).x - c.x) - 0.6;
+    aimAngle = a0; preview = previewWork = null;
+    run('sweep', 160, () => { aimAngle += 0.006; });
+    aimAngle = a0 + 0.1; fineAim = true;
+    run('wheel', 120, () => { aimAngle += 1.5 * WHEEL_RATE; });
+    fineAim = false;
+    settings.autoAim = true; handAimed = false; aimAngle = a0 - 1.2;
+    run('autoAim', 40, (i, t) => { if (i === 0) { autoAim(); aimAnim.t0 = t - 16; } stepAutoAim(t); });
+    settings.autoAim = false; hint = null; aimAnim = null; aimLock = null;
+    run('pull', 80, i => { pull = { kind: 'bar' }; power = i / 79; });
+    pull = null; power = markPower;
+    guide = og;
+    return out;
+  });
+  for (const [k, r] of Object.entries(flick)) {
+    const d = JSON.stringify(r);
+    check(`flicker, ${k}: the guide is drawn every frame and every drawn preview is complete and equal to the same preview run to its end (no path ever partly grown)`,
+      r.frames > 30 && r.missing === 0 && r.partial === 0 && r.wrongPath === 0, d);
+    check(`flicker, ${k}: the ring changes colour only with a new preview whose first contact differs`, r.badFlip === 0, d);
+    check(`flicker, ${k}: the paths lag the aim by at most ${3} frames, and a resting aim shows its own full preview within 2 frames`, r.maxLag <= 3 && r.settle <= 2, d);
+  }
+  check('flicker, wheel: the loupe glides, it never jumps more than 12 px in a frame', flick.wheel.jumps === 0, JSON.stringify(flick.wheel));
+
   /* the ghost ring tells a legal first contact from a foul. Ball in hand in the kitchen: a ball
      behind the head string is a foul (the cue ball has not crossed the line), one past it is not */
   const ringRed = await page.evaluate(() => {

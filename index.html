@@ -1613,15 +1613,6 @@ function cushionDepth() {
   for (const p of CUSHION_POLYS) for (const [x, y] of p) d = Math.max(d, -x, -y, x - TL, y - TW);
   return Math.min(d, RAIL - 0.02);
 }
-/* each cushion nose with the unit normal pointing into play (the side no rubber is on) */
-function noseNormals() {
-  return CUSH.map(s => {
-    const ex = s[2] - s[0], ey = s[3] - s[1], L = Math.hypot(ex, ey) || 1, mx = (s[0] + s[2]) / 2, my = (s[1] + s[3]) / 2;
-    let nx = -ey / L, ny = ex / L;
-    if (CUSHION_POLYS.some(p => inPoly(p, mx + nx * 0.004, my + ny * 0.004))) { nx = -nx; ny = -ny; }
-    return { s, L, nx, ny };
-  });
-}
 function pageColor() {
   for (const el of [document.body, document.documentElement]) {
     const c = getComputedStyle(el).backgroundColor;
@@ -1782,7 +1773,48 @@ function pocketFit(k, co) {
   }
   const jaws = CUSHION_POLYS.flatMap(q => [[q[1], q[0]], [q[2], q[3]]])
     .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
-  return { P, C: centre(rc), r, rc, rb: rc - cb, quad: [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]] };
+  const quad = [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]], C = centre(rc);
+  const under = (x, y) => CUSHION_POLYS.some(q => inPoly(q, x, y));
+  let whole = true;
+  for (let i = 0; i < 180 && whole; i++) {
+    const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a);
+    if (!under(x, y) && Math.hypot(x - C[0], y - C[1]) > rc - cb + 1e-4) whole = false;
+  }
+  /* a corner's drop always fits the rail's rounded corner well enough to read round */
+  if (whole || !(k === 1 || k === 4)) return { P, C, r, rc, rb: rc - cb, quad, cup: false };
+  return cupFit(P, A, r, ux, uy, quad, co, m);
+}
+/* A drop that reaches past what the rail can frame (a side hole on a phone's slim rail: its back
+   is 2 POCKET_R past the nose, the wood ends sooner) is framed as a real side pocket is seen from
+   above: the cloth-covered facings run straight back into the rail, and the rail's cut, lined in
+   leather, rounds off between their ends. The back is the circle through the two facings' ends
+   (where they meet the wood) with its centre on the pocket's axis, as deep as the rail allows
+   with a band of leather and capGap of wood behind it, and never deeper than a half circle. So
+   the opening is one U as wide as the throat all the way back, and holds every bit of the hole
+   that lies between the facings. The rest of the drop runs on under the rubber and the wood. */
+function cupFit(P, A, r, ux, uy, quad, co, m) {
+  const e1 = quad[1], e2 = quad[2], half = Math.hypot(e1[0] - e2[0], e1[1] - e2[1]) / 2;
+  const s = ((e1[0] + e2[0]) / 2 - A[0]) * ux + ((e1[1] + e2[1]) / 2 - A[1]) * uy;
+  let edge = Infinity;
+  if (ux < -1e-9) edge = Math.min(edge, (-RAIL - A[0]) / ux); else if (ux > 1e-9) edge = Math.min(edge, (TL + RAIL - A[0]) / ux);
+  if (uy < -1e-9) edge = Math.min(edge, (-RAIL - A[1]) / uy); else if (uy > 1e-9) edge = Math.min(edge, (TW + RAIL - A[1]) / uy);
+  const band = clamp(0.16 * (RAIL - co), 0.006, 0.012);
+  const D = Math.max(s + 0.002, Math.min(edge - m - band, s + half));
+  const c = (D * D - half * half - s * s) / (2 * (D - s));
+  const C = [A[0] + ux * c, A[1] + uy * c];
+  /* the hole between the facings: its edge inside the quad, and the facings inside the hole */
+  let rb = D - c;
+  for (let i = 0; i < 180; i++) {
+    const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a);
+    if (inPoly(quad, x, y)) rb = Math.max(rb, Math.hypot(x - C[0], y - C[1]));
+  }
+  for (let j = 0; j < 4; j++) for (let i = 0; i <= 20; i++) {
+    const p = quad[j], q = quad[(j + 1) % 4], x = p[0] + (q[0] - p[0]) * i / 20, y = p[1] + (q[1] - p[1]) * i / 20;
+    if (Math.hypot(x - P[0], y - P[1]) < r) rb = Math.max(rb, Math.hypot(x - C[0], y - C[1]));
+  }
+  rb += 0.0004;   /* no hairline of cloth along the facings' ends */
+  const rc = Math.max(rb + 0.003, Math.min(rb + band, edge - m - c));
+  return { P, C, r, rc, rb, quad, cup: true };
 }
 function circle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); }
 /* clip to what shows of hole k (also used by the pot animation) */
@@ -1792,7 +1824,6 @@ function holeClip(g, k, co) {
   circle(g, P[0], P[1], r); g.clip();
 }
 function paintPocketCaps(g, co, L, px) {
-  const lw = Math.max(1.6 * px, Math.min(0.0035, 0.11 * capW(co)));
   g.save();
   /* everywhere but the bed and the mouths' shelves: the cushions are painted over it */
   const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
@@ -1800,8 +1831,8 @@ function paintPocketCaps(g, co, L, px) {
   POCKETS.forEach((_, k) => polyPath(g, pocketShape(k, co).quad));
   g.clip('evenodd');
   POCKETS.forEach((_, k) => {
-    const { C, rc, rb } = pocketShape(k, co);
-    const gr = g.createRadialGradient(C[0], C[1], rb - 0.02, C[0], C[1], rc);
+    const { C, rc, rb } = pocketShape(k, co), lw = Math.max(1.6 * px, Math.min(0.0035, 0.11 * capW(co), 0.32 * (rc - rb)));
+    const gr = g.createRadialGradient(C[0], C[1], Math.max(0, rb - 0.02), C[0], C[1], rc);
     gr.addColorStop(0, '#0d0b09'); gr.addColorStop(0.55, '#1f1b17'); gr.addColorStop(1, '#2d2722');
     g.fillStyle = gr; circle(g, C[0], C[1], rc); g.fill();
     /* nickel round the edge, lit from the lamp's side, and a dark groove inside it */
@@ -1852,32 +1883,81 @@ function paintHoles(g, co, L, px) {
     g.restore();
   });
 }
-/* rubber cushions from the sim's polygons, cut where the drop begins, casting a soft shadow onto
-   the bed away from the lamp */
+/* rubber cushions from the sim's polygons, casting a soft shadow onto the bed away from the
+   lamp. Where a side drop reaches under a jaw (past the facing, where no ball's centre can go)
+   the rubber is whole and its facing runs straight back to the wood, framing the side pocket's
+   U as a real one does; a corner's round hole cuts its jaw ends instead, the rubber turning down
+   at the hole's edge (a whole jaw would end in a spike over the hole there). Each jaw point is
+   rounded a little, the cloth wrapping round it from the nose to the facing. */
+const JAW_ROUND = 0.0035;
+/* a rubber [facing end, jaw point, jaw point, facing end], its jaw points rounded; open leaves
+   off the back (the side against the wood): the nose and both facings, for the contact line */
+function rubberPath(g, p, open) {
+  g.moveTo(p[0][0], p[0][1]);
+  g.arcTo(p[1][0], p[1][1], p[2][0], p[2][1], JAW_ROUND);
+  g.arcTo(p[2][0], p[2][1], p[3][0], p[3][1], JAW_ROUND);
+  g.lineTo(p[3][0], p[3][1]);
+  if (!open) g.closePath();
+}
+const area2 = p => p.reduce((a, q, i) => { const n = p[(i + 1) % p.length]; return a + q[0] * n[1] - n[0] * q[1]; }, 0);
 function paintCushions(g, co, K) {
   g.save();
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
-  clipOutHoles(g);
+  clipOutHoles(g, cutting(co));
   g.shadowColor = 'rgba(0,0,0,0.55)'; g.shadowBlur = 0.014 * K;
   g.shadowOffsetX = -LIGHT[0] * 0.007 * K; g.shadowOffsetY = -LIGHT[1] * 0.007 * K;
   g.fillStyle = CUSHION;
-  for (const p of CUSHION_POLYS) { g.beginPath(); polyPath(g, p); g.fill(); }
+  for (const p of CUSHION_POLYS) { g.beginPath(); rubberPath(g, p); g.fill(); }
   g.restore();
 }
-/* clip to everywhere but the holes */
-function clipOutHoles(g) {
+/* clip to everywhere but the holes (or the holes listed) */
+function clipOutHoles(g, ks = POCKETS.map((_, k) => k)) {
   g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
-  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 0, Math.PI * 2); });
+  for (const k of ks) { const P = POCKETS[k]; g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 0, Math.PI * 2); }
   g.clip('evenodd');
 }
-/* the cloth on the shelf and the jaw ends rolling over the hole's edge */
-function paintPocketLips(g, co, L, px) {
-  g.save();
+/* the holes that cut the rubber: the round ones (a cup's rubber is whole) */
+const cutting = co => POCKETS.map((_, k) => k).filter(k => !pocketShape(k, co).cup);
+/* clip to the bare cloth: the bed and the mouths' shelves, not a hole and not under the rubber */
+function clipBed(g, co) {
   g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
   clipOutHoles(g);
+  g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
+  for (const p of CUSHION_POLYS) rubberPath(g, p);
+  g.clip('evenodd');
+}
+/* clip to all the cloth: the bare cloth and the rubber, the rubber over a side drop included.
+   One nonzero path: the box one way round, the holes the other way, the rubbers the box's way. */
+function clipCloth(g, co) {
+  g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
+  clipOutHoles(g, cutting(co));
+  g.beginPath(); g.rect(-1, -1, TL + 2, TW + 2);
+  POCKETS.forEach((P, k) => { g.moveTo(P[0] + POCKET_R[k], P[1]); g.arc(P[0], P[1], POCKET_R[k], 2 * Math.PI, 0, true); });
+  for (const p of CUSHION_POLYS) rubberPath(g, area2(p) > 0 ? p : p.slice().reverse());
+  g.clip();
+}
+/* the throat: the shelf between the facings falls into shadow toward the drop, and the cloth
+   rolls over the hole's edge, dark where it turns under, a little sheen on the far side where it
+   faces the lamp */
+function paintPocketLips(g, co, L, px) {
+  g.save();
+  clipBed(g, co);
   POCKETS.forEach((P, k) => {
+    const r = POCKET_R[k], S = pocketShape(k, co), quad = S.quad;
+    const R = Math.max(...[quad[0], quad[3]].map(q => Math.hypot(q[0] - P[0], q[1] - P[1])));
+    g.save();
+    g.beginPath(); polyPath(g, quad); g.clip();
+    const th = g.createRadialGradient(P[0], P[1], r, P[0], P[1], Math.max(R, r + 0.02));
+    th.addColorStop(0, 'rgba(0,0,0,0.6)'); th.addColorStop(0.3, 'rgba(0,0,0,0.32)'); th.addColorStop(0.7, 'rgba(0,0,0,0.09)'); th.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = th; g.fillRect(P[0] - R, P[1] - R, 2 * R, 2 * R);
+    if (S.cup) {   /* a side pocket's shelf inside the rail's cut is in the cut's shadow: the U reads whole */
+      const cu = g.createRadialGradient(S.C[0], S.C[1], Math.max(0, S.rb - 0.025), S.C[0], S.C[1], S.rb + 0.01);
+      cu.addColorStop(0, 'rgba(0,0,0,0.45)'); cu.addColorStop(0.7, 'rgba(0,0,0,0.3)'); cu.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = cu; g.fillRect(P[0] - R, P[1] - R, 2 * R, 2 * R);
+    }
+    g.restore();
     /* the turn-under is wider on the near side (it faces away from the lamp) */
-    const r = POCKET_R[k], d = 0.014, o = 0.0035, fx = P[0] + L[0] * o, fy = P[1] + L[1] * o;
+    const d = 0.014, o = 0.0035, fx = P[0] + L[0] * o, fy = P[1] + L[1] * o;
     const gr = g.createRadialGradient(fx, fy, r, fx, fy, r + d);
     gr.addColorStop(0, 'rgba(0,0,0,0.62)'); gr.addColorStop(0.3, 'rgba(0,0,0,0.3)'); gr.addColorStop(0.65, 'rgba(0,0,0,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = gr; g.fillRect(P[0] - r - d, P[1] - r - d, 2 * (r + d), 2 * (r + d));
@@ -1891,8 +1971,7 @@ function paintPocketLips(g, co, L, px) {
 /* nap and overhead light on everything covered in cloth (not down the holes) */
 function paintClothLight(g, co, rnd) {
   g.save();
-  g.beginPath(); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
-  clipOutHoles(g);
+  clipCloth(g, co);
   /* nap: fine speckle with streaks along the table's length, laid in device pixels */
   const W = g.canvas.width, H = g.canvas.height;
   if (view.portrait) g.setTransform(0, -1, 1, 0, 0, H); else g.setTransform(1, 0, 0, 1, 0, 0);
@@ -1923,32 +2002,64 @@ function napTile(rnd) {
   return (napCache = c);
 }
 /* the lit edge on each cushion: the sloped nose shaded by how squarely it faces the lamp, a
-   crisp crease highlight, and a dark line where rubber meets the bed */
+   crisp crease highlight, and a dark line where rubber meets the bed. The nose's bevel runs on
+   round each jaw point and down its facing (the cloth is one piece, wrapped round the rubber),
+   taking the facing's own light and then darkening as the facing falls toward the drop. Nose and
+   facing bands meet on the mitre at the jaw point, so nothing is shaded twice. */
 function paintBevels(g, co, L, px) {
+  const bw = 0.0105;
+  const shade = (f, k = 1) => f > 0 ? `rgba(255,255,240,${(0.03 + 0.11 * f) * k})` : `rgba(0,0,0,${(0.06 - 0.22 * f) * k})`;
+  const crease = (f, k = 1) => `rgba(255,255,245,${(0.07 + 0.16 * Math.max(0, f)) * k})`;
+  const fill = q => { g.beginPath(); polyPath(g, q); g.fill(); };
+  const off = (q, n, d) => [q[0] - n[0] * d, q[1] - n[1] * d];
+  /* where the lines a1-a2 and b1-b2 cross */
+  const meet = (a1, a2, b1, b2) => {
+    const dx = a2[0] - a1[0], dy = a2[1] - a1[1], ex = b2[0] - b1[0], ey = b2[1] - b1[1], d = dx * ey - dy * ex;
+    if (Math.abs(d) < 1e-12) return a2;
+    const t = ((b1[0] - a1[0]) * ey - (b1[1] - a1[1]) * ex) / d;
+    return [a1[0] + dx * t, a1[1] + dy * t];
+  };
   g.save();
   g.beginPath();
-  for (const p of CUSHION_POLYS) polyPath(g, p);
+  for (const p of CUSHION_POLYS) rubberPath(g, p);
   g.clip();
-  clipOutHoles(g);
-  const bw = 0.0105;
-  for (const { s, L: len, nx, ny } of noseNormals()) {
-    const f = nx * L[0] + ny * L[1], ux = (s[2] - s[0]) / len, uy = (s[3] - s[1]) / len, e = 0.02;
-    const q = (o0, o1) => {
-      g.beginPath();
-      g.moveTo(s[0] - ux * e - nx * o0, s[1] - uy * e - ny * o0); g.lineTo(s[2] + ux * e - nx * o0, s[3] + uy * e - ny * o0);
-      g.lineTo(s[2] + ux * e - nx * o1, s[3] + uy * e - ny * o1); g.lineTo(s[0] - ux * e - nx * o1, s[1] - uy * e - ny * o1); g.closePath();
+  clipOutHoles(g, cutting(co));
+  for (const poly of CUSHION_POLYS) {
+    const [ea, pa, pb, eb] = poly, cx = poly.reduce((v, q) => v + q[0], 0) / 4, cy = poly.reduce((v, q) => v + q[1], 0) / 4;
+    /* each edge's normal into play (away from the rubber), and its length */
+    const nOf = (u, v) => {
+      const dx = v[0] - u[0], dy = v[1] - u[1], l = Math.hypot(dx, dy) || 1;
+      let nx = -dy / l, ny = dx / l;
+      if ((cx - (u[0] + v[0]) / 2) * nx + (cy - (u[1] + v[1]) / 2) * ny > 0) { nx = -nx; ny = -ny; }
+      return [nx, ny, l];
     };
-    if (len > 0.2) {   /* the flat top of a long cushion darkens a little toward the wood */
-      const gr = g.createLinearGradient(s[0] - nx * bw, s[1] - ny * bw, s[0] - nx * co, s[1] - ny * co);
+    const na = nOf(ea, pa), n = nOf(pa, pb), nb = nOf(pb, eb), fN = n[0] * L[0] + n[1] * L[1];
+    const ma = meet(off(ea, na, bw), off(pa, na, bw), off(pa, n, bw), off(pb, n, bw));
+    const mb = meet(off(pa, n, bw), off(pb, n, bw), off(pb, nb, bw), off(eb, nb, bw));
+    if (n[2] > 0.2) {   /* the flat top of a long cushion darkens a little toward the wood */
+      const gr = g.createLinearGradient(pa[0] - n[0] * bw, pa[1] - n[1] * bw, pa[0] - n[0] * co, pa[1] - n[1] * co);
       gr.addColorStop(0, 'rgba(255,255,255,0.035)'); gr.addColorStop(1, 'rgba(0,0,0,0.14)');
-      g.fillStyle = gr; q(bw, co + 0.01); g.fill();
+      g.fillStyle = gr; fill([ma, mb, off(pb, n, co + 0.01), off(pa, n, co + 0.01)]);
     }
-    g.fillStyle = f > 0 ? `rgba(255,255,240,${0.03 + 0.11 * f})` : `rgba(0,0,0,${0.06 - 0.22 * f})`;
-    q(0, bw); g.fill();
-    g.strokeStyle = `rgba(255,255,245,${0.07 + 0.16 * Math.max(0, f)})`; g.lineWidth = 1.1 * px;
-    g.beginPath(); g.moveTo(s[0] - nx * bw, s[1] - ny * bw); g.lineTo(s[2] - nx * bw, s[3] - ny * bw); g.stroke();
+    g.fillStyle = shade(fN); fill([pa, pb, mb, ma]);
+    g.strokeStyle = crease(fN); g.lineWidth = 1.1 * px;
+    g.beginPath(); g.moveTo(ma[0], ma[1]); g.lineTo(mb[0], mb[1]); g.stroke();
+    for (const [p, e, m, nf] of [[pa, ea, ma, na], [pb, eb, mb, nb]]) {
+      const f = nf[0] * L[0] + nf[1] * L[1], ei = off(e, nf, bw);
+      let gr = g.createLinearGradient(p[0], p[1], e[0], e[1]);
+      gr.addColorStop(0, shade(fN)); gr.addColorStop(0.3, shade(f, 0.65)); gr.addColorStop(0.75, shade(Math.min(f, 0), 0.8)); gr.addColorStop(1, 'rgba(0,0,0,0.32)');
+      g.fillStyle = gr; fill([p, e, ei, m]);
+      /* the rubber's top beside the facing goes down with it toward the drop */
+      gr = g.createLinearGradient(p[0], p[1], e[0], e[1]);
+      gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.16)');
+      g.fillStyle = gr; fill([m, ei, off(e, nf, 2.4 * bw), off(p, nf, 2.4 * bw)]);
+      gr = g.createLinearGradient(m[0], m[1], ei[0], ei[1]);
+      gr.addColorStop(0, crease(fN)); gr.addColorStop(0.35, crease(f, 0.55)); gr.addColorStop(1, 'rgba(255,255,245,0)');
+      g.strokeStyle = gr;
+      g.beginPath(); g.moveTo(m[0], m[1]); g.lineTo(ei[0], ei[1]); g.stroke();
+    }
     g.strokeStyle = 'rgba(0,0,0,0.38)'; g.lineWidth = 1.4 * px;
-    g.beginPath(); g.moveTo(s[0], s[1]); g.lineTo(s[2], s[3]); g.stroke();
+    g.beginPath(); rubberPath(g, poly, true); g.stroke();
   }
   g.restore();
   /* the seam between cushion and wood, and the wood's lip catching light beside it */
@@ -2586,7 +2697,11 @@ function draw(now) {
   if (tableImg) ctx.drawImage(tableImg, 0, 0); else ctx.clearRect(0, 0, table.width, table.height);
   if (state === 'aim' && game.inHand === 'kitchen' && human()) {
     tableXform(ctx);
-    ctx.fillStyle = 'rgba(255,255,240,0.045)'; ctx.fillRect(0, 0, HEAD_X, TW);
+    /* the kitchen's tint lies on the bare cloth: never down the head corners' holes (it once
+       showed there as a pale square) nor on their jaws */
+    ctx.save(); clipBed(ctx, cushionDepth());
+    ctx.fillStyle = 'rgba(255,255,240,0.045)'; ctx.fillRect(-1, -1, HEAD_X + 1, TW + 2);
+    ctx.restore();
     ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k;
     ctx.beginPath(); ctx.moveTo(HEAD_X, 0); ctx.lineTo(HEAD_X, TW); ctx.stroke();
   }
@@ -2603,6 +2718,7 @@ function draw(now) {
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
+  drawHint(now);
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
@@ -2763,6 +2879,43 @@ function drawLoupe(now, gi) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 3; circle(g, L.x, L.y, L.r + 0.5); g.stroke();
   g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.25; circle(g, L.x, L.y, L.r); g.stroke();
+  g.restore();
+}
+
+/* ---- 4f. the auto-aim hint ---- */
+/* A recommendation, not a guide: while a human aims or has the ball in hand, hint ({ n, k })
+   names a ball worth playing and, when k >= 0, the pocket for it. The ball gets a thin white ring
+   a little out from its edge, breathing slowly (still under prefers-reduced-motion), and the
+   pocket a small chevron on the cloth just inside its mouth, pointing in. Both fade in over
+   HINT_FADE ms whenever the hint changes. White never below the cloth's floor alpha (CL.ovMin),
+   so both keep 3:1 on the brightest cloth (render-check measures it); no line ever joins them. */
+const HINT_FADE = 300, HINT_PULSE = 2400;
+let hintSeen = { key: '', t: 0 };
+function drawHint(now) {
+  const b = hint && state === 'aim' && human() ? game.balls.find(o => o.n === hint.n && o.on) : null;
+  if (!b) { hintSeen.key = ''; return; }
+  const key = hint.n + '/' + hint.k;
+  if (hintSeen.key !== key) hintSeen = { key, t: now };
+  const fade = ease(0, HINT_FADE, now - hintSeen.t), still = reducedMotion();
+  const breath = still ? 0 : 0.5 - 0.5 * Math.cos((now - hintSeen.t) / HINT_PULSE * 2 * Math.PI);
+  const g = ctx, s = toScreen(b.x, b.y), rp = BALL_R * view.k, w = Math.max(1.5, rp * 0.08);
+  g.save();
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.globalAlpha = fade;
+  const R = rp + 3.5 + 1.5 * breath;
+  g.strokeStyle = `rgba(255,255,255,${0.08 + 0.06 * breath})`; g.lineWidth = w * 3; circle(g, s[0], s[1], R); g.stroke();
+  g.strokeStyle = wa(0.62 + 0.18 * breath); g.lineWidth = w; circle(g, s[0], s[1], R); g.stroke();
+  if (hint.k >= 0 && POCKET_AIM[hint.k]) {
+    /* a chevron on the cloth a few cm inside the mouth, its point toward the drop */
+    const A = POCKET_AIM[hint.k], N = CPU_MOUTH_N[hint.k], d = 0.045, c = toScreen(A[0] + N[0] * d, A[1] + N[1] * d);
+    const t = toScreen(A[0], A[1]), ux = t[0] - c[0], uy = t[1] - c[1], ul = Math.hypot(ux, uy) || 1, fx = ux / ul, fy = uy / ul;
+    const h = Math.max(5, 0.012 * view.k), sx = c[0] + fx * h * 0.5, sy = c[1] + fy * h * 0.5;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath();
+    g.moveTo(sx - fx * h - fy * h, sy - fy * h + fx * h); g.lineTo(sx, sy); g.lineTo(sx - fx * h + fy * h, sy - fy * h - fx * h);
+    g.strokeStyle = 'rgba(255,255,255,0.1)'; g.lineWidth = w * 3.2; g.stroke();
+    g.strokeStyle = wa(0.7); g.lineWidth = w; g.stroke();
+  }
   g.restore();
 }
 

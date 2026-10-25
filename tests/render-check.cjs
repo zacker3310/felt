@@ -49,8 +49,8 @@ async function tableChecks(page, tag) {
   const g = await page.evaluate(() => {
     game.breakShot = false; game.inHand = null;
     for (const b of game.balls) if (b.n > 1) b.on = false;
-    Object.assign(game.balls.find(b => b.n === 1), { x: 1.9, y: 0.45, on: true });
-    Object.assign(game.balls.find(b => b.n === 0), { x: 1.2, y: 0.62, on: true });
+    Object.assign(game.balls.find(b => b.n === 1), { x: TL * 0.75, y: TW * 0.35, on: true });
+    Object.assign(game.balls.find(b => b.n === 0), { x: TL * 0.47, y: TW * 0.49, on: true });
     state = 'aim'; pull = null; stroke = null;
     const c = game.balls[0], t = game.balls.find(b => b.n === 1), P = POCKET_AIM[2];
     const ux = P[0] - t.x, uy = P[1] - t.y, L = Math.hypot(ux, uy);
@@ -107,8 +107,8 @@ async function tableChecks(page, tag) {
     const M = powerFor(1.97);
     for (const [cut, sy, pw, side] of [[15, 0, M, 0], [15, 1, M, 0], [30, 0, M, 0], [30, -1, M, 0], [45, -1, M, 0], [45, 0.6, 0.3, 0], [0, 0, M, 1], [30, 0, 0.8, 0]]) {
       for (const b of game.balls) b.on = [0, 1, 6, 14].includes(b.n);
-      Object.assign(game.balls[0], { x: 1.0, y: 0.6 }); Object.assign(game.balls.find(b => b.n === 1), { x: 1.6, y: 0.6 });
-      Object.assign(game.balls.find(b => b.n === 6), { x: 0.3, y: 1.1 }); Object.assign(game.balls.find(b => b.n === 14), { x: 2.3, y: 1.15 });
+      Object.assign(game.balls[0], { x: TL / 2 - 0.3, y: TW * 0.47 }); Object.assign(game.balls.find(b => b.n === 1), { x: TL / 2 + 0.3, y: TW * 0.47 });
+      Object.assign(game.balls.find(b => b.n === 6), { x: TL * 0.12, y: TW * 0.87 }); Object.assign(game.balls.find(b => b.n === 14), { x: TL * 0.9, y: TW * 0.9 });
       const a = -cut * Math.PI / 180, o = game.balls.find(b => b.n === 1), c = game.balls[0];
       aimAngle = Math.atan2(o.y - Math.sin(a) * 2 * BALL_R - c.y, o.x - Math.cos(a) * 2 * BALL_R - c.x);
       cueSpin = { x: side, y: sy }; markPower = pw; preview = null;
@@ -134,7 +134,7 @@ async function tableChecks(page, tag) {
   check('preview: the cue ball path ends within 3 cm of the real roll at the same travel, cuts with centre, follow, draw and side', acc.out.every(r => r.err < 0.03 && r.len > 0.1), fmt(acc.out));
   const straight = await page.evaluate(() => {
     for (const b of game.balls) b.on = [0, 1].includes(b.n);
-    Object.assign(game.balls[0], { x: 1.0, y: 0.6 }); Object.assign(game.balls.find(b => b.n === 1), { x: 1.6, y: 0.6 });
+    Object.assign(game.balls[0], { x: TL / 2 - 0.3, y: TW * 0.47 }); Object.assign(game.balls.find(b => b.n === 1), { x: TL / 2 + 0.3, y: TW * 0.47 });
     aimAngle = 0; markPower = powerFor(1.2); preview = null;
     const out = {};
     /* draw needs pace to survive 0.6 m of cloth */
@@ -169,8 +169,8 @@ async function tableChecks(page, tag) {
     felt.start('8'); game = placeCue(game, HEAD_X - 0.1, TW / 2 + 0.1); game.inHand = null; game.breakShot = false; state = 'aim';
     previewMs.length = 0;
     for (const p of [0.15, 0.55, 1]) run(60, i => { markPower = p; aimAngle = -0.15 + i * 0.005; });
-    game.balls.forEach((b, i) => { if (b.n) Object.assign(b, { x: 0.3 + (i % 5) * 0.45, y: 0.2 + Math.floor(i / 5) * 0.28 }); });
-    Object.assign(game.balls[0], { x: 1.2, y: 0.62 });
+    game.balls.forEach((b, i) => { if (b.n) Object.assign(b, { x: TL * (0.12 + (i % 5) * 0.18), y: TW * (0.16 + Math.floor(i / 5) * 0.22) }); });
+    Object.assign(game.balls[0], { x: TL * 0.47, y: TW * 0.49 });
     for (const p of [0.15, 0.55, 1]) run(80, i => { markPower = p; aimAngle = i * 0.0785; });
     const s = previewMs.slice().sort((a, b) => a - b);
     let frames = 0;
@@ -186,8 +186,8 @@ async function tableChecks(page, tag) {
   const ringRed = await page.evaluate(() => {
     felt.start('8'); game.breakShot = false; settings.guide = 'full';
     for (const b of game.balls) b.on = b.n === 0 || b.n === 3 || b.n === 5;
-    Object.assign(game.balls.find(b => b.n === 3), { x: 0.42, y: 0.4 }); Object.assign(game.balls.find(b => b.n === 5), { x: 1.4, y: 0.95 });
-    game = placeCue(game, 0.2, 0.7); game.inHand = 'kitchen'; state = 'aim'; placeAt = null; cueSpin = { x: 0, y: 0 }; markPower = 0.5;
+    Object.assign(game.balls.find(b => b.n === 3), { x: HEAD_X * 0.85, y: TW * 0.32 }); Object.assign(game.balls.find(b => b.n === 5), { x: TL * 0.55, y: TW * 0.75 });
+    game = placeCue(game, HEAD_X * 0.4, TW * 0.55); game.inHand = 'kitchen'; state = 'aim'; placeAt = null; cueSpin = { x: 0, y: 0 }; markPower = 0.5;
     const red = n => {
       const c = game.balls[0], t = game.balls.find(b => b.n === n);
       aimAngle = Math.atan2(t.y - c.y, t.x - c.x);
@@ -208,9 +208,9 @@ async function tableChecks(page, tag) {
   const scratch = await page.evaluate(() => {
     felt.start('8'); game.breakShot = false;
     for (const b of game.balls) b.on = b.n === 5;
-    Object.assign(game.balls.find(b => b.n === 5), { x: 2.0, y: 0.9 });
-    game.balls[0].on = false; game.inHand = 'table'; state = 'place'; placeAt = [1.0, 0.5];
-    const s = toScreen(1.0, 0.5), rp = BALL_R * view.k, now = performance.now();
+    Object.assign(game.balls.find(b => b.n === 5), { x: TL * 0.8, y: TW * 0.7 });
+    game.balls[0].on = false; game.inHand = 'table'; state = 'place'; placeAt = [TL * 0.4, TW * 0.4];
+    const s = toScreen(TL * 0.4, TW * 0.4), rp = BALL_R * view.k, now = performance.now();
     /* round the ball, clear of its red dot */
     const ring = () => Math.max(...__px([0, 1, 2, 3, 4, 5].map(k => [s[0] + Math.cos(k) * rp * 0.6, s[1] + Math.sin(k) * rp * 0.6])).map(__lum));
     onPot(0, 0, [0.05, 0.05], now);
@@ -277,9 +277,9 @@ async function tableChecks(page, tag) {
   /* every pocket, on both cloths: a ring just inside what shows of the hole is never cloth (the
      cloth's channel not dominant, and dark), and the cushion just past each jaw is rubber, not
      hole-dark */
-  for (const cloth of ['green', 'red']) {
-  const pk = await q.page.evaluate(cloth => {
-    felt.start('8'); settings.cloth = cloth; layout(); for (const b of game.balls) b.on = false; state = 'over';
+  for (const [size, cloth] of [['7', 'green'], ['7', 'red'], ['9', 'green'], ['9', 'red']]) {
+  const pk = await q.page.evaluate(([size, cloth]) => {
+    setTable(size); felt.start('8'); settings.cloth = cloth; layout(); for (const b of game.balls) b.on = false; state = 'over';
     const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
     POCKETS.forEach((P, k) => {
@@ -304,11 +304,11 @@ async function tableChecks(page, tag) {
         rubOk: rp.every(c => green(c) > 5 && c[0] + c[1] + c[2] > 50), rubMin: rp.map(c => c.join('/')).slice(0, 2) });
     });
     return res;
-  }, cloth);
+  }, [size, cloth]);
   /* a liner's brown far wall is allowed a little red; cloth in a hole would be far over 20 */
-  check(`dpr 3, ${cloth} cloth: inside every hole, a ring just inside its edge shows no cloth (cloth channel not dominant, dark)`,
+  check(`dpr 3, ${size} ft, ${cloth} cloth: inside every hole, a ring just inside its edge shows no cloth (cloth channel not dominant, dark)`,
     pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
-  check(`dpr 3, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
+  check(`dpr 3, ${size} ft, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
 
   /* every overlay on the bed against the brightest lit cloth: white at the cloth's floor alpha
      (guide lines and rings, placement, kitchen line, loupe lines), ILLEGAL, the halo's core and
@@ -322,9 +322,9 @@ async function tableChecks(page, tag) {
     for (const k in out) out[k] = +out[k].toFixed(2);
     return out;
   });
-  check(`${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
+  check(`${size} ft, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
   }
-  await q.page.evaluate(() => { settings.cloth = 'green'; layout(); });
+  await q.page.evaluate(() => { setTable('7'); settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */
   const halo = await q.page.evaluate(() => {
@@ -352,8 +352,8 @@ async function tableChecks(page, tag) {
   const lp = await q.page.evaluate(() => {
     felt.start('8'); game.breakShot = false; game.inHand = null; settings.guide = 'full';
     for (const b of game.balls) b.on = [0, 1, 5].includes(b.n);
-    Object.assign(game.balls.find(b => b.n === 1), { x: 1.9, y: 0.45 }); Object.assign(game.balls.find(b => b.n === 5), { x: 0.6, y: 0.9 });
-    Object.assign(game.balls[0], { x: 1.2, y: 0.62 });
+    Object.assign(game.balls.find(b => b.n === 1), { x: TL * 0.75, y: TW * 0.35 }); Object.assign(game.balls.find(b => b.n === 5), { x: TL * 0.24, y: TW * 0.7 });
+    Object.assign(game.balls[0], { x: TL * 0.47, y: TW * 0.49 });
     state = 'aim'; pull = null; stroke = null; cpuMode = false;
     const c = game.balls[0], t = game.balls.find(b => b.n === 1), P = POCKET_AIM[2], ux = P[0] - t.x, uy = P[1] - t.y, L = Math.hypot(ux, uy);
     const gx = t.x - ux / L * 2 * BALL_R, gy = t.y - uy / L * 2 * BALL_R;

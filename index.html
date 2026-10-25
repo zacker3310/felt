@@ -1522,7 +1522,7 @@ function drawTableImage() {
   g.save();
   g.shadowColor = 'rgba(0,0,0,0.65)'; g.shadowBlur = 0.07 * K;
   g.shadowOffsetX = -LIGHT[0] * 0.025 * K; g.shadowOffsetY = -LIGHT[1] * 0.025 * K;
-  g.fillStyle = '#2a140a'; railOutline(g); g.fill();
+  g.fillStyle = '#2a140a'; railOutline(g, co); g.fill();
   g.restore();
   paintRails(g, co, L, px, rnd);
   paintSights(g, co, L, px);
@@ -1564,7 +1564,7 @@ function paintRails(g, co, L, px, rnd) {
   for (const b of boards) {
     const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * RAIL, [a0, a1] = b.a, w = a1 - a0;
     g.save();
-    railOutline(g); g.clip();
+    railOutline(g, co); g.clip();
     g.beginPath(); polyPath(g, b.q); g.clip();
     g.fillStyle = '#4f2714'; g.fillRect(-RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL);
     /* broad figure first, then fine grain lines */
@@ -1595,45 +1595,75 @@ function paintRails(g, co, L, px, rnd) {
     g.restore();
   }
   /* mitre joints and the seam against the cushions */
+  g.save();
+  railOutline(g, co); g.clip();
   g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = px;
   for (const [x, y, sx, sy] of [[-RAIL, -RAIL, -co, -co], [TL + RAIL, -RAIL, TL + co, -co], [-RAIL, TW + RAIL, -co, TW + co], [TL + RAIL, TW + RAIL, TL + co, TW + co]]) {
-    g.beginPath(); g.moveTo(x + Math.sign(sx - x) * 0.01, y + Math.sign(sy - y) * 0.01); g.lineTo(sx, sy); g.stroke();
+    g.beginPath(); g.moveTo(x, y); g.lineTo(sx, sy); g.stroke();
   }
+  g.restore();
 }
 /* The pockets. Each drop is a POCKET_R hole. The rubber and its cloth stop at the hole's edge
    (the facings turn down into the drop), and the cloth on the shelf and the jaw ends rolls over
    the edge: dark where it turns under, a little sheen on the far side where it faces the lamp.
-   A drop reaches further out than a thin rail does (a side hole is 2 POCKET_R deep past the
+   A drop reaches further out than the rail's top does (a side hole is 2 POCKET_R deep past the
    nose), so its back runs under the rail. Round each drop sits a round leather cap, edged in
-   nickel, capW wider than the hole and slid out from the mouth until it touches the rail's
-   outer edge, so it never overflows the rail. What shows of the hole stops capBack inside the
-   cap's edge (the back), with the leather's rolled lip and its shadow on the far wall there. On
-   a wide rail the cap is all but concentric with the drop; on a thin one the back cuts the hole
-   in an arc. All of it reads POCKETS, POCKET_R, POCKET_AIM, RAIL, TL and TW at paint time. */
+   nickel, slid out from the mouth until it is capGap from the rail's outer edge; the rail's
+   corners round about the corner caps by that same gap, so the wood wraps them like a casting.
+   What shows of the hole is the hole inside the back, a circle capBack inside the cap's edge,
+   with the leather's rolled lip and its shadow on the far wall. The cap is at least capW wider
+   than the hole, and grows (sliding in as it does) until the back takes in all of the hole
+   that lies over the cloth, so a hole is one round opening: never cut along the seam where the
+   rubber meets the wood. All of it reads POCKETS, POCKET_R, POCKET_AIM, CUSHION_POLYS, RAIL, TL
+   and TW at paint time; the shapes are cached per table and rail. */
 const capW = co => clamp(0.5 * (RAIL - co), 0.012, 0.032);
 const capBack = co => clamp(0.3 * (RAIL - co), 0.006, 0.014);
-/* the rail's outer edge; its corners round with the rail's width */
-function railOutline(g) {
-  roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, Math.min(0.045, 0.4 * RAIL));
+const capGap = co => clamp(0.12 * (RAIL - co), 0.004, 0.008);
+/* the rail's outer edge: its corners wrap the corner caps */
+function railOutline(g, co) {
+  const S = pocketShape(0, co);
+  roundRect(g, -RAIL, -RAIL, TL + 2 * RAIL, TW + 2 * RAIL, Math.min(S.rc + capGap(co), RAIL + co));
 }
 /* pocket k: drop centre P, radius r; the cap: centre C on the line from the mouth's middle A
-   through P, radius rc, touching the rail's edge; the back: radius rb about C; the mouth's shelf:
-   the quad between its two jaw facings, nose to rail */
+   through P, radius rc; the back: radius rb about C; the mouth's shelf: the quad between its two
+   jaw facings, nose to rail */
+let shapeCache = { key: '', polys: null, list: [] };
 function pocketShape(k, co) {
-  const P = POCKETS[k], A = POCKET_AIM[k], r = POCKET_R[k], rc = r + capW(co);
+  const key = [RAIL, co, TL, TW, ...POCKETS.flat(), ...POCKET_R].join();
+  if (shapeCache.key !== key || shapeCache.polys !== CUSHION_POLYS) shapeCache = { key, polys: CUSHION_POLYS, list: POCKETS.map((_, i) => pocketFit(i, co)) };
+  return shapeCache.list[k];
+}
+function pocketFit(k, co) {
+  const P = POCKETS[k], A = POCKET_AIM[k], r = POCKET_R[k], cb = capBack(co), m = capGap(co);
   const d = Math.hypot(P[0] - A[0], P[1] - A[1]), ux = (P[0] - A[0]) / d, uy = (P[1] - A[1]) / d;
-  let t = Infinity;
-  if (ux < -1e-9) t = Math.min(t, (rc - RAIL - A[0]) / ux); else if (ux > 1e-9) t = Math.min(t, (TL + RAIL - rc - A[0]) / ux);
-  if (uy < -1e-9) t = Math.min(t, (rc - RAIL - A[1]) / uy); else if (uy > 1e-9) t = Math.min(t, (TW + RAIL - rc - A[1]) / uy);
+  const centre = rc => {
+    let t = Infinity;
+    const e = rc + m;
+    if (ux < -1e-9) t = Math.min(t, (e - RAIL - A[0]) / ux); else if (ux > 1e-9) t = Math.min(t, (TL + RAIL - e - A[0]) / ux);
+    if (uy < -1e-9) t = Math.min(t, (e - RAIL - A[1]) / uy); else if (uy > 1e-9) t = Math.min(t, (TW + RAIL - e - A[1]) / uy);
+    return [A[0] + ux * t, A[1] + uy * t];
+  };
+  /* the hole's edge over the cloth, and the cloth's corners inside the hole */
+  const inBox = (x, y) => x >= -co - 1e-9 && x <= TL + co + 1e-9 && y >= -co - 1e-9 && y <= TW + co + 1e-9, pts = [];
+  for (let i = 0; i < 180; i++) { const a = i * Math.PI / 90, x = P[0] + r * Math.cos(a), y = P[1] + r * Math.sin(a); if (inBox(x, y)) pts.push([x, y]); }
+  for (const x of [-co, TL + co]) for (const y of [-co, TW + co]) if (Math.hypot(x - P[0], y - P[1]) < r) pts.push([x, y]);
+  const fits = rc => { const C = centre(rc); return pts.every(q => Math.hypot(q[0] - C[0], q[1] - C[1]) <= rc - cb - 0.0005); };
+  let rc = r + capW(co);
+  if (!fits(rc)) {
+    let lo = rc, hi = rc * 1.25;
+    while (!fits(hi) && hi < 0.5) { lo = hi; hi *= 1.25; }
+    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+    rc = hi;
+  }
   const jaws = CUSHION_POLYS.flatMap(q => [[q[1], q[0]], [q[2], q[3]]])
     .sort((u, v) => Math.hypot(u[0][0] - A[0], u[0][1] - A[1]) - Math.hypot(v[0][0] - A[0], v[0][1] - A[1]));
-  return { P, C: [A[0] + ux * t, A[1] + uy * t], r, rc, rb: rc - capBack(co), quad: [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]] };
+  return { P, C: centre(rc), r, rc, rb: rc - cb, quad: [jaws[0][0], jaws[0][1], jaws[1][1], jaws[1][0]] };
 }
 function circle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); }
 /* clip to what shows of hole k (also used by the pot animation) */
 function holeClip(g, k, co) {
   const { P, C, r, rb } = pocketShape(k, co);
-  circle(g, C[0], C[1], rb); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip();
+  circle(g, C[0], C[1], rb); g.clip();
   circle(g, P[0], P[1], r); g.clip();
 }
 function paintPocketCaps(g, co, L, px) {
@@ -1688,7 +1718,6 @@ function paintHoles(g, co, L, px) {
     gr.addColorStop(0, 'rgba(40,30,22,0)'); gr.addColorStop(0.6, 'rgba(40,30,22,0)');
     gr.addColorStop(0.86, 'rgba(48,37,28,0.5)'); gr.addColorStop(1, 'rgba(74,57,42,0.85)');
     g.fillStyle = gr; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);
-    g.beginPath(); g.rect(-RAIL - 1, -RAIL - 1, TL + 2 * RAIL + 2, TW + 2 * RAIL + 2); g.rect(-co, -co, TL + 2 * co, TW + 2 * co); g.clip('evenodd');
     const sh = g.createRadialGradient(C[0], C[1], rb - 0.012, C[0], C[1], rb);
     sh.addColorStop(0, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.7)');
     g.fillStyle = sh; g.fillRect(P[0] - r, P[1] - r, 2 * r, 2 * r);

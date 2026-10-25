@@ -197,6 +197,9 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await page.tap('#exitBtn');
   check('Exit to menu: the full menu, no session', await page.evaluate(() => felt.state === 'menu' && felt.solo === null && getComputedStyle(document.querySelector('#menu .newgame')).display !== 'none'));
 
+  /* solo is pool only: from a bumper pool game, practice and trick shots go back to the pool table */
+  const fromB = await page.evaluate(() => { felt.start('bumper'); const was = felt.table; felt.practice('8', 1); const p = { was, table: felt.table, kind: felt.game.kind, cue: felt.game.balls[0].n }; felt.start('bumper'); felt.trick('long'); p.trick = felt.table; p.n = felt.game.balls.length; felt.exitSolo(); return p; });
+  check('solo is pool only: from bumper pool, practice and a trick shot are back on the pool table', fromB.was === 'bumper' && fromB.table === '7' && fromB.kind === '8' && fromB.cue === 0 && fromB.trick === '7' && fromB.n === 2, JSON.stringify(fromB));
   /* empty table: taps drop balls, a tap on one takes it off; Done editing gives the taps back to aiming */
   await page.tap('#pracBtn'); await page.tap('#pracEmpty');
   await page.waitForTimeout(100);
@@ -224,7 +227,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('trick list: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.tap('.tcard[data-id="long"]');
   await page.waitForTimeout(100);
-  const t0 = await page.evaluate(() => ({ mode: felt.game.mode, id: felt.game.trick, chip: chipName.textContent, s: felt.state, hand: felt.game.inHand }));
+  const t0 = await page.evaluate(() => ({ mode: felt.game.mode, id: felt.game.trick, chip: turnChip.dataset.name, s: felt.state, hand: felt.game.inHand }));
   check('a challenge starts on its layout: no ball in hand, the chip says Try 1', t0.mode === 'trick' && t0.id === 'long' && t0.chip === 'Try 1' && t0.s === 'aim' && !t0.hand, JSON.stringify(t0));
   const sol = s => page.evaluate(id => TRICK_SOLS[id]['7r'], s);
   const L = await sol('long');
@@ -261,6 +264,12 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await shoot(SS[0] + Math.PI, 0.12, 0); await idle();
   check('landscape 956x440: result sheet targets 44 px, text 4.5:1, no sideways scroll', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0
     && await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  /* a narrow phone: the practice strip (undo and tools beside the meter) stays on the screen */
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => felt.practice('8', 1));
+  await page.waitForTimeout(300);
+  const strip = await page.evaluate(() => [...ctl.querySelectorAll('button, [role="slider"]')].filter(b => b.getClientRects().length).map(b => { const r = b.getBoundingClientRect(); return [b.id, Math.round(r.left), Math.round(r.right), Math.round(Math.min(r.width, r.height))]; }));
+  check('390 px phone: every control of the practice strip is on the screen and 44 px or more', strip.length >= 6 && strip.every(([, l, r, m]) => l >= 0 && r <= 390 && m >= 44), JSON.stringify(strip));
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 

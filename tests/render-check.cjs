@@ -7,10 +7,13 @@
    the illegal ring keeps its contrast, and a frame stays cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
    (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
    the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the same pocket probes on generous
-   pockets, whose caps still fit the rail at RAIL_MIN; the whole of every hole on a grid (dark, never
+   pockets (corner caps inside the rail at RAIL_MIN, side caps in painted ears past it); every drop
+   whole and round, and the whole of every drop circle on a grid (dark, never
    cloth, and untouched by a frame's overlays); the auto-aim hint's ring and pocket chevron; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
    between. */
+/* Bumper pool at dpr 3, upright and on its side, both cloths: cups dark through with no cloth,
+   posts drawn, the marked ball's spot. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -191,6 +194,81 @@ async function tableChecks(page, tag) {
   check('preview: under 2 ms a frame with the aim changing every frame (mean, headless)', cost.mean < 2, `mean ${cost.mean.toFixed(2)} ms, p90 ${cost.p90.toFixed(2)} ms`);
   check('preview: a resting aim finishes its paths within a few frames', cost.frames <= 10, cost.frames + ' frames');
 
+  /* flicker: drive the aim frame by frame (a steady sweep across balls, cushions and a pocket, a
+     fine-wheel drag a pixel and a half a frame, the auto-aim swing, a power-bar pull) and record
+     what every frame's guide drew. Every drawn preview must be complete and identical to the
+     same preview run to its end in one go (so no path is ever partly grown), the guide must be
+     there every frame, the ring may change colour only when the drawn preview changes to one with
+     another first contact, the drawn paths may lag the aim by at most PV_STALE + 1 frames, a
+     resting aim must show its own full preview within 2 frames, and the loupe must not jump. */
+  const flick = await page.evaluate(() => {
+    felt.start('8'); game.breakShot = false; game.inHand = null; settings.guide = 'full'; settings.autoAim = false; hint = null;
+    const at = { 0: [0.45, 0.5], 1: [0.72, 0.36], 3: [0.62, 0.7], 9: [0.85, 0.62], 12: [0.3, 0.25], 13: [0.78, 0.5] };
+    for (const b of game.balls) { b.on = b.n in at; if (b.on) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; } }
+    state = 'aim'; pull = null; stroke = null; cpuMode = false; aimAnim = null; cueSpin = { x: 0, y: 0 }; markPower = 0.55; power = 0.55; fineAim = false;
+    const og = guide;
+    let gi = null;
+    guide = (c, a) => (gi = og(c, a));
+    const plen = p => { let s = 0; if (p) for (let i = 1; i < p.length; i++) s += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return s; };
+    const c = game.balls[0], ref = new Map();
+    /* the same preview, run to its end at once, for the inputs the drawn one was started with */
+    const whole = P => {
+      if (ref.has(P)) return ref.get(P);
+      const h = aimTrace(c.x, c.y, Math.cos(P.ang), Math.sin(P.ang), [0], 6);
+      const S = previewStart(P.ang, P.pw0, P.sp0, h, P.lens);
+      previewRun(S, 1e9);
+      ref.set(P, S);
+      return S;
+    };
+    let now = performance.now();
+    const out = {};
+    const run = (name, n, step) => {
+      const f = [];
+      for (let i = 0; i < n; i++) {
+        step(i, now += 16);
+        gi = null; draw(now);
+        const P = gi && gi.P;
+        f.push({ i, gi: !!gi, P, ang: aimAngle, legal: gi && gi.legal, cue: gi ? plen(gi.cue) : 0, obj: gi ? plen(gi.obj) : 0, loupe: loupe && { x: loupe.x, y: loupe.y } });
+      }
+      let missing = 0, partial = 0, wrongPath = 0, badFlip = 0, lag = 0, maxLag = 0, jumps = 0, flips = 0;
+      for (let k = 0; k < f.length; k++) {
+        const r = f[k], p = f[k - 1];
+        if (!r.gi || !r.P) { missing++; continue; }
+        if (!r.P.done) partial++;
+        const W = whole(r.P);
+        if (W.cue.length !== r.P.cue.length || W.first !== r.P.first || plen(W.cue) !== plen(r.P.cue) || plen(W.obj) !== plen(r.P.obj)) wrongPath++;
+        if (p && p.P && r.legal !== p.legal) { flips++; if (r.P === p.P || r.P.first === p.P.first) badFlip++; }
+        lag = Math.abs(r.P.ang - r.ang) > 2 * PV_SNAP ? lag + 1 : 0; maxLag = Math.max(maxLag, lag);
+        if (p && p.loupe && r.loupe && Math.hypot(r.loupe.x - p.loupe.x, r.loupe.y - p.loupe.y) > 12) jumps++;
+      }
+      /* then rest: the aim stays put */
+      let settle = 0;
+      for (; settle < 10; settle++) { gi = null; draw(now += 16); if (gi && gi.P && gi.P.done && Math.abs(gi.P.ang - aimAngle) <= 2 * PV_SNAP && gi.P === preview && !previewWork) break; }
+      out[name] = { frames: f.length, missing, partial, wrongPath, flips, badFlip, maxLag, jumps, settle: settle + 1, sample: f.filter((_, k) => k % 15 === 0).map(r => [+r.cue.toFixed(3), +r.obj.toFixed(3), r.legal]) };
+    };
+    const a0 = Math.atan2(game.balls.find(b => b.n === 1).y - c.y, game.balls.find(b => b.n === 1).x - c.x) - 0.6;
+    aimAngle = a0; preview = previewWork = null;
+    run('sweep', 160, () => { aimAngle += 0.006; });
+    aimAngle = a0 + 0.1; fineAim = true;
+    run('wheel', 120, () => { aimAngle += 1.5 * WHEEL_RATE; });
+    fineAim = false;
+    settings.autoAim = true; handAimed = false; aimAngle = a0 - 1.2;
+    run('autoAim', 40, (i, t) => { if (i === 0) { autoAim(); aimAnim.t0 = t - 16; } stepAutoAim(t); });
+    settings.autoAim = false; hint = null; aimAnim = null; aimLock = null;
+    run('pull', 80, i => { pull = { kind: 'bar' }; power = i / 79; });
+    pull = null; power = markPower;
+    guide = og;
+    return out;
+  });
+  for (const [k, r] of Object.entries(flick)) {
+    const d = JSON.stringify(r);
+    check(`flicker, ${k}: the guide is drawn every frame and every drawn preview is complete and equal to the same preview run to its end (no path ever partly grown)`,
+      r.frames > 30 && r.missing === 0 && r.partial === 0 && r.wrongPath === 0, d);
+    check(`flicker, ${k}: the ring changes colour only with a new preview whose first contact differs`, r.badFlip === 0, d);
+    check(`flicker, ${k}: the paths lag the aim by at most ${3} frames, and a resting aim shows its own full preview within 2 frames`, r.maxLag <= 3 && r.settle <= 2, d);
+  }
+  check('flicker, wheel: the loupe glides, it never jumps more than 12 px in a frame', flick.wheel.jumps === 0, JSON.stringify(flick.wheel));
+
   /* the ghost ring tells a legal first contact from a foul. Ball in hand in the kitchen: a ball
      behind the head string is a foul (the cue ball has not crossed the line), one past it is not */
   const ringRed = await page.evaluate(() => {
@@ -275,14 +353,12 @@ async function tableChecks(page, tag) {
     if (TABLE !== size || POCKETS_STYLE !== pockets) return []; for (const b of game.balls) b.on = false; state = 'over';
     const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
-    const underRubber = (x, y, d) => [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]].some(([u, v]) => CUSHION_POLYS.some(q => inPoly(q, x + u, y + v)));
     POCKETS.forEach((P, k) => {
       const S = pocketShape(k, co), r = POCKET_R[k], hole = [], rub = [];
+      /* the whole drop shows, all the way round (the rubber stops at its edge) */
       for (let i = 0; i < 72; i++) {
-        const a = i * Math.PI / 36, d = r - 1.5 * px1, x = P[0] + d * Math.cos(a), y = P[1] + d * Math.sin(a);
-        const box = x >= -co && x <= TL + co && y >= -co && y <= TW + co, back = Math.hypot(x - S.C[0], y - S.C[1]) < S.rb - 1.5 * px1;
-        /* what shows of the hole: a side drop runs on under its whole jaws' rubber */
-        if ((box || back) && !(S.cup && underRubber(x, y, 2 * px1))) hole.push(toScreen(x, y));
+        const a = i * Math.PI / 36, d = r - 1.5 * px1;
+        hole.push(toScreen(P[0] + d * Math.cos(a), P[1] + d * Math.sin(a)));
       }
       for (const [pi, ei] of [[0, 1], [3, 2]]) {
         const p = S.quad[pi], e = S.quad[ei], poly = CUSHION_POLYS.find(q => q.includes(p)), p2 = poly[1] === p ? poly[2] : poly[1];
@@ -306,19 +382,20 @@ async function tableChecks(page, tag) {
     pk.length === 6 && pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
   check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.length === 6 && pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
 
-  /* the whole of every hole, not only a ring at its edge: a grid over what shows of each drop
-     (inside the hole and the back, clear of the rubber, 2 CSS px in from every edge), read from
-     the painted table and from a frame in three states (game over, ball in hand in the kitchen
-     with its tint, aiming). The painted hole is dark and never cloth-coloured anywhere; a frame adds nothing
+  /* the whole of every hole, not only a ring at its edge: a grid over the whole drop circle (2
+     CSS px in from its edge; a side drop's part under its jaws and the rail included: the rubber
+     stops at the hole and the cap's back holds all of it), read from the painted table and from
+     a frame in three states (game over, ball in hand in the kitchen with its tint, aiming). The
+     painted hole is dark and never cloth- or rubber-coloured anywhere; a frame adds nothing
      inside a hole (the kitchen's tint once laid a pale square over the head corners). */
   const grid = await q.page.evaluate(([cloth]) => {
     const co = cushionDepth(), px1 = 1 / view.k, ch = cloth === 'red' ? 0 : 1, m = 2 * px1, step = 1.5 * px1, W = table.width;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
-    const underRubber = (x, y) => [[0, 0], [m, 0], [-m, 0], [0, m], [0, -m]].some(([u, v]) => CUSHION_POLYS.some(q => inPoly(q, x + u, y + v)));
+    const whole = POCKETS.map((P, k) => { const S = pocketShape(k, co); return Math.hypot(P[0] - S.C[0], P[1] - S.C[1]) + S.r <= S.rb + 1e-9; });
     const pts = POCKETS.map((P, k) => {
-      const S = pocketShape(k, co), r = POCKET_R[k], out = [];
+      const r = POCKET_R[k], out = [];
       for (let x = P[0] - r; x <= P[0] + r; x += step) for (let y = P[1] - r; y <= P[1] + r; y += step) {
-        if (Math.hypot(x - P[0], y - P[1]) > r - m || Math.hypot(x - S.C[0], y - S.C[1]) > S.rb - m || underRubber(x, y)) continue;
+        if (Math.hypot(x - P[0], y - P[1]) > r - m) continue;
         const s = toScreen(x, y); out.push(Math.round(s[1] * dpr) * W + Math.round(s[0] * dpr));
       }
       return out;
@@ -337,9 +414,10 @@ async function tableChecks(page, tag) {
       frame[st] = Math.max(...pts.flat().map(i => Math.max(...[0, 1, 2].map(j => Math.abs(d[i * 4 + j] - img[i * 4 + j])))));
     }
     state = 'over';
-    return { art, frame };
+    return { art, frame, whole };
   }, [cloth]);
-  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the whole of every hole (a grid over what shows of it) is dark and never cloth-coloured`,
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: every drop is whole and round: the cap's back holds all of it, sides and corners`, grid.whole.length === 6 && grid.whole.every(Boolean), JSON.stringify(grid.whole));
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the whole of every hole (a grid over the full drop circle) is dark and never cloth-coloured`,
     grid.art.every(p => p.n > 100 && p.lum < 0.05 && p.cloth < 20), JSON.stringify(grid.art.map(p => [p.k, p.n, +p.lum.toFixed(3), p.cloth])));
   check(`dpr 3, ${size} ft${P}, ${cloth} cloth: a frame paints nothing inside a hole (game over, ball in hand in the kitchen, aiming)`,
     Object.values(grid.frame).every(v => v <= 2), JSON.stringify(grid.frame));
@@ -358,14 +436,22 @@ async function tableChecks(page, tag) {
   });
   check(`${size} ft${P}, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
   }
-  /* the caps on generous pockets still fit the rail at its narrowest (RAIL_MIN on this phone):
-     every cap's edge stays capGap inside the rail's outer edge, and the drop it shows is round */
+  /* the caps on generous pockets at the narrowest rail (RAIL_MIN on this phone): every corner
+     cap's edge stays capGap inside the rail's outer edge; each side cap sits in an ear that
+     swells past the rail, SIDE_WOOD of wood round its back, and the ear is painted (casting and
+     wood just inside its crown, the room just outside it) */
   const caps = await q.page.evaluate(() => {
-    const co = cushionDepth();
-    return { rail: RAIL, min: RAIL_MIN, gaps: POCKETS.map((_, k) => { const S = pocketShape(k, co);
-      return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); }), want: 1000 * capGap(co) };
+    const co = cushionDepth(), px1 = 1 / view.k, S1 = pocketShape(1, co);
+    const corners = [0, 2, 3, 5].map(k => { const S = pocketShape(k, co);
+      return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); });
+    const sides = [1, 4].map(k => { const S = pocketShape(k, co), e = S.ear; return e ? +(1000 * (e.rw - S.rc)).toFixed(2) : -1; });
+    const e = S1.ear, inn = __px([toScreen(TL / 2, -(e.reach - 1.5 * px1))])[0], out = __px([toScreen(TL / 2, -(e.reach + 4 * px1))])[0];
+    return { rail: RAIL, min: RAIL_MIN, corners, want: 1000 * capGap(co), sides, wood: 1000 * SIDE_WOOD, reach: +(1000 * e.reach).toFixed(1), inn, out };
   });
-  check('generous pockets at RAIL_MIN: every cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.gaps.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
+  check('generous pockets at RAIL_MIN: every corner cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.corners.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
+  const dif = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
+  check('generous pockets at RAIL_MIN: each side cap sits in a painted ear past the rail, SIDE_WOOD of wood round it', caps.sides.every(s => Math.abs(s - caps.wood) < 0.01)
+    && caps.reach > 1000 * caps.rail && dif(caps.inn, caps.out) > 40, JSON.stringify(caps));
   await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */
@@ -461,5 +547,53 @@ async function tableChecks(page, tag) {
     lp.ms < 16.7 && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without`);
   check('dpr 3: no console errors', q.errors.length === 0, q.errors.join(' | '));
   await q.browser.close();
+  /* bumper pool at dpr 3, upright and on its side, both cloths: both cups are dark through and
+     never cloth-coloured, a frame paints nothing in them, every post is drawn (a bright nickel
+     cap in a dark rubber ring, apart from the cloth), and a marked ball shows its spot */
+  for (const [w, h] of [[440, 956], [956, 440]]) {
+    const b = await open('', { viewport: { width: w, height: h }, hasTouch: true, deviceScaleFactor: 3 });
+    await b.page.evaluate(HELPERS);
+    for (const cloth of ['green', 'red']) {
+      const r = await b.page.evaluate(cloth => {
+        settings.cloth = cloth; felt.start('bumper'); layout();
+        const ch = cloth === 'red' ? 0 : 1, W = table.width, px1 = 1 / view.k;
+        const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
+        const img = tableImg.getContext('2d').getImageData(0, 0, W, table.height).data;
+        const at = (x, y) => { const s = toScreen(x, y); return Math.round(s[1] * dpr) * W + Math.round(s[0] * dpr); };
+        const rgb = (d, i) => [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+        const cups = POCKETS.map((P, k) => {
+          const list = [], r = POCKET_R[k] - 2 * px1;
+          for (let x = P[0] - r; x <= P[0] + r; x += 1.5 * px1) for (let y = P[1] - r; y <= P[1] + r; y += 1.5 * px1) if (Math.hypot(x - P[0], y - P[1]) <= r) list.push(at(x, y));
+          return list;
+        });
+        const art = cups.map(l => ({ n: l.length, lum: Math.max(...l.map(i => __lum(rgb(img, i)))), cloth: Math.max(...l.map(i => green(rgb(img, i)))) }));
+        state = 'over'; cpuMode = false; draw(performance.now());
+        const d = table.getContext('2d').getImageData(0, 0, W, table.height).data;
+        const frame = Math.max(...cups.flat().map(i => Math.max(...[0, 1, 2].map(j => Math.abs(d[i * 4 + j] - img[i * 4 + j])))));
+        const bed = __lum(rgb(img, at(TL / 2, 0.08)));
+        const posts = BUMPERS.map(([x, y]) => ({ cap: __lum(rgb(img, at(x, y + BUMPER_R * 0.3))), ring: __lum(rgb(img, at(x - BUMPER_R * 0.85, y))) }));
+        /* the marked ball's spots: pixels far whiter than the red around them, against an unmarked red ball */
+        const white = n => {
+          const o = game.balls.find(q => q.n === n), s = toScreen(o.x, o.y), rp = BALL_R * view.k * dpr * 0.8;
+          let c = 0;
+          for (let u = -rp; u <= rp; u++) for (let v = -rp; v <= rp; v++) {
+            if (u * u + v * v > rp * rp) continue;
+            const i = Math.round(s[1] * dpr + v) * W + Math.round(s[0] * dpr + u), q = rgb(d, i);
+            if (q[1] > 170 && q[2] > 150) c++;
+          }
+          return c;
+        };
+        return { art, frame, bed, posts, spot: white(21) - white(22), view: [TL, TW, view.portrait], n: POCKETS.length, b: BUMPERS.length };
+      }, cloth);
+      const tag = `bumper ${w}x${h} dpr 3, ${cloth} cloth`;
+      check(`${tag}: the table is the bumper table (two cups, twelve posts)`, r.n === 2 && r.b === 12 && Math.abs(r.view[0] - 1.219) < 1e-9, JSON.stringify(r.view));
+      check(`${tag}: both cups are dark through and never cloth-coloured`, r.art.every(p => p.n > 300 && p.lum < 0.05 && p.cloth < 20), JSON.stringify(r.art));
+      check(`${tag}: a frame (balls, no cue over it) paints nothing inside a cup`, r.frame <= 2, String(r.frame));
+      check(`${tag}: every post is drawn: a bright cap in a dark rubber ring, apart from the cloth`, r.posts.every(p => p.cap > 0.15 && p.ring < 0.03 && p.ring < r.bed * 0.6), JSON.stringify({ bed: r.bed, posts: r.posts.slice(0, 3) }));
+      check(`${tag}: the marked red ball shows its white spot (an unmarked red has none)`, r.spot > 40, String(r.spot));
+    }
+    check(`bumper ${w}x${h}: no console errors`, b.errors.length === 0, b.errors.join(' | '));
+    await b.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

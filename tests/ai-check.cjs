@@ -9,6 +9,8 @@
    9 ft table checks that every level still finishes there, and another on generous pockets.
    suggestAim, the human's starting aim (and the CPU's mouth data under it), is checked on both
    tables with both pocket styles. */
+/* Bumper pool: every pairing of levels finishes, hard beats easy over 12 games, budgets,
+   determinism, the struck ball is the CPU's own, auto aim's pick. */
 'use strict';
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const os = require('os');
@@ -103,7 +105,18 @@ function layouts(count) {
   /* generous pockets, 7 ft and one pairing on 9 ft: every game still finishes */
   for (const kind of ['8', '9']) for (const [i, levels] of [['easy', 'easy'], ['medium', 'easy'], ['hard', 'medium'], ['medium', 'hard'], ['hard', 'hard']].entries())
     jobs.push({ kind, seed: 60 + i, levels, hard: -4, first: i % 2, size: i === 4 ? '9' : '7', pockets: 'generous' });
+  /* bumper pool (red always opens, so the seats swap instead): hard against easy over 12 games,
+     every level against itself and medium against hard; all must finish */
+  for (let i = 0; i < 12; i++) jobs.push({ kind: 'bumper', seed: 80 + i, levels: i % 2 ? ['easy', 'hard'] : ['hard', 'easy'], hard: -5, bump: i % 2, first: 0 });
+  for (const [i, levels] of [['easy', 'easy'], ['medium', 'medium'], ['hard', 'hard'], ['medium', 'hard'], ['hard', 'medium'], ['easy', 'medium']].entries())
+    jobs.push({ kind: 'bumper', seed: 100 + i, levels, hard: -6, first: 0 });
   const t0 = Date.now(), games = await playAll(jobs), ms = Date.now() - t0;
+  {
+    const he = games.filter(r => r.hard === -5), wins = he.filter(r => r.winner === r.bump).length, all = [...he, ...games.filter(r => r.hard === -6)];
+    check('bumper pool: every pairing of levels finishes, within 200 shots, every shot well-formed', all.length === 18 && all.every(r => r.winner !== null && r.bad === 0 && r.shots <= 200),
+      all.map(r => `${r.levels.join('-')}:${r.shots}`).join(' '));
+    check('bumper pool: hard beats easy over 12 seeded games (seats alternate)', wins >= 9, `hard won ${wins}/12, ${(he.reduce((a, r) => a + r.shots, 0) / he.length).toFixed(1)} shots a game`);
+  }
 
   for (const kind of ['8', '9']) {
     const easy = games.find(r => r.kind === kind && r.hard === -1);
@@ -325,6 +338,29 @@ function layouts(count) {
     }
   }
   S.setTable('7'); S.setPockets('regulation');
+
+  /* bumper pool: budget, determinism, the struck ball is the shooter's, and auto aim's pick */
+  {
+    const g = S.newGame('bumper');
+    for (const l of LEVELS) {
+      const it = S.cpuSearch(g, 9, l);
+      let n = 0, r;
+      const t = Date.now();
+      while (!(r = it.next()).done) n++;
+      check(`bumper ${l}: at most ${S.CPU_BUMPER[l].sims} simulations, deterministic, strikes the marked ball on the opening`,
+        n <= S.CPU_BUMPER[l].sims && wellFormed(g, r.value) && r.value.ball === 21 && JSON.stringify(S.cpuShot(g, 5, l)) === JSON.stringify(S.cpuShot(g, 5, l)), `${n} sims, ${Date.now() - t} ms`);
+    }
+    const m = Object.assign(S.newGame('bumper'), { opening: 0, turn: 1, striker: 31 });
+    const s = S.suggestAim(m), h = S.cpuShot(m, 3, 'hard');
+    check('bumper: suggestAim names one of the shooter\'s balls and the far cup; the CPU strikes its own', !!s && s.n >= 31 && s.k === 0 && Number.isFinite(s.angle) && h.ball >= 31, JSON.stringify({ s, ball: h.ball }));
+    /* the hard CPU pots a marked ball left in front of the far cup's side (a clear line) */
+    const near = Object.assign(S.newGame('bumper'), { opening: 0 });
+    Object.assign(near.balls.find(b => b.n === 21), { x: S.POCKETS[1][0], y: S.TW / 2 - 0.22 });
+    near.balls.find(b => b.n === 32).on = false;
+    const got = S.judge(near, S.simulateShot(near.balls, S.cpuShot(near, 2, 'hard')));
+    check('bumper hard: pots a marked ball with a clear line to the cup', got.verdict.potted.includes(21) && !got.verdict.foul, JSON.stringify(got.verdict));
+    S.setTable('7');
+  }
 
   /* budget and determinism on a full mid-game table */
   {

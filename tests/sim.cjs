@@ -14,6 +14,7 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'cushions', 'pockets', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM', 'POCKET_LIP', 'MU_SLIDE', 'powerFor', 'spinOf', 'energyOf', 'newBall', 'rack', 'speedOf', 'newTable', 'strike', 'stepTable', 'resultOf', 'simulateShot',
   'newGame', 'legalTargets', 'judge', 'canPlace', 'placeCue', 'spot', 'rng', 'cpuShot', 'cpuSearch',
   'CPU_LEVELS', 'setTable', 'TABLE', 'suggestAim', 'setPockets', 'POCKETS_STYLE',
+  'BUMPERS', 'BUMPER_R', 'CUP_IN', 'CUP_R', 'CUP_LIP', 'B_MARK', 'B_BALLS', 'bumperStrikers', 'bumperFree', 'CPU_BUMPER',
   'onTable', 'copyGame', 'canDrop', 'scatter', 'newPractice', 'practiceJudge', 'addBall', 'removeBall', 'PRACTICE_SCATTER',
   'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP'];
 

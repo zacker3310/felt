@@ -36,41 +36,50 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #hudBar { grid-area: hud; display: grid; gap: 6px 8px; align-items: center; min-width: 0; }
 #stage { grid-area: stage; position: relative; min-width: 0; min-height: 0; display: grid; place-items: center; }
 #ctl { grid-area: ctl; display: flex; gap: 10px; align-items: center; min-width: 0; min-height: 0; }
-#ctl > * { pointer-events: auto; }
+#ctl > *, #menuBtn { pointer-events: auto; }
+#menuBtn { grid-area: menu; }
 
 /* portrait phone: hud on top, the table full width, one strip of controls at the bottom */
 /* #trayBand: the potted-ball tray's strip, outside the table in every layout; layout() puts
    view.tray right under the table, inside the room this band keeps free */
 #trayBand { grid-area: tray; min-width: 0; height: var(--tray-h); }
 #ui { --tray-h: 22px; }
-[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "tray" var(--tray-h) "ctl" auto / minmax(0, 1fr); }
-[data-layout="portrait"] #hudBar { grid-template: "p0 p1" auto "msg msg" auto / minmax(0, 1fr) minmax(0, 1fr); }
-[data-layout="portrait"] #ctl { flex-direction: row; height: 60px; }
+/* every px of height here is table: thin padding and gaps, slim cards, the pause button beside
+   them so the strip below is all english, power and fine aim */
+[data-layout="portrait"] #ui { grid-template: "hud" auto "stage" minmax(0, 1fr) "tray" var(--tray-h) "ctl" auto / minmax(0, 1fr); gap: 5px;
+  padding: max(6px, var(--sat)) max(8px, var(--sar)) max(6px, var(--sab)) max(8px, var(--sal)); }
+[data-layout="portrait"] #hudBar { grid-template: "p0 p1 menu" auto "msg msg msg" auto / minmax(0, 1fr) minmax(0, 1fr) 48px; gap: 3px 6px; }
+[data-layout="portrait"] .pc { padding: 4px 9px 5px; gap: 2px 8px; }
+[data-layout="portrait"] #ctl { flex-direction: row; height: 58px; gap: 8px; }
 [data-layout="portrait"] #msg { font-size: 13px; }
 /* where the hud has the height (a tablet strip, or beside the cards in landscape), the status
    line wraps to two lines instead of being cut short */
 @media (min-width: 600px) { [data-layout="portrait"] #msg { white-space: normal; line-height: 18px; height: 36px; display: flex; align-items: center; justify-content: center; } }
 [data-layout="wide"] #msg { white-space: normal; line-height: 18px; max-height: 36px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 [data-layout="portrait"] #spinBox { order: 1; flex-direction: row; }
-[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; }
-[data-layout="portrait"] #menuBtn { order: 3; }
+[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 58px; }
+[data-layout="portrait"] #fineWheel { order: 3; height: 58px; }
 [data-layout="portrait"] #spinLabel { width: 76px; text-align: left; }
 /* landscape: hud across the top, controls in a column on the right */
 [data-layout="wide"] #ui { grid-template: "hud hud" auto "stage ctl" minmax(0, 1fr) "tray ctl" var(--tray-h) / minmax(0, 1fr) 84px; }
 @media (min-height: 700px) and (min-width: 700px) { #ui { --tray-h: 30px; } }
-[data-layout="wide"] #hudBar { grid-template: "p0 msg p1" auto / minmax(0, 260px) minmax(0, 1fr) minmax(0, 260px); }
-/* short landscape (a phone on its side): players on the left, controls on the right, the
-   table gets the whole height */
-[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) "hud tray ctl" var(--tray-h) / 124px minmax(0, 1fr) 72px; }
+[data-layout="wide"] #hudBar { grid-template: "p0 msg p1 menu" auto / minmax(0, 260px) minmax(0, 1fr) minmax(0, 260px) 48px; }
+/* short landscape (a phone on its side): players and pause on the left, controls on the
+   right, the table gets the whole height and every px of width the columns can spare */
+[data-layout="short"] #ui { grid-template: "hud stage ctl" minmax(0, 1fr) "hud tray ctl" var(--tray-h) / 102px minmax(0, 1fr) 62px; gap: 4px 6px;
+  padding: max(4px, var(--sat)) max(6px, var(--sar)) max(4px, var(--sab)) max(6px, var(--sal)); }
+[data-layout="short"] #hudBar { grid-template: "p0" auto "p1" auto "msg" auto "menu" auto / minmax(0, 1fr); align-content: start; }
+[data-layout="short"] #ctl { gap: 8px; }
 [data-layout="short"] .pc { padding: 7px 9px 8px; }
 [data-layout="short"] .pc .line { flex-wrap: wrap; height: auto; row-gap: 4px; }
 [data-layout="short"] .pc .dots { flex: 1 1 100%; flex-wrap: wrap; row-gap: 2px; overflow: visible; }
-[data-layout="short"] #spinPad { width: 60px; height: 60px; }
-[data-layout="short"] #spinLabel { width: 72px; }
-[data-layout="short"] #hudBar { grid-template: "p0" auto "p1" auto "msg" auto / minmax(0, 1fr); align-content: start; }
+[data-layout="short"] #spinPad { width: 56px; height: 56px; }
+[data-layout="short"] #spinLabel { width: 60px; }
 [data-layout="short"] #msg { white-space: normal; text-align: left; font-size: 13px; }
 [data-layout="wide"] #ctl, [data-layout="short"] #ctl { flex-direction: column; }
-[data-layout="wide"] #powerBar, [data-layout="short"] #powerBar { flex: 1; width: 52px; min-height: 120px; max-height: 440px; }
+[data-layout="wide"] #powerBar, [data-layout="short"] #powerBar { flex: 1; width: 56px; min-height: 120px; max-height: 440px; }
+[data-layout="wide"] #fineWheel { width: 52px; height: 104px; }
+[data-layout="short"] #fineWheel { width: 48px; height: 76px; }
 
 /* ---- player cards ---- */
 .pc { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 8px;
@@ -107,6 +116,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #banner span:empty { display: none; }
 #banner[data-kind="foul"] { background: var(--signal); border-color: #d9584a; }
 #banner[data-kind="foul"] span { color: #fff; }
+/* on red cloth the signal-red foul banner would melt into the table: a near-black ring keeps
+   its edge (3.2:1 against the banner's red, darker than any cloth around it) */
+[data-cloth="red"] #banner[data-kind="foul"] { box-shadow: 0 0 0 3px #0f0f10, 0 12px 40px rgba(0, 0, 0, .6); }
 @media (prefers-reduced-motion: reduce) {
   #banner, #banner.show { transition: none; transform: translate(-50%, -50%); }
   .thinking::after { animation: none; content: "..."; }
@@ -130,7 +142,20 @@ button { font: inherit; color: inherit; cursor: pointer; }
   background: radial-gradient(circle at 40% 35%, #5b95d0, var(--chalk) 60%, #1f4f82); box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .5); pointer-events: none; }
 #spinLabel { font-size: 12px; line-height: 1.25; color: var(--muted); text-align: center; width: 84px; min-height: 30px; display: flex; align-items: center; justify-content: center; }
 [data-layout="portrait"] #spinLabel { justify-content: flex-start; min-height: 0; }
-#powerBar { position: relative; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); overflow: hidden; touch-action: none; cursor: grab; }
+/* the power bar is the only pointer control that shoots: a lighter edge than the other
+   controls (#6b6b74, 3.4:1 on the page) and chevrons that point the way to pull */
+#powerBar { position: relative; border-radius: 14px; background: var(--panel-2); border: 1px solid #6b6b74; overflow: hidden; touch-action: none; cursor: grab; }
+#powerBar:not(.live) #powerLab::after { content: "\203A\203A\203A"; font-size: 17px; line-height: 1; letter-spacing: -1px; color: var(--text); }
+/* the fine-aim wheel: a ridged thumbwheel, lit across the middle and falling into shadow at
+   both ends. --roll (set as it is dragged) moves the ridges with the finger. The edge and the
+   light ridges are 3:1 or better on what is behind them. */
+#fineWheel { position: relative; flex: none; width: 44px; border-radius: 12px; overflow: hidden; touch-action: none; cursor: ns-resize;
+  border: 1px solid #6b6b74; background: linear-gradient(#141416, #50505a 24%, #6e6e78 50%, #50505a 76%, #141416); }
+#fineWheel .ridges { position: absolute; inset: 0 8px; pointer-events: none;
+  background: linear-gradient(rgba(0, 0, 0, .6) 0 1px, rgba(240, 240, 244, .62) 1px 2px, transparent 2px) 0 var(--roll, 0px) / 100% 4px; }
+#fineWheel::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(rgba(0, 0, 0, .55), transparent 30% 70%, rgba(0, 0, 0, .55)); }
+#fineWheel.live { border-color: var(--text); }
+#fineWheel.off { opacity: .5; }
 #powerBar.live { cursor: grabbing; border-color: #74747e; }
 #powerFill { position: absolute; left: 0; top: 0; width: 0; height: 100%; background: linear-gradient(90deg, #cfc6b2, var(--cream)); }
 #powerFill.hot { background: linear-gradient(90deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
@@ -221,24 +246,25 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 </style>
 </head>
 <body>
-<canvas id="table" aria-label="Pool table. Point or tap to aim, drag back to shoot."></canvas>
+<canvas id="table" aria-label="Pool table. Point, tap or drag to aim; the power bar shoots."></canvas>
 <div id="ui">
   <div id="hudBar">
     <div class="pc" id="p0"><span class="turn" aria-hidden="true"></span><span class="name" id="p0name">Player 1</span><span class="line"><span class="meta" id="p0meta"></span><span class="dots" id="p0dots"></span></span></div>
     <div id="msg" role="status" aria-live="polite"></div>
     <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
+    <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
   </div>
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
   <div id="trayBand" aria-hidden="true"></div>
   <div id="ctl">
-    <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
       <span id="spinLabel" aria-hidden="true">center</span>
     </div>
-    <div id="powerBar" role="slider" tabindex="0" aria-label="Power: drag and let go to shoot. Arrow keys set it, Enter shoots." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
-      <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Drag to shoot</div>
+    <div id="powerBar" role="slider" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+      <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div>
     </div>
+    <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
   </div>
 </div>
 
@@ -259,23 +285,32 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div class="col2">
       <div class="sect">Table</div>
       <div class="opts">
+        <span class="label">Size</span>
+        <div class="seg" role="group" aria-label="Table size, from the next game"><button id="tb7" aria-pressed="true">7 ft bar</button><button id="tb9" aria-pressed="false">9 ft pro</button></div>
+        <span class="label">Cloth</span>
+        <div class="seg" role="group" aria-label="Cloth colour"><button id="clGreen" aria-pressed="true">Green</button><button id="clRed" aria-pressed="false">Red</button></div>
+      </div>
+      <div class="sect">Play</div>
+      <div class="opts">
         <span class="label">Aim guide</span>
         <div class="seg" role="group" aria-label="Aim guide"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div>
+        <span class="label">Auto aim</span>
+        <div class="seg" role="group" aria-label="Auto aim: each turn starts aimed at the easiest shot"><button id="aaOn" aria-pressed="true">On</button><button id="aaOff" aria-pressed="false">Off</button></div>
         <span class="label">Sound</span>
         <div class="seg" role="group" aria-label="Sound"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div>
       </div>
       <details class="how" id="how">
         <summary>How to play</summary>
         <dl class="keys">
-          <dt>Aim</dt><dd>Point at the cloth, or click a spot. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> fine-tune (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine), and so does a drag across the line. A fine-tuned aim holds still until the mouse moves away or clicks, and the aim never follows the pointer off the cloth.</dd>
-          <dt>Shoot</dt><dd>Press and drag back along the line, away from the target. Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, come back past the dead zone, slide off the line or off the table. The power bar works the same way. <kbd>Space</kbd> shoots at the marked power, <kbd>&uarr;</kbd> <kbd>&darr;</kbd> set it.</dd>
+          <dt>Aim</dt><dd>Point at the cloth, or click a spot; drag on the table to swing the cue round the cue ball. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> fine-tune (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine), and so does the ridged wheel beside the power bar (drag it or scroll on it). A fine-tuned aim holds still until the mouse moves away or clicks, and the aim never follows the pointer off the cloth. Auto aim starts each turn on the easiest shot.</dd>
+          <dt>Shoot</dt><dd>Pull along the power bar (down, or right when it lies flat). Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, come back past the start or slide off the bar. Nothing else shoots: not the table, not a key.</dd>
           <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double click it or press <kbd>R</kbd> to centre.</dd>
           <dt>In hand</dt><dd>The cue ball follows the mouse; click to place it. Click the placed ball to pick it up again.</dd>
           <dt>Pause</dt><dd>The pause button or <kbd>Esc</kbd>. The game waits.</dd>
         </dl>
         <dl class="touch">
-          <dt>Aim</dt><dd>Tap where the cue ball should go. Drag across the line to fine-tune; start further from the cue ball for finer steps.</dd>
-          <dt>Shoot</dt><dd>Drag back along the line, away from the target. Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, slide back to the start, off the line or off the table. Or drag the power bar.</dd>
+          <dt>Aim</dt><dd>Tap where the cue ball should go, or drag anywhere on the table to swing the cue: it follows your finger round the cue ball. For the last hair, roll the ridged wheel beside the power bar. With auto aim on, each turn starts aimed at the easiest shot. The table only aims: it never shoots.</dd>
+          <dt>Shoot</dt><dd>Pull along the power bar. Past a short dead zone the cue draws back on the table: let go to shoot, the further the harder. To cancel, slide back to the start or off the bar.</dd>
           <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it to centre.</dd>
           <dt>In hand</dt><dd>Drag anywhere to slide the cue ball, or tap a spot to drop it there. Once it is down, tap it (or hold it) to pick it up again.</dd>
           <dt>Pause</dt><dd>The pause button. The game waits.</dd>
@@ -1336,8 +1371,12 @@ function sfx(kind, v) {
 
 /* ============ 3. VIEW ============ */
 /* table coordinates to CSS pixels. Landscape lays the table along the screen; portrait turns it
-   so the head string is at the bottom. */
-const RAIL = 0.115;
+   so the head string is at the bottom. RAIL (the wood around the cushions, m) is set by
+   layout(): full width on a big screen, slimmer on a phone so the cloth and balls get the room. */
+let RAIL = 0.115;
+const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the pocket holes and their caps overflow the wood */
+/* the rail for a viewport: RAIL_MIN up to a 430 px short side, RAIL_MAX from 700 px, smooth between */
+const railFor = (w, h) => RAIL_MIN + (RAIL_MAX - RAIL_MIN) * ease(430, 700, Math.min(w, h));
 const ctx = table.getContext('2d');
 let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
 function toScreen(x, y) {
@@ -1374,6 +1413,7 @@ function layout() {
   dpr = Math.min(3, window.devicePixelRatio || 1);   /* a frame is cheap (cached sprites), so phones get their full 3x */
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
+  RAIL = railFor(w, h);
   const tries = h > w ? ['portrait', 'wide'] : h < 600 ? ['short', 'wide'] : ['wide'];
   let best = null;
   for (const m of tries) {
@@ -2330,19 +2370,28 @@ function clipStage() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.beginPath(); ctx.rect(r.left, r.top, r.width, r.height); ctx.clip();
 }
+/* stand-ins until the sim's T2.2 code lands: the integrator deletes these three lines */
+/* STUB(T2.2) */ let TABLE = '9';
+/* STUB(T2.2) */ function setTable(size) { }
+/* STUB(T2.2) */ function suggestAim(g) { const c = g.balls.find(b => b.n === 0), n = legalTargets(g)[0], b = n !== undefined && g.balls.find(x => x.n === n); return c && b ? { angle: Math.atan2(b.y - c.y, b.x - c.x), n, k: -1 } : null; }
 
 /* ============ 5. PLAY ============ */
 /* The state machine. menu -> place (ball in hand) -> aim -> stroke (the cue travels forward for
    STROKE_MS) -> rolling -> judged -> place | aim | thinking (the CPU) -> ... -> over.
    Pausing parks the state in `paused` and shows the menu; resuming puts it back. */
 const STROKE_MS = 110;            /* cue travel before the physics starts, at speed 1 */
-const TURN_GAIN = 0.25;           /* a sideways drag turns the aim a quarter as fast as the finger circles the cue ball */
+const WHEEL_RATE = 0.02 * Math.PI / 180;   /* aim per px rolled on the fine-aim wheel: 100 px is 2 deg */
+const WHEEL_RIDGE = 4;            /* px between the wheel's ridges; an Alt+arrow press turns the aim one ridge */
+const FINE_STEP = WHEEL_RIDGE * WHEEL_RATE;
+const AUTO_AIM_MS = 250;          /* the cue's swing onto the suggested line at the start of a turn, at speed 1 */
 const SETTINGS_KEY = 'felt.settings';
 const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, as a share of its radius */
 let game = newGame('8'), state = 'menu', cpuMode = false, cpuLevel = 'medium', tab = null;
 let aimAngle = 0, power = 0.5, markPower = 0.5, cueSpin = { x: 0, y: 0 };
 let pull = null, placeAt = null, stroke = null, cpuIt = null, cpuPlan = null, cpuAnim = 0, cpuSeed = 1;
 let gest = null, paused = null, stats = newStats();
+/* fineAim: the fine-aim wheel is held (the canvas shows a loupe). aimAnim: the auto-aim swing. */
+let fineAim = false, aimAnim = null, wheelRoll = 0;
 let settings = loadSettings();
 const felt = window.felt = {
   speed: 1, lastResult: null, lastShot: null, lastCpu: null,
@@ -2350,7 +2399,10 @@ const felt = window.felt = {
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
   get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
-  start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
+  get fineAim() { return fineAim; }, get table() { return TABLE; }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
+  /* a ball's diameter on screen, CSS px */
+  get ballPx() { return 2 * BALL_R * view.k; },
+  start, shoot: (a, p, s = 0) => { if (state !== 'aim') return false; aimAnim = null; aimAngle = a; power = p; cueSpin = spinOf(s); shoot(); return true; },
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
   /* the table and its rails on screen, in CSS px */
@@ -2366,10 +2418,14 @@ function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []] };
 
 function start(kind) {
   cpuMode = settings.cpu; cpuLevel = settings.level;
+  /* the table size takes effect here, between games; the table is repainted only when it changed */
+  const was = [TABLE, TL, TW].join();
+  setTable(settings.table);
   game = newGame(kind);
+  if ([TABLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
-  pull = null; stroke = null; paused = null; stats = newStats();
+  pull = null; stroke = null; paused = null; stats = newStats(); aimAnim = null;
   cancelGestures(); aimLock = null;
   hideOverlays();
   aimAngle = 0;
@@ -2437,9 +2493,41 @@ function tryPlace(p) {
   game = placeCue(game, q[0], q[1]);
   placeAt = null; state = 'aim'; gest = null;
   keepAim();
+  autoAim();
   say(aimHint());
   hud();
   return true;
+}
+/* auto aim (settings.autoAim): a human turn starts pointed at the easiest shot, suggestAim(),
+   or on the break at the head ball. The cue swings there over AUTO_AIM_MS (at once with reduced
+   motion) and the aim is locked like a fine adjustment, so a resting mouse does not throw it
+   away; moving LOCK_PX, or any aiming, takes over. */
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function autoAim() {
+  aimAnim = null;
+  if (!settings.autoAim || state !== 'aim' || !human()) return;
+  const c = cueBall(), objs = game.balls.filter(b => b.on && b.n > 0);
+  let to = null;
+  if (!game.shots && objs.length) { const h = objs.reduce((a, b) => b.x < a.x ? b : a); to = Math.atan2(h.y - c.y, h.x - c.x); }
+  else { const s = suggestAim(game); to = s ? s.angle : null; }
+  if (!Number.isFinite(to)) return;
+  lockAim();
+  if (reducedMotion()) { aimAngle = to; keepAim(); return; }
+  aimAnim = { from: aimAngle, d: wrapAngle(to - aimAngle), t0: performance.now() };
+}
+function stepAutoAim(now) {
+  const a = aimAnim;
+  if (!a) return;
+  if (state !== 'aim') { aimAnim = null; return; }
+  const u = clamp((now - a.t0) / (AUTO_AIM_MS / felt.speed), 0, 1);
+  aimAngle = a.from + a.d * (1 - (1 - u) ** 3);
+  if (u >= 1) { aimAnim = null; keepAim(); }
+}
+/* the player takes the aim mid-swing: it lands where it was going first */
+function finishAutoAim() {
+  if (!aimAnim) return;
+  aimAngle = aimAnim.from + aimAnim.d; aimAnim = null;
+  keepAim();
 }
 function finish() {
   state = 'over'; stroke = null; pull = null; gest = null; paused = null;
@@ -2476,6 +2564,7 @@ function settle() {
   } else if (game.inHand) enterPlace();
   else state = 'aim';
   keepAim();
+  autoAim();
   /* the words, once the next state is set so the banner can keep clear of the cue ball */
   const kitchen = game.inHand === 'kitchen';
   const group = v.grouped ? `${isOf(shooter)} ${game.groups[shooter]}.` : '';
@@ -2534,6 +2623,7 @@ function frame(now) {
     tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
     if (!live) settle();
   } else if (state === 'thinking') think(now);
+  stepAutoAim(now);
   draw(now);
   requestAnimationFrame(frame);
 }
@@ -2563,52 +2653,49 @@ function think(now) {
   if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuPlan = null; commit(p); }
 }
 /* ---- input ----
-   One grammar for mouse and touch on the table and the power bar:
-   - tap or click: aim at that spot. A press is a tap while it moves less than TAP_SLOP, or
-     when it is let go within TAP_MS having moved less than TAP_MAX (a sloppy tap still aims).
-   - drag across the aim line: turn the aim finely (a lever about the cue ball).
-   - drag back along the line (within about 27 deg of it): a pull, but nothing happens until it
-     has gone armPx() back. Then it arms: the cue draws back with power
-     (back - arm) / (pullFull - arm), so there is no dead start, and the hud says how to let go
-     or cancel. Let go to shoot. It cancels when let go short of the arm distance, when the
-     finger strays SIDE_CANCEL px off the line, or when it leaves the table. A gesture that
-     never armed never shoots. A backward drag that wanders across before arming is a turn.
-   - the power bar: the same arming along the bar; leaving the bar sideways cancels.
+   One grammar for mouse and touch. The table only aims; the power bar is the only pointer
+   control that shoots (owner's rule: no pull-back anywhere on the screen but the meter).
+   - tap or click on the table: aim at that spot. A press is a tap while it moves less than
+     TAP_SLOP, or when it is let go within TAP_MS having moved less than TAP_MAX.
+   - any drag on the table, from anywhere (the cue ball too), in any direction: sweep. The cue
+     follows the finger round the cue ball 1:1: the aim turns by the angle the finger has
+     turned about the cue ball since the press (so a quick circle swings it right round).
+     Within sweepDead() of the cue ball, where that angle is all noise, the aim holds still.
+     A sweep never shoots, however long, fast or backward it is.
+   - the power bar (the pull-back meter): press and drag along it. Nothing happens until it
+     has gone its arm distance; then it arms (pull = { kind: 'bar' }, so the cue draws back on
+     the table) with power from 0 at the arm point to 1 near the far end. Let go to shoot.
+     Back past the start or off the bar sideways cancels; a gesture that never armed never shoots.
+   - the fine-aim wheel beside the power bar: rolled, it turns the aim WHEEL_RATE per px.
    - mouse hover aims, but only over the bed and never while the aim is locked: a fine
-     adjustment (arrows, a drag-turn) locks it until the pointer travels LOCK_PX or clicks.
+     adjustment (arrows, a sweep, the wheel, auto aim) locks it until the pointer travels LOCK_PX or clicks.
      When the pointer leaves the bed the aim goes back to where the pointer last rested, so a
      dash to the power bar does not drag the line along. Pressing never re-aims.
    - ball in hand, before it is down: drag anywhere slides it (relative, so the finger never
      hides it), a tap drops it at the tap, a mouse carries it. Once it is down a drag from it is
-     an ordinary aim or pull; a tap on it (or holding it LONG_PRESS_MS) picks it up again.
+     an ordinary sweep; a tap on it (or holding it LONG_PRESS_MS) picks it up again.
    The english pad sets cueSpin; only two real taps reset it. */
-const TAP_SLOP = { mouse: 6, touch: 10 }, TAP_MAX = { mouse: 12, touch: 18 }, TAP_MS = 220;
-const BACK_RATIO = 2;             /* a drag is backward when |back| > 2 |side| (within ~27 deg) */
-const SIDE_CANCEL = 60;           /* an armed pull this far off its line, in CSS px, cancels */
+const TAP_SLOP = { mouse: 6, touch: 10 }, TAP_MAX = { mouse: 12, touch: 18 }, TAP_MS = 280;
 const LOCK_PX = 24;               /* a locked aim unlocks when the mouse travels this far */
 const DWELL_MS = 150;             /* the pointer rested this long: that aim is the one to keep */
 const LONG_PRESS_MS = 450;        /* holding the placed cue ball this long picks it up */
-const OFF_TABLE = 24;             /* how far past the rails (or the bar) a pull may stray */
-const PULL_HINT = 'Let go to shoot. Slide back or off the line to cancel.';
-/* the dead zone before a pull arms: 28 px, or 8% of a full pull when that is longer */
+const OFF_TABLE = 24;             /* how far off the bar, sideways, an armed pull may stray */
+const PULL_HINT = 'Let go to shoot. Slide back or off the bar to cancel.';
+/* the dead zone before a bar pull arms: 28 px, or 8% of a full pull when that is longer */
 const armPx = () => Math.max(28, 0.08 * pullFull());
-const pullPower = back => clamp((back - armPx()) / (pullFull() - armPx()), 0, 1);
 const pointAt = e => toTable(e.clientX, e.clientY);
 const angleTo = p => { const c = cueBall(); return Math.atan2(p[1] - c.y, p[0] - c.x); };
 const onBed = p => p[0] >= 0 && p[0] <= TL && p[1] >= 0 && p[1] <= TW;
 const kindOf = g => g.mouse ? 'mouse' : 'touch';
-function aimOnScreen() {
-  const c = cueBall(), a = toScreen(c.x, c.y), b = toScreen(c.x + Math.cos(aimAngle) * 0.1, c.y + Math.sin(aimAngle) * 0.1);
-  const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  return { cx: a[0], cy: a[1], ux: (b[0] - a[0]) / L, uy: (b[1] - a[1]) / L };
-}
 function nearCue(e) {
   const c = cueBall(), s = toScreen(c.x, c.y);
   return c.on && Math.hypot(e.clientX - s[0], e.clientY - s[1]) < Math.max(26, BALL_R * view.k * 2.2);
 }
-function nearTable(e) {
-  const t = felt.tableRect();
-  return e.clientX > t.left - OFF_TABLE && e.clientX < t.right + OFF_TABLE && e.clientY > t.top - OFF_TABLE && e.clientY < t.bottom + OFF_TABLE;
+/* inside this many CSS px of the cue ball a finger's angle about it is too jumpy to steer by */
+const sweepDead = () => Math.max(20, 2 * BALL_R * view.k);
+function fingerAngle(g, x, y) {
+  const dx = x - g.cx, dy = y - g.cy;
+  return Math.hypot(dx, dy) < sweepDead() ? null : Math.atan2(dy, dx);
 }
 
 /* mouse hover. hov: where the pointer is anchored (x, y, since t), whether it is on the bed,
@@ -2637,7 +2724,7 @@ function hover(e) {
   if (state === 'place') { movePlace(p); return; }
   if (state !== 'aim' || aimLock) return;
   const c = cueBall(), s = toScreen(c.x, c.y);
-  if (Math.hypot(x - s[0], y - s[1]) > 2 * BALL_R * view.k) aimAngle = angleTo(p);
+  if (Math.hypot(x - s[0], y - s[1]) > 2 * BALL_R * view.k) { aimAnim = null; aimAngle = angleTo(p); }
 }
 /* the placed cue ball goes back into the hand */
 function pickUp() {
@@ -2646,7 +2733,7 @@ function pickUp() {
   say(placeHint());
   hud();
 }
-/* an armed pull (table or bar) that strays: drop it now, and ignore the rest of the gesture */
+/* an armed bar pull that strays: drop it now, and ignore the rest of the gesture */
 function cancelPull(g) {
   g.mode = 'dead'; g.armed = false;
   pull = null; power = markPower;
@@ -2658,6 +2745,7 @@ function cancelPull(g) {
 function cancelGestures() {
   const g = gest;
   gest = null; spinDrag = null; hov = null;
+  endWheel(null);
   if (!g) return;
   clearTimeout(g.hold);
   if (pull && (state === 'aim' || state === 'menu')) { pull = null; power = markPower; }
@@ -2668,22 +2756,25 @@ function cancelGestures() {
 table.addEventListener('pointerdown', e => {
   audioOn();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
-  /* a second finger (a pinch, a palm) kills the gesture in progress: a pinch must never shoot */
+  /* a second finger (a pinch, a palm) kills the sweep in progress and puts the aim back */
   if (gest && !gest.bar && e.pointerId !== gest.id && e.pointerType !== 'mouse') {
     const g = gest;
     clearTimeout(g.hold);
-    if (g.mode !== 'place' && state === 'aim') { aimAngle = g.a0; if (g.armed) cancelPull(g); else g.mode = 'dead'; }
+    if (g.mode !== 'place' && state === 'aim') { aimAngle = g.a0; g.mode = 'dead'; }
     return;
   }
-  if (gest || !human() || e.button > 0 || (state !== 'place' && state !== 'aim')) return;
+  if (gest || wheelDrag || !human() || e.button > 0 || (state !== 'place' && state !== 'aim')) return;
+  finishAutoAim();
   const mouse = e.pointerType === 'mouse';
-  const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, last: [e.clientX, e.clientY], far: 0, mode: null, armed: false, hold: 0, msg0: msg.textContent };
+  const g = { id: e.pointerId, bar: false, mouse, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, last: [e.clientX, e.clientY], far: 0, mode: null, hold: 0 };
   if (state === 'place') {
     g.mode = 'place'; g.from = (placeAt || [cueBall().x, cueBall().y]).slice();
     if (mouse) movePlace(pointAt(e));
   } else {
-    g.a0 = aimAngle;
-    Object.assign(g, aimOnScreen());
+    const c = cueBall(), s = toScreen(c.x, c.y);
+    g.a0 = aimAngle; g.cx = s[0]; g.cy = s[1];
+    /* sweep: the finger's turn about the cue ball since the press, and its last angle */
+    g.sweep = 0; g.prev = fingerAngle(g, e.clientX, e.clientY);
     g.onCue = !!game.inHand && nearCue(e);
     /* hold the placed ball still to pick it up and slide it from there */
     if (g.onCue && !mouse) g.hold = setTimeout(() => {
@@ -2710,24 +2801,11 @@ table.addEventListener('pointermove', e => {
   }
   if (state !== 'aim' || g.mode === 'dead' || (!g.mode && g.far <= slop)) return;
   if (g.hold) { clearTimeout(g.hold); g.hold = 0; }
-  const back = -(dx * g.ux + dy * g.uy), side = dy * g.ux - dx * g.uy;
-  if (!g.mode) g.mode = back > BACK_RATIO * Math.abs(side) ? 'back' : 'turn';
-  if (g.mode === 'back' && !g.armed) {
-    if (Math.abs(side) > Math.max(slop, back)) g.mode = 'turn';
-    else if (back >= armPx()) { g.armed = true; pull = { kind: 'table' }; say(PULL_HINT); }
-  }
-  if (g.mode === 'back') {
-    if (g.armed) {
-      if (Math.abs(side) > SIDE_CANCEL || !nearTable(e)) { cancelPull(g); return; }
-      aimAngle = g.a0;
-      power = pullPower(back);
-      hudControls();
-    }
-  } else {
-    /* rotate by the finger's angular step about the cue ball, scaled down: a lever */
-    const rx = g.last[0] - g.cx, ry = g.last[1] - g.cy, mx = e.clientX - g.last[0], my = e.clientY - g.last[1];
-    aimAngle += TURN_GAIN * (rx * my - ry * mx) / Math.max(3600, rx * rx + ry * ry);
-  }
+  g.mode = 'sweep';
+  const fa = fingerAngle(g, e.clientX, e.clientY);
+  if (fa === null) g.prev = null;
+  else { if (g.prev !== null) g.sweep += wrapAngle(fa - g.prev); g.prev = fa; }
+  aimAngle = g.a0 + g.sweep;   /* 1:1 with the finger, from where the press began */
   g.last = [e.clientX, e.clientY];
 });
 function endTable(e, cancel) {
@@ -2741,24 +2819,13 @@ function endTable(e, cancel) {
     tryPlace(placeAt);
     return;
   }
-  if (state !== 'aim') return;
-  if (g.armed) {
-    /* the release point decides, so a quick slide back to the start cancels however few
-       moves the browser reported on the way */
-    pull = null;
-    const back = -((e.clientX - g.x0) * g.ux + (e.clientY - g.y0) * g.uy), p = pullPower(back);
-    if (!cancel && back > armPx() && p > 0 && Math.abs((e.clientY - g.y0) * g.ux - (e.clientX - g.x0) * g.uy) <= SIDE_CANCEL && nearTable(e)) { commit(p); return; }
-    power = markPower; say(g.msg0); hudControls();
-    return;
-  }
-  if (g.mode === 'dead') { say(g.msg0); return; }
-  if (cancel) return;
+  if (state !== 'aim' || g.mode === 'dead' || cancel) return;
   const k = kindOf(g), tap = g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS);
   if (tap) {
     if (g.onCue) { aimAngle = g.a0; pickUp(); return; }
     aimAngle = angleTo(toTable(g.x0, g.y0));
     aimLock = null; keepAim();
-  } else if (g.mode === 'turn') {
+  } else if (g.mode === 'sweep') {
     if (hov) { hov.x = e.clientX; hov.y = e.clientY; }
     lockAim();
   }
@@ -2779,7 +2846,8 @@ function barPos(e) {
 powerBar.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
-  if (state !== 'aim' || !human() || gest) return;
+  if (state !== 'aim' || !human() || gest || wheelDrag) return;
+  finishAutoAim();
   if (e.pointerType === 'mouse') leaveBed();
   const [pos, lo, hi] = barPos(e), span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92;
   gest = { id: e.pointerId, bar: true, pos0: pos, span, arm: Math.min(armPx(), span * 0.2), armed: false, mode: null, msg0: msg.textContent };
@@ -2804,6 +2872,54 @@ function endBar(e, cancel) {
 powerBar.addEventListener('pointerup', e => endBar(e, false));
 powerBar.addEventListener('pointercancel', e => endBar(e, true));
 powerBar.addEventListener('lostpointercapture', e => endBar(e, true));
+
+/* the fine-aim wheel: a ridged thumbwheel beside the power bar. Rolling it turns the aim
+   WHEEL_RATE per px (100 px is 2 deg); down turns the cue clockwise on screen. The finger may
+   run past the wheel's ends (the pointer is captured). fineAim is true while it is held. The
+   aim it leaves is locked like any fine adjustment; a mouse wheel over it rolls it too. */
+let wheelDrag = null;
+function rollWheel(px) {
+  wheelRoll = (wheelRoll + px) % (WHEEL_RIDGE * 1000);
+  fineWheel.style.setProperty('--roll', wheelRoll.toFixed(1) + 'px');
+}
+function endWheel(e) {
+  const d = wheelDrag;
+  if (!d || (e && e.pointerId !== d.id)) return;
+  wheelDrag = null; fineAim = false;
+  fineWheel.classList.remove('live');
+  /* lock wherever the mouse next shows up on the table, not where it left it */
+  if (state === 'aim') { aimLock = 'pending'; keepAim(); }
+}
+fineWheel.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
+fineWheel.addEventListener('pointerdown', e => {
+  audioOn();
+  if (state !== 'aim' || !human() || gest || wheelDrag) return;
+  finishAutoAim();
+  if (e.pointerType === 'mouse') leaveBed();
+  wheelDrag = { id: e.pointerId, y0: e.clientY, dy: 0, a0: aimAngle };
+  fineAim = true;
+  fineWheel.classList.add('live');
+  fineWheel.setPointerCapture(e.pointerId);
+});
+fineWheel.addEventListener('pointermove', e => {
+  const d = wheelDrag;
+  if (!d || e.pointerId !== d.id) return;
+  if (state !== 'aim') { endWheel(e); return; }
+  const dy = e.clientY - d.y0;
+  rollWheel(dy - d.dy); d.dy = dy;
+  aimAngle = d.a0 + dy * WHEEL_RATE;
+});
+fineWheel.addEventListener('pointerup', endWheel);
+fineWheel.addEventListener('pointercancel', endWheel);
+fineWheel.addEventListener('lostpointercapture', endWheel);
+fineWheel.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (state !== 'aim' || !human() || wheelDrag) return;
+  finishAutoAim();
+  const px = clamp((e.deltaMode ? 33 : 1) * e.deltaY / 4, -40, 40);   /* a mouse notch (100 px) is half a degree */
+  aimAngle += px * WHEEL_RATE; rollWheel(px);
+  aimLock = 'pending'; keepAim();
+}, { passive: false });
 
 /* the english pad: tap or drag the tip anywhere inside the safe circle. Two real taps (each
    short and still, close together in time and place) centre it; a drag never does. */
@@ -2844,11 +2960,13 @@ spinPad.addEventListener('pointercancel', () => { spinDrag = null; spinTap = nul
 
 /* pointing at the pad or the bar does not focus them, so the arrows keep aiming afterwards;
    Tab still reaches both */
-for (const el of [spinPad, powerBar]) el.addEventListener('mousedown', e => e.preventDefault());
+for (const el of [spinPad, powerBar, fineWheel]) el.addEventListener('mousedown', e => e.preventDefault());
 
-/* keyboard: arrows aim (Shift coarse, Alt or Ctrl very fine), up and down set the power, Space
-   shoots, R centres the english, Esc pauses. With the english pad focused, arrows move the tip;
-   while placing, arrows move the cue ball and Enter or Space drops it. */
+/* keyboard: left and right aim (Shift coarse, Alt or Ctrl fine: one ridge of the fine-aim
+   wheel), R centres the english, Esc pauses. With the wheel focused every arrow is a fine step
+   (right and down turn clockwise); with the english pad focused, arrows move the tip; while
+   placing, arrows move the cue ball and Enter or Space drops it. No key ever shoots: the power
+   bar is the only way a player strikes the ball (owner's rule). */
 addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (state === 'menu' && paused) resume(); else pause(); e.preventDefault(); return; }
   if (state === 'menu' || state === 'over' || !human()) return;
@@ -2862,11 +2980,13 @@ addEventListener('keydown', e => {
     else if (k === 'Enter' || k === ' ') tryPlace(p);
     else return;
   } else if (state === 'aim') {
-    const bar = document.activeElement === powerBar;
-    if (dx && !bar) { aimAngle += dx * (e.shiftKey ? 0.03 : e.altKey || e.ctrlKey ? 0.0005 : 0.004); lockAim(); }
-    else if (dy || (bar && dx)) { markPower = power = clamp(power + (dy || dx) * (e.shiftKey ? 0.01 : 0.05), 0.05, 1); hudControls(); }
-    else if (k === ' ' || (k === 'Enter' && bar)) { if (!pull) commit(power); }
-    else return;
+    finishAutoAim();
+    const wheel = document.activeElement === fineWheel, turn = wheel ? dx || -dy : dx;
+    if (!turn) return;
+    const fine = wheel || e.altKey || e.ctrlKey;
+    aimAngle += turn * (e.shiftKey ? 0.03 : fine ? FINE_STEP : 0.004);
+    if (fine) rollWheel(turn * WHEEL_RIDGE);
+    lockAim();
   } else return;
   e.preventDefault();
 });
@@ -2874,13 +2994,16 @@ addEventListener('keydown', e => {
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted };
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', autoAim: true, cloth: 'green' };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
     if (typeof o.cpu === 'boolean') s.cpu = o.cpu;
     if (['easy', 'medium', 'hard'].includes(o.level)) s.level = o.level;
     if (typeof o.sound === 'boolean') s.sound = o.sound;
+    if (['7', '9'].includes(o.table)) s.table = o.table;
+    if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
+    if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
   } catch (e) { }
   return s;
 }
@@ -2888,18 +3011,27 @@ function setSetting(k, v) {
   settings[k] = v;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
   if (k === 'sound') { muted = !v; audioOn(); }
+  /* a new table size shows at once behind the menu, unless a game is paused there: setTable
+     never runs mid-game, so it waits for the next start() */
+  if (k === 'table' && state === 'menu' && !paused) { setTable(v); game = newGame(game.kind); layout(); hud(); }
   syncMenu();
+  /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
+  if (k === 'cloth') layout();
 }
 const SEGS = [
   ['cpu', [[vs2p, false], [vsCpu, true]]],
   ['level', [[lvEasy, 'easy'], [lvMedium, 'medium'], [lvHard, 'hard']]],
   ['guide', [[gFull, 'full'], [gShort, 'short'], [gOff, 'off']]],
   ['sound', [[sndOn, true], [sndOff, false]]],
+  ['table', [[tb7, '7'], [tb9, '9']]],
+  ['autoAim', [[aaOn, true], [aaOff, false]]],
+  ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
 ];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
 function syncMenu() {
   for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.setAttribute('aria-pressed', String(settings[k] === v));
   levelLab.hidden = levelSeg.hidden = !settings.cpu;
+  document.documentElement.dataset.cloth = settings.cloth;
   resumeBtn.hidden = !paused;
 }
 function showMenu() {
@@ -2974,7 +3106,8 @@ function hudControls() {
   powerMark.style.left = vert ? '' : `calc(${markPower * 100}% - 1px)`;
   powerMark.style.top = vert ? `calc(${markPower * 100}% - 1px)` : '';
   powerBar.classList.toggle('live', live);
-  const lab = live ? pct + '%' : state === 'aim' && human() ? 'Drag to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'place' ? 'Place the ball' : '';
+  fineWheel.classList.toggle('off', !(state === 'aim' && human()));
+  const lab = live ? pct + '%' : state === 'aim' && human() ? 'Pull to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'place' ? 'Place the ball' : '';
   if (powerLab.textContent !== lab) powerLab.textContent = lab;
   powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
   spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';
@@ -3066,6 +3199,9 @@ addEventListener('resize', () => { cancelGestures(); layout(); hud(); if (banner
 /* iOS Safari ignores user-scalable=no; its own pinch event is refused here */
 document.addEventListener('gesturestart', e => e.preventDefault());
 syncMenu();
+/* the remembered table size, and a rack on it behind the menu */
+setTable(settings.table);
+game = newGame(game.kind);
 layout();
 randomOrient();
 hud();

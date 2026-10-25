@@ -50,6 +50,11 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('phone portrait: hud above and controls below never overlap the table', ph.gapBelow >= 0 && ph.gapAbove >= 0, JSON.stringify(ph));
   check('phone targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
   check('phone text is 4.5:1 or better', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
+  /* AC1 (T2.2): on the default 7 ft table a ball is at least 17 px across at 390x844. Until
+     stream P's setTable lands the geometry is still 9 ft; then the 9 ft floor applies */
+  const bp = await page.evaluate(() => ({ px: +felt.ballPx.toFixed(2), table: felt.table, def: felt.settings.table, seven: TL < 2.2, rail: RAIL }));
+  check(`AC1 phone portrait: a ball is ${bp.seven ? 'at least 17 px across on the 7 ft table' : 'at least 13.5 px across (setTable still a stub, 9 ft geometry)'}`,
+    bp.def === '7' && bp.px >= (bp.seven ? 17 : 13.5) && bp.rail >= 0.1, JSON.stringify(bp));
 
   /* phone landscape: the table is as big as the height allows, controls to the side */
   await page.setViewportSize({ width: 844, height: 390 });
@@ -73,6 +78,27 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     }));
   }
   check('view.tray: a strip outside the table and the controls in every layout, balls 16 px or more', trays.every(r => r.ok), JSON.stringify(trays.filter(r => !r.ok)));
+
+  /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
+     every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or
+     more (the pockets need it), the power bar is the biggest control */
+  const lays = [];
+  for (const [w, h] of [[390, 844], [375, 667], [430, 932], [844, 390], [1280, 800], [1920, 1080]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.waitForTimeout(150);
+    lays.push(await page.evaluate(() => {
+      const t = felt.tableRect(), R = el => el.getBoundingClientRect(), hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+      const els = { hud: R(hudBar), menu: R(menuBtn), pad: R(spinPad), bar: R(powerBar), wheel: R(fineWheel), ctl: R(ctl) };
+      const over = Object.keys(els).filter(k => hit(els[k], t));
+      const out = Object.keys(els).filter(k => els[k].left < -0.5 || els[k].top < -0.5 || els[k].right > innerWidth + 0.5 || els[k].bottom > innerHeight + 0.5);
+      const small = ['menu', 'pad', 'bar', 'wheel'].filter(k => Math.min(els[k].width, els[k].height) < 44);
+      const area = k => els[k].width * els[k].height, barBig = ['menu', 'pad', 'wheel'].every(k => area('bar') > area(k));
+      return { size: innerWidth + 'x' + innerHeight, ball: +felt.ballPx.toFixed(1), over, out, small, barBig, rail: RAIL, scroll: document.documentElement.scrollWidth > innerWidth };
+    }));
+  }
+  check('every layout: nothing overlaps the table, controls on screen and 44 px, no sideways scroll, rail 0.10 m or more, the bar the biggest control',
+    lays.every(l => !l.over.length && !l.out.length && !l.small.length && !l.scroll && l.rail >= 0.1 - 1e-9 && l.barBig), JSON.stringify(lays));
+  console.log('ball px: ' + lays.map(l => l.size + ' ' + l.ball).join(', '));
 
   /* short landscape: a card's ball dots wrap rather than clip */
   await page.setViewportSize({ width: 844, height: 390 });

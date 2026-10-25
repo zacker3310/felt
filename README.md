@@ -6,18 +6,18 @@ Play at **https://zacker3310.github.io/felt/**.
 
 ## Play
 
-Open `index.html` in a browser (or `npm run serve` and visit http://localhost:4173).
+On an iPhone: open the link in Safari, Share, **Add to Home Screen**. It runs full screen and
+offline. Or open `index.html` in any browser (or `npm run serve`, http://localhost:4173).
 
-- **Aim:** point with the mouse, or tap where the cue ball should go. Drag across the line to
-  fine-tune; start further from the cue ball for finer steps. Arrow keys aim (shift coarse, alt
-  fine).
-- **Shoot:** drag back along the line, away from the target, and let go: the further, the
-  harder. Slide back to the start to cancel. Or drag the power bar. Space shoots at the marked
-  power; up and down set it.
-- **English:** move the tip on the cue-ball pad: high for follow, low for draw, the sides for
-  side english. Double tap or `R` to centre.
-- **Ball in hand:** drag anywhere to slide the cue ball, or tap a spot.
-- **Pause:** the pause button or Esc. The game waits.
+- **Aim:** tap where the cue ball should go, or drag anywhere on the table: the cue follows your
+  finger round the ball. The ridged wheel fine-tunes (a magnifier shows the contact). Auto aim
+  points at the easiest shot when your turn starts (menu).
+- **Shoot:** pull the power bar and let go. It is the only way to shoot. Slide back or off it to
+  cancel.
+- **English:** move the tip on the cue-ball pad: high follow, low draw, sides for side english.
+  Double tap to centre.
+- **Ball in hand:** drag or tap to place; tap the ball to pick it up again.
+- **Menu:** 7 ft or 9 ft table, green or red cloth, aim guide, auto aim, sound, CPU level.
 
 ## Rules
 

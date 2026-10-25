@@ -56,9 +56,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="portrait"] #ui { grid-template: "stage" minmax(0, 1fr) "ctl" 56px / minmax(0, 1fr); }
 [data-layout="portrait"] #ctl { flex-direction: row; gap: 5px; }
 [data-layout="portrait"] #spinBox { order: 1; }
-[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 0; }
+[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 150px; }   /* fonts must not shrink the shot meter: the chip gives way */
 [data-layout="portrait"] #fineWheel { order: 3; height: 56px; }
-[data-layout="portrait"] #turnChip { order: 4; padding: 0 7px; gap: 4px; }
+[data-layout="portrait"] #turnChip { order: 4; padding: 0 7px; gap: 4px; flex-shrink: 1; min-width: 0; overflow: hidden; }
 [data-layout="portrait"] #menuBtn { order: 5; width: 44px; height: 56px; }
 [data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
 /* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
@@ -94,6 +94,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #turnChip .dot { width: 11px; height: 11px; }
 #turnChip .dot.ring { margin: 0 1px; }
 #turnChip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
+/* under 400 px wide the meter keeps its 150 px and the chip drops its turn dot (the name says it) */
+@media (max-width: 399px) { [data-layout="portrait"] #turnChip .tdot { display: none; } }
 #turnChip.warn { border-color: var(--illegal); }
 #turnChip.warn .tname { color: var(--illegal); }
 #turnChip.busy { animation: chipPulse 1.1s ease-in-out infinite; }

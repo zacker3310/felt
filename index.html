@@ -449,45 +449,161 @@ function cpuShot(g, seed) {
 // #endregion sim
 
 /* ============ 2. AUDIO ============ */
-let ac = null, noiseBuf = null, muted = false;
-const lastSfx = {};
+/* Everything is synthesised: filtered noise and a few sine partials per hit, no files. Each voice
+   goes into `bus`; the master chain is bus gain, a compressor acting as a limiter, then a soft
+   clipper whose curve tops out below 1, so a break never clips. Intensity `v` is impact speed
+   in m/s (0 to about 9). */
+let ac = null, noiseBuf = null, bus = null, muted = false;
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
+/* per kind: most voices sounding at once, shortest gap between two (s) */
+const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], pocket: [3, 0.05],
+  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5] };
+const voices = {}, crowd = {};
+function audioInit(c) {
+  ac = c;
+  const sr = c.sampleRate;
+  noiseBuf = c.createBuffer(1, sr, sr);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const lim = c.createDynamicsCompressor();
+  /* threshold high and knee hard: the node adds automatic make-up gain that grows as the threshold
+     drops, which would flatten the hit dynamics. Here it only catches pile-ups (about +1.7 dB). */
+  lim.threshold.value = -4; lim.knee.value = 0; lim.ratio.value = 20;
+  lim.attack.value = 0.001; lim.release.value = 0.1;
+  /* soft clip: the shaper sees signal / 2, so its [-1, 1] covers +-2; linear to 0.7, then a tanh
+     shoulder that never passes 0.98 (inputs past +-2 hold the end value) */
+  const pre = c.createGain(), clip = c.createWaveShaper(), n = 2049, curve = new Float32Array(n);
+  pre.gain.value = 0.5;
+  for (let i = 0; i < n; i++) {
+    const y = (i / (n - 1) * 2 - 1) * 2, a = Math.abs(y);
+    curve[i] = Math.sign(y) * (a <= 0.7 ? a : 0.7 + 0.28 * Math.tanh((a - 0.7) / 0.28));
+  }
+  clip.curve = curve;
+  bus = c.createGain(); bus.gain.value = 0.55;
+  bus.connect(lim).connect(pre).connect(clip).connect(c.destination);
+}
 function audioOn() {
   if (!ac) {
     const A = window.AudioContext || window.webkitAudioContext;
     if (!A) return;
-    ac = new A();
-    noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.25, ac.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    try { audioInit(new A()); } catch (e) { ac = null; return; }
   }
   if (ac.state === 'suspended') ac.resume();
 }
-function burst(freq, q, vol, decay, type) {
-  const t = ac.currentTime, src = ac.createBufferSource(), f = ac.createBiquadFilter(), gn = ac.createGain();
-  src.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
-  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-  src.connect(f).connect(gn).connect(ac.destination);
-  src.start(t); src.stop(t + decay + 0.02);
+/* gain node with a fast attack and an exponential tail, starting at t */
+function env(t, peak, attack, decay) {
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(Math.max(peak, 2e-4), t + attack);
+  g.gain.exponentialRampToValueAtTime(1e-4, t + attack + decay);
+  return g;
 }
-function tone(freq, vol, decay) {
-  const t = ac.currentTime, o = ac.createOscillator(), gn = ac.createGain();
-  o.type = 'sine'; o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq * 0.6, t + decay);
-  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-  o.connect(gn).connect(ac.destination);
-  o.start(t); o.stop(t + decay + 0.02);
+/* filtered noise burst into `out`; reads from a random spot in the buffer so no two match */
+function noise(t, out, type, freq, q, peak, decay, attack = 0.0008) {
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = env(t, peak, attack, decay);
+  s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
+  s.connect(f).connect(g).connect(out);
+  s.start(t, Math.random() * 0.7); s.stop(t + attack + decay + 0.02);
+}
+/* sine partial gliding from f0 to f1 */
+function partial(t, out, f0, f1, peak, decay, attack = 0.0005) {
+  const o = ac.createOscillator(), g = env(t, peak, attack, decay);
+  o.frequency.setValueAtTime(f0, t);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + attack + decay);
+  o.connect(g).connect(out);
+  o.start(t); o.stop(t + attack + decay + 0.02);
+}
+const jit = (x, r) => x * (1 + (Math.random() * 2 - 1) * r);
+/* ball on ball: a sub-2 ms bright tick, then two detuned phenolic partials (2.5-4.5 kHz) and a
+   faint mid knock, all rising in pitch, level and brightness with the impact. s is 0..1. */
+function clack(t, s, out) {
+  const f = jit(2500 + 1600 * s, 0.05), lvl = 0.03 + 0.97 * Math.pow(s, 0.9);
+  noise(t, out, 'bandpass', 3500 + 2500 * s, 0.9, 0.55 * lvl, 0.0025 + 0.002 * s, 0.0003);
+  partial(t, out, f, f * 0.985, 0.42 * lvl, 0.022 + 0.018 * s);
+  partial(t, out, jit(f * 1.41, 0.02), f * 1.39, 0.22 * lvl, 0.014 + 0.01 * s);
+  partial(t, out, jit(1150, 0.06), 1050, 0.12 * lvl, 0.012);
+}
+/* cushion or jaw: a low rubber body, a little rail wood. Soft hits fall away fast (s^1.6). */
+function thump(t, s, hard) {
+  const lvl = 0.6 * Math.pow(s, 1.6), f = jit(hard ? 190 : 140, 0.08);
+  partial(t, bus, f, f * 0.62, 0.75 * lvl, 0.09 + 0.05 * s, 0.002);
+  noise(t, bus, 'lowpass', 380 + 300 * s, 0.7, 0.35 * lvl, 0.05, 0.001);
+  partial(t, bus, jit(hard ? 620 : 430, 0.05), hard ? 560 : 400, (hard ? 0.3 : 0.12) * lvl, hard ? 0.025 : 0.018);
+  noise(t, bus, 'bandpass', hard ? 1900 : 1200, 1.4, (hard ? 0.28 : 0.1) * lvl, hard ? 0.012 : 0.008);
+}
+/* the drop: a thud into leather, a rumble down the gully (noise through a low-pass that sweeps
+   down, wobbled at a rolling rate), then a muffled clack against the balls already there */
+function drop(t, s) {
+  const lvl = 0.4 + 0.4 * s;
+  partial(t, bus, jit(90, 0.06), 55, 0.7 * lvl, 0.16, 0.003);
+  noise(t, bus, 'lowpass', 320, 0.8, 0.4 * lvl, 0.07, 0.002);
+  noise(t, bus, 'bandpass', 900, 1.2, 0.12 * lvl, 0.02, 0.001);
+  const roll = jit(0.55, 0.15), t1 = t + 0.06, src = ac.createBufferSource(), lp = ac.createBiquadFilter();
+  const g = ac.createGain(), wob = ac.createOscillator(), depth = ac.createGain();
+  src.buffer = noiseBuf; src.loop = true;
+  lp.type = 'lowpass'; lp.Q.value = 2.5;
+  lp.frequency.setValueAtTime(1100, t1); lp.frequency.exponentialRampToValueAtTime(180, t1 + roll);
+  wob.frequency.setValueAtTime(jit(26, 0.1), t1); wob.frequency.linearRampToValueAtTime(14, t1 + roll);
+  /* the wobble rides on the gain, so it gets the same envelope or it would outlive the roll */
+  for (const [p, v] of [[g.gain, 0.3 * lvl], [depth.gain, 0.1 * lvl]]) {
+    p.setValueAtTime(0, t1); p.linearRampToValueAtTime(v, t1 + 0.05); p.setTargetAtTime(0, t1 + roll * 0.6, roll * 0.18);
+  }
+  wob.connect(depth).connect(g.gain);
+  src.connect(lp).connect(g).connect(bus);
+  src.start(t1, Math.random() * 0.2); wob.start(t1);
+  src.stop(t1 + roll + 0.25); wob.stop(t1 + roll + 0.25);
+  const muff = ac.createBiquadFilter();
+  muff.type = 'lowpass'; muff.frequency.value = 2200; muff.connect(bus);
+  clack(t1 + roll + jit(0.04, 0.3), 0.12, muff);
+}
+/* UI cue: a soft sine note with a quiet octave, attack 10 ms */
+function note(t, f, peak, decay) {
+  partial(t, bus, f, f, peak, decay, 0.01);
+  partial(t, bus, f * 2, f * 2, peak * 0.15, decay * 0.5, 0.01);
+}
+/* schedule one sound at time t. Per-kind voice cap and minimum gap, and a crowd factor that
+   ducks hits of the same kind arriving close together, so a break is a crack and a scatter. */
+function sfxAt(kind, v, t) {
+  const lim = VOICE[kind];
+  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw') && v < 0.1))) return;
+  const live = (voices[kind] || []).filter(e => e > t);
+  if (live.length >= lim[0]) return;
+  const c = crowd[kind] || { t: -1, e: 0 };
+  if (t - c.t < lim[1]) return;
+  c.e = c.e * Math.exp(-(t - c.t) / 0.06) + 1; c.t = t; crowd[kind] = c;
+  const duck = 1 / Math.sqrt(c.e);
+  let end = t + 0.06;
+  if (kind === 'ball') {
+    const s = clamp(v / 6, 0, 1);
+    clack(t, s * duck, bus);
+  } else if (kind === 'cue') {
+    const s = clamp(v / 7, 0, 1), lvl = 0.12 + 0.6 * Math.pow(s, 0.8);
+    noise(t, bus, 'bandpass', 1500 + 600 * s, 1.6, 0.6 * lvl, 0.028);
+    partial(t, bus, jit(760, 0.04), 520, 0.45 * lvl, 0.035);
+    noise(t, bus, 'bandpass', 3200, 1.2, 0.25 * lvl, 0.004, 0.0003);
+  } else if (kind === 'rail' || kind === 'jaw') {
+    const s = clamp(v / 5, 0, 1) * duck, hard = kind === 'jaw';
+    thump(t, s, hard);
+    if (hard) thump(t + jit(0.032, 0.25), s * 0.6, true);
+    end = t + 0.18;
+  } else if (kind === 'pocket') {
+    drop(t, clamp(v == null ? 1 : v, 0, 1));
+    end = t + 0.9;
+  } else if (kind === 'foul') {
+    note(t, 311, 0.13, 0.22); note(t + 0.16, 233, 0.13, 0.32);
+    end = t + 0.5;
+  } else if (kind === 'turn') {
+    partial(t, bus, 1320, 1250, 0.05, 0.03, 0.002);
+  } else if (kind === 'win') {
+    [523.25, 659.25, 783.99].forEach((f, i) => note(t + i * 0.09, f, 0.1, 0.7 - i * 0.1));
+    note(t + 0.18, 1046.5, 0.035, 0.6);
+    end = t + 0.9;
+  }
+  live.push(end); voices[kind] = live;
 }
 function sfx(kind, v) {
   if (!ac || muted || ac.state !== 'running') return;
-  const now = ac.currentTime;
-  if (now - (lastSfx[kind] || 0) < 0.015) return;
-  lastSfx[kind] = now;
-  const vol = clamp(v / 3, 0, 1);
-  if (vol < 0.01) return;
-  if (kind === 'ball') burst(3200, 3, 0.9 * vol, 0.035, 'bandpass');
-  else if (kind === 'cue') burst(1800, 2, 0.5 + 0.5 * vol, 0.05, 'bandpass');
-  else if (kind === 'rail') { tone(150, 0.5 * vol, 0.09); burst(500, 1, 0.3 * vol, 0.05, 'lowpass'); }
-  else if (kind === 'pocket') { tone(95, 0.6, 0.22); burst(700, 1, 0.4, 0.16, 'lowpass'); }
+  sfxAt(kind, v, ac.currentTime + 0.005);
 }
 
 /* ============ 3. VIEW ============ */

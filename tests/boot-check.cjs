@@ -158,7 +158,10 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
   /* the ball, the target metric: at least 20 px across at 956x440 with the iOS insets, and never
      smaller than before the maximised layout at any listed viewport */
-  const BEFORE = { '440x956 ios': 18.13, '956x440 ios': 17.19, '390x844': 17.4, '440x956': 20.33, '844x390': 17.08, '1280x800': 30.29, '375x667': 12.76, '768x1024': 23.37 };
+  /* floors from before the table-max layout; 440x956 without insets moved to 20.1 when the side
+     pockets became real full drops with a casting past the rail (the bare hole alone caps that
+     view at 20.30 px; Zac chose the real pocket over the last 1%) */
+  const BEFORE = { '440x956 ios': 18.13, '956x440 ios': 17.19, '390x844': 17.4, '440x956': 20.1, '844x390': 17.08, '1280x800': 30.29, '375x667': 12.76, '768x1024': 23.37 };
   const INSETS = { '440x956 ios': [62, 0, 34, 0], '956x440 ios': [0, 62, 21, 62] };
   const sizes = {};
   for (const key of Object.keys(BEFORE)) {

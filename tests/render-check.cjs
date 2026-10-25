@@ -6,7 +6,8 @@
    the rail for one), a scratch never shows two cue balls, portrait draws the same table turned,
    the illegal ring keeps its contrast, and a frame stays cheap. On a phone at dpr 3, on the green and the red cloth: no cloth inside any hole, rubber
    (not hole) just past every jaw, every overlay at 3:1 on the cloth; the game ball's halo is on
-   the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the loupe shows only while fineAim is set,
+   the 8 in 8-ball and on the 9 (not the 8) in 9-ball; the same pocket probes on generous
+   pockets, whose caps still fit the rail at RAIL_MIN; the loupe shows only while fineAim is set,
    clear of the contact, and keeps a frame cheap. Pixels are read in the same task as a draw() so no animation frame can slip in
    between. */
 'use strict';
@@ -266,9 +267,11 @@ async function tableChecks(page, tag) {
   /* every pocket, on both cloths: a ring just inside what shows of the hole is never cloth (the
      cloth's channel not dominant, and dark), and the cushion just past each jaw is rubber, not
      hole-dark */
-  for (const [size, cloth] of [['7', 'green'], ['7', 'red'], ['9', 'green'], ['9', 'red']]) {
-  const pk = await q.page.evaluate(([size, cloth]) => {
-    setTable(size); felt.start('8'); settings.cloth = cloth; layout(); for (const b of game.balls) b.on = false; state = 'over';
+  for (const pockets of ['regulation', 'generous']) for (const [size, cloth] of [['7', 'green'], ['7', 'red'], ['9', 'green'], ['9', 'red']]) {
+  const pk = await q.page.evaluate(([size, cloth, pockets]) => {
+    /* start() sets the table and pockets from settings, so those choose them */
+    settings.table = size; settings.pockets = pockets; felt.start('8'); settings.cloth = cloth; layout();
+    if (TABLE !== size || POCKETS_STYLE !== pockets) return []; for (const b of game.balls) b.on = false; state = 'over';
     const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
     POCKETS.forEach((P, k) => {
@@ -293,11 +296,12 @@ async function tableChecks(page, tag) {
         rubOk: rp.every(c => green(c) > 5 && c[0] + c[1] + c[2] > 50), rubMin: rp.map(c => c.join('/')).slice(0, 2) });
     });
     return res;
-  }, [size, cloth]);
+  }, [size, cloth, pockets]);
+  const P = pockets === 'generous' ? ', generous pockets' : '';
   /* a liner's brown far wall is allowed a little red; cloth in a hole would be far over 20 */
-  check(`dpr 3, ${size} ft, ${cloth} cloth: inside every hole, a ring just inside its edge shows no cloth (cloth channel not dominant, dark)`,
-    pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
-  check(`dpr 3, ${size} ft, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: inside every hole, a ring just inside its edge shows no cloth (cloth channel not dominant, dark)`,
+    pk.length === 6 && pk.every(p => p.n > 20 && p.greenIn < 20 && p.lumIn < 0.06), JSON.stringify(pk.map(p => [p.k, p.n, p.greenIn, +p.lumIn.toFixed(3)])));
+  check(`dpr 3, ${size} ft${P}, ${cloth} cloth: the cushion just past every jaw is cloth-covered rubber, not hole-dark`, pk.length === 6 && pk.every(p => p.rub >= 4 && p.rubOk), JSON.stringify(pk.map(p => [p.k, p.rub, p.rubOk, p.rubMin])));
 
   /* every overlay on the bed against the brightest lit cloth: white at the cloth's floor alpha
      (guide lines and rings, placement, kitchen line, loupe lines), ILLEGAL, the halo's core and
@@ -311,9 +315,17 @@ async function tableChecks(page, tag) {
     for (const k in out) out[k] = +out[k].toFixed(2);
     return out;
   });
-  check(`${size} ft, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
+  check(`${size} ft${P}, ${cloth} cloth: every overlay keeps 3:1 on the brightest cloth (white lines and rings, illegal, halo, loupe rim)`, Object.values(ov).every(v => v >= 3), JSON.stringify(ov));
   }
-  await q.page.evaluate(() => { setTable('7'); settings.cloth = 'green'; felt.start('8'); layout(); });
+  /* the caps on generous pockets still fit the rail at its narrowest (RAIL_MIN on this phone):
+     every cap's edge stays capGap inside the rail's outer edge, and the drop it shows is round */
+  const caps = await q.page.evaluate(() => {
+    const co = cushionDepth();
+    return { rail: RAIL, min: RAIL_MIN, gaps: POCKETS.map((_, k) => { const S = pocketShape(k, co);
+      return +(1000 * Math.min(S.C[0] + RAIL - S.rc, TL + RAIL - S.C[0] - S.rc, S.C[1] + RAIL - S.rc, TW + RAIL - S.C[1] - S.rc)).toFixed(2); }), want: 1000 * capGap(co) };
+  });
+  check('generous pockets at RAIL_MIN: every cap fits inside the rail, capGap from its outer edge', caps.rail === caps.min && caps.gaps.every(g => g >= caps.want - 0.01), JSON.stringify(caps));
+  await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */
   const halo = await q.page.evaluate(() => {

@@ -6,8 +6,9 @@
    never stalls in a safety loop. The games run on worker threads to keep the suite fast.
    Tables: everything is measured on the default 7 ft table, layouts placed in fractions of the
    bed (written as 9 ft metres scaled by TL / 2.54 and TW / 1.27); a shorter set of games on the
-   9 ft table checks that every level still finishes there. suggestAim, the human's starting
-   aim, is checked on both. */
+   9 ft table checks that every level still finishes there, and another on generous pockets.
+   suggestAim, the human's starting aim (and the CPU's mouth data under it), is checked on both
+   tables with both pocket styles. */
 'use strict';
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const os = require('os');
@@ -39,7 +40,7 @@ function play(kind, levels, seed, first, mult = 1000) {
 }
 
 if (!isMainThread) {
-  parentPort.postMessage(workerData.map(j => { S.setTable(j.size || '7'); return Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult)); }));
+  parentPort.postMessage(workerData.map(j => { S.setTable(j.size || '7'); S.setPockets(j.pockets || 'regulation'); return Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult)); }));
   return;
 }
 const { check, done } = require('./lib.cjs');
@@ -99,6 +100,9 @@ function layouts(count) {
   /* the 9 ft table: every pairing of levels finishes a game of each kind */
   for (const kind of ['8', '9']) for (const [i, levels] of [['easy', 'easy'], ['medium', 'easy'], ['hard', 'medium'], ['medium', 'hard'], ['hard', 'hard']].entries())
     jobs.push({ kind, seed: 40 + i, levels, hard: -3, first: i % 2, size: '9' });
+  /* generous pockets, 7 ft and one pairing on 9 ft: every game still finishes */
+  for (const kind of ['8', '9']) for (const [i, levels] of [['easy', 'easy'], ['medium', 'easy'], ['hard', 'medium'], ['medium', 'hard'], ['hard', 'hard']].entries())
+    jobs.push({ kind, seed: 60 + i, levels, hard: -4, first: i % 2, size: i === 4 ? '9' : '7', pockets: 'generous' });
   const t0 = Date.now(), games = await playAll(jobs), ms = Date.now() - t0;
 
   for (const kind of ['8', '9']) {
@@ -115,6 +119,9 @@ function layouts(count) {
     const nine = games.filter(r => r.kind === kind && r.hard === -3);
     check(`9 ft table: every pairing of levels finishes a game of ${kind}-ball within 120 shots, shots well-formed`, nine.length === 5 && nine.every(r => r.winner !== null && r.bad === 0 && r.shots <= 120),
       nine.map(r => `${r.levels.join('-')}:${r.shots}`).join(' '));
+    const gen = games.filter(r => r.kind === kind && r.hard === -4);
+    check(`generous pockets: every pairing of levels finishes a game of ${kind}-ball within 120 shots, shots well-formed`, gen.length === 5 && gen.every(r => r.winner !== null && r.bad === 0 && r.shots <= 120),
+      gen.map(r => `${r.size}ft ${r.levels.join('-')}:${r.shots}`).join(' '));
   }
   console.log(`(match: ${games.length} games in ${(ms / 1000).toFixed(1)} s)`);
 
@@ -238,9 +245,9 @@ function layouts(count) {
 
   /* suggestAim, the aim a human turn starts on, on both tables: the easiest clean pot of a legal
      ball (the CPU's ghost-ball lines and clearance), else straight at the nearest legal ball */
-  for (const size of ['7', '9']) {
-    S.setTable(size);
-    const T = `${size} ft: suggestAim: `, cue = (g, x, y) => put(g, 0, x, y);
+  for (const [size, style] of [['7', 'regulation'], ['9', 'regulation'], ['7', 'generous'], ['9', 'generous']]) {
+    S.setTable(size); S.setPockets(style);
+    const T = `${size} ft${style === 'generous' ? ', generous pockets' : ''}: suggestAim: `, cue = (g, x, y) => put(g, 0, x, y);
     const pots = (g, a) => S.simulateShot(g.balls, { angle: a.angle, power: S.powerFor(1.6), spin: 0 }).potted.includes(a.n);
     /* a 1 hanging in a corner jaw and one on a side's mouth line: the line into that pocket, and it drops */
     const hang = [5, 1].map(k => {
@@ -317,7 +324,7 @@ function layouts(count) {
       check(T + 'pure, deterministic, well under 5 ms on 16 scattered balls', JSON.stringify(g) === snap && JSON.stringify(S.suggestAim(g)) === first && first !== 'null' && ms < 1, `${ms.toFixed(3)} ms, ${first}`);
     }
   }
-  S.setTable('7');
+  S.setTable('7'); S.setPockets('regulation');
 
   /* budget and determinism on a full mid-game table */
   {

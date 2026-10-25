@@ -492,6 +492,41 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const g7 = await page.evaluate(() => { tableCalls.length = 0; felt.start('8'); return { calls: tableCalls.slice(), table: felt.table, TL }; });
   check('table size: back to 7 ft, the next game is on the 7 ft table (1.981 m)', g7.calls[0] === '7' && g7.table === '7' && Math.abs(g7.TL - 1.981) < 1e-9, JSON.stringify(g7));
 
+  /* 16. pockets: regulation by default; the menu choice redraws the rack behind the menu at once,
+     persists, and start() sets it (with the table) before the rack; the art follows POCKET_R.
+     setPockets is wrapped to record its calls. */
+  const wrapPk = () => page.evaluate(() => { window.pkCalls = []; const f = setPockets; window.setPockets = s => { pkCalls.push(s); return f(s); }; });
+  await page.reload();
+  await page.waitForFunction(() => window.booted === true);
+  await wrapPk();
+  const pr = await page.evaluate(() => ({ s: felt.settings.pockets, p: pkReg.getAttribute('aria-pressed'), now: felt.pockets, R: felt.pocketR }));
+  await page.click('#pkGen');
+  const pg = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }));
+  check('pockets: regulation by default; choosing Generous rebuilds the table behind the menu at once', pr.s === 'regulation' && pr.p === 'true' && pr.now === 'regulation'
+    && pg.calls.includes('generous') && pg.now === 'generous' && pg.R[0] > pr.R[0] && pg.R[1] > pr.R[1], JSON.stringify({ pr, pg }));
+  await page.reload();
+  await page.waitForFunction(() => window.booted === true);
+  await wrapPk();
+  const pb = await page.evaluate(() => ({ s: felt.settings.pockets, p: pkGen.getAttribute('aria-pressed'), now: felt.pockets }));
+  await page.click('#play9');
+  const pn = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, s: felt.state }));
+  check('pockets: the choice persists across a reload, and a new game starts with generous pockets', pb.s === 'generous' && pb.p === 'true' && pb.now === 'generous'
+    && pn.calls[pn.calls.length - 1] === 'generous' && pn.now === 'generous' && pn.s === 'place', JSON.stringify({ pb, pn }));
+  /* generous pockets play too: the live roll still equals simulateShot byte for byte */
+  const gen = await page.evaluate(async () => {
+    felt.speed = 40; tryPlace([HEAD_X - 0.2, TW / 2]);
+    const c = game.balls[0], a = Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x);
+    const want = JSON.stringify(simulateShot(game.balls, { angle: a, power: 0.9, spin: 0 }).balls.map(b => [b.n, b.on, b.x, b.y]));
+    felt.shoot(a, 0.9, 0);
+    while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 50));
+    return { same: JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])) === want, pockets: POCKETS_STYLE };
+  });
+  check('generous pockets: the live break matches simulateShot exactly', gen.same && gen.pockets === 'generous', JSON.stringify(gen));
+  await page.click('#menuBtn');
+  await page.click('#pkReg');
+  const pz = await page.evaluate(() => { pkCalls.length = 0; felt.start('8'); return { calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }; });
+  check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.062, JSON.stringify(pz));
+
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 

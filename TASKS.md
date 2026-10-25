@@ -12,7 +12,7 @@ Indicators: `I`ntent `S`pec `P`lan `B`uild `V`erify `D`eploy `W`atch
 
 ## Phase 2: overhaul
 
-- [ ] T2.1: overhaul: real spin physics and pockets, CPU levels, table art, phone layout and touch controls, audio   [ISPB---]
+- [x] T2.1: overhaul: real spin physics and pockets, CPU levels, table art, phone layout and touch controls, audio   [ISPBV--]
   - `.buildloop/spec/T2.1.md` - five streams (physics, CPU, canvas, DOM/UX, audio) and their contract
   - `tests/render-check.cjs` - new; every suite extended
   - Verification: `npm test` exits 0, `npm run lint` 0 findings

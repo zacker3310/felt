@@ -233,8 +233,8 @@ h1 i { font-style: normal; color: var(--signal); }
 .b8 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #4a4a4e, #161618 70%); }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
 #resumeBtn { width: 100%; margin-bottom: 4px; }
-#resumeBtn:not([hidden]) + .brand { margin: 22px 0 0; }
-#resumeBtn:not([hidden]) + .brand h1 { font-size: 32px; }
+#resumeBtn:not([hidden]) ~ .newgame .brand { margin: 22px 0 0; }
+#resumeBtn:not([hidden]) ~ .newgame .brand h1 { font-size: 32px; }
 #resumeBtn[hidden] { display: none; }
 details.how { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 4px; }
 details.how summary { min-height: 44px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; list-style: none; }
@@ -265,6 +265,69 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   .stats th, .stats td { padding: 5px 6px; }
   #over .big, #over .ghost { min-height: 48px; }
 }
+/* ---- solo: practice and trick shots ----
+   Practice puts two buttons where the turn chip sits: undo, and the tools (ball in hand, reset,
+   add / remove balls) in a small panel over the corner of the table. Trick shots keep the chip,
+   saying which try this is. The pause menu shows the session instead of the players. */
+#soloCtl { display: flex; gap: inherit; flex: none; }
+#soloCtl[hidden] { display: none; }
+[data-layout="portrait"] #soloCtl { order: 4; }
+[data-layout="portrait"] #soloCtl .icon { width: 44px; height: 56px; }
+[data-layout="wide"] #soloCtl { flex-direction: column; }
+[data-layout="wide"] #soloCtl .icon { width: var(--col); height: 44px; }
+#toolBtn[aria-expanded="true"], #toolBtn.on { background: var(--panel-3); border-color: var(--text); }
+#tools { position: absolute; z-index: 2; right: 6px; bottom: 6px; display: grid; gap: 6px; padding: 8px; border-radius: 14px; pointer-events: auto;
+  background: rgba(22, 22, 24, .96); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+#tools[hidden], #editDone[hidden] { display: none; }
+[data-layout="wide"] #tools { bottom: auto; top: 6px; }
+.tool { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); font-size: 14px; font-weight: 600; text-align: left; white-space: nowrap; }
+.tool:hover { background: var(--panel-3); }
+.tool[aria-pressed="true"] { background: var(--cream); border-color: var(--cream); color: #141414; }
+.tool[aria-pressed]::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px currentColor; vertical-align: 1px; }
+.tool[aria-pressed="true"]::before { background: currentColor; }
+#editDone { position: absolute; z-index: 2; left: 50%; top: 6px; transform: translateX(-50%); pointer-events: auto; text-align: center;
+  background: var(--cream); border-color: var(--cream); color: #141414; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+/* the pause menu in a solo session: what it is, its numbers, then Resume, Restart, Exit */
+#soloNow { margin: 0 0 14px; }
+#soloNow[hidden], #soloBtns[hidden] { display: none; }
+#soloNow h2 { margin: 0; font-size: 26px; line-height: 1.15; letter-spacing: -.02em; }
+#soloGoal { margin: 6px 0 0; color: var(--muted); }
+#soloGoal:empty { display: none; }
+.soloStats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.soloStats:empty { display: none; }
+.soloStats div { padding: 8px 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.soloStats dt { font-size: 12px; color: var(--muted); }
+.soloStats dd { margin: 0; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#soloBtns { margin-top: 10px; }
+#menu[data-solo] .newgame { display: none; }
+#menu[data-solo] #resumeBtn { margin-bottom: 0; }
+/* the solo cards and the sheets they open */
+.bcue { background: radial-gradient(circle at 36% 30%, #ffffff 0, #f1efe8 40%, #c9c6be 100%); }
+.bscat { background: conic-gradient(#f6ba1c 0 25%, #1c48b8 0 50%, #d02a24 0 75%, #167842 0); }
+.bstar { background-color: #f2c94c; background-image: radial-gradient(circle at 36% 30%, #ffe08a, #f2c94c 60%, #b8901f); color: #141414; font-size: 17px; }
+.title { margin: 0 0 6px; font-size: 30px; line-height: 1.1; letter-spacing: -.02em; font-weight: 800; }
+.pick { display: grid; gap: 10px; margin: 18px 0; }
+.ghost.wide { width: 100%; }
+#tricks .sheet { max-width: 760px; }
+.tgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 8px; margin: 16px 0; }
+.tcard { min-height: 76px; padding: 9px 11px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; display: grid; align-content: start; gap: 2px; }
+.tcard:hover { background: var(--panel-3); border-color: #5a5a62; }
+.tcard .no { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tcard b { font-size: 15px; line-height: 1.2; }
+.stars { margin: 0; color: #f2c94c; letter-spacing: 2px; font-size: 14px; line-height: 1.2; }
+.stars .off { color: var(--muted); }
+.stars.big { font-size: 26px; margin: 4px 0 14px; letter-spacing: 4px; }
+.stars.big:empty { display: none; }
+/* the trick-shot result: a light sheet low on the screen, so the table shows where it all went */
+.overlay.lite { background: rgba(10, 10, 11, .38); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.overlay.lite .sheet { margin: auto auto 0; padding: 18px 20px 16px; }
+#trickRes .title { font-size: 26px; }
+#trickRes[data-ok="true"] .title { color: #f2c94c; }
+#trickRes[data-ok="false"] .title { color: var(--illegal); }
+#trickWhy { margin-bottom: 12px; }
+.btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btns .big, .btns .ghost { min-height: 48px; }
+@media (min-width: 600px) { #trickRes .sheet { max-width: 600px; } .btns { grid-template-columns: repeat(4, 1fr); } }
 /* How to play: touch words on a touch screen, mouse and keyboard words otherwise */
 .how .touch { display: none; }
 @media (hover: none) and (pointer: coarse) { .how .touch { display: grid; } .how .keys { display: none; } }
@@ -279,9 +342,20 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 <body>
 <canvas id="table" aria-label="Pool table. Point, tap or drag to aim; the power bar shoots."></canvas>
 <div id="ui">
-  <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div></div>
+  <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div>
+    <div id="tools" role="group" aria-label="Practice tools" hidden>
+      <button class="tool" id="handBtn" aria-pressed="false">Ball in hand</button>
+      <button class="tool" id="resetBtn">Reset rack</button>
+      <button class="tool" id="editBtn" aria-pressed="false">Add / remove balls</button>
+    </div>
+    <button class="tool" id="editDone" hidden>Done editing</button>
+  </div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
+    <div id="soloCtl" hidden>
+      <button class="icon" id="undoBtn" aria-label="Undo the last shot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button class="icon" id="toolBtn" aria-label="Practice tools: ball in hand, reset, edit" aria-expanded="false" aria-controls="tools"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
+    </div>
     <div id="turnChip" aria-hidden="true"><span class="tn"><span class="tdot"></span><span class="tname" id="chipName"></span></span><span class="cb" id="chipBalls"></span></div>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
@@ -306,16 +380,27 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <div id="potRow"><span class="label">Potted</span><span id="potDots"></span></div>
         <p id="menuMsg"></p>
       </section>
+      <section id="soloNow" hidden aria-label="This session">
+        <p class="kicker" id="soloKind"></p>
+        <h2 id="soloTitle"></h2>
+        <p id="soloGoal"></p>
+        <dl class="soloStats" id="soloStats"></dl>
+      </section>
       <button class="big" id="resumeBtn" hidden>Resume game</button>
+      <div class="row" id="soloBtns" hidden><button class="ghost" id="restartBtn">Restart</button><button class="ghost" id="exitBtn">Exit to menu</button></div>
+      <div class="newgame">
       <div class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball and 9-ball, one device.</p></div>
-      <div class="sect">New game</div>
+      <div class="sect">Play</div>
       <div class="opts">
         <span class="label">Opponent</span>
         <div class="seg" role="group" aria-label="Opponent"><button id="vs2p" aria-pressed="true">Two players</button><button id="vsCpu" aria-pressed="false">CPU</button></div>
         <span class="label" id="levelLab">CPU level</span>
         <div class="seg" id="levelSeg" role="group" aria-label="CPU level"><button id="lvEasy" aria-pressed="false">Easy</button><button id="lvMedium" aria-pressed="true">Medium</button><button id="lvHard" aria-pressed="false">Hard</button></div>
       </div>
-      <div class="row" style="margin-top: 14px"><button class="game" id="play8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball</b><small>Solids and stripes</small></span></button><button class="game" id="play9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball</b><small>Lowest ball first</small></span></button></div>
+      <div class="row" id="playRow" style="margin-top: 14px"><button class="game" id="play8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball</b><small>Solids and stripes</small></span></button><button class="game" id="play9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball</b><small>Lowest ball first</small></span></button></div>
+      <div class="sect">Solo</div>
+      <div class="row" id="soloRow"><button class="game" id="pracBtn"><span class="ball bcue" aria-hidden="true"></span><span><b>Practice</b><small>No fouls, undo</small></span></button><button class="game" id="trickBtn"><span class="ball bstar" aria-hidden="true">&#9733;</span><span><b>Trick shots</b><small id="trickSum">14 challenges</small></span></button></div>
+      </div>
     </div>
     <div class="col2">
       <div class="sect">Table</div>
@@ -327,7 +412,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <span class="label">Cloth</span>
         <div class="seg" role="group" aria-label="Cloth colour"><button id="clGreen" aria-pressed="true">Green</button><button id="clRed" aria-pressed="false">Red</button></div>
       </div>
-      <div class="sect">Play</div>
+      <div class="sect">Aim and sound</div>
       <div class="opts">
         <span class="label">Aim guide</span>
         <div class="seg" role="group" aria-label="Aim guide"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div>
@@ -344,6 +429,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
           <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double click it or press <kbd>R</kbd> to centre.</dd>
           <dt>In hand</dt><dd>The cue ball starts on a legal spot; drag it to move it, as often as you like. Letting go never locks it: only the shot does. Let go somewhere illegal and it goes back to the last good spot. Or press <kbd>M</kbd>, move it with the arrows (<kbd>Shift</kbd> for bigger steps) and press <kbd>M</kbd> again to aim.</dd>
           <dt>Pause</dt><dd>The pause button or <kbd>Esc</kbd>. The game waits.</dd>
+          <dt>Solo</dt><dd>Practice: no opponent and no fouls, always your shot. Undo takes back the last shot; the tools button holds ball in hand, reset rack and, on a free table, adding and removing balls. Trick shots: one layout, one goal, stars for making it early. Show me plays one way to make it.</dd>
         </dl>
         <dl class="touch">
           <dt>Aim</dt><dd>Tap where the cue ball should go, or drag anywhere on the table to swing the cue: it follows your finger round the cue ball. For the last hair, roll the ridged wheel beside the power bar. With auto aim on, each turn starts pointed at the ball to play next, with a pocket marked for it: the cut is up to you. The table only aims: it never shoots.</dd>
@@ -351,10 +437,46 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
           <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it to centre.</dd>
           <dt>In hand</dt><dd>The cue ball starts on a legal spot. Drag it (start on or next to it) to move it, as often as you like: letting go never locks it, only the shot does. Let go somewhere illegal and it goes back to the last good spot. A drag anywhere else still aims.</dd>
           <dt>Pause</dt><dd>The pause button. The game waits.</dd>
+          <dt>Solo</dt><dd>Practice: no opponent and no fouls, always your shot. Undo takes back the last shot; the tools button holds ball in hand, reset rack and, on a free table, adding and removing balls. Trick shots: one layout, one goal, stars for making it early. Show me plays one way to make it.</dd>
         </dl>
       </details>
       <p class="diag" id="diag"></p>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="prac" role="dialog" aria-modal="true" aria-labelledby="pracTitle">
+  <div class="sheet">
+    <p class="kicker">Solo</p>
+    <h2 class="title" id="pracTitle">Practice</h2>
+    <p class="sub">No opponent and no fouls: it is always your shot. Undo any shot, take ball in hand when you like.</p>
+    <div class="pick">
+      <button class="game" id="prac8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball rack</b><small>Break and run</small></span></button>
+      <button class="game" id="prac9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball rack</b><small>The diamond</small></span></button>
+      <button class="game" id="pracScatter"><span class="ball bscat" aria-hidden="true"></span><span><b>Free table</b><small>Seven balls, scattered</small></span></button>
+      <button class="game" id="pracEmpty"><span class="ball bcue" aria-hidden="true"></span><span><b>Empty table</b><small>Tap the cloth to drop balls</small></span></button>
+    </div>
+    <button class="ghost wide" id="pracBack">Back</button>
+  </div>
+</div>
+
+<div class="overlay" id="tricks" role="dialog" aria-modal="true" aria-labelledby="tricksTitle">
+  <div class="sheet">
+    <p class="kicker">Solo</p>
+    <h2 class="title" id="tricksTitle">Trick shots</h2>
+    <p class="sub" id="tricksSub"></p>
+    <div class="tgrid" id="trickGrid"></div>
+    <button class="ghost wide" id="tricksBack">Back</button>
+  </div>
+</div>
+
+<div class="overlay lite" id="trickRes" role="dialog" aria-modal="true" aria-labelledby="trickHead">
+  <div class="sheet">
+    <p class="kicker" id="trickKind"></p>
+    <h2 class="title" id="trickHead"></h2>
+    <p class="sub" id="trickWhy"></p>
+    <p class="stars big" id="trickStarsNow" aria-label=""></p>
+    <div class="btns"><button class="big" id="trickRetry">Retry</button><button class="ghost" id="trickNext">Next</button><button class="ghost" id="trickShow">Show me</button><button class="ghost" id="trickList">All shots</button></div>
   </div>
 </div>
 
@@ -622,13 +744,17 @@ function hitBalls(tab, a, b) {
     kick(b, ux * f, uy * f, uz * f, -R * nx, -R * ny, 0);
   }
   const cue = a.n === 0 ? a : b.n === 0 ? b : null;
-  if (cue && tab.first === null) tab.first = (cue === a ? b : a).n;
+  if (cue && tab.first === null) { tab.first = (cue === a ? b : a).n; tab.kick = tab.rails[0] || 0; }
+  /* every pair that touched, once, in the order they first met (trick-shot goals read it) */
+  const lo = Math.min(a.n, b.n), hi = Math.max(a.n, b.n), key = lo * 64 + hi;
+  if (!tab.met[key]) { tab.met[key] = true; tab.contacts.push([lo, hi]); }
   tab.hits.push(['ball', vn]);
 }
 
 /* ---- 1d. the table in motion ---- */
 function newTable(balls) {
-  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0 };
+  return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0,
+    rails: {}, kick: null, contacts: [], met: {} };
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
    further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
@@ -709,7 +835,11 @@ function stepTable(tab) {
     if (b.x < lo || b.x > TL - lo || b.y < lo || b.y > TW - lo) {
       for (let k = 0; k < CUSH.length; k++) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
-        if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]); }
+        if (v) {
+          if (tab.first !== null) tab.railAfter = true;
+          if (k < JAW_FROM) tab.rails[b.n] = (tab.rails[b.n] || 0) + 1;
+          tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
+        }
       }
       /* the drop: a centre over a hole, or past the nose line (only a mouth lets it get there).
          A centre off the bed and nowhere near a mouth means something got through: pot it. */
@@ -738,8 +868,14 @@ function stepTable(tab) {
   if (tab.t >= MAX_SIM_T) { for (const b of B) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; } tab.end = 'timeout'; return false; }
   return true;
 }
+/* The result of a shot. Besides the rules' fields: pocketOf (ball number to pocket index),
+   rails (ball number to cushion-nose contacts over the whole shot, jaws not counted), kick (the
+   cue ball's cushion contacts before its first ball contact, null when it touched none) and
+   contacts (each pair of balls [lo, hi] that touched, once, in the order they first met). All
+   deterministic: trick-shot goals are judged from them. */
 function resultOf(tab) {
-  return { balls: tab.balls.map(b => Object.assign({}, b)), first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), end: tab.end, t: tab.t, steps: tab.steps };
+  return { balls: tab.balls.map(b => Object.assign({}, b)), first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), end: tab.end, t: tab.t, steps: tab.steps,
+    pocketOf: Object.assign({}, tab.pocketOf), rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()) };
 }
 function simulateShot(balls, shot) {
   const tab = strike(newTable(balls), shot.angle, shot.power, shot.spin || 0);
@@ -758,6 +894,7 @@ function newGame(kind) {
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
   const on = onTable(g);
+  if (g.mode) return on;   /* practice and trick shots: any ball first */
   if (g.kind === '9') return on.slice(0, 1);
   if (g.open) { const t = on.filter(n => n !== 8); return t.length ? t : [8]; }
   const mine = on.filter(n => groupOf(n) === g.groups[g.turn]);
@@ -842,6 +979,73 @@ function judge(g, r) {
   n.dry = pot.length ? 0 : (g.dry || 0) + 1;
   n.verdict = { foul, keep, win, why, potted: pot.filter(x => !n.balls.find(b => b.n === x).on), scratch, grouped: g.open && !n.open,
     twoFouls: g.kind === '9' && win === null && n.fouls[n.turn] >= 2 };
+  return n;
+}
+
+/* ---- 1e+. practice ---- */
+/* Practice is one player, no opponent and no fouls: game.mode 'practice'. Any ball may be hit
+   first (legalTargets), nothing a shot does ends the turn, a scratch only gives ball in hand
+   anywhere, and potted balls (the 8 and 9 too) stay down. game.layout is the rack: '8', '9',
+   'scatter' (PRACTICE_SCATTER balls at seeded random spots, game.seed) or 'empty' (the cue ball
+   alone; balls are added by hand). game.hand: the ball-in-hand toggle, ball in hand anywhere
+   before every shot while it is on. */
+const PRACTICE_SCATTER = 7;
+/* a legal spot for a ball dropped by hand or by the scatter: on the cloth, clear of every
+   cushion surface and of the pocket mouths, touching no ball on the table (the cue ball too) */
+function canDrop(g, x, y) {
+  if (!canPlace({ inHand: 'table', balls: [] }, x, y)) return false;
+  return g.balls.every(b => !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R + RACK_GAP);
+}
+/* the scatter: the cue ball on the head spot, then balls 1..count at seeded random legal spots
+   kept a ball's width off the cushions. Same seed and table, same layout. */
+function scatter(seed, count = PRACTICE_SCATTER) {
+  const rnd = rng(seed), g = { balls: [newBall(0, HEAD_X, TW / 2)] }, m = 3 * BALL_R;
+  for (let n = 1; n <= count; n++) {
+    for (let i = 0; i < 400; i++) {
+      const x = m + rnd() * (TL - 2 * m), y = m + rnd() * (TW - 2 * m);
+      if (canDrop(g, x, y) && Math.hypot(x - HEAD_X, y - TW / 2) > 0.15) { g.balls.push(newBall(n, x, y)); break; }
+    }
+  }
+  return g.balls;
+}
+function newPractice(layout, seed = 1) {
+  const g = newGame(layout === '9' ? '9' : '8');
+  Object.assign(g, { mode: 'practice', layout: ['8', '9', 'scatter', 'empty'].includes(layout) ? layout : '8', seed: seed >>> 0, hand: false });
+  if (g.layout === 'scatter') g.balls = scatter(g.seed);
+  if (g.layout === 'empty') g.balls = [newBall(0, HEAD_X, TW / 2)];
+  if (g.layout === 'scatter' || g.layout === 'empty') { g.breakShot = false; g.inHand = 'table'; }
+  return g;
+}
+/* a finished practice shot: the next game, g untouched. Always the same player's shot; ball in
+   hand anywhere after a scratch or with the toggle on; verdict.cleared when no object ball is
+   left on the table. */
+function practiceJudge(g, r) {
+  const n = copyGame(g);
+  n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
+  n.shots++;
+  const pot = r.potted.filter(x => x !== 0), scratch = r.potted.includes(0);
+  n.turn = 0; n.winner = null; n.breakShot = false;
+  n.inHand = scratch || g.hand ? 'table' : null;
+  n.dry = pot.length ? 0 : (g.dry || 0) + 1;
+  n.verdict = { foul: null, keep: true, win: null, why: '', potted: pot, scratch, grouped: false, twoFouls: false, cleared: !onTable(n).length };
+  return n;
+}
+/* free table editing: drop the lowest-numbered ball (1 to 15) not on the table at (x, y), or
+   take ball n (not the cue ball) off. Both return a new game, or null when the spot is not
+   free, all fifteen are out, or there is no such ball. */
+function addBall(g, x, y) {
+  if (!canDrop(g, x, y)) return null;
+  const on = new Set(onTable(g)), k = [...Array(15).keys()].map(i => i + 1).find(i => !on.has(i));
+  if (!k) return null;
+  const n = copyGame(g), b = n.balls.find(o => o.n === k);
+  if (b) Object.assign(b, { x, y, vx: 0, vy: 0, on: true }); else n.balls.push(newBall(k, x, y));
+  n.balls.sort((p, q) => p.n - q.n);
+  return n;
+}
+function removeBall(g, k) {
+  if (!(k > 0) || !g.balls.some(b => b.n === k && b.on)) return null;
+  const n = copyGame(g);
+  n.balls = n.balls.filter(b => b.n !== k);
   return n;
 }
 
@@ -1319,6 +1523,127 @@ function suggestAim(g) {
   if (l) return { angle: l.angle, n: l.n, k: l.k };
   const near = targets.map(at).filter(t => t && t.on).reduce((a, b) => !a || Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a, null);
   return near ? toward(near) : null;
+}
+/* ---- 1g. trick shots ---- */
+/* Hand-made challenges: a fixed layout, one shot, a goal judged from resultOf. A layout is
+   built for the current table at call time from table fractions and pocket-relative helpers
+   (so it fits 7 ft and 9 ft); balls(T) returns [n, [x, y]] pairs, cue ball first. check(r, P)
+   gets the shot's result and P (the layout's points by ball number, plus P.zone) and returns
+   null on success or why it failed, in words. A scratch always fails. zone: a ring on the
+   cloth the cue ball must stop in ({ at(T, P), r } in metres). pocket: the pocket the goal names
+   (the canvas marks it). TRICK_SOLS holds one known solution per challenge and table setting
+   ('7r' 7 ft regulation, '9r', '7g', '9g' generous), as [angle, power, side, vertical]; the
+   solver test proves the 7 ft regulation one on every challenge. */
+const TRICK_ZONE = 0.07;
+const potIn = (r, n, ks) => r.potted.includes(n) && (!ks || ks.includes(r.pocketOf[n]));
+const touched = (r, n) => r.contacts.some(c => c[0] === n || c[1] === n);
+const upWhy = (r, ...ns) => { const up = ns.filter(n => !r.potted.includes(n)); return up.length ? `The ${up.join(' and the ')} stayed up.` : null; };
+function trickHelpers() {
+  const R = BALL_R, F = 2 * R + RACK_GAP;
+  const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
+  return {
+    at: (fx, fy) => [fx * TL, fy * TW],
+    /* d radii in from the middle of pocket k's mouth, along its inward normal */
+    lip: (k, d) => [POCKET_AIM[k][0] + CPU_MOUTH_N[k][0] * d * R, POCKET_AIM[k][1] + CPU_MOUTH_N[k][1] * d * R],
+    /* frozen to the ball at p, in direction deg */
+    touch: (p, deg) => [p[0] + Math.cos(deg * Math.PI / 180) * F, p[1] + Math.sin(deg * Math.PI / 180) * F],
+    /* on the line from pocket k's mouth through p, d radii past p (d = 2: the ghost ball) */
+    line: (p, k, d) => { const u = unit(POCKET_AIM[k], p); return [p[0] + u[0] * d * R, p[1] + u[1] * d * R]; },
+    frozen: (p, k) => { const u = unit(POCKET_AIM[k], p); return [p[0] + u[0] * F, p[1] + u[1] * F]; },
+    /* u of the way from p to q, then d radii to the left of that line */
+    along: (p, q, u, d = 0) => { const e = unit(p, q); return [p[0] + (q[0] - p[0]) * u - e[1] * d * R, p[1] + (q[1] - p[1]) * u + e[0] * d * R]; },
+    off: (p, dx, dy) => [p[0] + dx * R, p[1] + dy * R],
+  };
+}
+const TRICKS = [
+  { id: 'long', title: 'Long pot', goal: 'Pot the 1 in the marked corner.', pocket: 2,
+    balls: T => [[0, T.at(0.25, 0.62)], [1, T.at(0.72, 0.3)]],
+    check: r => potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.' },
+  { id: 'stun', title: 'Stop shot', goal: 'Pot the 1 and stop the cue ball in the ring.',
+    balls: T => { const b = T.at(0.7, 0.32); return [[0, T.line(b, 2, 14)], [1, b]]; },
+    zone: { at: (T, P) => T.line(P[1], 2, 2), r: TRICK_ZONE },
+    check: (r, P) => upWhy(r, 1) || (Math.hypot(r.balls[0].x - P.zone[0], r.balls[0].y - P.zone[1]) <= TRICK_ZONE ? null : 'The cue ball stopped outside the ring.') },
+  { id: 'combo', title: 'Frozen combo', goal: 'Hit the 3 into the 4 and pot the 4.',
+    balls: T => { const b = T.lip(5, 9); return [[0, T.at(0.45, 0.35)], [4, b], [3, T.frozen(b, 5)]]; },
+    check: r => r.first !== 3 ? 'Hit the 3 first.' : upWhy(r, 4) },
+  { id: 'draw', title: 'Draw back', goal: 'Pot the 1 in the side, draw back and pot the 2 in the other side.',
+    balls: T => [[0, T.at(0.5, 0.5)], [1, T.at(0.5, 0.28)], [2, T.at(0.5, 0.76)]],
+    check: r => upWhy(r, 1, 2) || (r.pocketOf[1] === r.pocketOf[2] ? 'Both went in the same side.' : null) },
+  { id: 'kiss', title: 'Kiss shot', goal: 'The 1 and 2 are frozen. Hit the 2 and let the kiss send it in.',
+    balls: T => { const b = T.at(0.8, 0.4); return [[0, T.at(0.42, 0.58)], [2, b], [1, T.touch(b, 45)]]; },
+    check: r => r.first !== 2 ? 'Hit the 2 first.' : upWhy(r, 2) || (r.potted.includes(1) ? 'The 1 went down too: only the 2.' : null) },
+  { id: 'carom', title: 'Carom', goal: 'Glance off the 1 and pot the 2 with the cue ball.',
+    balls: T => [[0, T.at(0.3, 0.55)], [1, T.at(0.62, 0.42)], [2, T.lip(2, 3)]],
+    check: r => r.first !== 1 ? 'Hit the 1 first.' : !r.contacts.some(c => c[0] === 0 && c[1] === 2) ? 'The cue ball never reached the 2.' : upWhy(r, 2) },
+  { id: 'cross', title: 'Cross side', goal: 'Bank the 9 off the near rail into the far side pocket.',
+    balls: T => [[0, T.at(0.4, 0.32)], [9, T.at(0.47, 0.72)]], pocket: 1,
+    check: r => upWhy(r, 9) || (r.pocketOf[9] !== 1 ? 'The 9 has to go in the far side.' : (r.rails[9] || 0) < 1 ? 'No bank: the 9 must hit a rail.' : null) },
+  { id: 'needle', title: 'Thread the needle', goal: 'Pot the 1 between the 3 and the 4. Touch neither.',
+    balls: T => { const c = T.at(0.22, 0.5), b = T.lip(2, 6), g = T.line(b, 2, 2); return [[0, c], [1, b], [3, T.along(c, g, 0.5, 2.2)], [4, T.along(c, g, 0.5, -2.2)]]; },
+    check: r => (touched(r, 3) || touched(r, 4) ? 'A blocker was touched.' : null) || upWhy(r, 1) },
+  { id: 'around', title: 'Around the 3', goal: 'Pot the 5 without touching the 3.',
+    balls: T => { const c = T.at(0.35, 0.55), b = T.lip(2, 5); return [[0, c], [5, b], [3, T.along(c, b, 0.55, 0.4)]]; },
+    check: r => touched(r, 3) ? 'The 3 was touched.' : upWhy(r, 5) },
+  { id: 'kick', title: 'Kick', goal: 'The 2 is in the way. Kick off a rail, hit the 1 first and pot it.',
+    balls: T => { const c = T.at(0.55, 0.62), b = T.lip(2, 2.5); return [[0, c], [1, b], [2, T.along(c, b, 0.5)]]; },
+    check: r => r.first !== 1 ? 'Hit the 1 first.' : !(r.kick >= 1) ? 'Rail first: kick the cue ball off a cushion.' : upWhy(r, 1) },
+  { id: 'two', title: 'Two in one', goal: 'Pot the 1 and the 2 in one shot.',
+    balls: T => [[0, T.at(0.55, 0.5)], [1, T.lip(2, 4)], [2, T.lip(5, 4)]],
+    check: r => upWhy(r, 1, 2) },
+  { id: 'world', title: 'Around the world', goal: 'Pot the 1, then send the cue ball round four rails.',
+    balls: T => [[0, T.at(0.3, 0.62)], [1, T.lip(1, 3)]],
+    check: r => upWhy(r, 1) || ((r.rails[0] || 0) - (r.kick || 0) < 4 ? `The cue ball found ${(r.rails[0] || 0) - (r.kick || 0)} rails after the 1: it needs four.` : null) },
+  { id: 'bank2', title: 'Two rails', goal: 'Pot the 8 off two rails.',
+    balls: T => [[0, T.at(0.25, 0.35)], [8, T.at(0.5, 0.5)]],
+    check: r => upWhy(r, 8) || ((r.rails[8] || 0) < 2 ? `The 8 hit ${r.rails[8] || 0} rail${r.rails[8] === 1 ? '' : 's'}: it needs two.` : null) },
+  { id: 'three', title: 'Three in one', goal: 'Pot the 1, the 2 and the 3 in one shot.',
+    balls: T => { const b = T.lip(2, 1.8); return [[0, T.at(0.75, 0.6)], [1, b], [2, T.frozen(b, 2)], [3, T.lip(5, 2)]]; },
+    check: r => upWhy(r, 1, 2, 3) },
+];
+const TRICK_SOLS = {
+  long: { '7r': [-0.305433, 0.5, 0.6, 0], '9r': [-0.322886, 0.72, 0, 0], '7g': [-0.322886, 0.32, 0, 0], '9g': [-0.322886, 0.72, 0, 0] },
+  stun: { '7r': [-0.462512, 0.4, 0, -0.6], '9r': [-0.471239, 0.4, 0, -0.6], '7g': [-0.462512, 0.4, 0, -0.6], '9g': [-0.471239, 0.4, 0, -0.6] },
+  combo: { '7r': [0.445059, 0.25, 0, 0], '9r': [0.427606, 0.32, 0, 0], '7g': [0.401426, 0.25, 0, 0], '9g': [0.427606, 0.32, 0, 0] },
+  draw: { '7r': [-1.570796, 0.5, 0, -1], '9r': [-1.570796, 0.6, 0, -0.6], '7g': [-1.570796, 0.5, 0, -1], '9g': [-1.570796, 0.5, 0, -1] },
+  kiss: { '7r': [-0.218166, 0.32, 0, 0], '9r': [-0.235619, 0.32, 0, 0], '7g': [-0.235619, 0.32, 0, 0], '9g': [-0.226893, 0.4, 0, 0] },
+  carom: { '7r': [-2.661627, 1, 0, 0], '9r': [-0.253073, 0.72, 0.6, 0], '7g': [-2.661627, 1, 0, 0], '9g': [-1.45735, 1, 0.6, -0.6] },
+  cross: { '7r': [1.27409, 1, -0.6, 0.6], '9r': [1.195551, 0.5, 0, 0], '7g': [1.30027, 1, 0.6, 0.6], '9g': [1.27409, 1, 0, 0] },
+  needle: { '7r': [-0.226893, 0.32, -0.6, 0], '9r': [-0.253073, 0.32, -0.6, 0], '7g': [-0.20944, 0.32, 0, 0], '9g': [-0.235619, 0.32, 0, 0] },
+  around: { '7r': [-0.575959, 0.5, 0.6, 0], '9r': [-2.417281, 0.72, 0, 0.6], '7g': [-2.70526, 0.6, 0, -0.6], '9g': [-2.83616, 0.6, 0, 0] },
+  kick: { '7r': [1.029744, 0.32, 0, 0], '9r': [-2.897247, 0.5, 0, 0], '7g': [0.977384, 0.5, 0, 0], '9g': [-2.96706, 0.6, 0, 0] },
+  two: { '7r': [-0.436332, 1, 0, -1], '9r': [-0.637045, 0.6, 0.6, 0], '7g': [-0.427606, 1, 0, -1], '9g': [-0.410152, 1, 0.6, 0.6] },
+  world: { '7r': [-0.855211, 0.85, 0, 0], '9r': [-0.898845, 0.6, 0, 0.6], '7g': [-0.855211, 0.85, 0, 0], '9g': [-0.890118, 0.72, 0, -0.6] },
+  bank2: { '7r': [0.314159, 0.72, 0, 0.6], '9r': [0.322886, 0.85, 0.6, 0.6], '7g': [0.314159, 0.72, 0, 0.6], '9g': [0.296706, 0.85, -0.6, 0.6] },
+  three: { '7r': [-0.829031, 1, 0.6, 0], '9r': [-0.837758, 1, 0, -1], '7g': [-0.951204, 0.85, 0, 0.6], '9g': [-0.942478, 0.72, 0, 1] },
+};
+const trickById = id => TRICKS.find(c => c.id === id) || null;
+/* the layout's points for the current table: { n: [x, y] }, and the zone's centre */
+function trickPoints(c) {
+  const T = trickHelpers(), P = {};
+  for (const [n, p] of c.balls(T)) P[n] = p;
+  if (c.zone) P.zone = c.zone.at(T, P);
+  return P;
+}
+function trickBalls(c) {
+  return c.balls(trickHelpers()).map(([n, p]) => newBall(n, p[0], p[1]));
+}
+/* a trick-shot game: the layout, no ball in hand, any ball first */
+function trickGame(c) {
+  const g = newGame('8');
+  return Object.assign(g, { mode: 'trick', trick: c.id, balls: trickBalls(c), breakShot: false, inHand: null });
+}
+/* judge one attempt: { ok, why } */
+function trickJudge(c, r) {
+  if (r.potted.includes(0)) return { ok: false, why: 'Scratch: the cue ball went down.' };
+  const why = c.check(r, trickPoints(c));
+  return why ? { ok: false, why } : { ok: true, why: '' };
+}
+/* stars by the attempt that succeeded: 3 on the first, 2 within three, 1 after that */
+const trickStars = attempts => attempts <= 1 ? 3 : attempts <= 3 ? 2 : 1;
+/* the stored solution for the current table, as a shot, or null */
+function trickSol(c) {
+  const s = (TRICK_SOLS[c.id] || {})[TABLE + (POCKETS_STYLE === 'generous' ? 'g' : 'r')];
+  return s ? { angle: s[0], power: s[1], spin: { x: s[2], y: s[3] } } : null;
 }
 // #endregion sim
 
@@ -2719,6 +3044,7 @@ function draw(now) {
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
   drawHint(now);
+  drawSolo();
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
@@ -2967,13 +3293,13 @@ const felt = window.felt = {
 const cueBall = () => game.balls.find(b => b.n === 0);
 const human = () => !(cpuMode && game.turn === 1);
 const nameOf = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : `Player ${p + 1}`;
-const turnOf = p => cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
+const turnOf = p => game.mode ? 'Your shot' : cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
 /* full power is this long a pull, in CSS px: a thumb's reach on a phone, more with a mouse */
 const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300);
 function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []] }; }
 
 function start(kind) {
-  cpuMode = settings.cpu; cpuLevel = settings.level;
+  cpuMode = settings.cpu; cpuLevel = settings.level; solo = null;
   /* the table size and pockets take effect here, between games; the table is repainted only
      when either changed (its art reads the geometry globals) */
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
@@ -3010,6 +3336,7 @@ function shoot() {
   audioOn();
   stroke = null; pull = null;
   dropBall();
+  if (game.mode === 'practice' && solo) { pushUndo(); solo.tools = false; }   /* undo restores this layout */
   felt.lastShot = { angle: aimAngle, power, spin: Object.assign({}, cueSpin) };
   tab = strike(newTable(game.balls), aimAngle, power, cueSpin);
   state = 'rolling';
@@ -3157,6 +3484,7 @@ function handWords(p, kitchen) {
 /* 9-ball: a player on two fouls in a row loses with a third (stream C may say so in the verdict) */
 const onTwo = (g, p) => g.kind === '9' && g.winner === null && g.fouls[p] >= 2;
 function settle() {
+  if (game.mode) { settleSolo(); return; }   /* practice and trick shots (5s) */
   const r = resultOf(tab);
   felt.lastResult = r;
   const shooter = game.turn;
@@ -3428,6 +3756,7 @@ function endTable(e, cancel) {
   }
   if (state !== 'aim' || g.mode === 'dead' || cancel) return;
   const k = kindOf(g), tap = g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS);
+  if (tap && solo && solo.edit && game.mode === 'practice') { editAt(toTable(g.x0, g.y0)); return; }   /* free table editing (5s) */
   if (tap) {
     aimAngle = angleTo(toTable(g.x0, g.y0));
     handAimed = true;
@@ -3603,6 +3932,340 @@ addEventListener('keydown', e => {
   e.preventDefault();
 });
 
+/* ============ 5s. SOLO: practice and trick shots ============ */
+/* Both run the ordinary turn (aim, the bar shot, the same strike/stepTable as every shot) with
+   game.mode set, so the aim guide, auto aim, the fine wheel and ball in hand all work as in a
+   game. settle() hands a solo shot to settleSolo(). solo: the session, null in a game.
+   Practice: { kind: 'practice', layout, seed, undo (games before each shot, reset or edit),
+   st (shots, pots: balls down, potting: shots that potted), edit (taps on the cloth add and
+   remove balls), tools (the tools panel is open) }. A shot counts in st even when undone.
+   Trick shots: { kind: 'trick', id, attempts, stars (of the last make), demo (Show me is
+   playing the stored solution: not an attempt) }. Stars per challenge persist in
+   localStorage under TRICKS_KEY, the best kept. */
+const TRICKS_KEY = 'felt.tricks', UNDO_MAX = 60;
+let solo = null, trickBest = loadTricks();
+function loadTricks() {
+  const out = {};
+  try {
+    const o = JSON.parse(localStorage.getItem(TRICKS_KEY) || '{}');
+    for (const c of TRICKS) if ([1, 2, 3].includes(o[c.id])) out[c.id] = o[c.id];
+  } catch (e) { }
+  return out;
+}
+function saveTricks() { try { localStorage.setItem(TRICKS_KEY, JSON.stringify(trickBest)); } catch (e) { } }
+const starTotal = () => TRICKS.reduce((a, c) => a + (trickBest[c.id] || 0), 0);
+const PRACTICE_NAMES = { 8: '8-ball rack', 9: '9-ball rack', scatter: 'Free table', empty: 'Empty table' };
+const freeTable = () => !!solo && solo.kind === 'practice' && (solo.layout === 'scatter' || solo.layout === 'empty');
+
+/* a fresh turn on the current game: every gesture, move and swing of the last one dropped */
+function soloAim() {
+  cancelGestures();
+  tab = null; cpuIt = null; cpuPlan = null; pull = null; stroke = null; aimAnim = null; aimLock = null;
+  placeAt = null; placeBack = null; move = null; handAimed = false; hint = null;
+  state = 'aim';
+  enterHand();
+  keepAim();
+  autoAim();
+  hud();
+}
+/* a new solo session on the menu's table: like start(), with game made after the table is set */
+function beginSolo(make, s) {
+  cpuMode = false;
+  const was = [TABLE, POCKETS_STYLE, TL, TW].join();
+  setTable(settings.table);
+  setPockets(settings.pockets);
+  game = make();
+  if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
+  randomOrient();
+  solo = s;
+  cueSpin = { x: 0, y: 0 }; power = markPower = solo.power || 0.5; paused = null; stats = newStats(); aimAngle = 0;
+  hideOverlays();
+  soloAim();
+}
+function startPractice(layout, seed = (Math.random() * 0x7fffffff) >>> 0) {
+  beginSolo(() => newPractice(layout, seed), { kind: 'practice', layout, seed, undo: [], st: { shots: 0, pots: 0, potting: 0 }, edit: layout === 'empty', tools: false });
+  if (solo.edit) { flash('turn', 'Empty table', 'Tap the cloth to drop a ball, tap a ball to take it off', 2200); say('Empty table: tap the cloth to drop a ball, tap a ball to take it off.'); }
+  else { flash('turn', 'Practice', 'No fouls: it is always your shot', 1500); say(aimHint()); }
+}
+function startTrick(id, again) {
+  const c = trickById(id) || TRICKS[0];
+  const s = again && solo && solo.kind === 'trick' && solo.id === c.id ? solo : { kind: 'trick', id: c.id, attempts: 0, stars: 0 };
+  s.demo = false;
+  if (solo && solo.kind === 'trick') s.power = markPower;
+  beginSolo(() => trickGame(c), s);
+  flash('turn', c.title, c.goal, 2200);
+  say(`${c.title}. ${c.goal}`);
+}
+function pushUndo() {
+  solo.undo.push(copyGame(game));
+  if (solo.undo.length > UNDO_MAX) solo.undo.shift();
+}
+/* undo: the layout before the last shot (or reset, or edit), cue ball and ball in hand included */
+function undo() {
+  if (!solo || solo.kind !== 'practice' || state !== 'aim' || !solo.undo.length) return false;
+  game = solo.undo.pop();
+  soloAim();
+  flash('turn', 'Undone', '', 700);
+  say('Undone. ' + aimHint());
+  return true;
+}
+function resetRack() {
+  if (!solo || solo.kind !== 'practice' || state !== 'aim') return;
+  pushUndo();
+  const hand = game.hand;
+  game = newPractice(solo.layout, solo.seed);
+  if (hand) { game.hand = true; game.inHand = 'table'; }
+  solo.tools = false;
+  soloAim();
+  flash('turn', 'Reset', PRACTICE_NAMES[solo.layout], 900);
+}
+/* the ball-in-hand toggle: on, the cue ball moves anywhere before every shot; off, it stays put
+   (a rack's opening shot goes back to the kitchen) */
+function toggleHand() {
+  if (!solo || solo.kind !== 'practice' || state !== 'aim') return;
+  game.hand = !game.hand;
+  game.inHand = game.hand ? 'table' : game.breakShot ? 'kitchen' : null;
+  soloAim();
+  say(game.hand ? handHint() : aimHint());
+}
+function setEdit(on) {
+  if (!freeTable()) return;
+  solo.edit = on; solo.tools = false;
+  if (on) flash('turn', 'Add and remove balls', 'Tap the cloth to drop the next ball, tap a ball to take it off', 1800);
+  say(on ? 'Editing: tap the cloth to drop the next ball, tap a ball to take it off.' : aimHint());
+  hud();
+}
+/* a tap in edit mode: on an object ball takes it off, on free cloth drops the next number */
+function editAt(p) {
+  const hit = game.balls.find(b => b.on && b.n > 0 && Math.hypot(b.x - p[0], b.y - p[1]) < BALL_R * 1.5);
+  const g = hit ? removeBall(game, hit.n) : addBall(game, p[0], p[1]);
+  if (!g) { flash('turn', onTable(game).length >= 15 ? 'All fifteen are out' : 'No room there', onTable(game).length >= 15 ? '' : 'Keep clear of balls, cushions and pockets', 900); return false; }
+  pushUndo();
+  const added = !hit && onTable(g).find(n => !onTable(game).includes(n));
+  game = g;
+  keepAim(); autoAim();
+  say(hit ? `Took the ${hit.n} off.` : `Dropped the ${added}.`);
+  hud();
+  return true;
+}
+const pctOf = st => st.shots ? Math.round(100 * st.potting / st.shots) : 0;
+/* a solo shot is over (called by settle) */
+function settleSolo() {
+  const r = resultOf(tab);
+  felt.lastResult = r;
+  tab = null;
+  cueSpin = { x: 0, y: 0 }; power = markPower;
+  placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
+  if (game.mode === 'practice') {
+    game = practiceJudge(game, r);
+    const v = game.verdict, st = solo.st;
+    st.shots++; st.pots += v.potted.length; if (v.potted.length) st.potting++;
+    soloAim();
+    if (v.scratch) { flash('foul', 'Scratch', 'Ball in hand anywhere', 1300); say('Scratch. ' + handHint()); sfx('foul', 1); }
+    else if (v.cleared && v.potted.length) { flash('turn', 'Table cleared', `${st.shots} shots, ${pctOf(st)}% potting`, 1800); say('Table cleared. Reset the rack or undo to go again.'); sfx('win', 1); }
+    else say(v.potted.length ? `The ${v.potted.join(' and the ')} down. Your shot.` : 'Your shot.');
+    return;
+  }
+  const c = trickById(game.trick), j = trickJudge(c, r);
+  game = Object.assign(copyGame(game), { balls: r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 })), shots: game.shots + 1 });
+  state = 'over';
+  if (!solo.demo) {
+    solo.attempts++;
+    if (j.ok) {
+      solo.stars = trickStars(solo.attempts);
+      if (solo.stars > (trickBest[c.id] || 0)) { trickBest[c.id] = solo.stars; saveTricks(); }
+    }
+  }
+  felt.lastTrick = { id: c.id, ok: j.ok, why: j.why, attempts: solo.attempts, stars: j.ok && !solo.demo ? solo.stars : 0, demo: solo.demo };
+  showTrickRes(c, j);
+  sfx(j.ok ? 'win' : 'foul', 1);
+  hud();
+}
+/* Show me: the layout again and the stored solution played as a shot (not an attempt) */
+function showMe() {
+  if (!solo || solo.kind !== 'trick') return false;
+  const c = trickById(solo.id), sol = trickSol(c);
+  if (!sol) return false;
+  startTrick(c.id, true);
+  solo.demo = true;
+  aimAnim = null; hint = null; aimAngle = sol.angle; cueSpin = spinOf(sol.spin);
+  const m = markPower;
+  commit(sol.power);
+  markPower = m;
+  flash('turn', 'Show me', 'One way to make it', 1100);
+  return true;
+}
+const starsHtml = (n, of = 3) => '★'.repeat(n) + `<span class="off">${'☆'.repeat(of - n)}</span>`;
+function showTrickRes(c, j) {
+  const i = TRICKS.indexOf(c), demo = solo.demo, a = solo.attempts;
+  trickRes.dataset.ok = String(j.ok);
+  trickKind.textContent = `Trick shot ${i + 1} of ${TRICKS.length}: ${c.title}`;
+  trickHead.textContent = demo ? (j.ok ? 'Like that' : 'Close') : j.ok ? 'Made it' : 'Not quite';
+  trickWhy.textContent = demo ? (j.ok ? 'One way to make it. Your turn.' : j.why)
+    : j.ok ? `${a === 1 ? 'First try' : `On try ${a}`}: ${solo.stars} star${solo.stars === 1 ? '' : 's'}.` + (trickBest[c.id] > solo.stars ? ` Best: ${trickBest[c.id]}.` : '')
+      : `${j.why} Tries: ${a}.`;
+  const st = j.ok && !demo ? solo.stars : 0;
+  trickStarsNow.innerHTML = st ? starsHtml(st) : '';
+  trickStarsNow.setAttribute('aria-label', st ? `${st} of 3 stars` : '');
+  trickShow.hidden = !trickSol(c);
+  trickNext.textContent = i === TRICKS.length - 1 ? 'First' : 'Next';
+  menu.classList.remove('show'); over.classList.remove('show');
+  trickRes.classList.add('show');
+  if (byKeys) (j.ok ? trickNext : trickRetry).focus({ preventScroll: true });
+}
+function closeSolo() { for (const o of [prac, tricks, trickRes]) o.classList.remove('show'); }
+function showPractice() {
+  closeSolo(); menu.classList.remove('show');
+  prac.classList.add('show');
+  if (byKeys) prac8.focus({ preventScroll: true });
+}
+function showTricks() {
+  closeSolo(); menu.classList.remove('show'); over.classList.remove('show');
+  if (game.mode === 'trick' && !paused) { solo = null; state = 'menu'; game = newGame('8'); hud(); }
+  const cards = TRICKS.map((c, i) => {
+    const b = document.createElement('button'), s = trickBest[c.id] || 0;
+    b.className = 'tcard'; b.dataset.id = c.id;
+    b.innerHTML = `<span class="no">${i + 1}</span><b></b><span class="stars" aria-label="${s} of 3 stars">${starsHtml(s)}</span>`;
+    b.querySelector('b').textContent = c.title;
+    b.title = c.goal;
+    b.addEventListener('click', () => { audioOn(); startTrick(c.id); });
+    return b;
+  });
+  trickGrid.replaceChildren(...cards);
+  tricksSub.textContent = `${starTotal()} of ${TRICKS.length * 3} stars. Three for a make on the first try, two within three tries, one for any make.`;
+  tricks.classList.add('show');
+  if (byKeys) cards[0].focus({ preventScroll: true });
+}
+/* back to the menu from a solo session, with a rack behind it */
+function exitSolo() {
+  solo = null; paused = null; state = 'menu';
+  game = newGame(game.kind === '9' ? '9' : '8');
+  tab = null; stroke = null; pull = null; hint = null; placeAt = null; move = null;
+  closeSolo();
+  showMenu();
+  hud();
+}
+function restartSolo() {
+  if (!solo) return;
+  if (solo.kind === 'practice') startPractice(solo.layout, solo.seed);
+  else startTrick(solo.id, true);
+}
+
+/* the strip, the chip, the tools panel: hudChip() calls this first; true in a solo session */
+function hudSolo() {
+  const s = game.mode && solo ? solo : null, prc = !!s && s.kind === 'practice';
+  soloCtl.hidden = !prc;
+  tools.hidden = !(prc && s.tools && state === 'aim');
+  toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
+  editDone.hidden = !(prc && s.edit && state === 'aim');
+  if (!s) return false;
+  turnChip.hidden = prc;
+  if (prc) {
+    handBtn.setAttribute('aria-pressed', String(!!game.hand));
+    editBtn.hidden = !freeTable();
+    editBtn.setAttribute('aria-pressed', String(!!s.edit));
+    undoBtn.style.opacity = s.undo.length ? '' : '0.5';
+    toolBtn.classList.toggle('on', !!s.edit || !!game.hand);
+  } else {
+    const t = `Try ${s.attempts + (state === 'over' ? 0 : 1)}`;
+    if (chipName.textContent !== t) chipName.textContent = t;
+    if (chipBalls.dataset.key !== '') { chipBalls.dataset.key = ''; chipBalls.replaceChildren(); }
+    turnChip.classList.remove('busy', 'warn');
+  }
+  return true;
+}
+/* the pause menu's session section; true in a solo session (the players' cards stay hidden) */
+function hudSoloMenu() {
+  const s = game.mode && solo ? solo : null;
+  soloNow.hidden = !(s && paused);
+  if (!s) return false;
+  gameNow.hidden = true;
+  if (!paused) return true;
+  const cells = [];
+  if (s.kind === 'practice') {
+    soloKind.textContent = 'Practice';
+    soloTitle.textContent = PRACTICE_NAMES[s.layout];
+    soloGoal.textContent = s.edit ? 'Editing: tap the cloth to drop a ball, tap a ball to take it off.' : '';
+    cells.push(['Shots', s.st.shots], ['Pots', s.st.pots], ['Pot %', s.st.shots ? pctOf(s.st) + '%' : '-']);
+  } else {
+    const c = trickById(s.id);
+    soloKind.textContent = `Trick shot ${TRICKS.indexOf(c) + 1} of ${TRICKS.length}`;
+    soloTitle.textContent = c.title;
+    soloGoal.textContent = c.goal;
+    cells.push(['Tries', s.attempts], ['Best', `${trickBest[c.id] || 0} of 3`], ['All stars', `${starTotal()}/${TRICKS.length * 3}`]);
+  }
+  const key = JSON.stringify(cells);
+  if (soloStats.dataset.key !== key) {
+    soloStats.dataset.key = key;
+    soloStats.replaceChildren(...cells.map(([k, v]) => { const d = document.createElement('div'), t = document.createElement('dt'), n = document.createElement('dd'); t.textContent = k; n.textContent = String(v); d.append(t, n); return d; }));
+  }
+  return true;
+}
+/* syncMenu() calls this: the solo pause shows Resume, Restart and Exit, not the new-game part */
+function syncSoloMenu() {
+  const on = !!(paused && game.mode && solo);
+  menu.toggleAttribute('data-solo', on);
+  soloBtns.hidden = !on;
+  resumeBtn.textContent = on ? 'Resume' : 'Resume game';
+  trickSum.textContent = starTotal() ? `${starTotal()} of ${TRICKS.length * 3} stars` : `${TRICKS.length} challenges`;
+}
+/* the canvas marks of a trick shot: the cue ball's target ring and the pocket the goal names */
+function drawSolo() {
+  if (game.mode !== 'trick' || state === 'menu') return;
+  const c = trickById(game.trick);
+  if (!c || (!c.zone && c.pocket === undefined)) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.save();
+  if (c.zone) {
+    const P = trickPoints(c), s = toScreen(P.zone[0], P.zone[1]), r = c.zone.r * view.k;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; circle(ctx, s[0], s[1], r); ctx.fill();
+    ctx.setLineDash([6, 5]); ctx.strokeStyle = wa(0.85); ctx.lineWidth = 2; circle(ctx, s[0], s[1], r); ctx.stroke();
+  }
+  if (c.pocket !== undefined) {
+    const p = POCKETS[c.pocket], s = toScreen(p[0], p[1]);
+    ctx.setLineDash([]); ctx.strokeStyle = '#f2c94c'; ctx.lineWidth = 2.5;
+    circle(ctx, s[0], s[1], POCKET_R[c.pocket] * view.k + 5); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+pracBtn.addEventListener('click', () => { audioOn(); showPractice(); });
+trickBtn.addEventListener('click', () => { audioOn(); showTricks(); });
+prac8.addEventListener('click', () => { audioOn(); startPractice('8', 1); });
+prac9.addEventListener('click', () => { audioOn(); startPractice('9', 1); });
+pracScatter.addEventListener('click', () => { audioOn(); startPractice('scatter'); });
+pracEmpty.addEventListener('click', () => { audioOn(); startPractice('empty', 1); });
+pracBack.addEventListener('click', () => { closeSolo(); showMenu(); });
+tricksBack.addEventListener('click', () => { closeSolo(); showMenu(); });
+restartBtn.addEventListener('click', () => { audioOn(); restartSolo(); });
+exitBtn.addEventListener('click', () => exitSolo());
+undoBtn.addEventListener('click', () => { audioOn(); undo(); });
+toolBtn.addEventListener('click', () => { if (solo && state === 'aim') { solo.tools = !solo.tools; hud(); } });
+handBtn.addEventListener('click', () => { toggleHand(); if (solo) { solo.tools = false; hud(); } });
+resetBtn.addEventListener('click', () => resetRack());
+editBtn.addEventListener('click', () => setEdit(!(solo && solo.edit)));
+editDone.addEventListener('click', () => setEdit(false));
+trickRetry.addEventListener('click', () => { audioOn(); startTrick(solo ? solo.id : TRICKS[0].id, true); });
+trickNext.addEventListener('click', () => { audioOn(); const i = solo ? TRICKS.findIndex(c => c.id === solo.id) : -1; startTrick(TRICKS[(i + 1) % TRICKS.length].id); });
+trickShow.addEventListener('click', () => { audioOn(); showMe(); });
+trickList.addEventListener('click', () => showTricks());
+/* a press on the table closes the tools panel */
+table.addEventListener('pointerdown', () => { if (solo && solo.tools) { solo.tools = false; hud(); } }, true);
+/* Esc on a solo sheet: back to the menu (from the result, to the list) */
+addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (prac.classList.contains('show')) { closeSolo(); showMenu(); }
+  else if (tricks.classList.contains('show')) { closeSolo(); showMenu(); }
+  else if (trickRes.classList.contains('show')) showTricks();
+});
+Object.assign(felt, {
+  practice: startPractice, trick: startTrick, undo, resetRack, toggleHand, setEdit, editAt, showMe, showTricks, exitSolo,
+});
+Object.defineProperties(felt, {
+  solo: { get: () => solo },
+  trickBest: { get: () => Object.assign({}, trickBest) },
+});
+
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not */
 function loadSettings() {
@@ -3649,6 +4312,7 @@ function syncMenu() {
   levelLab.hidden = levelSeg.hidden = !settings.cpu;
   document.documentElement.dataset.cloth = settings.cloth;
   resumeBtn.hidden = !paused;
+  syncSoloMenu();
 }
 function showMenu() {
   over.classList.remove('show');
@@ -3657,7 +4321,7 @@ function showMenu() {
   if (byKeys) (paused ? resumeBtn : play8).focus({ preventScroll: true });
 }
 function hideOverlays() {
-  menu.classList.remove('show'); over.classList.remove('show');
+  menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
@@ -3706,6 +4370,7 @@ function chipOf(p) {
   return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
 }
 function hudChip() {
+  if (hudSolo()) return;
   const p = game.turn;
   turnChip.hidden = game.winner !== null;
   const c = chipOf(p), name = shortName(p);
@@ -3722,6 +4387,7 @@ function hudChip() {
 }
 /* the game section of the pause menu: both cards, the potted balls in pot order, the latest word */
 function hudMenu() {
+  if (hudSoloMenu()) return;
   gameNow.hidden = !paused;
   if (!paused) return;
   const potted = [];

@@ -254,6 +254,11 @@ S.setTable('snooker', 'compact');
   check('the live break matches simulateShot exactly', live === exp);
   const after = await page.evaluate(() => ({ shots: felt.game.shots, turn: felt.game.turn, chip: pchip0.textContent + '|' + pchip1.textContent, msg: msg.textContent, s: felt.state }));
   check('the shot is judged: the chips carry the scores, the status line says what is on', after.shots === 1 && /\d/.test(after.chip) && /on /.test(after.msg) && ['aim', 'over'].includes(after.s), JSON.stringify(after));
+  /* the replay rebuilds the shot on the same snooker table (its size and ball): the same roll */
+  const rp0 = await page.evaluate(() => ({ ok: felt.replay(), rec: felt.lastShot && [felt.lastShot.kind, felt.lastShot.snookerSize, felt.lastShot.ballR] }));
+  await page.waitForFunction(() => !felt.replaying, null, { timeout: 30000 }).catch(() => {});
+  const rp1 = await page.evaluate(() => felt.replayResult && JSON.stringify(felt.replayResult.balls.map(b => [b.n, b.on, b.x, b.y])) === JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])));
+  check('replay: the snooker shot is recorded with its table (size, ball) and replays to the same result', rp0.ok && rp0.rec[0] === 'snooker' && rp0.rec[1] === 'compact' && rp0.rec[2] === 0.02625 && rp1, JSON.stringify({ rp0, rp1 }));
   check('game screen: targets 44 px, text 4.5:1 (the scoreboard too)', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   /* landscape: the scoreboard stays on the table's top rail, inside the stage */
   await page.setViewportSize({ width: 956, height: 440 });

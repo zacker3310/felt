@@ -112,7 +112,7 @@ const { check, done, open } = require('./lib.cjs');
     felt.start('8'); game.inHand = null; game.breakShot = false; game.shots = 4; state = 'aim'; hint = null;
     const at = { 0: [0.5, 0.5], 1: [1.0, 0.3] };
     for (const b of game.balls) { b.on = b.n in at; if (b.on) { b.x = at[b.n][0]; b.y = at[b.n][1]; } }
-    const rec = { balls: game.balls, ball: 0, breakShot: false, kind: '8' };
+    const rec = { balls: game.balls, ball: 0, breakShot: false, kind: '8', g: JSON.parse(JSON.stringify(game)) };
     for (let i = 0; i < 3000; i++) {
       const a = -Math.PI + i * 2 * Math.PI / 3000, r = simulateShot(game.balls, { angle: a, power: 0.75, spin: { x: 0, y: 0 }, ball: 0 });
       if (notableOf(r, rec) === 'bank' && r.potted.includes(1) && (r.rails[1] || 0) >= 2) return a;
@@ -123,8 +123,11 @@ const { check, done, open } = require('./lib.cjs');
     await page.evaluate(a => felt.shoot(a, 0.75, 0), ang);
     await page.waitForFunction(() => felt.state === 'aim', null, { timeout: 20000 });
   }
-  const nb = await page.evaluate(() => ({ offer: felt.replayOffer, notable: felt.lastNotable && felt.lastNotable.notable, attr: replayBtn.hasAttribute('data-notable'), h: replayBtn.offsetHeight }));
-  check('a two-cushion bank pot is offered as notable ("Nice bank. Replay?")', ang !== null && nb.offer && nb.offer.notable === 'bank' && nb.notable === 'bank' && nb.attr && /bank/.test(nb.offer.label) && nb.h >= 44, JSON.stringify(nb));
+  const nb = await page.evaluate(() => ({ offer: felt.replayOffer, notable: felt.lastNotable && felt.lastNotable.notable, attr: replayBtn.hasAttribute('data-notable'), h: replayBtn.offsetHeight,
+    aria: replayBtn.getAttribute('aria-label'), callout: calloutText.textContent }));
+  /* the callout names the moment (shotMoments); the gold pill, classified by the same call, only says Replay */
+  check('a two-cushion bank pot is offered as notable: a gold Replay pill under the "Bank shot" callout, not the word twice', ang !== null && nb.offer && nb.offer.notable === 'bank' && nb.notable === 'bank' && nb.attr
+    && nb.offer.label === 'Replay' && /bank/i.test(nb.aria) && nb.callout === 'Bank shot' && nb.h >= 44, JSON.stringify(nb));
   const hide = await page.evaluate(() => { const r = felt.tableRect(); return [r.left + 300, r.top + 200]; });
   await page.mouse.click(hide[0], hide[1]);
   check('the pill goes as soon as the player touches the table', !(await page.evaluate(() => felt.replayOffer)) && await page.evaluate(() => replayBtn.hidden));

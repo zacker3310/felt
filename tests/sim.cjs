@@ -18,7 +18,10 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'BUMPER_SHAPE', 'BED_LINES', 'OCTA_F', 'OCTA_CUP_IN', 'CUSH_W', 'bumperBanks', 'suggestBumper',
   'onTable', 'copyGame', 'canDrop', 'scatter', 'newPractice', 'practiceJudge', 'addBall', 'removeBall', 'PRACTICE_SCATTER',
   'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP',
-  'shotMoments', 'MOMENTS', 'MOMENT_WORDS', 'LONG_POT', 'RUN_MIN'];
+  'shotMoments', 'MOMENTS', 'MOMENT_WORDS', 'LONG_POT', 'RUN_MIN', 'momentWord', 'NOTABLE_MOMENTS',
+  'POOL_PHYS', 'SNOOKER_PHYS', 'physOf', 'SNOOKER_SIZES', 'SNOOKER_SIZE', 'SPOTS', 'D_R', 'JAW_ARCS', 'JAW_RAD', 'jawRadius', 'inD', 'isRed', 'snkValue', 'snkName', 'S_COLS', 'S_BLACK',
+  'snookerRack', 'snookerGame', 'snookerOn', 'snookerSpot', 'snookerLeft', 'snookersNeeded', 'judgeSnooker', 'concedeSnooker', 'SNK_APEX', 'SNK_CPU', 'SNK_BAULK', 'SNK_D', 'SNK_BLACK_IN', 'POCKET_STYLES', 'CORNER_W', 'SIDE_W', 'cpuTargets', 'cpuSpots', 'cpuSafeties', 'cpuCalibrate',
+  'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MOUTHS', 'CAROM_SIZE', 'CAROM_PHYS', 'C_CUE', 'C_RED', 'caromGame', 'caromCount', 'caromFree', 'caromTargets', 'judgeCarom', 'CPU_CAROM', 'suggestCarom', 'cMirror'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

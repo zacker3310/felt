@@ -16,7 +16,7 @@ const artContrast = page => page.evaluate(() => {
   const rgba = c => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const out = [];
-  for (const card of [againBtn, play8, play9, playB]) {
+  for (const card of [againBtn, play8, play9, playB, playC, playS]) {
     const cv = card.querySelector('.art'), cr = cv.getBoundingClientRect(), k = cv.width / cr.width, g = cv.getContext('2d');
     for (const el of card.querySelectorAll('.tt small, .tt b')) {
       const r = el.getBoundingClientRect();
@@ -43,8 +43,8 @@ const artContrast = page => page.evaluate(() => {
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
-  check('home: the hero, the three game cards, the solo list and Stats, Settings, How to play; no pause part',
-    await page.evaluate(() => [againBtn, play8, play9, playB, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
+  check('home: the hero, the five game cards, Career, the solo list and Stats, Settings, How to play; no pause part',
+    await page.evaluate(() => [againBtn, play8, play9, playB, playC, playS, careerBtn, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
       && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
   /* the hero shows on a first run too (the layout never collapses): it starts 8-ball's setup */
   const first = await page.evaluate(() => ({ shown: !againBtn.hidden && againBtn.getBoundingClientRect().height >= 88, cap: againCap.textContent, sum: againSum.textContent, label: againBtn.getAttribute('aria-label') }));
@@ -59,7 +59,7 @@ const artContrast = page => page.evaluate(() => {
   /* the hero and each game card have their rack drawn edge to edge at the device's pixels */
   const art = await page.evaluate(() => [heroArt, ...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data, p = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect();
     return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio) && c.height === Math.round(c.clientHeight * devicePixelRatio), a: d[3], bleed: Math.abs(r.width - p.width) < 1 && Math.abs(r.height - p.height) < 1 }; }));
-  check('home: the hero and every game card show their table edge to edge, drawn at the device pixel ratio', art.length === 4 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
+  check('home: the hero and every game card show their table edge to edge, drawn at the device pixel ratio', art.length === 6 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
   check('home words over the art read at 4.5:1 on the cloth', (await artContrast(page)).every(c => c.r >= 4.5), JSON.stringify(await artContrast(page)));
   /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
   await page.click('#playB');
@@ -79,13 +79,13 @@ const artContrast = page => page.evaluate(() => {
   /* how to play, settings and stats sheets: every tab, targets and contrast */
   await page.click('#helpBtn');
   const tabs = [];
-  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabSolo']) {
+  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo']) {
     await page.click('#' + id);
     tabs.push(await page.evaluate(id => ({ id, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), sel: document.getElementById(id).getAttribute('aria-selected'), text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
     const lc = await lowContrast(page);
     if (lc.length) tabs.push({ lc });
   }
-  check('how to play: five tabs (controls, 8-ball, 9-ball, bumper, solo), one panel each, text 4.5:1', tabs.length === 5 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100), JSON.stringify(tabs));
+  check('how to play: seven tabs (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), one panel each, text 4.5:1', tabs.length === 7 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100), JSON.stringify(tabs));
   check('no em dashes anywhere on the page', await page.evaluate(() => !document.documentElement.outerHTML.includes('\u2014')));
   await page.click('#helpBack');
   for (const [btn, back] of [['#prefsBtn', '#prefsBack'], ['#statsBtn', '#statsBack']]) {
@@ -107,7 +107,7 @@ const artContrast = page => page.evaluate(() => {
       st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
       settings.last = '8'; relayout(); showMenu();
       await new Promise(r => setTimeout(r, 300));
-      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, pracBtn, dailyBtn, statsBtn, helpBtn].map(R);
+      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, playC, playS, careerBtn, pracBtn, dailyBtn, statsBtn, helpBtn].map(R);
       return { size: `${w}x${h}`, ins: ins.join(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth,
         inside: all.every(r => r.top >= ins[0] - 0.5 && r.bottom <= h - ins[2] + 0.5 && r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
     }, [ins, w, h]));

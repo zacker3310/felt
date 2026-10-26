@@ -1,8 +1,8 @@
 /* moments-check: shot moments, the game-over sheet, the sound and the haptics.
    Sim (Node): shotMoments classifies constructed shots run through simulateShot and judge: a
    routine straight pot (nothing), a bank, a kick, a combo, a long pot, a double and a triple, a
-   golden break, a clean break, a run out and a break and run, bumper pool's bank and double; and
-   it is pure. Page: the live roll equals simulateShot as JSON (railAt too); a bank raises its
+   golden break, a clean break, a run out and a break and run, bumper pool's bank and double,
+   snooker's pots and words, carom's point; and it is pure. Page: the live roll equals simulateShot as JSON (railAt too); a bank raises its
    callout (off the cue ball, taking no input) and a straight pot raises none; a winning run out
    shows on the game-over sheet with both players' numbers, whose buttons work and whose text and
    targets pass; the haptic switch never fires before a gesture or with Haptics off, ticks at
@@ -132,6 +132,24 @@ check('run out: the 8 to win at the end of a visit of seven; break and run when 
   const g = bank.g, r = bank.f.o.r, n = bank.f.o.n, before = JSON.stringify([g, r, n]);
   S.shotMoments(g, r, n, { pots: 2, fromBreak: false });
   check('shotMoments is pure: the game, the result and the judged game are untouched', JSON.stringify([g, r, n]) === before);
+}
+
+/* snooker and carom: snooker counts a fair pot even when the colour is re-spotted, and says a bank
+   is a double; carom's one moment is a point. Results constructed, judged by the real judge. */
+{
+  const res = (g, o) => Object.assign({ balls: g.balls.map(b => Object.assign({}, b)), cue: 0, first: null, potted: [], pocketOf: {}, contacts: [], rails: {}, railAt: {}, kick: null, seq: [] }, o);
+  S.setTable('snooker', 'compact');
+  const g = Object.assign(S.newGame('snooker'), { breakShot: false, on: 'colour' }), pink = g.balls.find(b => b.n === 61);
+  const r = res(g, { first: 61, potted: [61], pocketOf: { 61: 0 }, contacts: [[0, 61]] }), n = S.judge(g, r), m = S.shotMoments(g, r, n);
+  const two = (() => { const g2 = Object.assign(S.newGame('snooker'), { breakShot: false }); const r2 = res(g2, { first: 41, potted: [41, 42], pocketOf: { 41: 0, 42: 1 }, contacts: [[0, 41], [41, 42]] }); return S.shotMoments(g2, r2, S.judge(g2, r2)); })();
+  check('snooker: a fair pink, re-spotted, still counts as a pot; two reds is a double (said "Two reds"), a bank is "Double"',
+    n.verdict.back.includes(61) && pink && m.legal === 1 && two.keys.includes('double') && S.momentWord('double', 'snooker') === 'Two reds' && S.momentWord('bank', 'snooker') === 'Double' && S.momentWord('bank', '8') === 'Bank shot',
+    JSON.stringify({ m, two }));
+  const c = Object.assign(S.newGame('carom'), { breakShot: false }), cr = o => res(c, Object.assign({ cue: 70 }, o));
+  const pt = S.shotMoments(c, cr({ seq: [71, -1, -1, -1, 72] }), S.judge(c, cr({ seq: [71, -1, -1, -1, 72] })));
+  const no = S.shotMoments(c, cr({ seq: [71, -1, 72] }), S.judge(c, cr({ seq: [71, -1, 72] })));
+  check('carom: a point is the moment (and a notable one); two cushions is none', pt.keys.join() === 'point' && S.NOTABLE_MOMENTS.includes('point') && no.keys.length === 0, JSON.stringify({ pt, no }));
+  S.setTable('7');
 }
 
 (async () => {

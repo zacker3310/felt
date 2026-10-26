@@ -1,4 +1,4 @@
-/* career-check: the first-run lesson and the career ladder (section 6c), on a phone either way
+/* career-check: the first-run lesson and the career ladder (section 6d), on a phone either way
    up (440x956 and 956x440, dpr 3, real touch events with their own timestamps).
    Lesson: a first run offers it once; Skip marks it seen; each step advances on its own action
    (a tap on the ball aims it, the wheel nudges it, a pull on the bar pots it), with a coach card

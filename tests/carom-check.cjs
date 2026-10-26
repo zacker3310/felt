@@ -199,6 +199,14 @@ S.setTable('7');
   });
   check('a scoring shot through felt.shoot: the point counts, the turn stays, the chip and banner show it, byte for byte',
     pt.want && pt.point && pt.score === 1 && pt.turn === 0 && pt.same && /^\d+\/10$/.test(pt.chip) && /^Point/.test(pt.head), JSON.stringify(pt));
+  /* the point is the notable shot, and its replay rebuilds the carom roll exactly */
+  await page.waitForTimeout(100);
+  const rp0 = await page.evaluate(() => ({ notable: felt.lastShot.notable, geo: felt.lastShot.geo, lab: replayLab.textContent, ok: (felt.speed = 8, felt.replay()) }));
+  await page.waitForFunction(() => !felt.replaying, null, { timeout: 30000 });
+  const rp1 = await page.evaluate(() => ({ same: JSON.stringify(felt.replayResult && felt.replayResult.balls) === JSON.stringify(felt.lastResult.balls) && JSON.stringify(felt.replayResult.seq) === JSON.stringify(felt.lastResult.seq), R: BALL_R, kind: felt.game.kind, st: felt.state }));
+  check('replay: a carom point is notable ("What a point"), and its replay rolls the same balls and contacts on the carom table',
+    rp0.notable === 'point' && /point/.test(rp0.lab) && /^carom,/.test(rp0.geo) && /0\.03075$/.test(rp0.geo) && rp0.ok && rp1.same && rp1.R === 0.03075 && rp1.st === 'aim', JSON.stringify({ rp0, rp1 }));
+  await page.evaluate(() => { felt.speed = 40; });
   /* the full guide: a dashed path with the first three cushions dotted */
   const gd = await page.evaluate(() => {
     settings.guide = 'full'; aimAngle = 0.62; cueSpin = { x: 0.3, y: 0.2 }; markPower = 0.6; preview = null; previewWork = null;

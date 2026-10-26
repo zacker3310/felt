@@ -1120,5 +1120,31 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     check('bumper: no console errors', k.errors.length === 0, k.errors.join(' | '));
     await k.browser.close();
   }
+  /* every game kind on one page, in turn and back: 8-ball, snooker (compact), carom, 9-ball on
+     the 9 ft table, bumper pool (octagon, then the rectangle), snooker on the full table, 8-ball
+     again. Each shot through felt.shoot rolls live equal to simulateShot byte for byte, on the
+     table's own ball and cloth (physOf), and 8-ball's values come back exactly. */
+  {
+    const k = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+    const runs = [];
+    for (const [kind, set] of [['8', { table: '7' }], ['snooker', { snookerTable: 'compact' }], ['carom', {}], ['9', { table: '9' }], ['bumper', { bumperTable: 'octagon' }],
+      ['bumper', { bumperTable: 'rect' }], ['snooker', { snookerTable: 'full' }], ['8', { table: '7' }]]) {
+      runs.push(await k.page.evaluate(async ([kind, set]) => {
+        Object.assign(settings, set); felt.start(kind); felt.speed = 40;
+        const g = felt.game, ph = physOf(TABLE);
+        g.breakShot = false;
+        const snap = JSON.stringify(g.balls), vals = [TABLE, TL, TW, BALL_R, MU_ROLL, CUE_RATIO, CUSH_MU, RAIL_E.join('/')].join();
+        felt.shoot(0.37, 0.55, { x: 0.2, y: -0.3 });
+        while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 30));
+        const row = x => JSON.stringify(x.map(o => [o.n, o.on, o.x, o.y]));
+        return { kind, table: TABLE, vals, same: row(simulateShot(JSON.parse(snap), felt.lastShot).balls) === row(felt.lastResult.balls),
+          rec: BALL_R === ph.R && MU_ROLL === ph.roll && CUE_RATIO === ph.cue && CUSH_MU === ph.mu && RAIL_E === ph.e };
+      }, [kind, set]));
+      await settled(k.page);
+    }
+    check('every game kind in turn (8, snooker compact, carom, 9 on 9 ft, bumper octagon and rectangle, snooker full, 8 again): live equals simulateShot byte for byte on the table\'s own ball and cloth, and 8-ball comes back exactly',
+      runs.every(r => r.same && r.rec) && runs[0].vals === runs[7].vals && new Set(runs.map(r => r.vals)).size === 7 && k.errors.length === 0, JSON.stringify(runs.map(r => [r.kind, r.table, r.same, r.rec])) + k.errors.join(' | '));
+    await k.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

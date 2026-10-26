@@ -737,6 +737,29 @@ for (const shape of ['rect', 'octagon']) {
   check(`${tag}: ${N} fuzzed shots on bumper geometry: no NaN, escape, ball in a cushion or post, overlap or timeout`,
     bad.length === 0 && hits > N && pots > 20 && fast2 === 0, `rail/post hits ${hits}, pots ${pots}, bad: ` + JSON.stringify(bad.slice(0, 3)));
 }
+
+/* every per-table value comes back exactly after a round of the tables: 8-ball -> snooker ->
+   carom -> 9-ball -> bumper (both shapes), twice over. Geometry, the ball and the cloth
+   (physOf's record), and a fixed shot's roll on each. */
+{
+  const GLOBALS = ['TABLE', 'TL', 'TW', 'BALL_R', 'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'HEAD_X', 'FOOT', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM',
+    'MOUTHS', 'BUMPERS', 'BED_LINES', 'JAW_ARCS', 'JAW_RAD', 'SPOTS', 'D_R', 'CPU_MOUTH_N'];
+  const visit = [['8', () => { S.setTable('7'); return S.newGame('8'); }], ['snooker compact', () => { S.setTable('snooker', 'compact'); return S.newGame('snooker'); }],
+    ['carom', () => S.newGame('carom')], ['9 (9 ft)', () => { S.setTable('9'); return S.newGame('9'); }],
+    ['bumper octagon', () => { S.setTable('bumper', 'octagon'); return S.newGame('bumper'); }], ['bumper rect', () => { S.setTable('bumper', 'rect'); return S.newGame('bumper'); }],
+    ['snooker full', () => { S.setTable('snooker', 'full'); return S.newGame('snooker'); }]];
+  const snap = make => {
+    const g = make(), ph = S.physOf(S.TABLE), cue = g.kind === 'bumper' ? 21 : g.kind === 'carom' ? 70 : 0;
+    const roll = S.simulateShot(g.balls, { angle: 0.37, power: 0.55, spin: { x: 0.2, y: -0.3 }, ball: cue });
+    return { vals: JSON.stringify(GLOBALS.map(n => S[n])), rec: [S.BALL_R, S.MU_ROLL, S.CUE_RATIO, S.CUSH_MU, S.RAIL_E].every((v, i) => v === [ph.R, ph.roll, ph.cue, ph.mu, ph.e][i]),
+      roll: JSON.stringify(roll.balls.map(b => [b.n, b.on, b.x, b.y])) };
+  };
+  const first = visit.map(([, make]) => snap(make)), again = visit.map(([, make]) => snap(make));
+  const diff = visit.map(([name], i) => (first[i].vals === again[i].vals && first[i].roll === again[i].roll && first[i].rec && again[i].rec ? '' : name)).filter(Boolean);
+  const radii = visit.map(([, make]) => { make(); return S.BALL_R; });
+  check('tables: 8-ball, snooker, carom, 9-ball and bumper pool round and round, every per-table value (geometry, ball, cloth, rubber) and a fixed roll come back exactly, each from its physics record',
+    diff.length === 0 && radii.join() === [0.028575, 0.02625, 0.03075, 0.028575, 0.028575, 0.028575, 0.02625].join(), JSON.stringify({ diff, radii }));
+}
 S.setTable('7');
 check('bumper: back on a pool table every pool global is rebuilt and the posts are gone', S.BUMPERS.length === 0 && S.POCKETS.length === 6 && S.CUSH.length === 18 && Math.abs(S.TL - 1.981) < 1e-9 && S.BED_LINES === null);
 

@@ -277,8 +277,9 @@ h1 i { font-style: normal; color: var(--signal); }
 kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 
 /* ---- the home screen: the menu with no game in progress. One hero (Play again, or on a first
-   run a start on 8-ball) with the last game's table as its picture, the four games as cards whose
-   racks bleed to their edges, and a quiet grouped list for solo play. The wordmark leads the
+   run a start on 8-ball) with the last game's table as its picture, the five games and the career
+   as six cards, two by three, whose racks bleed to their edges, and a quiet grouped list for solo
+   play. The wordmark leads the
    header; Stats, Settings and How to play are three round glass icon buttons. One accent colour,
    taken from the cloth. Upright it is a column; on its side the hero takes the left and the games
    and the list share the right. It fits the screen without scrolling on a phone either way up. ---- */
@@ -322,18 +323,19 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .hero b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-top: 1px; font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -.016em; }
 .hero .go { flex: none; margin-left: auto; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background-color: #fff; color: #0a0a0b; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
 .hero .go svg { width: 18px; height: 18px; margin-left: 2px; }
-/* the games: three cards of one height, each rack bleeding to the edges, the name on the scrim */
-.newgame .sect { margin: 28px 0 12px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
+/* the games: six cards of one height, each rack bleeding to the edges, the name on the scrim. The
+   grid is size-contained, so the room it takes is the room the rest leaves it, never its content's */
+.newgame .sect { margin: 22px 0 10px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
 #playLab { grid-area: playlab; }
 #soloLab { grid-area: sololab; }
 /* two columns of three: 8-ball and 9-ball, bumper pool and three-cushion, snooker and the career */
-.tiles { grid-area: tiles; display: grid; grid-template: repeat(3, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+.tiles { grid-area: tiles; display: grid; grid-template: repeat(3, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; contain: size; }
 .tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
   text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
 .tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
 .tile b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
 .tile small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); }
-.tile b, .tile small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile b, .tile small { width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* narrow cards (a phone upright): the words a size down; narrower still, the name alone (it may
    take two lines, standing on the same bottom edge as the others) */
 .tiles { container-type: inline-size; }
@@ -505,6 +507,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #over { --accent: #3ddc84; --glow: 61, 220, 132; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --hair: rgba(255, 255, 255, .1);
   background: rgba(6, 6, 8, .74); }
 [data-cloth="red"] #over { --accent: #ff8a7a; --glow: 255, 138, 122; }
+[data-cloth="blue"] #over { --accent: #7cb6ff; --glow: 124, 182, 255; }
 #over .sheet { max-width: 460px; padding: 22px 20px 20px; border: 0; border-radius: 28px; background: #1c1c1e; color: var(--label);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; letter-spacing: -.005em;
   box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12), 0 30px 80px rgba(0, 0, 0, .6); }
@@ -664,7 +667,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .how .touch { display: none; }
 @media (hover: none) and (pointer: coarse) { .how .touch { display: grid; } .how .keys { display: none; } }
 
-/* ---- 6c: the lesson's coach marks, the first-run offer, the career ladder and its sheets ----
+/* ---- 6d: the lesson's coach marks, the first-run offer, the career ladder and its sheets ----
    Gold (#f2c94c, the stars' colour) marks what the lesson points at: 4.6:1 on the green cloth,
    6.9:1 on the red, 12:1 on the page, so the ring reads as a graphic anywhere. */
 .solo[hidden] { display: none; }
@@ -677,7 +680,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #coach.fresh { animation: coachIn .26s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes coachIn { from { opacity: 0; transform: translateY(6px) scale(.98); } }
 #coachRing { position: fixed; z-index: 3; left: 0; top: 0; border-radius: 16px; pointer-events: none;
-  box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 6px rgba(242, 201, 76, .28); animation: ringPulse 1.6s ease-in-out infinite; }
+  box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 6px rgba(242, 201, 76, .28); animation: ringPulse 1.6b ease-in-out infinite; }
 #coachRing.round { border-radius: 50%; }
 @keyframes ringPulse { 50% { box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 12px rgba(242, 201, 76, 0); } }
 /* the first-run offer: a small sheet with a ball on the cloth; low on a phone held upright */
@@ -742,23 +745,24 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (min-width: 600px) { .btns.three { grid-template-columns: 2fr 1fr 1fr; } .btns.three .big { grid-column: auto; } #matchSheet .sheet { max-width: 520px; } }
 @media (max-height: 480px) { .board { margin: 8px 0 12px; padding: 8px 10px; } .board .side b { font-size: 28px; } }
 @media (prefers-reduced-motion: reduce) { #coach.fresh, #coachRing { animation: none; } }
-/* the career card beside bumper pool: the next players' faces, the ladder in words and a bar */
-.cc { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: grid; grid-template: "av sum" minmax(0, 1fr) "tt tt" auto "bar bar" auto / minmax(0, 1fr) auto;
+/* the career card beside snooker: the next players' faces, the ladder as a count over a short bar
+   (top right), the name and the next player where the other cards have theirs */
+.cc { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: grid; grid-template: "av sum" auto "av bar" minmax(0, 1fr) "tt tt" auto / minmax(0, 1fr) auto;
   gap: 0 8px; padding: 12px 14px 13px; border: 0; border-radius: 22px; text-align: left; color: #fff;
   background: radial-gradient(120% 90% at 85% 0%, rgba(242, 201, 76, .16), transparent 60%), #17171a; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7), inset 0 0 0 .5px rgba(255, 255, 255, .13);
   transition: transform .2s cubic-bezier(.3, 1.45, .55, 1); }
 .cc:active { transform: scale(.97); transition-duration: .12s; transition-timing-function: ease-out; }
 .ccAv { grid-area: av; display: flex; align-items: flex-start; min-width: 0; min-height: 0; overflow: hidden; padding: 3px; margin: -3px; }
-.ccAv .av { width: 34px; height: 34px; font-size: 13px; box-shadow: 0 0 0 2.5px #17171a, inset 0 -8px 14px rgba(0, 0, 0, .16); }
+.ccAv .av { width: 30px; height: 30px; font-size: 12px; box-shadow: 0 0 0 2.5px #17171a, inset 0 -8px 14px rgba(0, 0, 0, .16); }
 .ccAv .av + .av { margin-left: -7px; }
 .ccAv .av.now { box-shadow: 0 0 0 2px #17171a, 0 0 0 3.5px #f2c94c; }
-.ccSum { grid-area: sum; align-self: start; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .74); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ccSum { grid-area: sum; align-self: start; justify-self: end; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .74); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cc .tt { grid-area: tt; display: block; min-width: 0; align-self: end; }
 .cc b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
 .cc small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ccBar { grid-area: bar; display: block; height: 4px; margin-top: 8px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.ccBar { grid-area: bar; align-self: start; justify-self: end; display: block; width: 52px; height: 4px; margin-top: 6px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .ccBar i { display: block; height: 100%; width: 0; border-radius: inherit; background: #f2c94c; }
-@container (max-width: 360px) { .cc { padding: 10px 12px 12px; } .cc small { font-size: 12px; } .ccAv .av { width: 30px; height: 30px; font-size: 12px; } }
+@container (max-width: 360px) { .cc { padding: 10px 12px 12px; } .cc small { font-size: 12px; } .ccAv .av { width: 28px; height: 28px; } }
 @media (prefers-reduced-motion: reduce) { .cc, .cc:active { transition: none; transform: none; } }
 
 /* ---- snooker: the scoreboard on the top rail (the break, the ball on, the points left), the
@@ -775,6 +779,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #snkBar .warn { color: var(--illegal); }
 #concedeBtn { grid-column: 1 / -1; }
 #concedeBtn[hidden] { display: none; }
+.bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
 .bsnk { background-color: #c41c24; background-image: radial-gradient(circle at 35% 30%, #e8504a, #8a1218 72%); }
 </style>
 </head>
@@ -1038,7 +1043,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   </div>
 </div>
 
-<!-- 6c: the first-run lesson offer, the lesson's finish, the career ladder, between racks, the match result -->
+<!-- 6d: the first-run lesson offer, the lesson's finish, the career ladder, between racks, the match result -->
 <div class="overlay" id="lessonOffer" role="dialog" aria-modal="true" aria-labelledby="offerTitle">
   <div class="sheet offer">
     <span class="offerArt" aria-hidden="true"><span class="ball b1">1</span></span>
@@ -1198,7 +1203,7 @@ const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, aw
 const POCKET_STYLES = {
   regulation: { corner: 0.1207, side: 0.1334, cornerFace: 142, sideFace: 104, cornerR: 0.056, sideR: 0.058, shelf: 0.032, sideBack: 0.034 },
   generous: { corner: 0.1334, side: 0.1461, cornerFace: 139, sideFace: 100, cornerR: 0.062, sideR: 0.064, shelf: 0.030, sideBack: 0.029 },
-  /* snooker (1i), whatever setPockets says: WPBSA-template mouths, the jaws rounded (round: the
+  /* snooker (1j), whatever setPockets says: WPBSA-template mouths, the jaws rounded (round: the
      radius of the rubber's curve from the nose into the facing, JAW_ARCS) and the drops set
      deeper behind the nose. Tuned in physics against the pool pockets (snooker-check). */
   snooker: { corner: 0.090, side: 0.104, cornerFace: 137, sideFace: 101, cornerR: 0.05, sideR: 0.05, shelf: 0.045, sideBack: 0.04, round: 0.03, sideRound: 0.022 },
@@ -1227,7 +1232,7 @@ const CUP_IN = 0.15, CUP_R = 0.041, CUP_LIP = 0.006, CUP_V = 1;
    string; the twelve posts keep the rectangle's plan (OCTA_POSTS: the diamond's half length and
    half width), shortened along the string to the octagon's shorter run between the cups. */
 const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
-/* Three-cushion carom (setTable('carom'), 1j): the 10 ft match table, a 2.84 x 1.42 m bed between
+/* Three-cushion carom (setTable('carom'), 1k): the 10 ft match table, a 2.84 x 1.42 m bed between
    the cushion noses, closed all round (no pockets). Its own ball and cloth, CAROM_PHYS (above): 61.5 mm,
    210 g balls (ball over cue mass 0.4, against pool's 6/19); a heated, close-napped cloth that
    rolls with 3/4 of pool cloth's resistance; livelier rubber, restitution 0.92 falling 0.025 per
@@ -1300,11 +1305,11 @@ let BUMPERS = [], POOL_TABLE = '7';
    the bed's edges as inward lines [nx, ny, c] (a centre at (x, y) is d = nx x + ny y - c inside
    that cushion's nose line); null on the rectangle and the pool tables, which use the box test */
 let BUMPER_SHAPE = 'octagon', BED_LINES = null;
-/* rounded jaws (snooker, 1i): circles [x, y, r] tangent to each jaw's nose and facing, which a
+/* rounded jaws (snooker, 1j): circles [x, y, r] tangent to each jaw's nose and facing, which a
    ball strikes like a cushion; the nose and facing segments in CUSH stop where each circle
    meets them. Empty on every other table. JAW_RAD: [corner, middle] radius, 0 when square. */
 let JAW_ARCS = [], JAW_RAD = [0, 0];
-/* the snooker table (1i): its size ('compact' or 'full', setTable('snooker', size)), the D's
+/* the snooker table (1j): its size ('compact' or 'full', setTable('snooker', size)), the D's
    radius and the colours' spots by ball number, built with the table; D_R 0 and SPOTS empty on
    every other table. The beds between the cushion noses: the 12 ft table, and the same scaled
    to 10 ft (balls and pockets the same size). */
@@ -1338,7 +1343,7 @@ function buildTable() {
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
   if (snk) buildSnooker(st);
 }
-/* size '7' or '9' (anything else is '7'), 'bumper' (1g), 'snooker' (1i) or 'carom' (1j). Each table
+/* size '7' or '9' (anything else is '7'), 'bumper' (1g), 'snooker' (1j) or 'carom' (1k). Each table
    brings its own ball and cloth (physOf). Ball, mouths, jaws, shelf and cushions are the same on the
    two pool sizes; only the bed changes, with the head string and foot spot at a quarter from each end.
    shape, when given, sets the bumper table's shape ('rect', anything else 'octagon') for this and
@@ -1586,7 +1591,7 @@ function stepTable(tab) {
           tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
         }
       }
-      /* snooker's rounded jaws (1i); none on any other table */
+      /* snooker's rounded jaws (1j); none on any other table */
       for (const q of JAW_ARCS) {
         const v = hitPost(b, q[0], q[1], q[2]);
         if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['jaw', v]); }
@@ -2772,7 +2777,7 @@ function trickSol(c) {
   return s ? { angle: s[0], power: s[1], spin: { x: s[2], y: s[3] } } : null;
 }
 
-/* ---- 1h. shot moments: what a finished shot was, for the callouts and the game-over sheet ----
+/* ---- 1i. shot moments: what a finished shot was, for the callouts and the game-over sheet ----
    shotMoments(g, r, n, run) reads the game before the shot (g), its result (r), the judged game
    (n = judge(g, r)) and the shooter's visit so far (run: { pots, fromBreak }: legal pots in this
    visit before this shot, and whether the visit began with the break). Pure: it touches nothing.
@@ -2784,15 +2789,23 @@ function trickSol(c) {
    long: a legally potted ball that started over LONG_POT of the table's length from its pocket.
    double, triple: two, three or more legal pots. On the break only golden (the 9, legally) and
    clean (two or more down, no foul) count. runOut: a winning visit of RUN_MIN or more pots (in
-   9-ball the table empty too); breakRun: the same visit began with the break. Bumper pool only
-   knows bank and double. Routine pots return no keys. */
-const MOMENTS = ['golden', 'breakRun', 'runOut', 'triple', 'combo', 'kick', 'bank', 'cleanBreak', 'double', 'long'];
+   9-ball the table empty too; not snooker, whose high break says it); breakRun: the same visit
+   began with the break. Bumper pool only knows bank and double. Snooker counts every ball down on
+   a fair shot (a colour that is re-spotted too) and says its own words (momentWord: a bank is a
+   double there). Carom knows one moment, a point. Routine pots return no keys.
+   NOTABLE_MOMENTS are the ones worth a gold replay offer (notableOf, page 5r): the shot itself,
+   not the state of the game. */
+const MOMENTS = ['golden', 'breakRun', 'runOut', 'triple', 'combo', 'kick', 'bank', 'cleanBreak', 'double', 'long', 'point'];
 const MOMENT_WORDS = { golden: 'Golden break', breakRun: 'Break and run', runOut: 'Run out', triple: 'Triple', combo: 'Combo', kick: 'Kick shot',
-  bank: 'Bank shot', cleanBreak: 'Clean break', double: 'Double', long: 'Long pot' };
+  bank: 'Bank shot', cleanBreak: 'Clean break', double: 'Double', long: 'Long pot', point: 'Point' };
+const SNOOKER_WORDS = { bank: 'Double', double: 'Two reds', triple: 'Three reds' };
+const momentWord = (k, kind) => (kind === 'snooker' && SNOOKER_WORDS[k]) || MOMENT_WORDS[k];
+const NOTABLE_MOMENTS = ['triple', 'combo', 'kick', 'bank', 'double', 'long', 'point'];
 const LONG_POT = 0.65, RUN_MIN = 4, BANK_FROM = 0.08, BANK_OUT = 0.2;
 function shotMoments(g, r, n, run = { pots: 0, fromBreak: false }) {
   const v = n.verdict || {}, me = g.turn, keys = [];
-  const down = (v.potted || []).filter(x => x !== 0);
+  if (g.kind === 'carom') return { legal: 0, keys: v.point && !v.foul ? ['point'] : [] };
+  const down = ((g.kind === 'snooker' ? r.potted : v.potted) || []).filter(x => x !== 0);
   let legal = [];
   if (v.foul) legal = [];
   else if (g.kind === 'bumper') legal = down;
@@ -2835,14 +2848,14 @@ function shotMoments(g, r, n, run = { pots: 0, fromBreak: false }) {
     if (legal.length >= 3) keys.push('triple');
     else if (legal.length === 2) keys.push('double');
   }
-  if (!g.mode && v.win === me && !v.foul) {
+  if (!g.mode && g.kind !== 'snooker' && v.win === me && !v.foul) {
     const total = (run.pots || 0) + legal.length, clear = g.kind !== '9' || !onTable(n).length;
     if (total >= RUN_MIN && clear) keys.push(run.fromBreak ? 'breakRun' : 'runOut');
   }
   return { legal: legal.length, keys: MOMENTS.filter(k => keys.includes(k)) };
 }
 
-/* ---- 1i. snooker ---- */
+/* ---- 1j. snooker ---- */
 /* The table (setTable('snooker', size), its bed in SNOOKER_SIZES): x runs from the baulk
    cushion's nose (x = 0) to the top cushion's, y across, yellow's side at y > TW / 2 (on the
    right seen from baulk). The baulk line is SNK_BAULK from the baulk cushion (HEAD_X), the D a
@@ -3086,7 +3099,7 @@ function cpuSnookerValue(g, j, L) {
   return s - cpuDryCost(g, j, s);
 }
 
-/* ---- 1j. three-cushion carom ---- */
+/* ---- 1k. three-cushion carom ---- */
 /* The table (setTable('carom')): the same globals a pool table sets, so every reader works on it
    unchanged. CUSH is the four noses end to end (no gaps, no mouths), CUSHION_POLYS the four
    rubbers back to the rail, meeting in mitres; MOUTHS, RUBBERS, POCKETS, POCKET_R, POCKET_AIM,
@@ -3337,9 +3350,10 @@ function suggestCarom(g) {
 let ac = null, noiseBuf = null, bus = null, muted = false;
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
 /* per kind: most voices sounding at once, shortest gap between two (s). brk is the cluster layer
-   under a break (one at a time); tap and moment are the quiet UI sounds. */
+   under a break (one at a time); tap and moment are the quiet UI sounds; point is carom's score,
+   two soft ivory clicks and a faint bell. */
 const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35],
-  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4] };
+  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3] };
 const voices = {}, crowd = {};
 /* the hash: a value in [-1, 1] for a seed, then the next seed. vary(x, r): x within +-r of itself. */
 let vseed = 1;
@@ -3525,6 +3539,10 @@ function sfxAt(kind, v, t) {
   } else if (kind === 'moment') {
     note(t, 783.99, 0.05, 0.4); note(t + 0.08, 1174.66, 0.04, 0.5);
     end = t + 0.6;
+  } else if (kind === 'point') {
+    clack(t, 0.22, bus); clack(t + 0.11, 0.16, bus);
+    partial(t + 0.11, bus, 1567.98, 1567.98, 0.018, 0.45, 0.004);
+    end = t + 0.6;
   } else if (kind === 'win') {
     [523.25, 659.25, 783.99].forEach((f, i) => note(t + i * 0.09, f, 0.1, 0.7 - i * 0.1));
     note(t + 0.18, 1046.5, 0.035, 0.6);
@@ -3546,10 +3564,11 @@ function sfx(kind, v) {
    page handler sees them. Where the switch is not a thing and vibrate is (Android), a short
    vibration instead. Nothing fires before the first gesture on the page, nor with Haptics off
    (settings.haptics), and ticks are at least HAP_GAP ms apart. Kinds: a ball-ball contact over
-   HAP_BALL m/s one tick, a pot two, a foul one, a win three. ---- */
+   HAP_BALL m/s one tick, a pot two, a carom point two (with its two clicks), a foul one, a win
+   three. ---- */
 const HAP_GAP = 60, HAP_BALL = 0.8, HAP_SWITCH = 'switch' in document.createElement('input');
 let hapArmed = false, hapLast = -1e9, hapCount = 0;
-const hapPlans = { pocket: [0, 90], foul: [0], win: [0, 130, 260] };
+const hapPlans = { pocket: [0, 90], point: [0, 110], foul: [0], win: [0, 130, 260] };
 for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { hapArmed = true; }, { capture: true, passive: true });
 hapTick.addEventListener('click', e => e.stopPropagation());
 hapTick.firstElementChild.addEventListener('click', e => e.stopPropagation());
@@ -3862,9 +3881,9 @@ function camPin(z, x, y) {
 const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3: [208, 42, 36], 4: [92, 46, 146], 5: [242, 112, 26], 6: [22, 120, 66], 7: [122, 30, 32], 8: [20, 20, 22] };
 /* bumper pool's red and white (balls 21-25 and 31-35, 1g) */
 const BUMPER_COLOR = [[200, 38, 44], [244, 241, 230]];
-/* snooker's reds and colours (1i: reds 41-55, the colours 57 yellow to 62 black) */
+/* snooker's reds and colours (1j: reds 41-55, the colours 57 yellow to 62 black) */
 const SNOOKER_COLOR = { red: [196, 28, 36], 57: [246, 206, 40], 58: [26, 132, 72], 59: [124, 66, 34], 60: [30, 80, 196], 61: [246, 146, 176], 62: [22, 22, 24] };
-/* carom's white and yellow cue balls and its red (balls 70-72, 1j) */
+/* carom's white and yellow cue balls and its red (balls 70-72, 1k) */
 const CAROM_COLOR = [[247, 244, 234], [244, 196, 48], [206, 34, 40]];
 const colorOf = n => n >= 70 ? CAROM_COLOR[n - 70] : n > 40 ? (isRed(n) ? SNOOKER_COLOR.red : SNOOKER_COLOR[n]) : n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
 /* the cloths (settings.cloth): bed, cushion rubber, the illegal colour, the floor under every
@@ -4193,7 +4212,7 @@ const JAW_ROUND = 0.0035;
    off the back (the side against the wood): the nose and both facings, for the contact line */
 function rubberPath(g, p, open) {
   g.moveTo(p[0][0], p[0][1]);
-  g.arcTo(p[1][0], p[1][1], p[2][0], p[2][1], Math.max(JAW_ROUND, jawRadius(p[1])));   /* snooker's jaws are rounded (1i) */
+  g.arcTo(p[1][0], p[1][1], p[2][0], p[2][1], Math.max(JAW_ROUND, jawRadius(p[1])));   /* snooker's jaws are rounded (1j) */
   g.arcTo(p[2][0], p[2][1], p[3][0], p[3][1], Math.max(JAW_ROUND, jawRadius(p[2])));
   g.lineTo(p[3][0], p[3][1]);
   if (!open) g.closePath();
@@ -4360,7 +4379,7 @@ function paintBevels(g, co, L, px) {
   g.restore();
 }
 
-/* ---- 4a''. snooker's markings ---- */
+/* ---- 4a'. snooker's markings ---- */
 /* the baulk line across the bed, the D on its baulk side and the colours' six spots, in a thin
    chalk white: there to find, not to read (the D lights up while the cue ball is in hand, drawD) */
 function paintSnookerMarks(g, px) {
@@ -4389,7 +4408,7 @@ function paintCaromSpots(g, px) {
   }
 }
 
-/* ---- 4a'. the bumper pool table ---- */
+/* ---- 4a'''. the bumper pool table ---- */
 /* The same rails and cloth as the pool table, read from the same globals (CUSHION_POLYS: four
    rubbers meeting in mitres, no mouths; POCKETS and POCKET_R: the two cups in the bed; BUMPERS:
    the posts). Each cup is a round hole straight down through the cloth with a dark rubber liner
@@ -5516,7 +5535,7 @@ function drawLoupe(now, gi) {
   g.restore();
 }
 
-/* ---- 4f. the auto-aim hint ---- */
+/* ---- 4h. the auto-aim hint ---- */
 /* A recommendation, not a guide: while a human aims or has the ball in hand, hint ({ n, k })
    names a ball worth playing and, when k >= 0, the pocket for it. The ball gets a thin white ring
    a little out from its edge, breathing slowly (still under prefers-reduced-motion), and the
@@ -5623,7 +5642,7 @@ function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []], p
 let caromSide = -1;
 const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCush, side: caromSide = -caromSide });
 
-/* o: a career rack (6c) plays on its own terms instead of the settings: { level, table, pockets,
+/* o: a career rack (6d) plays on its own terms instead of the settings: { level, table, pockets,
    bumperTable, breaker (1: the CPU breaks) }; any other start ends the career match */
 function start(kind, o = null) {
   if (!o) career = null;
@@ -5778,7 +5797,7 @@ function dropBall() {
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function autoAim() {
   aimAnim = null; hint = null;
-  if (!settings.autoAim || state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6c) */
+  if (!settings.autoAim || state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6d) */
   const s = suggestAim(game), t = s && game.balls.find(b => b.n === s.n);
   if (!t) return;
   hint = { n: s.n, k: s.k };
@@ -5810,7 +5829,7 @@ function finish() {
   state = 'over'; stroke = null; pull = null; gest = null; paused = null;
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
-  if (!careerRackOver()) showOver();   /* a career rack: between racks, or the match result (6c) */
+  if (!careerRackOver()) showOver();   /* a career rack: between racks, or the match result (6d) */
   sfx('win', 1);
   hud();
 }
@@ -5939,8 +5958,8 @@ function concedeFrame() {
   snookerWords(v, p, game.turn);
   hud();
 }
-/* carom's banners and status line after a shot: a point and the score, else why there was none
-   (sfx('point') sounds once the audio has a voice for it) */
+/* carom's banners and status line after a shot: a point and the score (sfx('point'): its double
+   click and two haptic ticks), else why there was none */
 const NUMW = ['No', 'One', 'Two', 'Three'];
 const caromWhy = c => !c.balls.length ? 'No ball hit' : c.balls.length < 2 ? 'Only one ball' : `${NUMW[c.cushions] || c.cushions} cushion${c.cushions === 1 ? '' : 's'} before the second ball`;
 function caromWords(v, shooter, who) {
@@ -6053,7 +6072,8 @@ function think(now) {
    shoot() records every shot (shotRecord): the balls before it, the stroke, and the table it was
    played on; its prediction (camPredict, 3b) keeps the whole roll on the record (rec.track). When
    the balls come to rest frame() offers the replay (offerReplay): a small pill on the top rail for
-   REPLAY_OFFER_MS, gold and worded ("Nice bank. Replay?") for a notable shot (notableOf). It never
+   REPLAY_OFFER_MS, gold for a notable shot (notableOf: shotMoments' verdict, so it always agrees
+   with the callout, which names the moment; the pill only says Replay). It never
    plays by itself: the player taps it. A replay re-simulates the record with the same strike and
    stepTable into its own table (rp.tab), which draw() shows instead of the live one. game, tab and
    the turn are never touched, and the live game holds still (the CPU waits) until it ends. A
@@ -6065,41 +6085,24 @@ const REPLAY_OFFER_MS = 3500, REPLAY_NOTABLE_MS = 6500;
 const REPLAY_LEAD = 0.5;          /* s: the cue at address, drawn back, then through */
 const REPLAY_SLOW = 0.35, SLOW_IN = 0.09, SLOW_OUT = 0.12, SLOW_RAMP = 0.06;   /* sim s round each moment: 0.6 s at 0.35x */
 const REPLAY_GAIN = 0.45;         /* replay sounds, against live */
-const NOTABLE = { point: 'What a point. Replay?', bank: 'Nice bank. Replay?', kick: 'Nice kick. Replay?', combo: 'Nice combo. Replay?', long: 'Long pot. Replay?' };
 let rp = null, offer = null, eatUntil = 0, eatId = null;
 const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, TW, BALL_R].join();   /* snooker's size and every table's ball (BALL_R) too */
 /* the record of a shot about to be played: the stroke ({ angle, power, spin, ball }) and what it
    needs to be played again. The ball orientations ride along unlisted (for the replay's look). */
 function shotRecord(shot) {
   const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, snookerSize: SNOOKER_SIZE, ballR: BALL_R, geo: geoSig(), breakShot: !!game.breakShot, need: game.need, notable: null });
+  Object.defineProperty(rec, 'g', { value: copyGame(game) });   /* the game as it stood, for notableOf */
   Object.defineProperty(rec, 'orient', { value: Object.assign({}, orient) });
   camPred = camPredict(rec);
   return rec;
 }
-/* worth a replay: a pot after two or more cushions (the potted ball's, plus the cue ball's before
-   it hit anything: a bank or a kick), a combination (the potted ball first touched by another
-   object ball), or a pot from more than 70% of the table's length away. Never a break, never a
-   scratch. Carom: a point. res: resultOf the roll; rec: its record. Returns 'point', 'bank', 'kick',
-   'combo', 'long' or null. */
+/* worth a replay: the shot's best notable moment (NOTABLE_MOMENTS: a bank, a kick, a combo, two or
+   more pots, a long pot, a carom point), classified by shotMoments, the same call the callout and
+   the game-over sheet use, on the game as it stood (rec.g) and the roll's result (res). Returns
+   the moment's key or null. */
 function notableOf(res, rec) {
-  /* carom: nothing is potted; a point is the moment (the break too: scoring off it is rare) */
-  if (rec.kind === 'carom') return caromCount(res.seq || [], rec.need || 3).point && !res.potted.length ? 'point' : null;
-  const cue = rec.ball || 0, bumper = rec.kind === 'bumper';
-  if (rec.breakShot || (!bumper && res.potted.includes(cue))) return null;
-  const objs = res.potted.filter(n => bumper || n !== cue), kick = res.kick || 0;
-  for (const n of objs) {
-    const r = (res.rails && res.rails[n]) || 0;
-    if (r + (n === cue ? 0 : kick) >= 2) return r >= kick || n === cue ? 'bank' : 'kick';
-  }
-  for (const n of objs) {
-    const meet = (res.contacts || []).find(c => c.includes(n));
-    if (n !== cue && meet && !meet.includes(cue)) return 'combo';
-  }
-  for (const n of objs) {
-    const b = rec.balls.find(o => o.n === n), P = POCKETS[res.pocketOf[n]];
-    if (b && P && Math.hypot(P[0] - b.x, P[1] - b.y) > 0.7 * TL) return 'long';
-  }
-  return null;
+  if (!rec.g) return null;
+  return shotMoments(rec.g, res, judge(rec.g, res)).keys.find(k => NOTABLE_MOMENTS.includes(k)) || null;
 }
 /* the balls are at rest (frame(), after settle): offer the replay of the shot just played */
 function offerReplay(res) {
@@ -6108,11 +6111,12 @@ function offerReplay(res) {
   const nb = notableOf(res, rec);
   if (nb) { rec.notable = nb; felt.lastNotable = rec; }
   if (state !== 'aim' && state !== 'thinking') return;
-  if (solo && solo.kind === 'lesson') return;   /* the lesson (6c) offers no replay: its coach card is the focus */
+  if (solo && solo.kind === 'lesson') return;   /* the lesson (6d) offers no replay: its coach card is the focus */
   offer = { rec, notable: nb, until: performance.now() + (nb ? REPLAY_NOTABLE_MS : REPLAY_OFFER_MS) };
   replayBtn.toggleAttribute('data-notable', !!nb);
-  replayLab.textContent = nb ? NOTABLE[nb] : 'Replay';
-  replayBtn.setAttribute('aria-label', nb ? NOTABLE[nb] : 'Replay the last shot');
+  /* the callout over the table has already named the moment: the pill just says Replay, in gold */
+  replayLab.textContent = 'Replay';
+  replayBtn.setAttribute('aria-label', nb ? `Replay the ${momentWord(nb, rec.kind).toLowerCase()}` : 'Replay the last shot');
   replayBtn.hidden = false;
   placeReplay();
 }
@@ -6851,7 +6855,7 @@ function settleSolo() {
   tab = null;
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
-  if (solo.kind === 'lesson') { lessonSettle(r); return; }   /* the lesson (6c) */
+  if (solo.kind === 'lesson') { lessonSettle(r); return; }   /* the lesson (6d) */
   if (game.mode === 'practice') {
     game = practiceJudge(game, r);
     const v = game.verdict, st = solo.st;
@@ -6949,7 +6953,7 @@ function restartSolo() {
 function hudSolo() {
   const s = game.mode && solo ? solo : null, prc = !!s && s.kind === 'practice';
   soloCtl.hidden = !prc;
-  if (s && s.kind === 'lesson') { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson: no chip, the coach speaks (6c) */
+  if (s && s.kind === 'lesson') { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson: no chip, the coach speaks (6d) */
   tools.hidden = !(prc && s.tools && state === 'aim');
   toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
   editDone.hidden = !(prc && s.edit && state === 'aim');
@@ -7218,7 +7222,7 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
-/* ---- 6m. the menu's sheets. Home: Play again, the four games (each opens its setup), the solo
+/* ---- 6a. the menu's sheets. Home: Play again, the five games (each opens its setup), the solo
    row, Stats, Settings and How to play. Setup: the opponent (two players, named or not, or one
    of three CPU opponents), the table options that game has, Break. Every sheet goes back to the
    menu it came from (home, or the pause menu); so does Esc. ---- */
@@ -7345,9 +7349,9 @@ function coverView(w, h, kind, mode, obj, low) {
     k = wide ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = wide ? -0.02 : RAIL;
   } else {
     /* pool: only the cloth shows (no rail or pocket under the scrim), the rack a good part of the
-       card but clear of the words; carom's three balls, sparse, a little closer on a card */
+       card but clear of the words (on a strip of a card, beside the name: never behind a word); carom's three balls, sparse, a little closer on a card */
     const xs = obj.map(b => b.x), ys = obj.map(b => b.y), span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * BALL_R;
-    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' ? 1.5 : 1); e = -0.02;
+    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' && !wide ? 1.5 : 1); e = -0.02;
   }
   const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
   const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : w * 0.7) : w * 0.5, ty = wide ? h / 2 : Math.min(h * 0.42, free / 2 + 4);
@@ -7357,7 +7361,17 @@ function coverView(w, h, kind, mode, obj, low) {
     : { k, portrait: false, ox: fit(tx - fx * k, w, TL), oy: fit(ty - fy * k, h, TW), tray: null };
 }
 /* the scrim under a card's words, painted into the art so it is exactly what the words sit on */
-function paintScrim(x, W, H, mode) {
+function paintScrim(x, W, H, mode, band = 0) {
+  if (band) {
+    /* a strip whose picture fills it (bumper pool's posts and balls): the scrim rises from clear
+       to dark across the words' band (band: their top, as a fraction of the height) */
+    const g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, 'rgba(6,6,8,0)'); g.addColorStop(Math.max(0, band - 0.32), 'rgba(6,6,8,0)');
+    g.addColorStop(band, 'rgba(6,6,8,0.7)'); g.addColorStop(1, 'rgba(6,6,8,0.9)');
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    return;
+  }
   if (mode === 'hero') {
     /* the banner: dark under the words on the left, the cloth clear towards the play button */
     const g = x.createLinearGradient(0, 0, W, 0);
@@ -7385,7 +7399,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
     const g = newGame(kind), balls = g.balls.filter(b => b.on);
-    if (kind === 'carom' && mode !== 'fit') caromArt(balls);
+    if (kind === 'carom' && mode !== 'fit') caromArt(balls, mode === 'hero' || w > h * 1.6);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
@@ -7405,7 +7419,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     const rb = BALL_R * k * d, pos = balls.map(b => toScreen(b.x, b.y));
     for (const s of pos) drawShadow(s[0] * d, s[1] * d, rb);
     balls.forEach((b, i) => drawBall(b.n, pos[i][0] * d, pos[i][1] * d, rb, axesOf(artTilt(b.n))));
-    if (mode !== 'fit') paintScrim(x, cv.width, cv.height, mode);
+    if (mode !== 'fit') paintScrim(x, cv.width, cv.height, mode, kind === 'bumper' && mode === 'card' && w > h * 1.6 ? Math.max(0.2, (h - low - 6) / h) : 0);
   } finally {
     artCtx = null;
     view = keep.view; dpr = keep.dpr; RAIL = keep.RAIL;
@@ -7415,8 +7429,9 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
 
 /* carom's card: the three balls in play near the middle of the table, close up (its setup shows
    the start instead) */
-function caromArt(balls) {
-  const at = { 70: [0.497, 0.6], 71: [0.532, 0.66], 72: [0.52, 0.42] };
+function caromArt(balls, wide) {
+  /* a strip: a tight cluster, so the balls come up large above the words */
+  const at = wide ? { 70: [0.522, 0.445], 71: [0.549, 0.478], 72: [0.495, 0.472] } : { 70: [0.497, 0.6], 71: [0.532, 0.66], 72: [0.52, 0.42] };
   for (const b of balls) if (at[b.n]) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; }
 }
 
@@ -7581,7 +7596,7 @@ function cardOf(p) {
 const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : settings.names[p] ? settings.names[p].slice(0, 3) : `P${p + 1}`;
 /* the pause menu's card: the CPU goes by its opponent's name there */
 const cardName = p => cpuMode && p === 1 ? `${foeName()} (CPU)` : nameOf(p);
-/* the CPU opponent by name: a career player (6c), else the level's name */
+/* the CPU opponent by name: a career player (6d), else the level's name */
 const foeName = () => career ? careerFoe().name : FOES[cpuLevel];
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
@@ -7650,7 +7665,7 @@ function hud() {
   hudControls();
   hudSnooker();
 }
-/* ---- 6s. snooker's scoreboard: a slim bar on the top rail with the break, the ball on (its dot)
+/* ---- 6b. snooker's scoreboard: a slim bar on the top rail with the break, the ball on (its dot)
    and the points left, and a warning when the player to shoot needs snookers. The chips carry
    the scores. Hidden for every other game and on the home screen. ---- */
 /* the dots for what the player to shoot is on: a red, every colour on the table, or the one colour */
@@ -7756,10 +7771,10 @@ function overLine(g) {
   return `${who(w)} won: ${why}.`;
 }
 /* ---- 6c. shot moments: the callout over the table, and the game's numbers for the game-over
-   sheet. settle() calls noteShot after the judge: it classifies the shot (shotMoments, sim 1h)
+   sheet. settle() calls noteShot after the judge: it classifies the shot (shotMoments, sim 1i)
    against the shooter's visit so far, counts it, and calls out the best moment, unless the shot
    won the game (the game-over sheet shows that one). Routine pots say nothing. ---- */
-const NOTE_WORDS = { bank: 'Bank', kick: 'Kick', combo: 'Combo', long: 'Long pot', double: 'Double', triple: 'Triple', cleanBreak: 'Clean break',
+const NOTE_WORDS = { bank: 'Bank', kick: 'Kick', combo: 'Combo', long: 'Long pot', double: 'Double', triple: 'Triple', cleanBreak: 'Clean break', point: 'Point',
   golden: 'Golden break', runOut: 'Run out', breakRun: 'Break and run' };
 let calloutT = 0;
 function noteShot(g0, r, p) {
@@ -7773,7 +7788,8 @@ function noteShot(g0, r, p) {
   for (const k of m.keys) stats.notes[p][k] = (stats.notes[p][k] || 0) + 1;
   stats.visit = game.winner === null && game.turn === p && !v.foul ? vis : null;
   stats.last = m.keys; stats.lastP = p;
-  if (m.keys.length && game.winner === null) showCallout(MOMENT_WORDS[m.keys[0]]);
+  /* carom's point has its own banner (the score); everything else is called out */
+  if (m.keys.length && game.winner === null && g0.kind !== 'carom') showCallout(momentWord(m.keys[0], g0.kind));
   return m;
 }
 function showCallout(text) {
@@ -7805,10 +7821,13 @@ function placeCallout() {
   callout.style.left = (cx - st.left) + 'px'; callout.style.top = (y - st.top) + 'px';
 }
 /* a player's moments as words, best first: "Bank ×2, Combo" ('' for none) */
-const notesOf = p => MOMENTS.filter(k => stats.notes[p][k]).map(k => NOTE_WORDS[k] + (stats.notes[p][k] > 1 ? ' ×' + stats.notes[p][k] : ''));
-/* the game ball for the celebration: the 8, the 9, or the winner's colour at bumper pool */
+const notesOf = p => MOMENTS.filter(k => stats.notes[p][k]).map(k => (game.kind === 'snooker' && SNOOKER_WORDS[k] || NOTE_WORDS[k]) + (stats.notes[p][k] > 1 ? ' ×' + stats.notes[p][k] : ''));
+/* the game ball for the celebration: the 8, the 9, the winner's colour at bumper pool, snooker's
+   black, or the winner's own cue ball at carom (white or yellow) */
 function overBallOf(w) {
   if (game.kind === 'bumper') return ['ball ' + (w ? 'bw' : 'bb'), ''];
+  if (game.kind === 'snooker') return ['ball bsblk', ''];
+  if (game.kind === 'carom') return ['ball ' + (w ? 'bc' : 'bcue'), ''];
   return game.kind === '9' ? ['ball b9', '9'] : ['ball b8', '8'];
 }
 function showOver() {
@@ -7822,7 +7841,7 @@ function showOver() {
   overBall.className = cls; overBall.textContent = num;
   /* the winning shot's moments (a run out, a golden break...) as chips, the best in the accent */
   const top = w !== null && stats.lastP === w && game.verdict && game.verdict.why !== 'forced' ? stats.last : [];
-  overNotes.replaceChildren(...top.map((k, i) => { const li = document.createElement('li'); li.textContent = MOMENT_WORDS[k]; if (!i) li.className = 'top'; return li; }));
+  overNotes.replaceChildren(...top.map((k, i) => { const li = document.createElement('li'); li.textContent = momentWord(k, game.kind); if (!i) li.className = 'top'; return li; }));
   const row = (head, cells, isHead) => {
     const tr = document.createElement('tr'), th = document.createElement('th');
     th.textContent = head; tr.appendChild(th);
@@ -7875,7 +7894,7 @@ resumeBtn.addEventListener('click', () => resume());
 rematch.addEventListener('click', () => { audioOn(); start(game.kind); });
 overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); });
 
-/* ============ 6c. LESSON AND CAREER ============ */
+/* ============ 6d. LESSON AND CAREER ============ */
 /* ---- the lesson, "Learn to play": three short steps on one fixed layout, the 1 straight in to
    a corner pocket. A solo session (solo.kind 'lesson', game.mode 'practice': no fouls, no CPU,
    no auto aim) played with the ordinary controls; the lesson only watches, it never shoots (the
@@ -8290,7 +8309,7 @@ layout();
 randomOrient();
 hud();
 paintArt();
-/* a first run: the lesson is offered once (6c) */
+/* a first run: the lesson is offered once (6d) */
 maybeOfferLesson();
 requestAnimationFrame(frame);
 window.booted = true;

@@ -1,4 +1,4 @@
-/* snooker-check: snooker (sim 1i, page 5k and 6s). Node: the tables (12 ft and the compact 10 ft:
+/* snooker-check: snooker (sim 1j, page 5k and 6b). Node: the tables (12 ft and the compact 10 ft:
    bed, baulk line, D, spots, the 52.5 mm ball and back to pool's 2 1/4 in after a switch, the
    WPBSA-sized mouths with rounded jaws), the rack, the pockets against pool's regulation ones
    (firm straight pots drop, a line half a ball off the mouth's middle rattles out where pool's

@@ -9,6 +9,31 @@
 'use strict';
 const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
+/* the words laid over the home's art (hero and game cards): each line's colour against the art's
+   own pixels under it (the scrim is painted into the canvas), worst case at the 2nd percentile
+   so a stray anti-aliased speck does not decide it */
+const artContrast = page => page.evaluate(() => {
+  const rgba = c => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
+  const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const out = [];
+  for (const card of [againBtn, play8, play9, playB]) {
+    const cv = card.querySelector('.art'), cr = cv.getBoundingClientRect(), k = cv.width / cr.width, g = cv.getContext('2d');
+    for (const el of card.querySelectorAll('.tt small, .tt b')) {
+      const r = el.getBoundingClientRect();
+      if (!r.width || !el.getClientRects().length || getComputedStyle(el).display === 'none') continue;
+      const x = Math.max(0, Math.floor((r.left - cr.left) * k)), y = Math.max(0, Math.floor((r.top - cr.top) * k)), w = Math.min(cv.width - x, Math.ceil(r.width * k)), h = Math.min(cv.height - y, Math.ceil(r.height * k));
+      const d = g.getImageData(x, y, w, h).data, fg = rgba(getComputedStyle(el).color), rs = [];
+      for (let i = 0; i < d.length; i += 16) {
+        const bg = [d[i], d[i + 1], d[i + 2]], f = [0, 1, 2].map(j => fg[j] * fg[3] + bg[j] * (1 - fg[3])), a = lum(f), b = lum(bg);
+        rs.push((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05));
+      }
+      rs.sort((p, q) => p - q);
+      out.push({ id: card.id, text: el.textContent.slice(0, 20), r: +rs[Math.floor(rs.length * 0.02)].toFixed(2) });
+    }
+  }
+  return out;
+});
+
 (async () => {
   const { browser, page, errors, requests } = await open();
   await page.waitForTimeout(300);
@@ -18,12 +43,24 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
-  check('home: the three game tiles, the solo row and Stats, Settings, How to play; no Play again on a first run, no pause part',
-    await page.evaluate(() => [play8, play9, playB, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length) && againBtn.hidden
+  check('home: the hero, the three game cards, the solo list and Stats, Settings, How to play; no pause part',
+    await page.evaluate(() => [againBtn, play8, play9, playB, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
       && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
-  /* each game tile has its rack drawn at the device's pixels */
-  const art = await page.evaluate(() => [...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data; return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio), a: d[3] }; }));
-  check('home: every game tile shows its table, drawn at the device pixel ratio', art.length === 3 && art.every(a => a.ok && a.a === 255), JSON.stringify(art));
+  /* the hero shows on a first run too (the layout never collapses): it starts 8-ball's setup */
+  const first = await page.evaluate(() => ({ shown: !againBtn.hidden && againBtn.getBoundingClientRect().height >= 150, cap: againCap.textContent, sum: againSum.textContent, label: againBtn.getAttribute('aria-label') }));
+  check('home on a first run: the hero is there, "Start a game", 8-ball', first.shown && first.cap === 'Start a game' && first.sum === '8-ball' && first.label === 'Start a game: 8-ball', JSON.stringify(first));
+  /* the header: three round icon buttons, 44 px, each named for a screen reader, no visible words */
+  const hdr = await page.evaluate(() => [statsBtn, prefsBtn, helpBtn].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: r.width, h: r.height, round: parseFloat(getComputedStyle(b).borderTopLeftRadius) >= r.width / 2 - 0.5, text: b.textContent.trim() }; }));
+  check('home header: Stats, Settings, How to play are 44 px round icon buttons with aria-labels',
+    hdr.map(h => h.l).join() === 'Stats,Settings,How to play' && hdr.every(h => h.w >= 44 && h.h >= 44 && h.round && h.text === ''), JSON.stringify(hdr));
+  /* the solo list: one grouped container, a row each at least 44 px, stacked */
+  const rows = await page.evaluate(() => [pracBtn, trickBtn, dailyBtn].map(b => { const r = b.getBoundingClientRect(); return { t: Math.round(r.top), h: r.height, box: b.parentElement === soloRow }; }));
+  check('home solo list: Practice, Trick shots, Daily shot in one list, each row 44 px or more', rows.every(r => r.h >= 44 && r.box) && rows[0].t < rows[1].t && rows[1].t < rows[2].t, JSON.stringify(rows));
+  /* the hero and each game card have their rack drawn edge to edge at the device's pixels */
+  const art = await page.evaluate(() => [heroArt, ...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data, p = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect();
+    return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio) && c.height === Math.round(c.clientHeight * devicePixelRatio), a: d[3], bleed: Math.abs(r.width - p.width) < 1 && Math.abs(r.height - p.height) < 1 }; }));
+  check('home: the hero and every game card show their table edge to edge, drawn at the device pixel ratio', art.length === 4 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
+  check('home words over the art read at 4.5:1 on the cloth', (await artContrast(page)).every(c => c.r >= 4.5), JSON.stringify(await artContrast(page)));
   /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
   await page.click('#playB');
   const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent, pool: !!tb7.getClientRects().length }; }));
@@ -70,7 +107,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
       st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
       settings.last = '8'; relayout(); showMenu();
       await new Promise(r => setTimeout(r, 300));
-      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, dailyBtn, statsBtn, helpBtn].map(R);
+      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, pracBtn, dailyBtn, statsBtn, helpBtn].map(R);
       return { size: `${w}x${h}`, ins: ins.join(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth,
         inside: all.every(r => r.top >= ins[0] - 0.5 && r.bottom <= h - ins[2] + 0.5 && r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
     }, [ins, w, h]));
@@ -81,7 +118,13 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   const h390 = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: innerWidth }));
   check('home: no horizontal scroll at 390 px', h390.sw <= h390.w, JSON.stringify(h390));
   check('home at 390x844 with Play again: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
-  await page.evaluate(() => { document.getElementById('insets').remove(); settings.last = null; syncMenu(); });
+  await page.evaluate(() => setSetting('cloth', 'red'));
+  await page.waitForTimeout(100);
+  check('home at 390x844 on the red cloth: words over the art 4.5:1, text 4.5:1', (await artContrast(page)).every(c => c.r >= 4.5) && (await lowContrast(page)).length === 0, JSON.stringify([await artContrast(page), await lowContrast(page)]));
+  await page.setViewportSize({ width: 956, height: 440 });
+  await page.waitForTimeout(250);
+  check('home at 956x440 on the red cloth: words over the art 4.5:1, targets 44 px', (await artContrast(page)).every(c => c.r >= 4.5) && (await smallTargets(page)).length === 0, JSON.stringify([await artContrast(page), await smallTargets(page)]));
+  await page.evaluate(() => { setSetting('cloth', 'green'); document.getElementById('insets').remove(); settings.last = null; syncMenu(); });
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.waitForTimeout(200);
 

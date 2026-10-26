@@ -251,83 +251,129 @@ h1 i { font-style: normal; color: var(--signal); }
 .how dd { margin: 0; color: var(--muted); }
 kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 
-/* ---- the home screen: the menu with no game in progress. The brand, Play again (the last
-   setup, once there is one), the three games as tiles with their racks drawn on the chosen
-   cloth, the solo row, and Stats, Settings and How to play. It fits the screen without
-   scrolling on a phone either way up. ---- */
-#menu:not([data-paused]) { background: radial-gradient(110% 60% at 50% -8%, rgba(46, 140, 104, .26), transparent 70%), rgba(10, 10, 11, .9); }
-[data-cloth="red"] #menu:not([data-paused]) { background: radial-gradient(110% 60% at 50% -8%, rgba(176, 40, 48, .26), transparent 70%), rgba(10, 10, 11, .9); }
+/* ---- the home screen: the menu with no game in progress. One hero (Play again, or on a first
+   run a start on 8-ball) with the last game's table as its picture, the three games as cards whose
+   racks bleed to their edges, and a quiet grouped list for solo play. The wordmark leads the
+   header; Stats, Settings and How to play are three round glass icon buttons. One accent colour,
+   taken from the cloth. Upright it is a column; on its side the hero takes the left and the games
+   and the list share the right. It fits the screen without scrolling on a phone either way up. ---- */
+#menu:not([data-paused]) {
+  --accent: #3ddc84; --glow: 38, 150, 104; --gut: 20px;
+  --label: #f5f5f7; --label-2: rgba(235, 235, 245, .64); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
+  grid-template: minmax(100%, max-content) / minmax(0, 1fr);
+  padding: max(12px, var(--sat)) max(var(--gut), var(--sar)) max(16px, var(--sab)) max(var(--gut), var(--sal));
+  background: radial-gradient(130% 62% at 50% -6%, rgba(var(--glow), .3), rgba(var(--glow), .08) 46%, rgba(var(--glow), 0) 72%), #09090a;
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+[data-cloth="red"] #menu:not([data-paused]) { --accent: #ff8a7a; --glow: 186, 44, 52; }
 #menu[data-paused] .newgame, #menu:not([data-paused]) .pausePart { display: none; }
 .sheet.home { max-width: 560px; padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
-.newgame { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
-  grid-template-areas: "brand brand" "again again" "playlab playlab" "tiles tiles" "sololab sololab" "solos solos" "foot foot"; }
-.newgame > * { min-width: 0; margin-top: 12px; }
-.brand { grid-area: brand; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin: 0; }
-.brand h1 { font-size: 42px; }
-.brand .sub { font-size: 13px; }
-.newgame .sect { margin: 20px 0 0; }
+#menu:not([data-paused]) .sheet.home { display: grid; margin: 0 auto; align-self: stretch; animation: none; }
+.newgame { display: grid; align-self: center; min-width: 0; height: 100%; max-height: 900px; letter-spacing: -.005em;
+  grid-template: "brand" auto "hero" minmax(196px, 1fr) "playlab" auto "tiles" auto "sololab" auto "solos" auto / minmax(0, 1fr); }
+.newgame > * { min-width: 0; }
+/* the header: the wordmark, and three round glass buttons */
+.brand { grid-area: brand; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
+.brand h1 { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--label); }
+.brand h1 i { color: #e8483a; }
+.foot { display: flex; gap: 10px; }
+.nav { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--label);
+  background-color: #222225; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14), inset 0 1px 0 rgba(255, 255, 255, .07), 0 6px 16px rgba(0, 0, 0, .28); }
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .nav { background-color: rgba(255, 255, 255, .1); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); }
+}
+.nav svg { width: 22px; height: 22px; }
+.nav:hover { background-color: rgba(255, 255, 255, .16); }
+/* the hero: the last game's table edge to edge under a scrim (painted into the art), the setup in
+   words and a white Play capsule */
+.hero { grid-area: hero; position: relative; isolation: isolate; overflow: hidden; min-height: 0; display: flex; align-items: flex-end; margin-top: 16px; padding: 0;
+  border: 0; border-radius: 28px; text-align: left; color: #fff; background-color: #121214;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 22px 44px -18px rgba(0, 0, 0, .7); }
+.hero::after, .tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .13); pointer-events: none; }
+.hero .art, .tile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
+.hero .tt { display: grid; justify-items: start; min-width: 0; padding: 20px; }
+.hero small { font-size: 15px; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, .74); }
+.hero b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 2px; font-size: 24px; font-weight: 700; line-height: 1.17; letter-spacing: -.018em; }
+.hero .go { justify-self: start; width: max-content; display: inline-flex; align-items: center; gap: 7px; height: 44px; margin-top: 14px; padding: 0 22px 0 18px; border-radius: 22px; background-color: #fff; color: #0a0a0b;
+  font-size: 17px; font-weight: 600; letter-spacing: -.01em; box-shadow: 0 8px 20px rgba(0, 0, 0, .32); }
+.hero .go svg { width: 15px; height: 15px; }
+/* the games: three cards of one height, each rack bleeding to the edges, the name on the scrim */
+.newgame .sect { margin: 28px 0 12px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
 #playLab { grid-area: playlab; }
 #soloLab { grid-area: sololab; }
-.foot { grid-area: foot; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 20px; }
-.nav { min-height: 48px; min-width: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--line);
-  background: var(--panel); color: var(--text); font-size: 14px; font-weight: 600; white-space: nowrap; }
-.nav:hover { background: var(--panel-2); }
-.nav svg { width: 20px; height: 20px; flex: none; color: var(--muted); }
-/* Play again: the one bright thing on the home screen */
-.again { grid-area: again; display: flex; align-items: center; gap: 14px; min-height: 64px; margin-top: 16px; padding: 10px 14px 10px 12px; border: 0; border-radius: 18px; text-align: left; color: #fff;
-  background-color: var(--signal); background-image: linear-gradient(135deg, #c8402f, #a52b21); box-shadow: 0 10px 30px rgba(192, 57, 43, .25), inset 0 1px 0 rgba(255, 255, 255, .14); }
-.again[hidden] { display: none; }
-.again:hover { background-image: linear-gradient(135deg, #b93a2b, #962519); }
-.again .ball { width: 40px; height: 40px; font-size: 13px; }
-.again .tt { flex: 1; min-width: 0; }
-.again small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.again b { display: block; font-size: 16px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.again .go { width: 34px; height: 34px; flex: none; padding: 8px; border-radius: 50%; background: rgba(255, 255, 255, .18); }
-/* the game tiles: a canvas of the game's rack on the cloth, the name, a line on how it plays */
-.tiles { grid-area: tiles; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.tile { min-width: 0; display: flex; flex-direction: column; padding: 5px; border-radius: 18px; border: 1px solid var(--line); text-align: left; color: var(--text);
-  background-color: var(--panel-2); background-image: linear-gradient(rgba(255, 255, 255, .045), rgba(255, 255, 255, 0) 60%); transition: border-color .15s, transform .12s; }
-.tile:hover { border-color: #6b6b74; }
-.tile:active { transform: translateY(1px); }
-.tile .art { display: block; width: 100%; aspect-ratio: 3 / 4; border-radius: 13px; background: var(--bg); }
-.tile .tt { display: block; padding: 8px 6px 6px; }
-.tile b { display: block; font-size: 16px; line-height: 1.25; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tile small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* the solo row: practice, trick shots, the daily shot */
-.solos { grid-area: solos; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.solo { min-width: 0; min-height: 64px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 16px; border: 1px solid var(--line);
-  background: var(--panel-2); text-align: left; color: var(--text); }
-.solo:hover { border-color: #6b6b74; }
-.solo .ball { width: 30px; height: 30px; }
-.solo .tt { display: block; min-width: 0; max-width: 100%; }
-.solo b { display: block; font-size: 15px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.solo small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.solo.daily { border-color: #8a7536; background-image: linear-gradient(160deg, rgba(242, 201, 76, .1), rgba(242, 201, 76, 0) 60%); }
-.solo.daily.done { border-color: var(--line); }
-.solo .bstar { font-size: 15px; }
-/* a narrow phone: the tile words wrap rather than clip, the buttons tighten */
-@media (max-width: 400px) {
-  .tile b, .tile small, .solo b, .solo small { white-space: normal; }
+.tiles { grid-area: tiles; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; aspect-ratio: 3 / 4; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
+  text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
+.tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
+.tile b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
+.tile small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); }
+.tile b, .tile small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* narrow cards (a phone upright): the words a size down; narrower still, the name alone (it may
+   take two lines, standing on the same bottom edge as the others) */
+.tiles { container-type: inline-size; }
+@container (max-width: 420px) {
+  .tile .tt { padding: 0 11px 11px; }
   .tile b { font-size: 15px; }
-  .solo { padding: 10px; }
-  .nav { gap: 6px; padding: 0 6px; font-size: 13px; }
-  .nav svg { width: 18px; height: 18px; }
+  .tile small { font-size: 12px; letter-spacing: -.01em; }
 }
-/* side by side: the brand and the buttons share the top row, the tiles turn the table flat */
+@container (max-width: 380px) {
+  .tile .tt { padding: 0 11px 12px; }
+  .tile b { font-size: 16px; line-height: 1.15; white-space: normal; }
+  .tile small { display: none; }
+}
+/* press: a small give and a spring back */
+.hero, .tile, .nav { transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
+.hero:active, .tile:active, .nav:active { transform: scale(.97); transition-duration: .12s; transition-timing-function: ease-out; }
+/* solo: an inset grouped list, hairlines inset to the text, chevrons */
+.solos { grid-area: solos; display: grid; overflow: hidden; border-radius: 22px; background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px var(--hair); }
+.solo { position: relative; min-width: 0; min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 8px 14px 8px 16px; border: 0; border-radius: 0;
+  background-color: transparent; text-align: left; color: var(--label); transition: background-color .15s; }
+.solo + .solo::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.solo:hover { background-color: rgba(255, 255, 255, .04); }
+.solo:active { background-color: rgba(255, 255, 255, .09); transition-duration: 0s; }
+.solo .ic { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; color: var(--accent); background-color: rgba(255, 255, 255, .08); }
+.solo .ic svg { width: 20px; height: 20px; }
+.solo .tt { flex: 1; display: block; min-width: 0; }
+.solo b { display: block; font-size: 17px; font-weight: 500; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.solo small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acc { flex: none; display: flex; align-items: center; gap: 5px; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.acc svg { width: 16px; height: 16px; color: var(--accent); }
+.chev { flex: none; width: 15px; height: 15px; margin-left: -4px; color: var(--label-3); }
+/* the daily shot: a calendar leaf with today's date; a flame and the streak, or done today */
+.solo .cal { grid-template-rows: 9px 1fr; place-items: stretch; overflow: hidden; }
+.cal i { background-color: var(--accent); }
+.cal b { display: grid; place-items: center; font-size: 15px; font-weight: 700; line-height: 1; color: var(--label); font-variant-numeric: tabular-nums; }
+#dailyBtn .tick, #dailyBtn .flame, #dailyBtn[data-daily="new"] .acc { display: none; }
+#dailyBtn[data-daily="streak"] .flame, #dailyBtn[data-daily="done"] .tick { display: block; }
+/* opening: a short staggered rise (none with reduced motion) */
+@keyframes homeIn { from { opacity: 0; transform: translateY(10px); } }
+#menu.show:not([data-paused]) .newgame > * { animation: homeIn .22s cubic-bezier(.2, .8, .2, 1) both; }
+#menu.show:not([data-paused]) .newgame > .hero { animation-delay: .025s; }
+#menu.show:not([data-paused]) .newgame > #playLab, #menu.show:not([data-paused]) .newgame > .tiles { animation-delay: .05s; }
+#menu.show:not([data-paused]) .newgame > #soloLab, #menu.show:not([data-paused]) .newgame > .solos { animation-delay: .075s; }
+/* side by side: the hero on the left, the games over the list on the right */
 @media (orientation: landscape) and (min-width: 560px) {
-  .sheet.home { max-width: 940px; }
-  .newgame { grid-template-areas: "brand foot" "again again" "tiles tiles" "solos solos"; }
+  #menu:not([data-paused]) { --gut: 24px; }
+  #menu:not([data-paused]) .sheet.home { max-width: 1100px; }
+  .newgame { max-height: min(620px, 60vw); column-gap: 16px; grid-template: "brand brand" auto "hero tiles" minmax(0, 1fr) "hero solos" auto / minmax(0, 4fr) minmax(0, 5fr); }
   .newgame .sect { display: none; }
-  .foot { display: flex; margin: 0; }
-  .brand h1 { font-size: 36px; }
-  .again { margin-top: 14px; }
-  .tile .art { aspect-ratio: 2.25 / 1; }
-  .solo { flex-direction: row; align-items: center; gap: 12px; }
+  .tiles { margin-top: 16px; }
+  .tile { aspect-ratio: auto; }
+  .solos { margin-top: 12px; }
+  .solo { min-height: 52px; gap: 12px; padding-block: 6px; }
+  .solo b { font-size: 16px; }
+  .solo small { font-size: 12px; }
+  .solo + .solo::before { left: 60px; }
 }
-@media (orientation: landscape) and (max-height: 400px) {
-  .again { min-height: 56px; padding-block: 6px; }
-  .tile .art { aspect-ratio: 2.6 / 1; }
-  .newgame > * { margin-top: 10px; }
+/* a short phone upright: no section titles, tighter rhythm, so it still fits */
+@media (orientation: portrait) and (max-height: 740px) {
+  .newgame .sect { display: none; }
+  .tiles { margin-top: 16px; }
+  .solos { margin-top: 12px; }
+  .solo { min-height: 56px; }
+}
+@media (orientation: landscape) and (min-width: 1100px) {
+  .newgame { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); max-height: min(600px, 100%); }
 }
 
 /* ---- the pause menu: the game (or the solo session), Resume, then four actions ---- */
@@ -425,7 +471,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 }
 @media (prefers-reduced-motion: reduce) {
   .overlay.show .sheet { animation: none; }
-  .tile, .tile:active { transition: none; transform: none; }
+  .hero, .tile, .nav, .hero:active, .tile:active, .nav:active { transition: none; transform: none; }
+  #menu.show:not([data-paused]) .newgame > * { animation: none; }
 }
 /* game over */
 .kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
@@ -570,14 +617,17 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       </div>
     </div>
     <div class="newgame">
-      <header class="brand"><h1 id="menuTitle">felt<i>.</i></h1><p class="sub">8-ball, 9-ball and bumper pool</p></header>
-      <nav class="foot" aria-label="More">
-        <button class="nav" id="statsBtn"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="4" y="12" width="4" height="8" rx="1.2"/><rect x="10" y="6" width="4" height="14" rx="1.2"/><rect x="16" y="9" width="4" height="11" rx="1.2"/></svg><span>Stats</span></button>
-        <button class="nav" id="prefsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg><span>Settings</span></button>
-        <button class="nav" id="helpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg><span>How to play</span></button>
-      </nav>
-      <button class="again" id="againBtn" hidden><span class="ball b8" id="againBall" aria-hidden="true">8</span><span class="tt"><small>Play again</small><b id="againSum"></b></span><svg class="go" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></button>
-      <h2 class="sect" id="playLab">Play</h2>
+      <header class="brand"><h1 id="menuTitle">felt<i>.</i></h1>
+        <nav class="foot" aria-label="More">
+          <button class="nav" id="statsBtn" aria-label="Stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 19.5v-6M12 19.5v-15M18 19.5v-10"/></svg></button>
+          <button class="nav" id="prefsBtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9.5M18.5 7H20M4 17h1.5M10.5 17H20"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg></button>
+          <button class="nav" id="helpBtn" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r=".4" fill="currentColor"/></svg></button>
+        </nav>
+      </header>
+      <button class="hero" id="againBtn"><canvas class="art" id="heroArt" aria-hidden="true"></canvas>
+        <span class="tt"><small id="againCap">Play again</small><b id="againSum">8-ball</b>
+          <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play</span></span></button>
+      <h2 class="sect" id="playLab">Games</h2>
       <div class="tiles" id="playRow" role="group" aria-labelledby="playLab">
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
         <button class="tile" id="play9" data-kind="9"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span></button>
@@ -585,9 +635,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
-        <button class="solo" id="pracBtn"><span class="ball bcue" aria-hidden="true"></span><span class="tt"><b>Practice</b><small>No fouls, undo</small></span></button>
-        <button class="solo" id="trickBtn"><span class="ball bstar" aria-hidden="true">&#9733;</span><span class="tt"><b>Trick shots</b><small id="trickSum">14 challenges</small></span></button>
-        <button class="solo daily" id="dailyBtn"><span class="ball bday" id="dailyBall" aria-hidden="true">1</span><span class="tt"><b>Daily shot</b><small id="dailySum">New every day</small></span></button>
+        <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>No fouls, undo</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="solo" id="trickBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Trick shots</b><small id="trickSub">14 challenges</small></span><span class="acc"><svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg><span id="trickSum">0 of 42</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="solo daily" id="dailyBtn"><span class="ic cal" aria-hidden="true"><i></i><b id="dailyBall">1</b></span><span class="tt"><b>Daily shot</b><small id="dailyName">New every day</small></span><span class="acc" id="dailyAcc"><svg class="flame" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12.8 1.8c.4 3.6 5.7 5.9 5.7 12.2a6.5 6.5 0 0 1-13 0c0-2.7 1.1-4.7 2.7-6.3.1 2.2.9 3.6 2.1 4.2-.7-4 .4-7.4 2.5-10.1zM12 19.4a2.4 2.4 0 0 0 2.4-2.5c0-1.6-1.3-2.6-2-4.3-.8 1.5-2.7 2.6-2.7 4.4a2.4 2.4 0 0 0 2.3 2.4z"/></svg><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg><span id="dailySum"></span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
     </div>
   </div>
@@ -5205,12 +5255,19 @@ function hudSoloMenu() {
   }
   return true;
 }
-/* syncMenu() calls this: the solo tiles on the home screen say where you are */
+/* syncMenu() calls this: the solo list on the home screen says where you are. Trick shots: the
+   stars won of all there are. The daily shot: today's date on its calendar leaf, the day's shot by
+   name, and on the right a flame with the streak, or Done today once it is played. */
 function syncSoloMenu() {
-  trickSum.textContent = starTotal() ? `${starTotal()} of ${TRICKS.length * 3} stars` : `${TRICKS.length} challenges`;
+  const stars = starTotal(), all = TRICKS.length * 3;
+  trickSub.textContent = `${TRICKS.length} challenges`;
+  trickSum.textContent = `${stars} of ${all}`;
+  trickBtn.setAttribute('aria-label', `Trick shots: ${TRICKS.length} challenges, ${stars} of ${all} stars`);
   const day = today(), s = dailyStreak(day), done = dailyDone(day);
   dailyBall.textContent = String(+day.slice(8));
-  dailySum.textContent = done ? `Streak ${s}, done` : s ? `Streak ${s}` : 'New every day';
+  dailyName.textContent = dailyTrick(day).title;
+  dailySum.textContent = done ? 'Done today' : s ? String(s) : '';
+  dailyBtn.dataset.daily = done ? 'done' : s ? 'streak' : 'new';
   dailyBtn.classList.toggle('done', done);
   dailyBtn.setAttribute('aria-label', `Daily shot, ${dayWords(day)}: ${dailyTrick(day).title}. ` + (done ? `Played today, day streak ${s}.` : s ? `Day streak ${s}: play today to keep it.` : 'A new shot every day.'));
 }
@@ -5388,7 +5445,7 @@ function showMenu() {
   menu.scrollTop = 0;
   syncMenu();
   paintArt();
-  if (byKeys) (paused ? resumeBtn : !againBtn.hidden ? againBtn : play8).focus({ preventScroll: true });
+  if (byKeys) (paused ? resumeBtn : againBtn).focus({ preventScroll: true });
 }
 function hideOverlays() {
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo(); closeSheets();
@@ -5429,16 +5486,14 @@ function setupWords(kind) {
   const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon') : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '');
   return KINDS[kind].name + who + ', ' + tb;
 }
-/* the home screen's Play again card and the setup's records against each CPU opponent */
+/* the home screen's hero and the setup's records against each CPU opponent. The hero is Play
+   again (the last setup in words) once there is one; on a first run it starts 8-ball's setup. */
 function syncHome() {
-  const last = settings.last;
-  againBtn.hidden = !last;
-  if (last) {
-    const w = setupWords(last);
-    if (againSum.textContent !== w) againSum.textContent = w;
-    againBall.className = 'ball ' + KINDS[last].ball; againBall.textContent = KINDS[last].num;
-    againBtn.setAttribute('aria-label', 'Play again: ' + w);
-  }
+  const last = settings.last, w = last ? setupWords(last) : KINDS[8].name, cap = last ? 'Play again' : 'Start a game';
+  if (againSum.textContent !== w) againSum.textContent = w;
+  if (againCap.textContent !== cap) againCap.textContent = cap;
+  againBtn.dataset.kind = last || '8';
+  againBtn.setAttribute('aria-label', last ? 'Play again: ' + w : 'Start a game: 8-ball');
   for (const [lv, el] of [['easy', wlEasy], ['medium', wlMedium], ['hard', wlHard]]) {
     const r = rec.kinds[setupKind].cpu[lv], t = r.w + r.l ? `${r.w} won, ${r.l} lost` : '';
     if (el.textContent !== t) el.textContent = t;
@@ -5495,14 +5550,47 @@ const GEO = { setTable, setPockets };
 const artTilt = n => rotate(rotate(IDENT, [0, 0, 1], (n * 2.39) % 6.28), [1, 0.2, 0], 0.32);
 function paintArt() {
   if (state !== 'menu' || paused) return;
-  const list = [...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind]);
-  if (setupSheet.classList.contains('show')) list.push([setupArt, setupKind]);
-  for (const [cv, kind] of list) paintRack(cv, kind);
+  const words = b => b.querySelector('.tt').offsetHeight;
+  const list = [[heroArt, againBtn.dataset.kind || '8', 'hero', words(againBtn)], ...[...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)])];
+  if (setupSheet.classList.contains('show')) list.push([setupArt, setupKind, 'fit', 0]);
+  for (const [cv, kind, mode, low] of list) paintRack(cv, kind, mode, low);
 }
-function paintRack(cv, kind) {
+/* the home's pictures cover their card (no letterbox), zoomed in on the rack and placed where the
+   words are not: a view whose table, rails included, always reaches past every edge */
+function coverView(w, h, kind, mode, obj, low) {
+  const bump = kind === 'bumper', up = !bump && h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL;
+  /* the room above the words (low: their height in CSS px): the rack sits in the middle of it */
+  const free = Math.max(h * 0.3, h - low - 8);
+  let k, e;
+  if (bump) {
+    /* the octagon lies across a card whole (a tall card zooms in a little), its rows of balls above
+       the words; the hero is all cloth and balls */
+    k = mode === 'hero' ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = mode === 'hero' ? -0.02 : RAIL;
+  } else {
+    /* pool: only the cloth shows (no rail or pocket under the scrim), the rack a good part of the
+       card but clear of the words */
+    const xs = obj.map(b => b.x), ys = obj.map(b => b.y), span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * BALL_R;
+    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, Math.min(w * (mode === 'hero' ? 0.36 : 0.56), h * 0.36, free * 0.78) / span); e = -0.02;
+  }
+  const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
+  const tx = w * (mode === 'hero' && !up ? 0.64 : 0.5), ty = Math.min(h * 0.42, free / 2 + 4);
+  /* keep the edge e (metres past the cloth: the rail, or just inside the cushions) outside the card */
+  const fit = (o, size, len) => { const lo = size - (len + e) * k, hi = e * k; return lo > hi ? (bump ? o : (lo + hi) / 2) : clamp(o, lo, hi); };
+  return up ? { k, portrait: true, ox: fit(tx - fy * k, w, TW), oy: fit(ty - (TL - fx) * k, h, TL), tray: null }
+    : { k, portrait: false, ox: fit(tx - fx * k, w, TL), oy: fit(ty - fy * k, h, TW), tray: null };
+}
+/* the scrim under a card's words, painted into the art so it is exactly what the words sit on */
+function paintScrim(x, W, H, mode) {
+  const g = x.createLinearGradient(0, 0, 0, H), from = mode === 'hero' ? 0.34 : 0.4, top = mode === 'hero' ? 0.86 : 0.84;
+  for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(from + (1 - from) * u, `rgba(6,6,8,${(top * u * u * (3 - 2 * u)).toFixed(3)})`); }
+  if (from > 0) g.addColorStop(0, 'rgba(6,6,8,0)');
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+}
+function paintRack(cv, kind, mode = 'fit', low = 0) {
   const w = cv.clientWidth, h = cv.clientHeight, d = pixelRatio();
   if (!w || !h) return;
-  const key = [kind, w, h, d, settings.cloth, settings.table, settings.pockets, settings.bumperTable].join();
+  const key = [kind, mode, low, w, h, d, settings.cloth, settings.table, settings.pockets, settings.bumperTable].join();
   if (cv.dataset.key === key) return;
   cv.dataset.key = key;
   cv.width = Math.round(w * d); cv.height = Math.round(h * d);
@@ -5514,10 +5602,14 @@ function paintRack(cv, kind) {
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
-    const k = kind === 'bumper' ? fit : Math.min(up ? w / W : h / H, fit * 1.7), span = (up ? h : w) / k;
-    const obj = balls.filter(b => b.n > 0), mid = obj.reduce((a, b) => a + b.x, 0) / Math.max(1, obj.length);
-    const c = kind === 'bumper' || span >= TL + 2 * RAIL ? TL / 2 : clamp(mid, span / 2 - RAIL, TL + RAIL - span / 2);
-    view = up ? { k, portrait: true, ox: w / 2 - TW / 2 * k, oy: h / 2 - (TL - c) * k, tray: null } : { k, portrait: false, ox: w / 2 - c * k, oy: h / 2 - TW / 2 * k, tray: null };
+    const obj = balls.filter(b => b.n > 0);
+    if (mode !== 'fit') view = coverView(w, h, kind, mode, obj, low);
+    else {
+      const k = kind === 'bumper' ? fit : Math.min(up ? w / W : h / H, fit * 1.7), span = (up ? h : w) / k, mid = obj.reduce((a, b) => a + b.x, 0) / Math.max(1, obj.length);
+      const c = kind === 'bumper' || span >= TL + 2 * RAIL ? TL / 2 : clamp(mid, span / 2 - RAIL, TL + RAIL - span / 2);
+      view = up ? { k, portrait: true, ox: w / 2 - TW / 2 * k, oy: h / 2 - (TL - c) * k, tray: null } : { k, portrait: false, ox: w / 2 - c * k, oy: h / 2 - TW / 2 * k, tray: null };
+    }
+    const k = view.k;
     const x = cv.getContext('2d');
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.drawImage(drawTableImage(cv.width, cv.height), 0, 0);
@@ -5525,6 +5617,7 @@ function paintRack(cv, kind) {
     const rb = BALL_R * k * d, pos = balls.map(b => toScreen(b.x, b.y));
     for (const s of pos) drawShadow(s[0] * d, s[1] * d, rb);
     balls.forEach((b, i) => drawBall(b.n, pos[i][0] * d, pos[i][1] * d, rb, axesOf(artTilt(b.n))));
+    if (mode !== 'fit') paintScrim(x, cv.width, cv.height, mode);
   } finally {
     artCtx = null;
     view = keep.view; dpr = keep.dpr; RAIL = keep.RAIL;
@@ -5613,7 +5706,7 @@ play8.addEventListener('click', () => showSetup('8'));
 play9.addEventListener('click', () => showSetup('9'));
 playB.addEventListener('click', () => showSetup('bumper'));
 breakBtn.addEventListener('click', () => playSetup(setupKind));
-againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); });
+againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); else showSetup('8'); });
 for (const [i, el] of [[0, name1], [1, name2]]) {
   el.addEventListener('input', () => { const n = settings.names.slice(); n[i] = cleanName(el.value); setSetting('names', n); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });

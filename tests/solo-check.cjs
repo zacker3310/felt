@@ -133,8 +133,9 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   const { browser, page, errors } = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
     init: () => { try { localStorage.removeItem('felt.tricks'); } catch (e) { } } });
   await page.evaluate(() => { felt.speed = 40; });
-  const sz = await page.evaluate(() => [pracBtn, trickBtn, play8].map(b => { const r = b.getBoundingClientRect(); return [r.top, r.height]; }));
-  check('menu: Play (8-ball, 9-ball) then Solo (Practice, Trick shots), each card 44 px or more', sz[0][0] > sz[2][0] && sz[0][0] === sz[1][0] && sz.every(s => s[1] >= 44), JSON.stringify(sz));
+  const sz = await page.evaluate(() => [pracBtn, trickBtn, dailyBtn, play8].map(b => { const r = b.getBoundingClientRect(); return [r.top, r.height]; }));
+  check('menu: the games, then the solo list under them (Practice, Trick shots, Daily shot, one row each), every row 44 px or more',
+    sz[0][0] > sz[3][0] + sz[3][1] && sz[0][0] < sz[1][0] && sz[1][0] < sz[2][0] && sz.every(s => s[1] >= 44), JSON.stringify(sz));
   await page.tap('#pracBtn');
   const pick = await page.evaluate(() => ({ shown: prac.classList.contains('show'), n: prac.querySelectorAll('.pick .game').length }));
   check('Practice opens its picker: 8-ball rack, 9-ball rack, free table, empty table', pick.shown && pick.n === 4, JSON.stringify(pick));
@@ -282,7 +283,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await b2.page.tap('#trickBtn');
   const card = await b2.page.evaluate(() => document.querySelector('.tcard[data-id="long"] .stars').getAttribute('aria-label'));
   check('progress persists across a reload (unknown ids and bad values dropped); the menu and the list show it',
-    JSON.stringify(pr.best) === JSON.stringify({ long: 3, stun: 2 }) && pr.sum === `5 of ${S.TRICKS.length * 3} stars` && card === '3 of 3 stars', JSON.stringify({ pr, card }));
+    JSON.stringify(pr.best) === JSON.stringify({ long: 3, stun: 2 }) && pr.sum === `5 of ${S.TRICKS.length * 3}` && card === '3 of 3 stars', JSON.stringify({ pr, card }));
   check('no console errors after the reload', b2.errors.length === 0, b2.errors.join(' | '));
   await b2.browser.close();
 
@@ -298,14 +299,16 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('daily shot: the same date always gives the same shot; fourteen days in a row give all fourteen, never the same two days running',
     dpick.again === dpick.ids[2] && new Set(dpick.ids).size === S.TRICKS.length && dpick.ids.every((id, i) => !i || id !== dpick.ids[i - 1]) && dpick.leap[0] !== dpick.leap[1], JSON.stringify(dpick));
   await dp.evaluate(() => { felt.speed = 40; felt.today = '2026-10-25'; syncMenu(); });
-  const tile0 = await dp.evaluate(() => ({ sum: dailySum.textContent, ball: dailyBall.textContent }));
+  const tile0 = await dp.evaluate(() => ({ sum: dailySum.textContent, ball: dailyBall.textContent, name: dailyName.textContent, st: dailyBtn.dataset.daily }));
   const dIdle = () => dp.waitForFunction(() => felt.state === 'over', null, { timeout: 30000 });
   const solve = () => dp.evaluate(() => { const s = TRICK_SOLS[felt.solo.id]['7r']; felt.shoot(s[0], s[1], { x: s[2], y: s[3] }); });
   const miss = () => dp.evaluate(() => { const s = TRICK_SOLS[felt.solo.id]['7r']; felt.shoot(s[0] + Math.PI, 0.12, 0); });
   await dp.tap('#dailyBtn');
   await dp.waitForTimeout(100);
   const d0 = await dp.evaluate(() => ({ id: felt.game.trick, want: felt.dailyTrick('2026-10-25'), day: felt.solo.daily.day, mode: felt.game.mode }));
-  check('daily shot: the tile shows the day of the month; it starts the day\'s trick shot', tile0.ball === '25' && tile0.sum === 'New every day' && d0.id === d0.want && d0.day === '2026-10-25' && d0.mode === 'trick', JSON.stringify({ tile0, d0 }));
+  const want25 = await dp.evaluate(() => dailyTrick('2026-10-25').title);
+  check('daily shot: the row shows the day of the month on its calendar leaf and the day\'s shot by name, no streak yet; it starts that trick shot',
+    tile0.ball === '25' && tile0.sum === '' && tile0.st === 'new' && tile0.name === want25 && d0.id === d0.want && d0.day === '2026-10-25' && d0.mode === 'trick', JSON.stringify({ tile0, d0, want25 }));
   await solve(); await dIdle();
   const d1 = await dp.evaluate(() => ({ t: felt.lastTrick, rec: felt.dailyRec, kind: trickKind.textContent, why: trickWhy.textContent, next: trickNext.textContent, ls: JSON.parse(localStorage.getItem('felt.daily.v1')) }));
   check('daily shot: the first try is scored (streak 1, stored) and the result says so; its sheet goes Home',
@@ -316,28 +319,28 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   const d2 = await dp.evaluate(() => ({ t: felt.lastTrick, rec: felt.dailyRec, why: trickWhy.textContent }));
   check('daily shot: a retry the same day is practice: the streak stays 1', !d2.t.ok && !d2.t.daily.counted && d2.rec.streak === 1 && d2.rec.made && /Practice/.test(d2.why), JSON.stringify(d2));
   await dp.tap('#trickNext');
-  const d3 = await dp.evaluate(() => ({ s: felt.state, solo: felt.solo, home: menu.classList.contains('show') && !document.querySelector('#menu[data-paused]'), sum: dailySum.textContent }));
-  check('Home from the daily result: the home screen, the tile says done with the streak', d3.s === 'menu' && d3.solo === null && d3.home && d3.sum === 'Streak 1, done', JSON.stringify(d3));
+  const d3 = await dp.evaluate(() => ({ s: felt.state, solo: felt.solo, home: menu.classList.contains('show') && !document.querySelector('#menu[data-paused]'), sum: dailySum.textContent, st: dailyBtn.dataset.daily, tick: getComputedStyle(dailyBtn.querySelector('.tick')).display, label: dailyBtn.getAttribute('aria-label') }));
+  check('Home from the daily result: the home screen, the row says Done today with a tick (the streak in its label)', d3.s === 'menu' && d3.solo === null && d3.home && d3.sum === 'Done today' && d3.st === 'done' && d3.tick !== 'none' && /day streak 1/.test(d3.label), JSON.stringify(d3));
   await dp.tap('#dailyBtn');
   await solve(); await dIdle();
   const d4 = await dp.evaluate(() => ({ t: felt.lastTrick, rec: felt.dailyRec }));
   check('daily shot: played again the same day from home, still practice', !d4.t.daily.counted && d4.rec.streak === 1, JSON.stringify(d4));
   /* the next day: the streak grows, even on a miss */
   await dp.evaluate(() => { felt.today = '2026-10-26'; quitToHome(); });
-  const tile1 = await dp.evaluate(() => dailySum.textContent);
+  const tile1 = await dp.evaluate(() => dailySum.textContent + '/' + dailyBtn.dataset.daily + '/' + getComputedStyle(dailyBtn.querySelector('.flame')).display);
   await dp.tap('#dailyBtn');
   const id26 = await dp.evaluate(() => felt.game.trick);
   await miss(); await dIdle();
   const d5 = await dp.evaluate(() => ({ t: felt.lastTrick, rec: felt.dailyRec }));
-  check('the next day: a new shot, and its first try (a miss) grows the streak to 2', tile1 === 'Streak 1' && id26 !== d0.id && d5.t.daily.counted && d5.rec.streak === 2 && d5.rec.best === 2 && !d5.rec.made, JSON.stringify({ tile1, d5 }));
+  check('the next day: a new shot, and its first try (a miss) grows the streak to 2', tile1 === '1/streak/block' && id26 !== d0.id && d5.t.daily.counted && d5.rec.streak === 2 && d5.rec.best === 2 && !d5.rec.made, JSON.stringify({ tile1, d5 }));
   /* a missed day: the streak has lapsed, and the next scored try starts it at 1 */
   await dp.evaluate(() => { felt.today = '2026-10-28'; quitToHome(); });
-  const tile2 = await dp.evaluate(() => ({ sum: dailySum.textContent, now: felt.dailyRec.streakNow }));
+  const tile2 = await dp.evaluate(() => ({ sum: dailySum.textContent, st: dailyBtn.dataset.daily, now: felt.dailyRec.streakNow }));
   await dp.tap('#dailyBtn');
   await solve(); await dIdle();
   const d6 = await dp.evaluate(() => felt.dailyRec);
   check('after a missed day the streak has lapsed (the tile says so) and the next try starts it again at 1; the best stays 2',
-    tile2.sum === 'New every day' && tile2.now === 0 && d6.streak === 1 && d6.best === 2 && d6.last === '2026-10-28', JSON.stringify({ tile2, d6 }));
+    tile2.sum === '' && tile2.st === 'new' && tile2.now === 0 && d6.streak === 1 && d6.best === 2 && d6.last === '2026-10-28', JSON.stringify({ tile2, d6 }));
   await dp.evaluate(() => { localStorage.setItem('felt.daily.v1', '{bad json'); localStorage.setItem('felt.record.v1', '{"v":1,"kinds":{"8":{"played":-3,"cpu":{"easy":{"w":"x"}}}},"streak":2.5}'); });
   await dp.reload();
   await dp.waitForFunction(() => window.booted === true);

@@ -4270,6 +4270,9 @@ const felt = window.felt = {
   get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
   get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
+  /* the aim feel (section 5 input): the sweep gain radius and tap reach in CSS px, and the tuning */
+  get sweepR() { return sweepR(); }, get tapReach() { return tapReach(); },
+  get aimFeel() { return { SWEEP_R, GAIN_SLOW, V_SLOW, V_FAST, V_RISE, V_TAU, HOLD_MS, HOLD_SLOP, LIFT_MS, LIFT_PX, PRE_MS, PRE_PX, WHEEL_SLOW, WHEEL_FAST, WV_SLOW, WV_FAST }; },
   get hint() { return hint; }, get handAimed() { return handAimed; }, get moving() { return !!move; }, get placeAt() { return placeAt; },
   /* ball in hand: move the cue ball to (x, y) as a finished move would (a no-op when the spot is
      illegal); true when it went there */
@@ -4569,6 +4572,8 @@ function say(t) { if (msg.textContent !== t) msg.textContent = t; }
 function pause() {
   if (state === 'menu' || state === 'over') return;
   cancelGestures();
+  /* an auto-aim swing in flight lands first: left to stepAutoAim it would stop half way */
+  finishAutoAim();
   paused = { state, at: performance.now() };
   state = 'menu';
   showMenu();
@@ -4634,18 +4639,35 @@ function think(now) {
 /* ---- input ----
    One grammar for mouse and touch. The table only aims; the power bar is the only pointer
    control that shoots (owner's rule: no pull-back anywhere on the screen but the meter).
-   - tap or click on the table: aim at that spot. A press is a tap while it moves less than
-     TAP_SLOP, or when it is let go within TAP_MS having moved less than TAP_MAX.
+   - tap or click on the table: aim at that spot; a tap on an object ball (within tapReach()
+     of its centre) aims at its centre, a full-ball line. A press is a tap while it moves less
+     than TAP_SLOP, or when it is let go within TAP_MS having moved less than TAP_MAX; while
+     it still could be, the sweep waits (maybeTap) and then catches up, so the line never
+     sweeps and then snaps to the tap. A press held still for HOLD_MS and then moved more
+     than HOLD_SLOP is a sweep, never a tap, so a slow deliberate nudge fine-tunes the line
+     instead of re-aiming at the finger.
    - any drag on the table, from anywhere (the cue ball too), in any direction: sweep. The cue
-     follows the finger round the cue ball 1:1: the aim turns by the angle the finger has
-     turned about the cue ball since the press (so a quick circle swings it right round).
-     Within sweepDead() of the cue ball, where that angle is all noise, the aim holds still.
+     turns with the finger round the cue ball (sweepTurn): far from it (beyond sweepR(), about
+     a third of the table's short side on screen) by the angle the finger turns, 1:1, so a big
+     circle swings it right round; nearer, by the finger's tangential motion over sweepR(), so
+     the gain never explodes as the finger nears the ball (a move straight across it turns
+     nothing). Then precision by speed: the turn is scaled by sweepGain(v), from GAIN_SLOW for
+     a finger slower than V_SLOW px/ms up to 1 at V_FAST and over, on the finger speed since
+     the press, smoothed (fingerSpeed: up within V_RISE ms, down over V_TAU ms). A slow,
+     deliberate drag nudges the line by fractions of a degree; a normal swipe is 1:1 and never
+     lags. A mouse is precise already: it gets the near-ball cap but no speed gain.
+     Lift-off (fingers): a finger let go after resting (under PRE_PX in the PRE_MS before the
+     last LIFT_MS) that then moved under LIFT_PX is lift jitter: the aim from before it is
+     restored (liftAim). The fine-aim wheel does the same.
      A sweep never shoots, however long, fast or backward it is.
    - the power bar (the pull-back meter): press and drag along it. Nothing happens until it
      has gone its arm distance; then it arms (pull = { kind: 'bar' }, so the cue draws back on
      the table) with power from 0 at the arm point to 1 near the far end. Let go to shoot.
      Back past the start or off the bar sideways cancels; a gesture that never armed never shoots.
-   - the fine-aim wheel beside the power bar: rolled, it turns the aim WHEEL_RATE per px.
+   - the fine-aim wheel beside the power bar: rolled, it turns the aim wheelRate(v) per px:
+     WHEEL_SLOW (0.005 deg) rolled slowly, up to WHEEL_FAST (0.024 deg) at speed.
+   - a press on the power bar or the wheel while a finger rests on the table (a thumb, a palm)
+     takes over: the table gesture ends where it is and the control works.
    - mouse hover aims, but only over the bed and never while the aim is locked: a fine
      adjustment (arrows, a sweep, the wheel, auto aim) locks it until the pointer travels LOCK_PX or clicks.
      When the pointer leaves the bed the aim goes back to where the pointer last rested, so a
@@ -4677,11 +4699,63 @@ function nearCue(e) {
   return c.on && Math.hypot(e.clientX - s[0], e.clientY - s[1]) < grabR();
 }
 const canMove = () => state === 'aim' && human() && !!game.inHand;
-/* inside this many CSS px of the cue ball a finger's angle about it is too jumpy to steer by */
-const sweepDead = () => Math.max(20, 2 * BALL_R * view.k);
-function fingerAngle(g, x, y) {
-  const dx = x - g.cx, dy = y - g.cy;
-  return Math.hypot(dx, dy) < sweepDead() ? null : Math.atan2(dy, dx);
+/* the sweep's feel (see the comment above). Tuned on a 440 x 956 phone, where the table's
+   short side is about 360 px: sweepR() is then about 115 px, so 10 px of finger 50 px from the
+   ball turns the aim 5 deg at most, not 11. */
+const SWEEP_R = 0.32;             /* share of the table's short side on screen inside which the gain is capped */
+const GAIN_SLOW = 0.3, V_SLOW = 0.04, V_FAST = 0.35, V_RISE = 20, V_TAU = 45;   /* px/ms; ms to catch up with a faster finger, and a slower one */
+const HOLD_MS = 300, HOLD_SLOP = 3;
+const LIFT_MS = 90, LIFT_PX = 8, PRE_MS = 120, PRE_PX = 6;
+const WHEEL_SLOW = 0.005 * Math.PI / 180, WHEEL_FAST = 0.024 * Math.PI / 180, WV_SLOW = 0.03, WV_FAST = 0.5;
+const sweepR = () => Math.max(60, SWEEP_R * Math.min(TL, TW) * view.k);
+const smooth01 = u => { u = clamp(u, 0, 1); return u * u * (3 - 2 * u); };
+const sweepGain = v => GAIN_SLOW + (1 - GAIN_SLOW) * smooth01((v - V_SLOW) / (V_FAST - V_SLOW));
+const wheelRate = v => WHEEL_SLOW + (WHEEL_FAST - WHEEL_SLOW) * smooth01((v - WV_SLOW) / (WV_FAST - WV_SLOW));
+/* the aim turn for a finger moving from screen point a to b about the cue ball at c, before
+   the speed gain: the angle turned when both ends are beyond sweepR(), else the tangential
+   motion over max(r, sweepR()). Nothing while the finger is over the ball itself. */
+function sweepTurn(c, a, b) {
+  const ax = a[0] - c[0], ay = a[1] - c[1], bx = b[0] - c[0], by = b[1] - c[1], R = sweepR();
+  if (Math.min(Math.hypot(ax, ay), Math.hypot(bx, by)) >= R) return wrapAngle(Math.atan2(by, bx) - Math.atan2(ay, ax));
+  const mx = (ax + bx) / 2, my = (ay + by) / 2, mr = Math.hypot(mx, my);
+  if (mr < BALL_R * view.k) return 0;
+  return (mx * (by - ay) - my * (bx - ax)) / mr / Math.max(mr, R);
+}
+/* a finger speed, px/ms, smoothed: it catches up with a speeding finger within V_RISE ms (a
+   swipe is never held back) and with a slowing one over V_TAU ms. The first sample is as it is. */
+function fingerSpeed(s, d, dt) {
+  const v = d / Math.max(dt, 4);
+  return s === null ? v : s + (v - s) * (1 - Math.exp(-Math.max(dt, 1) / (v > s ? V_RISE : V_TAU)));
+}
+/* trail: [t, aim, x, y] samples of a gesture, the press first. At a let-go at time T: when the
+   finger rested (under PRE_PX in the PRE_MS before the last LIFT_MS) and then moved under
+   LIFT_PX, that last move is the finger lifting: the aim from before it, else null. */
+function liftAim(trail, T) {
+  let i = trail.length - 1;
+  while (i >= 0 && trail[i][0] > T - LIFT_MS) i--;
+  if (i < 0 || i === trail.length - 1) return null;
+  const path = (j, k) => { let s = 0; for (let n = j; n < k; n++) s += Math.hypot(trail[n + 1][2] - trail[n][2], trail[n + 1][3] - trail[n][3]); return s; };
+  if (path(i, trail.length - 1) > LIFT_PX) return null;
+  /* the samples in the PRE_MS before that, and the move that led into the first of them */
+  let j = i + 1;
+  while (j > 0 && trail[j - 1][0] >= T - LIFT_MS - PRE_MS) j--;
+  if (j <= i && path(Math.max(0, j - 1), i) > PRE_PX) return null;
+  return trail[i][1];
+}
+function pushTrail(trail, t, aim, x, y) {
+  trail.push([t, aim, x, y]);
+  while (trail.length > 2 && trail[1][0] < t - 400) trail.shift();
+}
+/* a tap within this many CSS px of an object ball's centre aims at that centre */
+const tapReach = () => Math.max(14, 1.3 * BALL_R * view.k);
+function objectAt(sx, sy) {
+  let best = null, bd = tapReach();
+  for (const b of game.balls) {
+    if (!b.on || b.n === cueN()) continue;
+    const s = toScreen(b.x, b.y), d = Math.hypot(s[0] - sx, s[1] - sy);
+    if (d < bd) { bd = d; best = b; }
+  }
+  return best;
 }
 
 /* mouse hover. hov: where the pointer is anchored (x, y, since t), whether it is on the bed,
@@ -4751,9 +4825,9 @@ table.addEventListener('pointerdown', e => {
     g.mode = 'grab'; g.from = [c.x, c.y]; g.p0 = pointAt(e);
     if (mouse) table.style.cursor = 'grabbing';
   } else {
-    g.a0 = aimAngle; g.cx = s[0]; g.cy = s[1];
-    /* sweep: the finger's turn about the cue ball since the press, and its last angle */
-    g.sweep = 0; g.prev = fingerAngle(g, e.clientX, e.clientY);
+    g.a0 = aimAngle; g.c = s;
+    /* sweep: where the finger was last applied, when, its smoothed speed, and the trail for liftAim */
+    g.at = [e.clientX, e.clientY]; g.tLast = e.timeStamp; g.v = null; g.trail = [[e.timeStamp, aimAngle, e.clientX, e.clientY]];
   }
   gest = g;
   table.setPointerCapture(e.pointerId);
@@ -4773,14 +4847,38 @@ table.addEventListener('pointermove', e => {
     moveBall([g.from[0] + p[0] - g.p0[0], g.from[1] + p[1] - g.p0[1]]);
     return;
   }
-  if (state !== 'aim' || g.mode === 'dead' || (!g.mode && g.far <= slop)) return;
-  g.mode = 'sweep'; handAimed = true;
-  const fa = fingerAngle(g, e.clientX, e.clientY);
-  if (fa === null) g.prev = null;
-  else { if (g.prev !== null) g.sweep += wrapAngle(fa - g.prev); g.prev = fa; }
-  aimAngle = g.a0 + g.sweep;   /* 1:1 with the finger, from where the press began */
-  g.last = [e.clientX, e.clientY];
+  if (state !== 'aim' || g.mode === 'dead') return;
+  /* the finger's speed, from every move since the press (the slop included) */
+  const b = [e.clientX, e.clientY], dv = Math.hypot(b[0] - g.last[0], b[1] - g.last[1]);
+  if (dv > 0) { g.v = fingerSpeed(g.v, dv, e.timeStamp - g.tLast); g.last = b; g.tLast = e.timeStamp; }
+  if (!g.mode) {
+    /* still a tap, unless it went past the slop, or was held still and is now moving slowly */
+    if (g.far > slop) g.mode = 'sweep';
+    else if (e.timeStamp - g.t0 >= HOLD_MS && g.far > HOLD_SLOP) { g.mode = 'sweep'; g.held = true; }
+    else return;
+  }
+  handAimed = true;
+  /* while a let-go would still be a tap (a sloppy one), the line waits: a sweep shown and
+     then thrown away for the tap was the line jumping on release. Once it cannot be a tap
+     (TAP_MAX, or TAP_MS) the sweep catches up with the finger in one step. */
+  if (maybeTap(g, e.timeStamp)) {
+    if (!g.wait) g.wait = setTimeout(() => { if (gest === g && g.mode === 'sweep' && state === 'aim') { g.shown = true; turnTo(g, g.last, g.tLast); } }, Math.max(0, TAP_MS - (e.timeStamp - g.t0)) + 5);
+    return;
+  }
+  g.shown = true;
+  turnTo(g, b, e.timeStamp);
 });
+/* shown: the sweep has moved the line, so the let-go is never a tap */
+const maybeTap = (g, t) => !g.held && !g.shown && g.far <= TAP_MAX[kindOf(g)] && t - g.t0 < TAP_MS;
+/* the sweep from where it was last applied to b (time t) */
+function turnTo(g, b, t) {
+  if (b[0] !== g.at[0] || b[1] !== g.at[1]) {
+    /* a mouse is precise already (and the OS accelerates it): only fingers get the speed gain */
+    aimAngle += sweepTurn(g.c, g.at, b) * (g.mouse ? 1 : sweepGain(g.v));
+    g.at = b;
+  }
+  pushTrail(g.trail, t, aimAngle, b[0], b[1]);
+}
 function endTable(e, cancel) {
   const g = gest;
   if (!g || g.bar || e.pointerId !== g.id) return;
@@ -4795,18 +4893,40 @@ function endTable(e, cancel) {
     return;
   }
   if (state !== 'aim' || g.mode === 'dead' || cancel) return;
-  const k = kindOf(g), tap = g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS);
+  const k = kindOf(g), tap = !g.held && !g.shown && (g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS));
   if (tap && solo && solo.edit && game.mode === 'practice') { editAt(toTable(g.x0, g.y0)); return; }   /* free table editing (5s) */
   /* bumper pool: a tap on one of the shooter's own balls picks it to strike */
   if (tap && game.kind === 'bumper') { const n = ballAt(g.x0, g.y0); if (n !== null && n !== cueN()) { pickBall(n); return; } }
   if (tap) {
-    aimAngle = angleTo(toTable(g.x0, g.y0));
+    /* on the cue ball itself there is no direction to take (it once swung the aim anywhere):
+       nothing, as hover does. On an object ball: the full-ball line to its centre; on the
+       cloth: that spot. */
+    const o = objectAt(g.x0, g.y0), os = o && toScreen(o.x, o.y), dc = Math.hypot(g.x0 - g.c[0], g.y0 - g.c[1]);
+    if (dc <= 2 * BALL_R * view.k && !(os && Math.hypot(os[0] - g.x0, os[1] - g.y0) < dc)) return;
+    aimAngle = angleTo(o ? [o.x, o.y] : toTable(g.x0, g.y0));
     handAimed = true;
     aimLock = null; keepAim();
   } else if (g.mode === 'sweep') {
+    /* a sweep still waiting out the tap window catches up first (as of the last move) */
+    if (g.at[0] !== g.last[0] || g.at[1] !== g.last[1]) turnTo(g, g.last, g.tLast);
+    /* the finger lifting off is not aiming: put back the aim it rested on */
+    const r = g.mouse ? null : liftAim(g.trail, e.timeStamp);
+    if (r !== null) aimAngle = r;
     if (hov) { hov.x = e.clientX; hov.y = e.clientY; }
     lockAim();
   }
+}
+/* a press on the bar or the wheel while another finger rests on the table (a thumb, a palm):
+   the table gesture gives way, keeping the aim (or the cue ball's spot) it had reached, so the
+   controls never go dead under a stray touch. True when the table is free. */
+function yieldTable(e) {
+  const g = gest;
+  if (!g || g.bar || g.mouse || e.pointerType === 'mouse' || e.pointerId === g.id) return !g;
+  gest = null;
+  if (g.mode === 'grab' || g.mode === 'ball') { if (move && !move.key) endMove(false); }
+  else if (g.mode === 'sweep') lockAim();
+  try { table.releasePointerCapture(g.id); } catch (err) { /* already gone */ }
+  return true;
 }
 table.addEventListener('pointerup', e => endTable(e, false));
 table.addEventListener('pointercancel', e => endTable(e, true));
@@ -4824,7 +4944,9 @@ function barPos(e) {
 powerBar.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
-  if (state !== 'aim' || !human() || gest || wheelDrag) return;
+  if (state !== 'aim' || !human() || (gest && !yieldTable(e))) return;
+  /* a thumb still on the wheel gives way too: the bar is never dead */
+  if (wheelDrag) { if (e.pointerType === 'mouse') return; try { fineWheel.releasePointerCapture(wheelDrag.id); } catch (err) { /* already gone */ } endWheel(null); }
   finishAutoAim();
   if (e.pointerType === 'mouse') leaveBed();
   const [pos, lo, hi] = barPos(e), span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92;
@@ -4852,7 +4974,10 @@ powerBar.addEventListener('pointercancel', e => endBar(e, true));
 powerBar.addEventListener('lostpointercapture', e => endBar(e, true));
 
 /* the fine-aim wheel: a ridged thumbwheel beside the power bar. Rolling it turns the aim
-   WHEEL_RATE per px (100 px is 2 deg); down turns the cue clockwise on screen. The finger may
+   wheelRate(v) per px, by the finger's smoothed speed v (px/ms): WHEEL_SLOW (100 px is half a
+   degree) rolled slowly, up to WHEEL_FAST (100 px is 2.4 deg) at WV_FAST and over; a let-go
+   after a rest puts back the aim from before the lift (liftAim). Down turns the cue clockwise
+   on screen; a mouse wheel over it turns WHEEL_RATE per px. The finger may
    run past the wheel's ends (the pointer is captured). fineAim is true while it is held. The
    aim it leaves is locked like any fine adjustment; a mouse wheel over it rolls it too. */
 let wheelDrag = null;
@@ -4871,10 +4996,10 @@ function endWheel(e) {
 fineWheel.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
 fineWheel.addEventListener('pointerdown', e => {
   audioOn();
-  if (state !== 'aim' || !human() || gest || wheelDrag) return;
+  if (state !== 'aim' || !human() || wheelDrag || (gest && !yieldTable(e))) return;
   finishAutoAim();
   if (e.pointerType === 'mouse') leaveBed();
-  wheelDrag = { id: e.pointerId, y0: e.clientY, dy: 0, a0: aimAngle };
+  wheelDrag = { id: e.pointerId, y: e.clientY, t: e.timeStamp, v: null, trail: [[e.timeStamp, aimAngle, e.clientX, e.clientY]] };
   fineAim = true;
   fineWheel.classList.add('live');
   fineWheel.setPointerCapture(e.pointerId);
@@ -4883,12 +5008,20 @@ fineWheel.addEventListener('pointermove', e => {
   const d = wheelDrag;
   if (!d || e.pointerId !== d.id) return;
   if (state !== 'aim') { endWheel(e); return; }
-  const dy = e.clientY - d.y0;
-  if (dy !== d.dy) handAimed = true;
-  rollWheel(dy - d.dy); d.dy = dy;
-  aimAngle = d.a0 + dy * WHEEL_RATE;
+  const dy = e.clientY - d.y;
+  if (!dy) return;
+  handAimed = true;
+  d.v = fingerSpeed(d.v, Math.abs(dy), e.timeStamp - d.t);
+  rollWheel(dy);
+  aimAngle += dy * wheelRate(d.v);
+  d.y = e.clientY; d.t = e.timeStamp;
+  pushTrail(d.trail, e.timeStamp, aimAngle, e.clientX, e.clientY);
 });
-fineWheel.addEventListener('pointerup', endWheel);
+fineWheel.addEventListener('pointerup', e => {
+  const d = wheelDrag;
+  if (d && e.pointerId === d.id && state === 'aim' && e.pointerType !== 'mouse') { const r = liftAim(d.trail, e.timeStamp); if (r !== null) aimAngle = r; }
+  endWheel(e);
+});
 fineWheel.addEventListener('pointercancel', endWheel);
 fineWheel.addEventListener('lostpointercapture', endWheel);
 fineWheel.addEventListener('wheel', e => {

@@ -158,7 +158,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* on red cloth the signal-red foul banner would melt into the table: a near-black ring keeps
    its edge (3.2:1 against the banner's red, darker than any cloth around it) */
 [data-cloth="red"] #banner[data-kind="foul"] { box-shadow: 0 0 0 3px #0f0f10, 0 12px 40px rgba(0, 0, 0, .6); }
+/* ---- the replay (5r): the offer pill, and the badge and Skip while one plays, on the top rail.
+   Each is a 44 px target round a 30 px pill. The bar is off and reads Replay. ---- */
+.rpl { position: absolute; z-index: 2; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center;
+  transform: translate(-50%, -50%); pointer-events: auto; animation: rplIn .2s ease-out; }
+.rpl[hidden] { display: none; }
+.rpl > span { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px 0 10px; border-radius: 15px; white-space: nowrap;
+  background: rgba(22, 22, 24, .92); border: 1px solid #55555e; color: var(--text); font-size: 13px; line-height: 1; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
+.rpl b { font-weight: 650; }
+.rpl svg { width: 14px; height: 14px; flex: none; }
+#replayBtn:hover > span { background: rgba(38, 38, 42, .95); }
+#replayBtn[data-notable] > span { height: 34px; padding: 0 14px 0 12px; border-color: #e3c062; background: rgba(36, 31, 18, .95); color: #fff3cf; box-shadow: 0 0 0 3px rgba(227, 192, 98, .18), 0 8px 24px rgba(0, 0, 0, .5); }
+#replayBadge { pointer-events: none; }
+#replayBadge i { font-style: normal; color: var(--muted); padding-left: 6px; border-left: 1px solid #55555e; }
+#replaySkip > span { padding: 0 14px; }
+@keyframes rplIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.94); } }
+#powerBar.rp { cursor: default; border-style: dashed; background: var(--panel); }
+#powerBar.rp:not(.live) #powerLab::after { content: none; }
 @media (prefers-reduced-motion: reduce) {
+  .rpl { animation: none; }
   #banner, #banner.show { transition: none; transform: translate(-50%, -50%); }
   .thinking::after { animation: none; content: "..."; }
 }
@@ -564,6 +582,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <button class="tool" id="editBtn" aria-pressed="false">Add / remove balls</button>
     </div>
     <button class="tool" id="editDone" hidden>Done editing</button>
+    <button class="rpl" id="replayBtn" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b id="replayLab">Replay</b></span></button>
+    <div class="rpl" id="replayBadge" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b>Replay</b><i id="replaySlow" hidden>Slow motion</i></span></div>
+    <button class="rpl" id="replaySkip" hidden aria-label="Skip the replay"><span><b>Skip</b></span></button>
   </div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
@@ -678,6 +699,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div class="field"><span class="label" id="aaLab">Auto aim</span>
       <div class="seg" role="group" aria-labelledby="aaLab" aria-describedby="aaNote"><button id="aaOn" aria-pressed="true">On</button><button id="aaOff" aria-pressed="false">Off</button></div></div>
     <p class="note" id="aaNote">Auto aim starts each turn pointed at the ball to play next. The cut is up to you.</p>
+    <div class="field"><span class="label" id="camLab">Camera</span>
+      <div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
+    <p class="note" id="camNote">Follow moves in a little on the action while the balls roll, and close on replays. Aiming always shows the whole table.</p>
     <div class="field"><span class="label" id="sndLab">Sound</span>
       <div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
     <p class="note">The cloth applies to all three games. Table size and pockets are chosen when you start a game.</p>
@@ -2595,6 +2619,197 @@ function layout() {
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
   view.tray = null;
   tableImg = drawTableImage();
+  camFit();
+}
+
+/* ---- 3b. the camera ----
+   A zoom z >= 1 about a centre (x, y) in table coordinates, on top of the fitted view. layout()
+   keeps the fit in viewBase; `view` is viewBase under the camera (at z = 1 viewBase itself, the
+   same object), so toScreen, toTable, tableXform and every radius drawn go through it and the
+   aim maps exactly at any zoom. The window it shows is the table's footprint at z = 1
+   (camRect(): the rail's outer edge). The centre is clamped so the zoomed table always covers
+   that window, and draw() clips to it, so nothing shows outside the table and no margin opens.
+   Live play: z = 1 while aiming. When a shot starts it is predicted with the same strike and
+   stepTable (camPredict, a few ms a frame, 1/60 s samples), and camPlan frames the balls moving
+   faster than vmin over the 0.1 s before and 0.4 s after each moment: zoom up to CAM_LIVE.zmax,
+   smoothed both ways in time (no lag), zoom and pan speed limited, z = 1 at the start and
+   `tail` before the balls stop, so the next turn starts on the whole table. A page-time
+   critically damped spring (CAM_W) rounds off what is left. Replays use CAM_REPLAY on the cue
+   ball and the first ball it hits. The camera reads the sim and never writes it; settings.camera
+   'off' holds z = 1. */
+const CAM_DT = 1 / 60, CAM_STEPS = Math.round(CAM_DT / SIM_DT);   /* a sample every 20 steps */
+const CAM_W = 9;                  /* spring rate, rad/s of page time (times felt.speed) */
+const CAM_LIVE = { zmax: 1.35, margin: 0.22, vmin: 0.3, back: 0.1, ahead: 0.4, tau: 0.3, dz: 0.45, pan: 0.7, tail: 0.35 };
+const CAM_REPLAY = { zmax: 1.8, margin: 0.12, back: 0.08, ahead: 0.3, tau: 0.18, dz: 1.0, pan: 1.5, tail: 0.3 };
+let viewBase = view, camPred = null, tableHi = null;
+const cam = { z: 1, x: 0, y: 0, vz: 0, vx: 0, vy: 0, pin: null };
+const screenIn = (v, x, y) => v.portrait ? [v.ox + y * v.k, v.oy + (TL - x) * v.k] : [v.ox + x * v.k, v.oy + y * v.k];
+/* the window the camera shows: the table's footprint at z = 1, CSS px */
+function camRect() {
+  const a = screenIn(viewBase, -RAIL, -RAIL), b = screenIn(viewBase, TL + RAIL, TW + RAIL);
+  return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) };
+}
+/* the view at zoom z about table point (x, y), the centre clamped so the table covers camRect() */
+function camView(z, x, y) {
+  const B = viewBase;
+  if (!(z > 1)) return B;
+  const R = camRect(), hw = (R.right - R.left) / 2, hh = (R.bottom - R.top) / 2, f = screenIn(B, x, y);
+  const fx = clamp(f[0], R.left + hw / z, R.right - hw / z), fy = clamp(f[1], R.top + hh / z, R.bottom - hh / z);
+  return { k: B.k * z, portrait: B.portrait, tray: B.tray, ox: R.left + hw + z * (B.ox - fx), oy: R.top + hh + z * (B.oy - fy), z };
+}
+function camFit() { viewBase = view; view = camView(cam.z, cam.x, cam.y); placeReplay(); }
+/* the table image at a higher scale for the zoomed views (built in the menu or as a replay
+   starts, never mid-shot), at most 12 M device px; falls back to the fitted image scaled up */
+const camSig = () => [viewBase.k, viewBase.ox, viewBase.oy, viewBase.portrait, dpr, RAIL, TL, TW, TABLE, POCKETS_STYLE, BUMPER_SHAPE, settings.cloth].join();
+function camHiRes() {
+  const sig = camSig();
+  if (tableHi && tableHi.sig === sig) return;
+  const R = camRect(), w = R.right - R.left, h = R.bottom - R.top, H = Math.min(CAM_REPLAY.zmax, Math.sqrt(12e6 / (w * h * dpr * dpr)));
+  tableHi = { sig, img: null };
+  if (H < 1.1) return;
+  const keep = view, B = viewBase;
+  try {
+    view = { k: B.k * H, portrait: B.portrait, tray: null, ox: (B.ox - R.left) * H, oy: (B.oy - R.top) * H };
+    tableHi = { sig, H, left: R.left, top: R.top, img: drawTableImage(Math.ceil(w * H * dpr), Math.ceil(h * H * dpr)) };
+  } finally { view = keep; }
+}
+/* draw(): the table under the camera, clipped to camRect(). True when zoomed: ctx is then saved
+   and clipped, and draw() restores it once everything is drawn. */
+function camTable(g) {
+  if (view === viewBase || !view.z) return false;
+  const R = camRect(), z = view.z, B = viewBase, d = dpr, hi = tableHi && tableHi.img && tableHi.sig === camSig() ? tableHi : null;
+  g.save();
+  g.setTransform(d, 0, 0, d, 0, 0);
+  g.beginPath(); g.rect(R.left, R.top, R.right - R.left, R.bottom - R.top); g.clip();
+  g.imageSmoothingQuality = 'high';
+  if (hi) {
+    g.setTransform(z / hi.H, 0, 0, z / hi.H, d * (view.ox - z * B.ox + z * hi.left), d * (view.oy - z * B.oy + z * hi.top));
+    g.drawImage(hi.img, 0, 0);
+  } else {
+    g.setTransform(z, 0, 0, z, d * (view.ox - z * B.ox), d * (view.oy - z * B.oy));
+    g.drawImage(tableImg, 0, 0);
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  return true;
+}
+/* one sample of a table in motion: x, y and speed per ball (speed -1: off the table) */
+function camSample(T) {
+  const s = new Float64Array(T.balls.length * 3);
+  T.balls.forEach((b, i) => { s[3 * i] = b.x; s[3 * i + 1] = b.y; s[3 * i + 2] = b.on ? Math.hypot(b.vx, b.vy) : -1; });
+  return s;
+}
+/* predict a shot record (see shotRecord) to the end: samples, the first contact and the pots.
+   Runs budget ms at a time; the result is kept on the record (rec.track) for its replay. */
+function camPredict(rec) {
+  const T = strike(newTable(rec.balls, rec.ball || 0), rec.angle, rec.power, rec.spin);
+  T.hits.length = 0;
+  return { rec, T, tr: { frames: [camSample(T)], first: null, pots: [], end: 0 }, done: false, plan: null };
+}
+function camPredStep(P, budget) {
+  const t0 = performance.now(), T = P.T, tr = P.tr;
+  while (!P.done && performance.now() - t0 < budget) {
+    for (let i = 0; i < CAM_STEPS && !P.done; i++) {
+      const np = T.potted.length;
+      if (!stepTable(T)) P.done = true;
+      T.hits.length = 0;
+      if (tr.first === null && T.first !== null) tr.first = { t: T.t, n: T.first };
+      for (let j = np; j < T.potted.length; j++) { const n = T.potted[j]; tr.pots.push({ n, i: T.balls.findIndex(b => b.n === n), t: T.t, k: T.pocketOf[n] }); }
+    }
+    tr.frames.push(camSample(T));
+  }
+  if (P.done) { tr.end = T.t; Object.defineProperty(P.rec, 'track', { value: tr, configurable: true }); }
+  return P.done;
+}
+/* the camera's path through a predicted shot: zoom and centre every CAM_DT from -lead s (the
+   replay's run-up holds the first frame). focus: per ball index, follow it whether moving or
+   not (a replay); without it, every ball moving faster than o.vmin. */
+function camPlan(tr, o, focus, lead = 0) {
+  const F = tr.frames, N = F.length, nb = F[0].length / 3, L = Math.round(lead / CAM_DT), M = N + L;
+  const back = Math.round(o.back / CAM_DT), ahead = Math.round(o.ahead / CAM_DT), W = TL + 2 * RAIL, H = TW + 2 * RAIL;
+  const z = new Float64Array(M), x = new Float64Array(M), y = new Float64Array(M);
+  let hx = TL / 2, hy = TW / 2;
+  for (let b = 0; b < nb; b++) if (focus ? focus[b] : F[0][3 * b + 2] > 0) { hx = F[0][3 * b]; hy = F[0][3 * b + 1]; break; }
+  for (let i = 0; i < M; i++) {
+    const c = Math.max(0, i - L), t0 = (c - back) * CAM_DT, t1 = (c + ahead) * CAM_DT;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const add = (px, py) => { x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); };
+    for (let j = Math.max(0, c - back); j <= Math.min(N - 1, c + ahead); j++) {
+      const f = F[j];
+      for (let b = 0; b < nb; b++) if (f[3 * b + 2] >= 0 && (focus ? focus[b] : f[3 * b + 2] > o.vmin)) add(f[3 * b], f[3 * b + 1]);
+    }
+    /* a followed ball that drops inside the window: its pocket is in the shot */
+    if (focus) for (const p of tr.pots) if (focus[p.i] && p.t >= t0 && p.t <= t1 && POCKETS[p.k]) add(POCKETS[p.k][0], POCKETS[p.k][1]);
+    if (x0 <= x1) {
+      z[i] = clamp(Math.min(W / (x1 - x0 + 2 * o.margin), H / (y1 - y0 + 2 * o.margin)), 1, o.zmax);
+      hx = (x0 + x1) / 2; hy = (y0 + y1) / 2;
+    } else z[i] = 1;
+    x[i] = hx; y[i] = hy;
+  }
+  /* zero-lag smoothing (forward then backward), then the ends and the speed limits */
+  const a = 1 - Math.exp(-CAM_DT / o.tau);
+  for (const s of [z, x, y]) {
+    for (let i = 1; i < M; i++) s[i] = s[i - 1] + a * (s[i] - s[i - 1]);
+    for (let i = M - 2; i >= 0; i--) s[i] = s[i + 1] + a * (s[i] - s[i + 1]);
+  }
+  const dz = o.dz * CAM_DT, dp = o.pan * CAM_DT, tail = Math.max(1, M - Math.round(o.tail / CAM_DT));
+  z[0] = 1;
+  for (let i = 1; i < M; i++) z[i] = clamp(z[i], z[i - 1] - dz, z[i - 1] + dz);
+  for (let i = tail; i < M; i++) z[i] = 1;
+  for (let i = M - 2; i >= 0; i--) z[i] = Math.min(z[i], z[i + 1] + dz);
+  for (let i = 1; i < M; i++) {
+    const ex = x[i] - x[i - 1], ey = y[i] - y[i - 1], d = Math.hypot(ex, ey);
+    if (d > dp) { x[i] = x[i - 1] + ex * dp / d; y[i] = y[i - 1] + ey * dp / d; }
+  }
+  return { t0: -L * CAM_DT, z, x, y };
+}
+/* the plan at time t (s after the strike), interpolated */
+function camAt(P, t) {
+  const u = clamp((t - P.t0) / CAM_DT, 0, P.z.length - 1), i = Math.min(P.z.length - 2, Math.floor(u)), f = u - Math.max(0, i);
+  if (P.z.length < 2) return [P.z[0], P.x[0], P.y[0]];
+  return [P.z[i] + (P.z[i + 1] - P.z[i]) * f, P.x[i] + (P.x[i + 1] - P.x[i]) * f, P.y[i] + (P.y[i + 1] - P.y[i]) * f];
+}
+/* critically damped spring toward `to` over dt, exact for any dt: [position, velocity] */
+function spring(p, v, to, w, dt) {
+  const e = p - to, k = v + w * e, ex = Math.exp(-w * dt);
+  return [to + (e + k * dt) * ex, (v - w * k * dt) * ex];
+}
+/* once a frame (frame()): move the camera toward where the shot, the replay or the turn wants it */
+function camStep(dtMs) {
+  if (state === 'menu') { if (paused) return; camHiRes(); }
+  if (camPred && !camPred.done) camPredStep(camPred, 4);
+  if (camPred && camPred.done && !camPred.plan) camPred.plan = camPlan(camPred.tr, CAM_LIVE);
+  let want = null;
+  if (cam.pin) want = cam.pin;
+  else if (settings.camera === 'off') want = null;
+  else if (rp) want = rp.plan ? camAt(rp.plan, rp.camT) : null;
+  else if ((state === 'rolling' || state === 'stroke') && tab && camPred && camPred.plan && camPred.rec === felt.lastShot) want = camAt(camPred.plan, tab.t);
+  else if (state === 'rolling' || state === 'stroke') want = [1, cam.x, cam.y];
+  if (cam.pin || !want) {
+    /* held, off, or a turn: z = 1 (what is left after a shot's tail is under 3%: let it go) */
+    const p = cam.pin;
+    if (p || settings.camera === 'off' || Math.abs(cam.z - 1) < 0.03) {
+      cam.z = p ? p[0] : 1; if (p) { cam.x = p[1]; cam.y = p[2]; }
+      cam.vz = cam.vx = cam.vy = 0;
+      view = camView(cam.z, cam.x, cam.y);
+      return;
+    }
+    want = [1, cam.x, cam.y];
+  }
+  const dt = Math.min(50, dtMs) / 1000 * felt.speed, w = rp ? CAM_W * 1.2 : CAM_W;
+  [cam.z, cam.vz] = spring(cam.z, cam.vz, want[0], w, dt);
+  [cam.x, cam.vx] = spring(cam.x, cam.vx, want[1], w, dt);
+  [cam.y, cam.vy] = spring(cam.y, cam.vy, want[2], w, dt);
+  if (cam.z < 1) { cam.z = 1; cam.vz = Math.max(0, cam.vz); }
+  if (want[0] === 1 && Math.abs(cam.z - 1) < 1e-4 && Math.abs(cam.vz) < 1e-3) { cam.z = 1; cam.vz = 0; }
+  view = camView(cam.z, cam.x, cam.y);
+}
+/* tests: hold the camera at (z, x, y), or let it go with null */
+function camPin(z, x, y) {
+  cam.pin = z == null ? null : [Math.max(1, z), x, y];
+  if (cam.pin) [cam.z, cam.x, cam.y] = cam.pin;
+  else if (!rp && state !== 'rolling' && state !== 'stroke') cam.z = 1;
+  cam.vz = cam.vx = cam.vy = 0;
+  view = camView(cam.z, cam.x, cam.y);
 }
 
 /* ============ 4. RENDER ============ */
@@ -3343,9 +3558,12 @@ function rollBall(n, dx, dy) {
 let rollTab = null;
 const lastPos = {};
 function trackBalls() {
-  if (tab !== rollTab) { rollTab = tab; for (const b of game.balls) lastPos[b.n] = [b.x, b.y]; }
-  for (const b of (tab || game).balls) lastPos[b.n] = [b.x, b.y];
+  const T = shownTab();
+  if (T !== rollTab) { rollTab = T; for (const b of game.balls) lastPos[b.n] = [b.x, b.y]; }
+  for (const b of (T || game).balls) lastPos[b.n] = [b.x, b.y];
 }
+/* the table being drawn: a replay's while one plays (5r), else the live roll's (null at rest) */
+const shownTab = () => rp ? rp.tab : tab;
 /* a ball's local axes as screen directions (x right, y down, z toward the eye) */
 function axesOf(m, screen) {
   const P = view.portrait && !screen, a = [];
@@ -3558,8 +3776,8 @@ function drawTray(now) {
 /* onHits (called by frame() with tab.hits before they are drained): hits carry no position, so
    the contacts are found from where balls were last frame and where they are now. Ball-ball:
    a small ring at the contact. Cushion: a soft glow on the nose. Cue: a tiny tip flash. */
-function onHits(hits, now) {
-  if (!hits || !hits.length || !tab) return;
+function onHits(hits, now, T = tab) {
+  if (!hits || !hits.length || !T) return;
   let ball = 0, rail = 0, cue = 0;
   for (const h of hits) {
     if (h[0] === 'ball') ball = Math.max(ball, h[1]);
@@ -3568,8 +3786,8 @@ function onHits(hits, now) {
   }
   const before = {};
   for (const b of game.balls) before[b.n] = [b.x, b.y];
-  if (rollTab === tab) Object.assign(before, lastPos);
-  const B = tab.balls.filter(b => b.on), R = BALL_R, recent = key => effects.some(e => e.key === key && now - e.t < 140);
+  if (rollTab === T) Object.assign(before, lastPos);
+  const B = T.balls.filter(b => b.on), R = BALL_R, recent = key => effects.some(e => e.key === key && now - e.t < 140);
   if (ball > 0.05) {
     let found = 0;
     for (let i = 0; i < B.length && found < 4; i++) for (let j = i + 1; j < B.length && found < 4; j++) {
@@ -3600,9 +3818,9 @@ function onHits(hits, now) {
     const d = Math.hypot(b.x - q[0], b.y - q[1]), key = 'p' + b.n;
     if (d < R + BUMPER_R + 0.004 && !recent(key)) effects.push({ kind: 'rail', key, x: q[0] + (b.x - q[0]) * BUMPER_R / d, y: q[1] + (b.y - q[1]) * BUMPER_R / d, v: rail, t: now, d: 340 });
   }
-  const c = B.find(b => b.n === tab.cue);
+  const c = B.find(b => b.n === T.cue);
   if (cue > 0 && c) {
-    const p = before[tab.cue] || [c.x, c.y], v = Math.hypot(c.vx, c.vy) || 1;
+    const p = before[T.cue] || [c.x, c.y], v = Math.hypot(c.vx, c.vy) || 1;
     effects.push({ kind: 'cue', key: 'cue', x: p[0] - c.vx / v * R, y: p[1] - c.vy / v * R, v: cue, t: now, d: 200 });
   }
 }
@@ -3997,12 +4215,14 @@ function draw(now) {
   if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
   prevState = state;
   if (!tab && game.shots === 0) trayList = [];
-  const balls = tab ? tab.balls : game.balls, rb = BALL_R * view.k * dpr;
-  if (tableImg && CL !== clothOf()) tableImg = drawTableImage();
+  const T = shownTab(), balls = T ? T.balls : game.balls, rb = BALL_R * view.k * dpr;
+  if (tableImg && CL !== clothOf()) { const keep = view; view = viewBase; tableImg = drawTableImage(); view = keep; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (tableImg) ctx.drawImage(tableImg, 0, 0); else ctx.clearRect(0, 0, table.width, table.height);
-  if (state === 'aim' && game.inHand === 'kitchen' && human()) {
+  /* zoomed (3b): the table again under the camera, and everything after clipped to its window */
+  const zoomed = tableImg ? camTable(ctx) : false;
+  if (state === 'aim' && game.inHand === 'kitchen' && human() && !rp) {
     tableXform(ctx);
     /* the kitchen's tint lies on the bare cloth: never down the head corners' holes (it once
        showed there as a pale square) nor on their jaws */
@@ -4015,29 +4235,29 @@ function draw(now) {
   /* the cue ball in hand: the ghost stands in for it while it moves on legal spots; over an
      illegal one the ball stays drawn on its last legal spot, where a release puts it back. It
      waits while the scratched cue ball is still dropping. */
-  const ghost = state === 'aim' && !!placeAt, dropping = !tab && pots.some(p => p.n === 0);
+  const ghost = state === 'aim' && !!placeAt && !rp, dropping = !T && pots.some(p => p.n === 0);
   const ghostOk = ghost && canPlace(game, placeAt[0], placeAt[1]), hideCue = ghostOk || dropping;
   const list = balls.filter(b => b.on && !(hideCue && b.n === 0)), pos = list.map(b => toScreen(b.x, b.y));
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const s of pos) drawShadow(s[0] * dpr, s[1] * dpr, rb);
   /* no aim line from a ghost on an illegal spot (the ball is not there) */
-  const c = cueBall(), aiming = (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
+  const c = cueBall(), aiming = !rp && (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
-  drawHint(now);
-  drawSolo();
+  if (!rp) { drawHint(now); drawSolo(); }
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
-  if (state === 'aim' && game.inHand && human() && !dropping) drawPlace(now);
+  if (state === 'aim' && game.inHand && human() && !dropping && !rp) drawPlace(now);
   drawFx(now);
   /* the cue: pulled back by power while aiming, driven through during the stroke, carried a few
      centimetres on and faded as the shot starts, then gone while anything rolls */
   const rest = BALL_R + 0.012, back = 0.27, follow = 180 / felt.speed;
   ctx.save();
   clipStage();
-  if (aiming) {
+  if (rp) drawReplayCue(now);
+  else if (aiming) {
     let gap = rest + back * (pull ? clamp(power, 0, 1) : 0);
     if (state === 'stroke' && stroke) {
       const u = clamp((now - stroke.t0) * felt.speed / STROKE_MS, 0, 1), g0 = rest + back * clamp(stroke.power, 0, 1);
@@ -4050,6 +4270,7 @@ function draw(now) {
     drawCue(lastCue, lastCue.ang, BALL_R - 0.035 * ease(0, 1, u * 2), 1 - u);
   } else if (state !== 'rolling') lastCue = null;
   ctx.restore();
+  if (zoomed) ctx.restore();
   drawLoupe(now, gi);
 }
 /* the cue may run off the table but not into the controls: clip to the stage layout() fits the
@@ -4336,7 +4557,7 @@ function shoot() {
   audioOn();
   stroke = null; pull = null;
   dropBall();
-  felt.lastShot = { angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() };
+  felt.lastShot = shotRecord({ angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() });
   if (game.mode === 'practice' && solo) { pushUndo(); solo.tools = false; }   /* undo restores this layout */
   tab = strike(newTable(game.balls, cueN()), aimAngle, power, cueSpin);
   state = 'rolling';
@@ -4592,8 +4813,9 @@ function resume() {
 function frame(now) {
   const dtMs = Math.min(50, now - (frame.last || now));
   frame.last = now;
-  if (state === 'stroke' && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
-  if (state === 'rolling' && tab) {
+  if (state === 'stroke' && !rp && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
+  if (rp) replayStep(now, dtMs);   /* a replay (5r) holds the live game where it is */
+  else if (state === 'rolling' && tab) {
     const before = tab.balls.map(b => [b.x, b.y, b.on]);
     const steps = Math.max(1, Math.round(dtMs / 1000 / SIM_DT * felt.speed));   /* real time, whatever the step */
     let live = true;
@@ -4603,10 +4825,12 @@ function frame(now) {
     for (const h of tab.hits) sfx(h[0], h[1]);
     tab.hits.length = 0;
     tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
-    if (!live) settle();
+    if (!live) { const res = resultOf(tab); settle(); offerReplay(res); }
   } else if (state === 'thinking') think(now);
   stepAutoAim(now);
   stepPlaceBack(now);
+  stepOffer();
+  camStep(dtMs);
   draw(now);
   requestAnimationFrame(frame);
 }
@@ -4636,6 +4860,204 @@ function think(now) {
   hudControls();
   if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuPlan = null; commit(p); }
 }
+/* ---- 5r. the shot replay ----
+   shoot() records every shot (shotRecord): the balls before it, the stroke, and the table it was
+   played on; its prediction (camPredict, 3b) keeps the whole roll on the record (rec.track). When
+   the balls come to rest frame() offers the replay (offerReplay): a small pill on the top rail for
+   REPLAY_OFFER_MS, gold and worded ("Nice bank. Replay?") for a notable shot (notableOf). It never
+   plays by itself: the player taps it. A replay re-simulates the record with the same strike and
+   stepTable into its own table (rp.tab), which draw() shows instead of the live one. game, tab and
+   the turn are never touched, and the live game holds still (the CPU waits) until it ends. A
+   run-up with the cue (REPLAY_LEAD), then real speed, slowed to REPLAY_SLOW round the first contact
+   and the first object ball's drop, the camera in close (CAM_REPLAY), the hits sounding at
+   REPLAY_GAIN. Any tap, click or key ends it, and none of it reaches the table or the controls;
+   the bar reads Replay. */
+const REPLAY_OFFER_MS = 3500, REPLAY_NOTABLE_MS = 6500;
+const REPLAY_LEAD = 0.5;          /* s: the cue at address, drawn back, then through */
+const REPLAY_SLOW = 0.35, SLOW_IN = 0.09, SLOW_OUT = 0.12, SLOW_RAMP = 0.06;   /* sim s round each moment: 0.6 s at 0.35x */
+const REPLAY_GAIN = 0.45;         /* replay sounds, against live */
+const NOTABLE = { bank: 'Nice bank. Replay?', kick: 'Nice kick. Replay?', combo: 'Nice combo. Replay?', long: 'Long pot. Replay?' };
+let rp = null, offer = null, eatUntil = 0, eatId = null;
+const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, TL, TW].join();
+/* the record of a shot about to be played: the stroke ({ angle, power, spin, ball }) and what it
+   needs to be played again. The ball orientations ride along unlisted (for the replay's look). */
+function shotRecord(shot) {
+  const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, geo: geoSig(), breakShot: !!game.breakShot, notable: null });
+  Object.defineProperty(rec, 'orient', { value: Object.assign({}, orient) });
+  camPred = camPredict(rec);
+  return rec;
+}
+/* worth a replay: a pot after two or more cushions (the potted ball's, plus the cue ball's before
+   it hit anything: a bank or a kick), a combination (the potted ball first touched by another
+   object ball), or a pot from more than 70% of the table's length away. Never a break, never a
+   scratch. res: resultOf the roll; rec: its record. Returns 'bank', 'kick', 'combo', 'long' or null. */
+function notableOf(res, rec) {
+  const cue = rec.ball || 0, bumper = rec.kind === 'bumper';
+  if (rec.breakShot || (!bumper && res.potted.includes(cue))) return null;
+  const objs = res.potted.filter(n => bumper || n !== cue), kick = res.kick || 0;
+  for (const n of objs) {
+    const r = (res.rails && res.rails[n]) || 0;
+    if (r + (n === cue ? 0 : kick) >= 2) return r >= kick || n === cue ? 'bank' : 'kick';
+  }
+  for (const n of objs) {
+    const meet = (res.contacts || []).find(c => c.includes(n));
+    if (n !== cue && meet && !meet.includes(cue)) return 'combo';
+  }
+  for (const n of objs) {
+    const b = rec.balls.find(o => o.n === n), P = POCKETS[res.pocketOf[n]];
+    if (b && P && Math.hypot(P[0] - b.x, P[1] - b.y) > 0.7 * TL) return 'long';
+  }
+  return null;
+}
+/* the balls are at rest (frame(), after settle): offer the replay of the shot just played */
+function offerReplay(res) {
+  const rec = felt.lastShot;
+  if (!rec || !rec.balls || rec.geo !== geoSig()) return;
+  const nb = notableOf(res, rec);
+  if (nb) { rec.notable = nb; felt.lastNotable = rec; }
+  if (state !== 'aim' && state !== 'thinking') return;
+  offer = { rec, notable: nb, until: performance.now() + (nb ? REPLAY_NOTABLE_MS : REPLAY_OFFER_MS) };
+  replayBtn.toggleAttribute('data-notable', !!nb);
+  replayLab.textContent = nb ? NOTABLE[nb] : 'Replay';
+  replayBtn.setAttribute('aria-label', nb ? NOTABLE[nb] : 'Replay the last shot');
+  replayBtn.hidden = false;
+  placeReplay();
+}
+function hideOffer() { offer = null; if (!replayBtn.hidden) replayBtn.hidden = true; }
+function stepOffer() { if (offer && (rp || performance.now() > offer.until || (state !== 'aim' && state !== 'thinking'))) hideOffer(); }
+/* the pill, the badge and Skip sit on the top rail's wood (the foot rail upright, the long rail
+   between a corner and the side pocket on its side), never over the cloth or the controls */
+function railAt(el, f) {
+  const R = camRect(), st = stage.getBoundingClientRect();
+  el.style.left = (R.left + (R.right - R.left) * f - st.left).toFixed(1) + 'px';
+  el.style.top = (R.top + RAIL * viewBase.k / 2 - st.top).toFixed(1) + 'px';
+}
+function placeReplay() {
+  if (offer) railAt(replayBtn, viewBase.portrait ? 0.5 : 0.25);
+  if (rp) { railAt(replayBadge, 0.25); railAt(replaySkip, 0.75); }
+}
+/* play a record back (the offer's, else the last shot). False when there is none, the table has
+   changed since, or it is not a turn (aim or thinking). */
+function startReplay(rec = offer ? offer.rec : felt.lastShot) {
+  if (rp || !rec || !rec.balls || rec.geo !== geoSig() || (state !== 'aim' && state !== 'thinking')) return false;
+  if (!rec.track) { const P = camPred && camPred.rec === rec ? camPred : camPredict(rec); while (!camPredStep(P, 1000)); }
+  cancelGestures();
+  hideOffer();
+  const tr = rec.track, cue = rec.ball || 0, ci = rec.balls.findIndex(b => b.n === cue), oi = tr.first ? rec.balls.findIndex(b => b.n === tr.first.n) : -1;
+  const drop = tr.pots.find(p => p.n !== cue), moments = [tr.first && tr.first.t, drop && drop.t].filter(t => t != null);
+  camHiRes();
+  rp = {
+    rec, tab: newTable(rec.balls, cue), lead: -REPLAY_LEAD, struck: false, acc: 0, hold: 0, wall: 0, camT: -REPLAY_LEAD, shotAt: 0, end: false, moments,
+    plan: camPlan(tr, CAM_REPLAY, rec.balls.map((_, i) => i === ci || i === oi), REPLAY_LEAD),
+    keep: { orient: Object.assign({}, orient), pots, effects, trayList, rollTab, lastPos: Object.assign({}, lastPos), gain: bus ? bus.gain.value : null },
+  };
+  Object.assign(orient, rec.orient);
+  pots = []; effects = [];
+  rollTab = rp.tab;
+  for (const b of rec.balls) lastPos[b.n] = [b.x, b.y];
+  if (bus) bus.gain.value = rp.keep.gain * REPLAY_GAIN;
+  document.documentElement.toggleAttribute('data-replay', true);
+  replaySlow.hidden = true;
+  replayBadge.hidden = false; replaySkip.hidden = false;
+  placeReplay();
+  hud();
+  return true;
+}
+/* the live table back exactly as it was; the CPU's swing picks up where it stopped */
+function endReplay() {
+  const R = rp;
+  if (!R) return;
+  if (R.end) felt.replayResult = resultOf(R.tab);
+  rp = null;
+  Object.assign(orient, R.keep.orient);
+  pots = R.keep.pots; effects = R.keep.effects; trayList = R.keep.trayList; rollTab = R.keep.rollTab;
+  for (const k of Object.keys(lastPos)) delete lastPos[k];
+  Object.assign(lastPos, R.keep.lastPos);
+  if (bus && R.keep.gain !== null) bus.gain.value = R.keep.gain;
+  if (cpuPlan) cpuAnim += R.wall;
+  if (stroke) stroke.t0 += R.wall;
+  replayBadge.hidden = true; replaySkip.hidden = true;
+  document.documentElement.toggleAttribute('data-replay', false);
+  hud();
+}
+/* the replay's pace at sim time t: REPLAY_SLOW round each moment, eased in and out */
+function replayRate(t) {
+  let w = 0;
+  for (const m of rp.moments) { const d = t - m; w = Math.max(w, d < -SLOW_IN ? ease(-SLOW_IN - SLOW_RAMP, -SLOW_IN, d) : 1 - ease(SLOW_OUT, SLOW_OUT + SLOW_RAMP, d)); }
+  return 1 - (1 - REPLAY_SLOW) * w;
+}
+/* one frame of replay (frame() calls it instead of the live roll) */
+function replayStep(now, dtMs) {
+  const R = rp, T = R.tab, dt = dtMs / 1000 * felt.speed;
+  if (state !== 'aim' && state !== 'thinking') { endReplay(); return; }
+  R.wall += dtMs;
+  let s = 0;
+  if (!R.struck) {
+    R.lead += dt;
+    if (R.lead >= 0) { s = R.lead; R.lead = 0; R.struck = true; R.shotAt = now; strike(T, R.rec.angle, R.rec.power, R.rec.spin); }
+  } else s = dt;
+  if (R.struck && !R.end) {
+    R.acc += s * replayRate(T.t) / SIM_DT;
+    const n = Math.floor(R.acc), before = T.balls.map(b => [b.x, b.y, b.on]);
+    R.acc -= n;
+    let live = true;
+    for (let i = 0; i < n && live; i++) live = stepTable(T);
+    T.balls.forEach((b, i) => { if (before[i][2]) rollBall(b.n, b.x - before[i][0], b.y - before[i][1]); });
+    onHits(T.hits, now, T);
+    for (const h of T.hits) sfx(h[0], h[1]);
+    T.hits.length = 0;
+    T.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, T.pocketOf[b.n], [before[i][0], before[i][1]], now); });
+    if (!live) R.end = true;
+  } else if (R.end) R.hold += dt;
+  R.camT = R.struck ? T.t + R.hold : R.lead;
+  const slow = R.struck && !R.end && replayRate(T.t) < 0.9;
+  if (replaySlow.hidden === slow) replaySlow.hidden = !slow;
+  if (R.end && (R.hold >= 1.5 || (R.hold >= 0.4 && Math.abs(cam.z - 1) < 0.01))) endReplay();
+}
+/* the cue in a replay: at address, drawn back by the power, through the ball, then the live
+   follow-through fade */
+function drawReplayCue(now) {
+  const R = rp, c = R.rec.balls.find(b => b.n === (R.rec.ball || 0)), rest = BALL_R + 0.012, sS = STROKE_MS / 1000;
+  if (!c || !c.on) return;
+  if (!R.struck) {
+    const g0 = rest + 0.27 * clamp(R.rec.power, 0, 1), u = R.lead + REPLAY_LEAD;
+    const gap = R.lead < -sS ? rest + (g0 - rest) * ease(0.05, REPLAY_LEAD - sS - 0.04, u) : g0 + (BALL_R - g0) * ((R.lead + sS) / sS) ** 2;
+    drawCue(c, R.rec.angle, gap, ease(0, 0.12, u));
+  } else {
+    const u = (now - R.shotAt) / (180 / felt.speed);
+    if (u < 1) drawCue(c, R.rec.angle, BALL_R - 0.035 * ease(0, 1, u * 2), 1 - u);
+  }
+}
+/* during a replay nothing reaches the game: the first press or key ends it, and the rest of that
+   tap (its moves, its release, the click after it) is eaten too */
+for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'wheel']) {
+  addEventListener(t, e => {
+    const eaten = e.pointerId !== undefined && e.pointerId === eatId && t !== 'pointerdown';
+    if (!rp && !eaten && !((t === 'click' || t.startsWith('mouse')) && performance.now() < eatUntil)) {
+      if (t === 'pointerdown' && offer && !replayBtn.contains(e.target)) hideOffer();
+      return;
+    }
+    e.stopImmediatePropagation();
+    if (e.cancelable) e.preventDefault();
+    if (t === 'pointerup' || t === 'pointercancel') eatId = null;
+    if (t === 'pointerdown' && rp) { eatId = e.pointerId; eatUntil = performance.now() + 600; endReplay(); }
+  }, { capture: true, passive: false });
+}
+addEventListener('keydown', e => {
+  if (!rp) { if (offer && e.target !== replayBtn && !['Tab', 'Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) hideOffer(); return; }
+  e.stopImmediatePropagation(); e.preventDefault();
+  if (!['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) endReplay();
+}, true);
+replayBtn.addEventListener('click', () => { audioOn(); startReplay(); });
+replaySkip.addEventListener('click', () => endReplay());
+felt.lastNotable = null; felt.replayResult = null;
+Object.assign(felt, { replay: which => startReplay(which === 'notable' ? felt.lastNotable : undefined), skipReplay: () => endReplay(), notableOf, camPin, camRect });
+Object.defineProperties(felt, {
+  replaying: { get: () => !!rp },
+  replayOffer: { get: () => offer && { notable: offer.notable, label: replayLab.textContent, shown: !replayBtn.hidden } },
+  cam: { get: () => ({ z: cam.z, x: cam.x, y: cam.y, mode: settings.camera, planned: !!(camPred && camPred.plan) }) },
+});
+
 /* ---- input ----
    One grammar for mouse and touch. The table only aims; the power bar is the only pointer
    control that shoots (owner's rule: no pull-back anywhere on the screen but the meter).
@@ -5510,7 +5932,7 @@ Object.defineProperties(felt, {
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
    game the menu last started (Play again replays it on the current settings), null at first. */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', names: ['', ''], last: null };
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'auto', names: ['', ''], last: null };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
@@ -5522,6 +5944,7 @@ function loadSettings() {
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
     if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
+    if (['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
     if (['8', '9', 'bumper'].includes(o.last)) s.last = o.last;
   } catch (e) { }
@@ -5552,6 +5975,7 @@ const SEGS = [
   ['autoAim', [[aaOn, true], [aaOff, false]]],
   ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
   ['bumperTable', [[btOct, 'octagon'], [btRect, 'rect']]],
+  ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
 ];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
 function syncMenu() {
@@ -5976,8 +6400,9 @@ function hudControls() {
   powerMark.style.left = vert ? '' : `calc(${markPower * 100}% - 1px)`;
   powerMark.style.top = vert ? `calc(${markPower * 100}% - 1px)` : '';
   powerBar.classList.toggle('live', live);
-  fineWheel.classList.toggle('off', !(state === 'aim' && human()));
-  const lab = live ? pct + '%' : state === 'aim' && human() ? 'Pull to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : '';
+  fineWheel.classList.toggle('off', !(state === 'aim' && human()) || !!rp);
+  powerBar.classList.toggle('rp', !!rp);   /* a replay (5r): the bar is off and says so */
+  const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? 'Pull to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : '';
   if (powerLab.textContent !== lab) powerLab.textContent = lab;
   powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
   spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';

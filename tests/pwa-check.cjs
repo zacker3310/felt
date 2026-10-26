@@ -46,7 +46,7 @@ const pngInfo = src => fetch(src).then(async r => {
     };
   });
   check('head: manifest, apple-touch-icon and icon links', head.manifest && head.apple && head.apple.href === 'icons/apple-touch-icon.png' && head.icon, JSON.stringify(head));
-  check('head: standalone on iOS, black-translucent bar, title "felt", cover viewport', head.capable === 'yes' && head.mcapable === 'yes' && head.bar === 'black-translucent' && head.title === 'felt' && /viewport-fit=cover/.test(head.viewport), JSON.stringify(head));
+  check('head: standalone on iOS, opaque black bar (iOS 26 blurs content under a translucent one), title "felt", cover viewport', head.capable === 'yes' && head.mcapable === 'yes' && head.bar === 'black' && head.title === 'felt' && /viewport-fit=cover/.test(head.viewport), JSON.stringify(head));
 
   /* the manifest */
   const man = await page.evaluate(href => fetch(href).then(async r => ({ type: r.headers.get('content-type'), json: await r.json() })).catch(e => ({ err: String(e) })), head.manifest.href);

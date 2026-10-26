@@ -77,17 +77,21 @@ const artContrast = page => page.evaluate(() => {
   await page.keyboard.press('Escape');
   check('Esc closes the setup sheet back to home', await page.evaluate(() => !setupSheet.classList.contains('show') && menu.classList.contains('show') && felt.state === 'menu'));
   /* how to play, settings and stats sheets: every tab, targets and contrast */
+  /* on a small phone: a sheet must never grow past the screen (the tab row scrolls inside it) */
+  const wide = page.viewportSize();
+  await page.setViewportSize({ width: 375, height: 667 });
   await page.click('#helpBtn');
   const tabs = [];
   for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo']) {
     await page.click('#' + id);
-    tabs.push(await page.evaluate(id => ({ id, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), sel: document.getElementById(id).getAttribute('aria-selected'), text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
+    tabs.push(await page.evaluate(id => ({ id, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), sel: document.getElementById(id).getAttribute('aria-selected'), text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length, fits: (r => r.left >= 0 && r.right <= innerWidth + 0.5)(document.querySelector('#helpSheet .sheet').getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth }), id));
     const lc = await lowContrast(page);
     if (lc.length) tabs.push({ lc });
   }
-  check('how to play: seven tabs (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), one panel each, text 4.5:1', tabs.length === 7 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100), JSON.stringify(tabs));
+  check('how to play: seven tabs (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), one panel each, the sheet inside the screen (the tab row scrolls), text 4.5:1', tabs.length === 7 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100 && t.fits), JSON.stringify(tabs));
   check('no em dashes anywhere on the page', await page.evaluate(() => !document.documentElement.outerHTML.includes('\u2014')));
   await page.click('#helpBack');
+  await page.setViewportSize(wide);
   for (const [btn, back] of [['#prefsBtn', '#prefsBack'], ['#statsBtn', '#statsBack']]) {
     await page.click(btn);
     await page.waitForTimeout(250);

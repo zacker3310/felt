@@ -5080,6 +5080,7 @@ function offerReplay(res) {
   const nb = notableOf(res, rec);
   if (nb) { rec.notable = nb; felt.lastNotable = rec; }
   if (state !== 'aim' && state !== 'thinking') return;
+  if (solo && solo.kind === 'lesson') return;   /* the lesson (6c) offers no replay: its coach card is the focus */
   offer = { rec, notable: nb, until: performance.now() + (nb ? REPLAY_NOTABLE_MS : REPLAY_OFFER_MS) };
   replayBtn.toggleAttribute('data-notable', !!nb);
   replayLab.textContent = nb ? NOTABLE[nb] : 'Replay';
@@ -5103,7 +5104,7 @@ function placeReplay() {
 /* play a record back (the offer's, else the last shot). False when there is none, the table has
    changed since, or it is not a turn (aim or thinking). */
 function startReplay(rec = offer ? offer.rec : felt.lastShot) {
-  if (rp || !rec || !rec.balls || rec.geo !== geoSig() || (state !== 'aim' && state !== 'thinking')) return false;
+  if (rp || !rec || !rec.balls || rec.geo !== geoSig() || (state !== 'aim' && state !== 'thinking') || (solo && solo.kind === 'lesson')) return false;
   if (!rec.track) { const P = camPred && camPred.rec === rec ? camPred : camPredict(rec); while (!camPredStep(P, 1000)); }
   cancelGestures();
   hideOffer();
@@ -6785,7 +6786,7 @@ function lessonLoop() {
    of nine spots in the stage, the one furthest from the cue ball, the 1, the pocket and the
    line through them, and clear of the ring */
 function placeCoach() {
-  const s = solo, on = lessonOn() && state !== 'menu' && state !== 'over' && !paused;
+  const s = solo, on = lessonOn() && state !== 'menu' && state !== 'over' && !paused && !rp;
   if (!on) { coach.hidden = true; coachRing.hidden = true; return; }
   coach.hidden = false; coachRing.hidden = false;
   let ring;

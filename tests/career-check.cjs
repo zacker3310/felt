@@ -133,6 +133,8 @@ async function pullBar(T, frac) {
       await settled(T.page);
       await T.page.waitForTimeout(200);
       const miss = await ev(T, () => ({ last: felt.lastLesson, step: felt.lessonStep, st: felt.state, balls: JSON.stringify(felt.game.balls.map(b => [b.n, b.x, b.y])), coach: coachStep.textContent, done: lessonDone.classList.contains('show') }));
+      const rpl = await ev(T, () => ({ offer: !!(felt.replayOffer && felt.replayOffer.shown), start: felt.replay(), on: felt.replaying }));
+      check('the lesson offers no replay and none can start (the coach card stays the focus)', !rpl.offer && rpl.start === false && !rpl.on, JSON.stringify(rpl));
       check('a miss puts the balls back, keeps the step and says "Close. Try again."', miss.last && !miss.last.made && miss.step === 1 && miss.st === 'aim' && miss.balls === before && miss.coach === 'Close. Try again.' && !miss.done, JSON.stringify(miss));
       await T.page.click('#menuBtn');
       check('the pause menu in the lesson names the step', await ev(T, () => /Lesson, step 1 of 3/.test(soloKind.textContent) && /Drag anywhere/.test(soloGoal.textContent)));

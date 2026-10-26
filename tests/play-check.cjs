@@ -3,7 +3,7 @@
    by the bar shot), the live roll matching
    simulateShot exactly (with and without english, and across a pause), the power bar as the
    only pointer control that shoots (power proportional to the pull, cancel by coming back or
-   sliding off), the table only aiming (a 1:1 sweep about the cue ball; no drag on it ever
+   sliding off), the table only aiming (a sweep about the cue ball, 1:1 beyond sweepR; no drag on it ever
    shoots), the fine-aim wheel, the english pad, the keyboard, auto aim, the table size, the turn
    passing with a banner and the turn chip, the CPU taking its turn at the chosen level (the
    chip pulses while it thinks), the two-fouls warning in the banner, the chip and the pause
@@ -158,9 +158,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const turned = a1.aim - a0;
   check('a sideways drag turns the aim by the finger\'s angle about the cue ball (1:1), without shooting', Math.abs(turned - Math.atan2(0.05, 0.6)) < 0.003 && a1.s === 'aim' && a1.shots === n3, JSON.stringify({ turned, want: Math.atan2(0.05, 0.6), ...a1 }));
 
-  /* 3d. AC3, mouse: the finger swept 90 deg round the cue ball turns the aim 90 deg (+-2); on to
-     200 deg, across the +-180 wrap, it keeps up; the sweep never shoots */
-  const sw = await page.evaluate(() => { const c = felt.game.balls[0]; return { c: felt.toScreen(c.x, c.y), a: felt.aim, shots: felt.game.shots, r: 120 }; });
+  /* 3d. AC3, mouse: the finger swept 90 deg round the cue ball, beyond sweepR (where the turn
+     is 1:1), turns the aim 90 deg (+-2); on to 200 deg, across the +-180 wrap, it keeps up; the
+     sweep never shoots */
+  const sw = await page.evaluate(() => { const c = felt.game.balls[0]; return { c: felt.toScreen(c.x, c.y), a: felt.aim, shots: felt.game.shots, r: 1.2 * felt.sweepR }; });
   const arc = async (S, pg, from, to, n) => { for (let i = 1; i <= n; i++) { const p = S.a + (from + (to - from) * i / n) * DEG; await pg.mouse.move(S.c[0] + S.r * Math.cos(p), S.c[1] + S.r * Math.sin(p)); } };
   await page.mouse.move(sw.c[0] + sw.r * Math.cos(sw.a), sw.c[1] + sw.r * Math.sin(sw.a));
   const aS = await page.evaluate(() => felt.aim);   /* hover may restate the same aim within +-180 */
@@ -793,6 +794,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const m = await open('', { viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3 });
   const mp = m.page, mc = await mp.context().newCDPSession(mp);
   const tch = (type, x, y) => mc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  /* the same with timestamps 8 ms apart, a normal finger speed whatever the harness's pace (the
+     sweep and the wheel scale by finger speed) */
+  let mvt = Date.now() / 1000;
+  const tchT = (type, x, y) => { mvt += 0.008; return mc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }], timestamp: mvt }); };
   const swipe = async (from, to, n = 6) => { for (let i = 1; i <= n; i++) await tch('touchMove', from[0] + (to[0] - from[0]) * i / n, from[1] + (to[1] - from[1]) * i / n); };
   const msetup = (x = 0.5, hand = false) => mp.evaluate(([x, hand]) => {
     settings.cpu = false; settings.autoAim = false; felt.start('8'); game = placeCue(game, x, TW / 2);
@@ -804,9 +809,10 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const mstate = () => mp.evaluate(() => ({ s: felt.state, shots: felt.game.shots, pulling: felt.pulling, aim: felt.aim, power: felt.power, x: felt.game.balls[0].x, fine: felt.fineAim }));
   /* portrait: aim 0 points up the screen, so "back" is down */
   let M = await msetup();
-  await tch('touchStart', M.q[0], M.q[1]);
-  await swipe(M.q, [M.q[0] + 12, M.q[1] + 2], 3);
-  await tch('touchEnd');
+  /* a quick tap (timestamped, so a slow harness never makes it a held drag) */
+  await tchT('touchStart', M.q[0], M.q[1]);
+  for (let i = 1; i <= 3; i++) await tchT('touchMove', M.q[0] + 4 * i, M.q[1] + 2 * i / 3);
+  await tchT('touchEnd');
   let ms = await mstate();
   check('touch: a tap that slides 12 px sideways still aims where it landed', Math.abs(ms.aim - M.want) < 0.01 && ms.shots === M.shots, JSON.stringify({ ms, want: M.want }));
   M = await msetup();
@@ -869,11 +875,12 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await tch('touchEnd');
   const moved = await mp.evaluate(() => ({ s: felt.state, y: felt.game.balls[0].y }));
   check('touch: holding the cue ball in hand, then dragging, moves it', held2.s === 'aim' && held2.x === M.bx && moved.s === 'aim' && moved.y > M.tw / 2 + 0.1, JSON.stringify({ held2, moved }));
-  /* AC3, touch: a finger swept 90 deg round the cue ball turns the aim 90 deg (+-2); on to 200 */
+  /* AC3, touch: a finger swept 90 deg round the cue ball at a normal speed, beyond sweepR,
+     turns the aim 90 deg (+-2); on to 200 */
   M = await msetup();
-  const TS = { c: M.c, a: M.ang, r: 120 };
-  const tArc = async (from, to, n) => { for (let i = 1; i <= n; i++) { const p = TS.a + (from + (to - from) * i / n) * DEG; await tch('touchMove', TS.c[0] + TS.r * Math.cos(p), TS.c[1] + TS.r * Math.sin(p)); } };
-  await tch('touchStart', TS.c[0] + TS.r * Math.cos(TS.a), TS.c[1] + TS.r * Math.sin(TS.a));
+  const TS = { c: M.c, a: M.ang, r: 1.3 * await mp.evaluate(() => felt.sweepR) };
+  const tArc = async (from, to, n) => { for (let i = 1; i <= n; i++) { const p = TS.a + (from + (to - from) * i / n) * DEG; await tchT('touchMove', TS.c[0] + TS.r * Math.cos(p), TS.c[1] + TS.r * Math.sin(p)); } };
+  await tchT('touchStart', TS.c[0] + TS.r * Math.cos(TS.a), TS.c[1] + TS.r * Math.sin(TS.a));
   /* touch moves reach the page aligned to frames: let the last one land before reading */
   await tArc(0, 90, 30);
   await mp.waitForTimeout(60);
@@ -881,18 +888,19 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await tArc(90, 200, 37);
   await mp.waitForTimeout(60);
   const t200 = await mstate();
-  await tch('touchEnd');
+  await tchT('touchEnd');
   ms = await mstate();
   check('AC3 touch: a 90 deg sweep about the cue ball turns the aim 90 deg (+-2), 200 deg turns 200, never shooting',
     Math.abs(t90.aim / DEG - 90) <= 2 && Math.abs(t200.aim / DEG - 200) <= 2 && !t200.pulling && ms.s === 'aim' && ms.shots === M.shots, JSON.stringify({ d90: t90.aim / DEG, d200: t200.aim / DEG, ms }));
-  /* AC4, touch: the fine-aim wheel, 100 px turns the aim 1.5 to 2.5 deg; fineAim while held */
+  /* AC4, touch: the fine-aim wheel rolled at a normal speed, 100 px turns the aim 1.5 to 2.5
+     deg; fineAim while held */
   M = await msetup();
   const fw = await mp.evaluate(() => { const r = fineWheel.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.bottom - 8, w: r.width, h: r.height }; });
-  await tch('touchStart', fw.x, fw.y);
-  await swipe([fw.x, fw.y], [fw.x, fw.y - 100], 10);
+  await tchT('touchStart', fw.x, fw.y);
+  for (let i = 1; i <= 10; i++) await tchT('touchMove', fw.x, fw.y - 10 * i);
   await mp.waitForTimeout(60);
   const fHeld = await mstate();
-  await tch('touchEnd');
+  await tchT('touchEnd');
   const fRel = await mstate();
   check('AC4 touch: 100 px up the fine-aim wheel turns the aim 1.5-2.5 deg anticlockwise, fineAim only while held, a 44 px target',
     -fHeld.aim / DEG >= 1.5 && -fHeld.aim / DEG <= 2.5 && fHeld.fine && !fRel.fine && fRel.aim === fHeld.aim && fRel.shots === M.shots && fw.w >= 44 && fw.h >= 44, JSON.stringify({ deg: fHeld.aim / DEG, fHeld, fRel, fw }));

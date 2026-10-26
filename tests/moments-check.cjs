@@ -234,6 +234,13 @@ check('run out: the 8 to win at the end of a visit of seven; break and run when 
   check('haptics: a burst of hard contacts ticks once (rate limited), a soft one never, the next after the gap', h.burst === 1 && h.later === 2, JSON.stringify(h));
   check('haptics: a pot two ticks, a win three, a foul one', h.pocket === 2 && h.win === 3 && h.foul === 1, JSON.stringify(h));
   check('haptics: the switch clicks never move focus, scroll or touch the game', h.same && h.el === 'spinPad', JSON.stringify(h));
+  const rpl = await hp.evaluate(async () => {
+    const t = __taps; rp = { fake: true };
+    const busy = felt.replaying; sfx('foul', 1); sfx('ball', 5); felt.showCallout('Bank shot'); const shown = callout.classList.contains('show');
+    rp = null; await new Promise(r => setTimeout(r, 100));
+    return { busy, taps: __taps - t, shown };
+  });
+  check('a replay neither ticks nor calls out', rpl.busy && rpl.taps === 0 && !rpl.shown, JSON.stringify(rpl));
   await hp.evaluate(() => { showMenu(); openSheet(prefsSheet, prefsBack); });
   await hp.click('#hapOff');
   const off = await hp.evaluate(async () => { const t = __taps; sfx('foul', 1); sfx('pocket', 1); await new Promise(r => setTimeout(r, 200)); return { taps: __taps - t, s: settings.haptics, ls: JSON.parse(localStorage.getItem('felt.settings')).haptics, pressed: hapOff.getAttribute('aria-pressed') }; });

@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `10/10 suites, N/N checks  ok` (about 3 min; CPU match games and play-check dominate) |
+| test | `npm test` | `11/11 suites, N/N checks  ok` (about 3 min; CPU match games and play-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -43,6 +43,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Practice and trick shots: `game.mode` (`'practice' | 'trick'`), sim 1e+ and 1g, page section 5s; contract in
   `.buildloop/spec/T2.3-solo.md`. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
 - `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
+- Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
+  through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
+  `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

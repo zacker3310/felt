@@ -46,10 +46,16 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   only watches the ordinary controls; the career passes its terms to `start(kind, o)` and takes each rack's end
   from `finish()` (`careerRackOver`). Stored as `felt.lesson.v1` and `felt.career.v1`; `tests/lib.cjs` marks
   the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
+- Per-table physics: one record per table (`POOL_PHYS`, `SNOOKER_PHYS`, `CAROM_PHYS`, sim 1b, `physOf`) that
+  `buildTable` applies, setting `BALL_R`, `MU_ROLL`, `CUE_RATIO`, `CUSH_MU` and `RAIL_E`. They are `let`s that
+  `setTable` changes: read them at call time, never cache them. `table-check` switches tables round and back.
 - Snooker: `game.kind === 'snooker'`, sim 1i, page 5k (words, Concede) and 6s (the scoreboard on the top rail);
-  `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft). `BALL_R` is per table (52.5 mm on
-  snooker, 2 1/4 in otherwise): a `let` that setTable sets, read it at call time. Rounded jaws are `JAW_ARCS`
-  (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55). `tests/snooker-check.cjs` pins it.
+  `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
+  Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
+  `tests/snooker-check.cjs` pins it.
+- Three-cushion carom: `setTable('carom')` (sim 1j), 61.5 mm balls on its own cloth and rubber. No pockets:
+  `POCKETS`, `POCKET_AIM`, `MOUTHS` are empty, so never assume six. Balls 70 (white), 71 (yellow), 72 (red);
+  `game.striker` is the shooter's cue ball. Points are counted from `resultOf(tab).seq`; `carom-check` covers it.
 - `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of

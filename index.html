@@ -101,6 +101,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pchip .dot { width: 12px; height: 12px; }
 .pchip .dot.ring { margin: 0 1px; }
 .pchip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
+/* carom: the points in the player's ball colour, then the race, smaller */
+.pchip .num.c40, .pchip .num.c41 { margin: 0; font-size: 13px; }
+.pchip .num.c40 { color: #f7f4ea; }
+.pchip .num.c41 { color: #f4c430; }
+.pchip .of { font-size: 9px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .pchip.warn { border-color: var(--illegal); }
 .pchip.warn .pn { color: var(--illegal); }
 .pchip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
@@ -137,6 +142,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dot.mark { background-image: radial-gradient(circle at 50% 50%, var(--mk, #f6f4ec) 0 26%, transparent 31%); }
 .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+#potRow[hidden] { display: none; }
 #potRow { display: flex; align-items: center; gap: 10px; min-height: 30px; margin-top: 10px; padding: 0 2px; }
 #potRow .label { flex: none; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 #potDots { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 3px; min-width: 0; font-size: 13px; color: var(--muted); }
@@ -262,6 +268,7 @@ h1 i { font-style: normal; color: var(--signal); }
 .b1 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #ffd866, #d29a0e 72%); }
 .b5 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), radial-gradient(circle at 35% 30%, #ff9e57, #c4520c 72%); }
 .bday { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 36%, transparent 37%), radial-gradient(circle at 35% 30%, #5b86ea, #142f86 72%); }
+.bc { background-color: #f4c430; background-image: radial-gradient(circle at 35% 30%, #ffe48a, #c99512 72%); }
 .bb { background-color: #c8262c; background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 17%, transparent 19%), radial-gradient(circle at 35% 30%, #e0473f, #8e1a1d 72%); }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
 .how dl { margin: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px 12px; font-size: 14px; line-height: 1.45; }
@@ -270,7 +277,7 @@ h1 i { font-style: normal; color: var(--signal); }
 kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 
 /* ---- the home screen: the menu with no game in progress. One hero (Play again, or on a first
-   run a start on 8-ball) with the last game's table as its picture, the three games as cards whose
+   run a start on 8-ball) with the last game's table as its picture, the four games as cards whose
    racks bleed to their edges, and a quiet grouped list for solo play. The wordmark leads the
    header; Stats, Settings and How to play are three round glass icon buttons. One accent colour,
    taken from the cloth. Upright it is a column; on its side the hero takes the left and the games
@@ -286,6 +293,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   background: #09090a;
   -webkit-backdrop-filter: none; backdrop-filter: none; }
 [data-cloth="red"] #menu:not([data-paused]) { --accent: #ff8a7a; --glow: 186, 44, 52; }
+[data-cloth="blue"] #menu:not([data-paused]) { --accent: #7cb6ff; --glow: 44, 96, 178; }
 #menu[data-paused] .newgame, #menu:not([data-paused]) .pausePart { display: none; }
 .sheet.home { max-width: 560px; padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
 #menu:not([data-paused]) .sheet.home { display: grid; margin: 0 auto; align-self: stretch; animation: none; }
@@ -318,8 +326,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .newgame .sect { margin: 28px 0 12px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
 #playLab { grid-area: playlab; }
 #soloLab { grid-area: sololab; }
-.tiles { grid-area: tiles; display: grid; grid-template: minmax(0, 1.25fr) minmax(0, 1fr) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
-#playB { grid-column: 1; }
+/* two columns of three: 8-ball and 9-ball, bumper pool and three-cushion, snooker and the career */
+.tiles { grid-area: tiles; display: grid; grid-template: repeat(3, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
 .tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
   text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
 .tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
@@ -444,7 +452,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .swatch { display: inline-block; width: 30px; height: 20px; border-radius: 5px; background: radial-gradient(circle at 34% 50%, #f6f4ec 0 2.6px, transparent 3.2px), #1b5d47;
   box-shadow: inset 0 0 0 2.5px #6b3f21, inset 0 0 0 3.5px rgba(0, 0, 0, .35); }
 [data-cloth="red"] .swatch { background: radial-gradient(circle at 34% 50%, #f6f4ec 0 2.6px, transparent 3.2px), #9a1f26; }
-.chip-g, .chip-r { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
+[data-cloth="blue"] .swatch { background: radial-gradient(circle at 34% 50%, #f6f4ec 0 2.6px, transparent 3.2px), #1d4f91; }
+.chip-b { background: #1d4f91; }
+.chip-g, .chip-r, .chip-b { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
 .chip-g { background: #1b5d47; }
 .chip-r { background: #9a1f26; }
 /* settings on a short landscape screen: the four choices two by two */
@@ -852,6 +862,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
         <button class="tile" id="play9" data-kind="9"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span></button>
         <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper pool</b><small>Round the posts</small></span></button>
+        <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-cushion</b><small>No pockets, three rails</small></span></button>
         <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
         <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
       </div>
@@ -892,6 +903,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
     <div class="field bump" hidden><span class="label" id="btLab">Table</span>
       <div class="seg" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
+    <div class="field carom" hidden><span class="label" id="crLab">Race to</span>
+      <div class="seg" role="group" aria-labelledby="crLab"><button id="cr5" aria-pressed="false">5</button><button id="cr10" aria-pressed="true">10</button><button id="cr15" aria-pressed="false">15</button></div></div>
+    <div class="field carom" hidden><span class="label" id="ccLab">Cushions</span>
+      <div class="seg" role="group" aria-labelledby="ccLab"><button id="cc3" aria-pressed="true">Three</button><button id="cc1" aria-pressed="false">1-cushion (easier)</button></div></div>
     <div class="field snk" hidden><span class="label" id="stLab">Table</span>
       <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
     <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
@@ -906,7 +921,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div class="shead"><button class="back" id="prefsBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><h2 class="title" id="prefsTitle">Settings</h2></div></div>
     <div class="field"><span class="label" id="clLab">Cloth <span class="swatch" id="clothSwatch" aria-hidden="true"></span></span>
-      <div class="seg" role="group" aria-labelledby="clLab"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button></div></div>
+      <div class="seg" role="group" aria-labelledby="clLab"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
     <div class="field"><span class="label" id="gLab">Aim guide</span>
       <div class="seg" role="group" aria-labelledby="gLab"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div></div>
     <div class="field"><span class="label" id="aaLab">Auto aim</span>
@@ -919,7 +934,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
     <div class="field"><span class="label" id="hapLab">Haptics</span>
       <div class="seg" role="group" aria-labelledby="hapLab"><button id="hapOn" aria-pressed="true">On</button><button id="hapOff" aria-pressed="false">Off</button></div></div>
-    <p class="note">The cloth applies to every game. Table size and pockets are chosen when you start a game.</p>
+    <p class="note">The cloth applies to every game (blue is carom's classic). Table size, pockets and the race are chosen when you start a game.</p>
     <p class="diag" id="diag"></p>
   </div>
 </div>
@@ -946,6 +961,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <button role="tab" id="tab8" aria-controls="pan8" aria-selected="false" tabindex="-1">8-ball</button>
       <button role="tab" id="tab9" aria-controls="pan9" aria-selected="false" tabindex="-1">9-ball</button>
       <button role="tab" id="tabBump" aria-controls="panBump" aria-selected="false" tabindex="-1">Bumper</button>
+      <button role="tab" id="tabCarom" aria-controls="panCarom" aria-selected="false" tabindex="-1">Carom</button>
       <button role="tab" id="tabSnk" aria-controls="panSnk" aria-selected="false" tabindex="-1">Snooker</button>
       <button role="tab" id="tabSolo" aria-controls="panSolo" aria-selected="false" tabindex="-1">Solo</button>
     </div>
@@ -989,6 +1005,16 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Turn</dt><dd>Pot one of yours in the far cup and you go again; otherwise the turn passes.</dd>
         <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
         <dt>Win</dt><dd>The first with all five down. Choose the classic octagon or the rectangle when you start a bumper game.</dd>
+      </dl>
+    </div>
+    <div class="pan" id="panCarom" role="tabpanel" aria-labelledby="tabCarom" hidden>
+      <dl class="rules" id="caromRules">
+        <dt>Carom</dt><dd>Three-cushion billiards: three balls and no pockets on a 10 ft table. Your cue ball (white for player 1, yellow for player 2), your opponent's, and the red. You only ever strike your own.</dd>
+        <dt>Point</dt><dd>Your cue ball hits both other balls, and before it hits the second one it has hit the cushions at least three times, in any order. The same cushion twice counts twice, and cushions before the first ball count too. In the one-cushion game, once is enough.</dd>
+        <dt>Turn</dt><dd>Score a point and you shoot again; otherwise the turn passes.</dd>
+        <dt>Break</dt><dd>The red on the foot spot, your opponent's ball on the head spot, yours beside it on the head string. On the break, hit the red first.</dd>
+        <dt>Fouls</dt><dd>A ball off the table (it goes back on its spot) or, on the break, not the red first: no point, and the turn passes.</dd>
+        <dt>Win</dt><dd>The first to the race: 5, 10 or 15 points, chosen when you start. The full aim guide traces your cue ball through its first three cushions, a dot on each; after that you are on your own.</dd>
       </dl>
     </div>
     <div class="pan" id="panSnk" role="tabpanel" aria-labelledby="tabSnk" hidden>
@@ -1130,10 +1156,16 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    are the usual measured ones (Marlow, Alciatore, pooltool): cloth slide 0.2, roll 0.01,
    ball-ball friction falling with slip speed, cushion friction 0.2 (0.3 along the rail). */
 const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a quarter radius */
-/* the ball's radius: per table, set by setTable (1b) like the other table globals; read it at
-   call time. Pool and bumper pool play 2 1/4 in balls, snooker 52.5 mm (1i). */
-const POOL_BALL_R = 0.028575, SNOOKER_BALL_R = 0.02625;
-let BALL_R = POOL_BALL_R;
+/* The ball and the cloth are the table's: one record per table (POOL_PHYS, SNOOKER_PHYS,
+   CAROM_PHYS) that buildTable (1b) applies, setting BALL_R, MU_ROLL, CUE_RATIO and the cushion's
+   rubber (CUSH_MU, RAIL_E: restitution at rest, its fall per m/s, its floor). Read them at call
+   time, never cache them. Pool and bumper pool play 2 1/4 in balls; snooker 52.5 mm balls on
+   pool's cloth and cushions; carom 61.5 mm balls on a faster cloth and livelier rubber. */
+const POOL_PHYS = { R: 0.028575, roll: 0.01, cue: 6 / 19, mu: 0.2, e: [0.88, 0.03, 0.7] };
+const SNOOKER_PHYS = Object.assign({}, POOL_PHYS, { R: 0.02625 });
+const CAROM_PHYS = { R: 0.03075, roll: 0.0075, cue: 0.4, mu: 0.24, e: [0.92, 0.025, 0.75] };
+const physOf = table => table === 'carom' ? CAROM_PHYS : table === 'snooker' ? SNOOKER_PHYS : POOL_PHYS;
+let BALL_R = POOL_PHYS.R, MU_ROLL = POOL_PHYS.roll, CUE_RATIO = POOL_PHYS.cue, CUSH_MU = POOL_PHYS.mu, RAIL_E = POOL_PHYS.e;
 /* playing surfaces between cushion noses: 7 ft (78 x 39 in) and 9 ft (100 x 50 in). The table
    globals below are set by setTable (1b); read them at call time, never cache them. */
 const TABLE_SIZES = { 7: [1.981, 0.991], 9: [2.54, 1.27] };
@@ -1142,17 +1174,16 @@ const MIN_V = 0.2, MAX_V = 8.5;   /* centre-ball speed at power 0 and power 1 (a
 const POWER_EXP = 1.7;            /* power curve: 0.25 rolls a lone ball 2-3 m (about a 9 ft table's length), 0.5 is firm */
 const V_CAP = 9;                  /* belt and braces: energy already keeps every ball under MAX_V */
 const G = 9.8;
-const MU_SLIDE = 0.2;             /* ball on cloth, sliding */
-const MU_ROLL = 0.01;             /* rolling resistance */
+const MU_SLIDE = 0.2;             /* ball on cloth, sliding (MU_ROLL, rolling resistance, is the table's) */
 const SPIN_DECAY = 8;             /* rad/s^2: side spin dies against the cloth in a few seconds */
 const STOP_V = 0.01;
 const MAX_SIM_T = 60;
 const BALL_E = 0.94;
 const THROW_A = 0.00995, THROW_B = 0.108, THROW_C = 1.088;   /* ball-ball friction a + b exp(-c slip) */
-const CUSH_MU = 0.2, CUSH_MU_ALONG = 0.1;   /* ball on the cushion, and the extra grip along the rail */
+const CUSH_MU_ALONG = 0.1;        /* the extra grip along the rail, over the table's CUSH_MU */
 const NOSE_S = 0.27, NOSE_C = Math.sqrt(1 - NOSE_S * NOSE_S); /* nose 63.5% of a diameter up: 0.27 R above the centre */
 const TIP_MAX = 0.6;              /* tip offset at full spin, in radii: about where a miscue starts */
-const CUE_RATIO = 6 / 19;         /* ball over cue mass: off-centre hits send the ball slower */
+/* CUE_RATIO (the table's): ball over cue mass, off-centre hits send the ball slower */
 const TIP_LOSS = 0.6;             /* share of the two-mass speed loss a follow-through keeps (the tip stays on longer) */
 const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, away from the english */
 /* Pocket styles (setPockets, 1b). Regulation: mouths between jaw points 4.75 in corner and
@@ -1196,6 +1227,13 @@ const CUP_IN = 0.15, CUP_R = 0.041, CUP_LIP = 0.006, CUP_V = 1;
    string; the twelve posts keep the rectangle's plan (OCTA_POSTS: the diamond's half length and
    half width), shortened along the string to the octagon's shorter run between the cups. */
 const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
+/* Three-cushion carom (setTable('carom'), 1j): the 10 ft match table, a 2.84 x 1.42 m bed between
+   the cushion noses, closed all round (no pockets). Its own ball and cloth, CAROM_PHYS (above): 61.5 mm,
+   210 g balls (ball over cue mass 0.4, against pool's 6/19); a heated, close-napped cloth that
+   rolls with 3/4 of pool cloth's resistance; livelier rubber, restitution 0.92 falling 0.025 per
+   m/s of impact (pool 0.88 and 0.03) and a grippier nose (0.24, pool 0.2), so english takes more
+   off a rail. physics-check and carom-check measure what those give. */
+const CAROM_SIZE = [2.84, 1.42];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre */
@@ -1275,7 +1313,10 @@ let SNOOKER_SIZE = 'compact', D_R = 0, SPOTS = {};
 /* one rebuild from TABLE and POCKETS_STYLE, so setTable and setPockets compose in either order */
 function buildTable() {
   BED_LINES = null; JAW_ARCS = []; JAW_RAD = [0, 0]; SPOTS = {}; D_R = 0;
-  BALL_R = TABLE === 'snooker' ? SNOOKER_BALL_R : POOL_BALL_R;
+  /* the ball and the cloth: the table's record (bumper pool plays pool's) */
+  const ph = physOf(TABLE);
+  BALL_R = ph.R; MU_ROLL = ph.roll; CUE_RATIO = ph.cue; CUSH_MU = ph.mu; RAIL_E = ph.e;
+  if (TABLE === 'carom') { buildCarom(); return; }
   if (TABLE === 'bumper') { buildBumper(); return; }
   BUMPERS = [];
   const snk = TABLE === 'snooker', st = POCKET_STYLES[snk ? 'snooker' : POCKETS_STYLE];
@@ -1297,8 +1338,9 @@ function buildTable() {
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
   if (snk) buildSnooker(st);
 }
-/* size '7' or '9' (anything else is '7'), 'bumper' (1g) or 'snooker' (1i). Ball, mouths, jaws, shelf and cushions are the same on
-   both pool sizes; only the bed changes, with the head string and foot spot at a quarter from each end.
+/* size '7' or '9' (anything else is '7'), 'bumper' (1g), 'snooker' (1i) or 'carom' (1j). Each table
+   brings its own ball and cloth (physOf). Ball, mouths, jaws, shelf and cushions are the same on the
+   two pool sizes; only the bed changes, with the head string and foot spot at a quarter from each end.
    shape, when given, sets the bumper table's shape ('rect', anything else 'octagon') for this and
    every later bumper table; with 'snooker' it sets the snooker table's size instead ('full', the
    12 ft table, anything else 'compact', 10 ft) for this and every later one. The ball's radius
@@ -1309,7 +1351,7 @@ function setTable(size, shape) {
     TABLE = 'snooker';
   } else {
     if (shape !== undefined) BUMPER_SHAPE = shape === 'rect' ? 'rect' : 'octagon';
-    TABLE = size === 'bumper' ? 'bumper' : (POOL_TABLE = String(size) === '9' ? '9' : '7');
+    TABLE = size === 'bumper' || size === 'carom' ? size : (POOL_TABLE = String(size) === '9' ? '9' : '7');
   }
   buildTable();
   return TABLE;
@@ -1378,7 +1420,7 @@ function noseSlip(b, tx, ty, rx, ry, rz) {
 function rail(b, nx, ny) {
   const vn = -(b.vx * nx + b.vy * ny);
   if (vn <= 0) return 0;
-  const e = clamp(0.88 - 0.03 * vn, 0.7, 0.88), R = BALL_R;
+  const e = clamp(RAIL_E[0] - RAIL_E[1] * vn, RAIL_E[2], RAIL_E[0]), R = BALL_R;
   const tx = -ny, ty = nx;
   b.vx += (1 + e) * vn * nx; b.vy += (1 + e) * vn * ny;
   /* nose contact r1, upward is -z */
@@ -1441,6 +1483,7 @@ function hitBalls(tab, a, b) {
     kick(b, ux * f, uy * f, uz * f, -R * nx, -R * ny, 0);
   }
   const cue = a.n === tab.cue ? a : b.n === tab.cue ? b : null;
+  if (cue) tab.seq.push((cue === a ? b : a).n);
   if (cue && tab.first === null) { tab.first = (cue === a ? b : a).n; tab.kick = tab.rails[tab.cue] || 0; }
   /* every pair that touched, once, in the order they first met (trick-shot goals read it) */
   const lo = Math.min(a.n, b.n), hi = Math.max(a.n, b.n), key = lo * 64 + hi;
@@ -1452,7 +1495,7 @@ function hitBalls(tab, a, b) {
 /* cue: the ball the cue strikes (the cue ball; in bumper pool one of the shooter's own) */
 function newTable(balls, cue = 0) {
   return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), cue, t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0,
-    rails: {}, kick: null, contacts: [], met: {}, railAt: {} };
+    rails: {}, kick: null, contacts: [], met: {}, railAt: {}, seq: [] };
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
    further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
@@ -1539,6 +1582,7 @@ function stepTable(tab) {
           if (tab.first !== null) tab.railAfter = true;
           if (k < JAW_FROM) tab.rails[b.n] = (tab.rails[b.n] || 0) + 1;
           if ((k < JAW_FROM || BUMPERS.length) && !tab.railAt[b.n]) tab.railAt[b.n] = [b.x, b.y];   /* a bumper table's cushions are all rail */
+          if (k < JAW_FROM && b.n === tab.cue) tab.seq.push(-1);
           tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
         }
       }
@@ -1558,8 +1602,8 @@ function stepTable(tab) {
         const m = POCKET_AIM[k], e2 = (b.x - m[0]) ** 2 + (b.y - m[1]) ** 2;
         if (e2 < nd) { nd = e2; near = k; }
       }
-      /* a bumper table has no mouths: off the bed is always an escape, the ball off the table */
-      if (hole < 0 && off && BUMPERS.length) { tab.escaped++; pot(tab, b, -1, Math.hypot(b.vx, b.vy)); continue; }
+      /* a bumper or carom table has no mouths: off the bed is always an escape, the ball off the table */
+      if (hole < 0 && off && !MOUTHS.length) { tab.escaped++; pot(tab, b, -1, Math.hypot(b.vx, b.vy)); continue; }
       if (hole < 0 && off) { hole = near; if (nd > ESCAPE_R * ESCAPE_R) tab.escaped++; }
       if (hole >= 0) { pot(tab, b, hole, Math.hypot(b.vx, b.vy)); continue; }
     }
@@ -1579,14 +1623,15 @@ function stepTable(tab) {
 }
 /* The result of a shot. Besides the rules' fields: pocketOf (ball number to pocket index),
    rails (ball number to cushion-nose contacts over the whole shot, jaws not counted), kick (the
-   cue ball's cushion contacts before its first ball contact, null when it touched none) and
-   contacts (each pair of balls [lo, hi] that touched, once, in the order they first met) and
-   railAt (ball number to where its centre was at its first cushion-nose contact: shot moments
-   tell a bank from a ball grazing the nose by the pocket). All
-   deterministic: trick-shot goals are judged from them. */
+   cue ball's cushion contacts before its first ball contact, null when it touched none),
+   contacts (each pair of balls [lo, hi] that touched, once, in the order they first met), railAt
+   (ball number to where its centre was at its first cushion-nose contact: shot moments tell a bank
+   from a ball grazing the nose by the pocket) and seq (the struck ball's own contacts in order: -1
+   a cushion nose, else the ball it met, every impact; carom's count is read from it). All
+   deterministic: trick-shot goals and carom points are judged from them. */
 function resultOf(tab) {
   return { balls: tab.balls.map(b => Object.assign({}, b)), cue: tab.cue, first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), pocketOf: Object.assign({}, tab.pocketOf), end: tab.end, t: tab.t, steps: tab.steps,
-    rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()), railAt: Object.fromEntries(Object.entries(tab.railAt).map(([n, p]) => [n, p.slice()])) };
+    rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()), railAt: Object.fromEntries(Object.entries(tab.railAt).map(([n, p]) => [n, p.slice()])), seq: tab.seq.slice() };
 }
 function simulateShot(balls, shot) {
   const tab = strike(newTable(balls, shot.ball || 0), shot.angle, shot.power, shot.spin || 0);
@@ -1599,16 +1644,18 @@ const groupOf = n => n === 0 || n === 8 ? null : n < 8 ? 'solids' : 'stripes';
 const otherGroup = gr => gr === 'solids' ? 'stripes' : 'solids';
 const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
 const copyGame = g => JSON.parse(JSON.stringify(g));
-function newGame(kind) {
+function newGame(kind, opts) {
   if (kind === 'bumper') return bumperGame();
   if (kind === 'snooker') return snookerGame();
-  if (TABLE === 'bumper' || TABLE === 'snooker') setTable(POOL_TABLE);
+  if (kind === 'carom') return caromGame(opts);
+  if (TABLE === 'bumper' || TABLE === 'snooker' || TABLE === 'carom') setTable(POOL_TABLE);
   return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null };
 }
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
   if (g.kind === 'bumper') return onTable(g);   /* any ball may be touched first */
   if (g.kind === 'snooker') return snookerOn(g);
+  if (g.kind === 'carom') return caromTargets(g);
   const on = onTable(g);
   if (g.mode) return on;   /* practice and trick shots: any ball first */
   if (g.kind === '9') return on.slice(0, 1);
@@ -1635,6 +1682,7 @@ function segGap(ax, ay, bx, by, x, y) {
    no ball, and behind the head string when the hand is the kitchen */
 function canPlace(g, x, y) {
   if (g.kind === 'bumper') return bumperFree(g.balls, x, y, -1);
+  if (g.kind === 'carom') return caromFree(g.balls, x, y, -1);
   if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
   if (g.inHand === 'kitchen' && x > HEAD_X) return false;
   if (g.inHand === 'D' && !inD(x, y)) return false;
@@ -1662,6 +1710,7 @@ function placeCue(g, x, y) {
 function judge(g, r) {
   if (g.kind === 'bumper') return judgeBumper(g, r);
   if (g.kind === 'snooker') return judgeSnooker(g, r);
+  if (g.kind === 'carom') return judgeCarom(g, r);
   const n = copyGame(g), me = g.turn, op = 1 - me;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
@@ -1812,19 +1861,21 @@ const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
 /* what the physics does with a stroke, measured once instead of trusted from constants: cue
    speed by power (inverted by cpuPower), and from a lone ball struck down the table the
    rolling deceleration (roll) and the share of its speed a ball keeps through the slide into
-   a roll (keep), from which cpuSpeedFor gives the speed to roll a distance. It is table
-   independent, so setTable need not rerun it: the strike is measured in place and the lone ball
-   runs 1.2 m down the long string from x = 0.25, clear of every cushion on either size. */
+   a roll (keep), from which cpuSpeedFor gives the speed to roll a distance. The bed's size does
+   not change it (the strike is measured in place and the lone ball runs 1.2 m down the long
+   string from x = 0.25, clear of every cushion on either size); the ball and the cloth do, so it
+   is keyed on them and measured again on a table with its own (carom). */
 let cpuCal = null;
 function cpuCalibrate() {
-  if (cpuCal) return cpuCal;
+  const key = [BALL_R, MU_ROLL, CUE_RATIO].join();   /* a table with its own ball and cloth measures again */
+  if (cpuCal && cpuCal.key === key) return cpuCal;
   const proto = rack('9')[0], lone = (x, y) => [Object.assign({}, proto, { x, y, vx: 0, vy: 0 })];
   const speed = [];
   for (let i = 0; i <= 20; i++) {
     const c = strike(newTable(lone(TL / 2, TW / 2)), 0, i / 20, 0).balls[0];
     speed.push(Math.hypot(c.vx, c.vy));
   }
-  cpuCal = { speed, roll: 0.16, keep: 5 / 7 };
+  cpuCal = { key, speed, roll: 0.16, keep: 5 / 7 };
   const tab = strike(newTable(lone(0.25, TW / 2)), 0, cpuPower(1.2), 0), x0 = tab.balls[0].x;
   const v0 = Math.hypot(tab.balls[0].vx, tab.balls[0].vy);
   let va = null, xa = 0, vb = 0, xb = 0;
@@ -2110,6 +2161,7 @@ function cpuBreak(g, rnd, L) {
    legal turned up. The shot played carries the level's aim noise. */
 function* cpuSearch(g, seed, level = 'medium') {
   if (g.kind === 'bumper') return yield* cpuBumper(g, seed, level);
+  if (g.kind === 'carom') return yield* cpuCarom(g, seed, level);
   const L0 = CPU_LEVELS[level] || CPU_LEVELS.medium, L = g.kind === 'snooker' ? Object.assign({}, L0, SNK_CPU[level] || SNK_CPU.medium) : L0;
   const rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
@@ -2242,6 +2294,7 @@ const SUGGEST = { minCos: 0.2, noise: 1 };
 function suggestAim(g) {
   const c = g.balls.find(b => b.n === 0);
   if (g.kind === 'bumper') return suggestBumper(g);
+  if (g.kind === 'carom') return suggestCarom(g);
   if (g.winner !== null || !c || !c.on) return null;
   const targets = cpuTargets(g), at = n => g.balls.find(b => b.n === n), toward = t => ({ angle: Math.atan2(t.y - c.y, t.x - c.x), n: t.n, k: -1 });
   /* snooker's break-off: a thin contact on the outside of the back row's end red on the cue ball's side (snkBreaks) */
@@ -3032,6 +3085,247 @@ function cpuSnookerValue(g, j, L) {
   else s = (L.position ? -250 * cpuChance(j, j.turn, L) : 0) + snkLeave(j);
   return s - cpuDryCost(g, j, s);
 }
+
+/* ---- 1j. three-cushion carom ---- */
+/* The table (setTable('carom')): the same globals a pool table sets, so every reader works on it
+   unchanged. CUSH is the four noses end to end (no gaps, no mouths), CUSHION_POLYS the four
+   rubbers back to the rail, meeting in mitres; MOUTHS, RUBBERS, POCKETS, POCKET_R, POCKET_AIM,
+   SKIMS and CPU_MOUTH_N are empty. Head string, head spot and foot spot at a quarter from each
+   end, as on pool. buildTable has already set the carom ball and cloth (CAROM_PHYS). */
+function buildCarom() {
+  [TL, TW] = CAROM_SIZE;
+  HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
+  const c = CUSH_W;
+  MOUTHS = []; RUBBERS = []; BUMPERS = [];
+  CUSH = [[0, 0, TL, 0], [TL, 0, TL, TW], [TL, TW, 0, TW], [0, TW, 0, 0]];
+  CUSHION_POLYS = [[[-c, -c], [0, 0], [TL, 0], [TL + c, -c]], [[TL + c, -c], [TL, 0], [TL, TW], [TL + c, TW + c]],
+    [[TL + c, TW + c], [TL, TW], [0, TW], [-c, TW + c]], [[-c, TW + c], [0, TW], [0, 0], [-c, -c]]];
+  POCKETS = []; POCKET_R = []; POCKET_AIM = []; SKIMS = []; HOLE_IN = 0; CPU_MOUTH_N = [];
+}
+/* the balls: player 0's white cue ball (70), player 1's yellow (71), and the red (72), numbered
+   clear of snooker's (41-62). A player only ever strikes their own cue ball (game.striker); the
+   other two are the object balls. */
+const C_CUE = [70, 71], C_RED = 72, CAROM_RACES = [5, 10, 15];
+/* The start: red on the foot spot, the opponent's cue ball on the head spot, the breaker's on
+   the head string 6 in (15.24 cm) to one side (side: 1 or -1; the page alternates it game to
+   game, standing in for the lag winner's choice). opts: race (5, 10 or 15 points, else 10),
+   cushions (1 for the easier one-cushion game, else 3), side. score, innings (turns at the table,
+   the breaker's first counted at the start), run (points in the current turn) and high (the best
+   run) per player. */
+function caromGame(o = {}) {
+  if (TABLE !== 'carom') setTable('carom');
+  const side = o.side < 0 ? -1 : 1, race = CAROM_RACES.includes(+o.race) ? +o.race : 10, need = +o.cushions === 1 ? 1 : 3;
+  const balls = [newBall(C_CUE[0], HEAD_X, TW / 2 + side * 0.1524), newBall(C_CUE[1], HEAD_X, TW / 2), newBall(C_RED, FOOT[0], FOOT[1])];
+  return { kind: 'carom', balls, turn: 0, groups: [null, null], open: false, breakShot: true, inHand: null, fouls: [0, 0], winner: null,
+    shots: 0, dry: 0, verdict: null, striker: C_CUE[0], race, need, score: [0, 0], innings: [1, 0], run: 0, high: [0, 0] };
+}
+/* the object balls; on the break the red alone (it must be hit first) */
+const caromTargets = g => g.breakShot ? [C_RED] : g.balls.filter(b => b.on && b.n !== g.striker).map(b => b.n);
+/* a ball may stand at (x, y): on the bed, touching no ball but `skip` */
+function caromFree(balls, x, y, skip) {
+  if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
+  return balls.every(b => b.n === skip || !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R + RACK_GAP);
+}
+/* a ball that left the table comes back: the red to the foot spot, a cue ball to the head spot;
+   that spot taken, the centre spot, then the other one, then the nearest free point to its own */
+function caromSpot(balls, n) {
+  const b = balls.find(o => o.n === n), own = n === C_RED ? FOOT : [HEAD_X, TW / 2], other = n === C_RED ? [HEAD_X, TW / 2] : FOOT;
+  let at = [own, [TL / 2, TW / 2], other].find(p => caromFree(balls, p[0], p[1], n));
+  for (let r = 0.01; !at && r < 0.6; r += 0.01) {
+    for (let i = 0, m = Math.ceil(2 * Math.PI * r / 0.01); i < m; i++) {
+      const x = own[0] + r * Math.cos(i * 2 * Math.PI / m), y = own[1] + r * Math.sin(i * 2 * Math.PI / m);
+      if (caromFree(balls, x, y, n)) { at = [x, y]; break; }
+    }
+  }
+  if (at) Object.assign(b, { x: at[0], y: at[1], vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, on: true });
+  return balls;
+}
+/* the count, from the struck ball's own contacts in order (resultOf's seq: -1 a cushion, else a
+   ball): the object balls in the order first met, the cushions before the second of them (all of
+   them when it never came), and whether that makes a point: both balls, and at least `need`
+   cushions (the same cushion counts again) before the second. */
+function caromCount(seq, need = 3) {
+  const balls = [];
+  let cushions = 0;
+  for (const e of seq) {
+    if (e < 0) { cushions++; continue; }
+    if (balls.includes(e)) continue;
+    balls.push(e);
+    if (balls.length === 2) break;
+  }
+  return { first: balls.length ? balls[0] : null, balls, cushions, point: balls.length === 2 && cushions >= need };
+}
+/* The rules (How to play says the same):
+   1. You strike your own cue ball (white for player 1, yellow for player 2). A point: it meets both
+      object balls (the other cue ball and the red) and, before it meets the second, it has hit
+      the cushions three times (once in the one-cushion game); the same cushion counts again.
+   2. A point and you shoot again; anything else and the turn passes.
+   3. Fouls (no point, the turn passes): the wrong cue ball; a ball off the table (it comes back
+      to its spot); on the break, the red not hit first.
+   4. The first to the race (5, 10 or 15 points) wins.
+   The verdict: foul, keep, win, why, point, count (caromCount's), back (balls returned), and the
+   pool fields at rest (potted [], scratch, grouped, twoFouls false). */
+function judgeCarom(g, r) {
+  const n = copyGame(g), me = g.turn, op = 1 - me, need = g.need || 3;
+  n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0, wx: 0, wy: 0, wz: 0 }));
+  n.shots++;
+  const struck = r.cue === undefined ? g.striker : r.cue, count = caromCount(r.seq || [], need), back = r.potted.slice();
+  let foul = null;
+  if (struck !== C_CUE[me]) foul = 'struck the wrong cue ball';
+  else if (back.length) foul = back.includes(struck) ? 'the cue ball left the table' : 'a ball left the table';
+  else if (g.breakShot && count.first !== null && count.first !== C_RED) foul = 'the red first on the break';
+  for (const x of back) caromSpot(n.balls, x);
+  const point = !foul && count.point;
+  let win = null;
+  if (point) {
+    n.score[me]++; n.run = (g.run || 0) + 1; n.high[me] = Math.max(n.high[me], n.run);
+    if (n.score[me] >= g.race) win = me;
+  } else n.run = 0;
+  n.turn = point ? me : op;
+  if (!point) n.innings[op]++;
+  n.winner = win; n.breakShot = false; n.inHand = null;
+  n.striker = C_CUE[n.turn];
+  n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
+  n.dry = point ? 0 : (g.dry || 0) + 1;
+  n.verdict = { foul, keep: point && win === null, win, why: win !== null ? `${g.race} points` : '', point, count, back,
+    potted: [], scratch: false, grouped: false, twoFouls: false };
+  return n;
+}
+/* The CPU at carom: simulate and score, as at pool and bumper pool. Geometry proposes, from the
+   cue ball: ball first, a fan of contact fractions on each object ball it may meet first (on the
+   break only the red), from a thin cut to full, with running english; and cushions first, the
+   system shots: each object ball mirrored across the cushion lines (where a ball's centre banks,
+   BALL_R inside the noses) through two and three reflections and aimed at, so the cue ball
+   reaches it off that many cushions. Each runs through strike and stepTable (CPU_CT seconds, then
+   cut off) and is scored: a point (with, on medium and hard, a little for the leave), else how
+   near it came: once the first ball and enough cushions are behind it, the cue ball's nearest pass
+   to the second ball; short of that, the cushions it lacked. The best few are then refined by
+   small changes of angle, power and english, kept when they score better (hill climbing on that
+   nearness is what finds the three-cushion paths), and on medium and hard the finalists re-run
+   slightly mis-hit and are scored on the mean. The shot played carries the level's noise. Levels
+   differ in breadth, refinement and noise; 'hint' is auto aim's search, small and noiseless. */
+const CPU_CAROM = {
+  easy: { sims: 40, fan: 12, powers: [0.62], english: [0.3], refine: 12, top: 2, robust: 0, noise: 0.035, pnoise: 0.12, leave: false },
+  medium: { sims: 120, fan: 20, powers: [0.55, 0.72], english: [0.4, -0.4], refine: 50, top: 3, robust: 2, noise: 0.016, pnoise: 0.065, leave: true },
+  hard: { sims: 230, fan: 28, powers: [0.5, 0.64, 0.8], english: [0.5, -0.5, 0], refine: 120, top: 4, robust: 3, noise: 0.008, pnoise: 0.035, leave: true },
+  hint: { sims: 36, fan: 12, powers: [0.62], english: [0.3], refine: 10, top: 2, robust: 0, noise: 0, pnoise: 0, leave: false },
+};
+const CPU_CT = 6;   /* seconds of a candidate simulated; a roll still going then is cut off */
+/* one candidate through the physics: the result, the count as it went (cushions, the balls met,
+   the second met too early), and the cue ball's nearest pass to the second ball once the first
+   and `need` cushions are behind it. full: run on for the leave (else stop once it is decided). */
+function cRun(g, shot, full) {
+  const tab = strike(newTable(g.balls, shot.ball), shot.angle, shot.power, shot.spin), cap = Math.round(CPU_CT / SIM_DT), need = g.need || 3;
+  const cue = tab.balls.find(b => b.n === shot.ball), hit = [];
+  let live = true, seen = 0, cush = 0, minD = Infinity, early = false, done = false, other = null;
+  for (let i = 0; live && i < cap; i++) {
+    live = stepTable(tab);
+    tab.hits.length = 0;
+    if (done) { if (!full) break; continue; }
+    for (; seen < tab.seq.length && !done; seen++) {
+      const e = tab.seq[seen];
+      if (e < 0) cush++;
+      else if (!hit.includes(e)) { hit.push(e); if (hit.length === 2) { done = true; early = cush < need; } }
+    }
+    if (!done && hit.length === 1 && cush >= need && cue.on) {
+      other = other || tab.balls.find(b => b.n !== cue.n && b.n !== hit[0]);
+      minD = Math.min(minD, Math.hypot(cue.x - other.x, cue.y - other.y) - 2 * BALL_R);
+    }
+    if (!done && !full && still(cue)) break;
+  }
+  if (live) { for (const o of tab.balls) { o.vx = 0; o.vy = 0; o.wx = 0; o.wy = 0; o.wz = 0; } tab.end = 'rest'; }
+  return { r: resultOf(tab), cush, hit, minD, early };
+}
+/* the score of a run for the player who shot from g */
+function cValue(g, o, L) {
+  const need = g.need || 3, r = o.r, me = g.striker;
+  if (r.potted.length || (g.breakShot && o.hit.length && o.hit[0] !== C_RED)) return -2000;
+  if (o.hit.length === 2 && !o.early) {
+    if (!L.leave) return 1000;
+    /* the leave: the cue ball free to play (off the cushion, clear of both balls), the two object
+       balls near each other */
+    const c = r.balls.find(b => b.n === me), ob = r.balls.filter(b => b.n !== me);
+    const rail = Math.min(c.x, TL - c.x, c.y, TW - c.y) < 1.6 * BALL_R ? 40 : 0, kiss = ob.some(b => Math.hypot(b.x - c.x, b.y - c.y) < 2.6 * BALL_R) ? 60 : 0;
+    const pair = Math.hypot(ob[0].x - ob[1].x, ob[0].y - ob[1].y);
+    return 1000 + 50 * (1 - Math.min(1, pair / 1.2)) - rail - kiss;
+  }
+  if (!o.hit.length) return -900 - 50 * Math.max(0, need - o.cush);
+  if (o.early) return -500 - 80 * (need - o.cush);
+  if (o.minD < Infinity) return -100 - 400 * Math.min(1, Math.max(0, o.minD));
+  return -520 - 80 * Math.max(0, need - o.cush);
+}
+/* the cue angle that meets ball t from (cx, cy) at contact fraction f (0 full, +-1 the thinnest
+   edge on either side), or null when it is not there to hit */
+function cCut(cx, cy, t, f) {
+  const D = Math.hypot(t.x - cx, t.y - cy), b = f * 2 * BALL_R;
+  if (D < 2 * BALL_R + 1e-6 || Math.abs(b) >= D) return null;
+  return Math.atan2(t.y - cy, t.x - cx) + Math.asin(b / D);
+}
+/* (x, y) mirrored i times across the end cushions and j times across the long ones (the lines a
+   ball's centre banks off, unfolded): the point to aim at to reach it off |i| + |j| cushions */
+function cMirror(x, y, i, j) {
+  const R = BALL_R, W = TL - 2 * R, H = TW - 2 * R, u = x - R, v = y - R;
+  return [R + (i % 2 ? (i + 1) * W - u : i * W + u), R + (j % 2 ? (j + 1) * H - v : j * H + v)];
+}
+function* cpuCarom(g, seed, level) {
+  const L = CPU_CAROM[level] || CPU_CAROM.medium, rnd = rng(seed * 2654435761 + 11), me = g.striker;
+  const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
+  const play = s => ({ angle: s.angle + gauss() * L.noise, power: clamp(powerFor(speedOf(s.power) * (1 + gauss() * L.pnoise)), 0, 1),
+    spin: { x: s.spin.x, y: s.spin.y }, place: null, ball: me, first: s.first === undefined ? null : s.first });
+  const c = g.balls.find(b => b.n === me);
+  if (!c || !c.on || g.winner !== null) return { angle: 0, power: 0.3, spin: { x: 0, y: 0 }, place: null, ball: me, first: null };
+  const targets = caromTargets(g), firsts = g.balls.filter(b => b.on && targets.includes(b.n));
+  const recs = [];
+  let sims = 0;
+  const sim = shot => { const o = cRun(g, shot, L.leave); sims++; shot.first = o.hit.length ? o.hit[0] : null; const r = { shot, value: cValue(g, o, L) }; recs.push(r); return r; };
+  /* A: the seeds, the likeliest first: ball first over the fan (half-ball cuts ahead), then the
+     mirrors, nearer ones ahead */
+  const cands = [];
+  for (const t of firsts) {
+    for (let i = 0; i < L.fan; i++) {
+      const f = -0.92 + 1.84 * (i + 0.5) / L.fan, a = cCut(c.x, c.y, t, f);
+      if (a === null) continue;
+      const side = f > 0 ? -1 : 1;   /* running english: the side the cue ball turns away to */
+      for (const p of L.powers) for (const e of L.english) cands.push({ pri: rnd() - Math.abs(Math.abs(f) - 0.5), shot: { angle: a, power: p, spin: { x: side * e, y: 0.25 }, ball: me } });
+    }
+    for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) {
+      const k = Math.abs(i) + Math.abs(j);
+      if (k < 2 || k > 3) continue;
+      const [mx, my] = cMirror(t.x, t.y, i, j), d = Math.hypot(mx - c.x, my - c.y);
+      cands.push({ pri: 0.4 - d * 0.08 + rnd() * 0.3, shot: { angle: Math.atan2(my - c.y, mx - c.x), power: clamp(L.powers[L.powers.length - 1] + 0.05 * (d - 4), 0.35, 0.95), spin: { x: 0, y: 0.2 }, ball: me } });
+    }
+  }
+  cands.sort((a, b) => b.pri - a.pri);
+  const budgetA = Math.max(6, L.sims - L.refine - 2 * L.robust);
+  for (const cd of cands) { if (sims >= budgetA) break; sim(cd.shot); yield; }
+  /* B: refine the best few, keeping what scores better; the steps shrink as it goes */
+  const top = recs.slice().sort((a, b) => b.value - a.value).slice(0, L.top);
+  for (let i = 0; i < L.refine && top.length; i++) {
+    const j = i % top.length, base = top[j], k = 1 + Math.floor(i / top.length), s = base.shot;
+    if (base.value >= 1000 && !L.leave) continue;
+    const r = sim({ angle: s.angle + (rnd() - 0.5) * 0.05 / k, power: clamp(s.power * (1 + (rnd() - 0.5) * 0.24 / Math.sqrt(k)), 0.15, 1),
+      spin: { x: clamp(s.spin.x + (rnd() < 0.4 ? (rnd() - 0.5) * 0.4 : 0), -0.8, 0.8), y: s.spin.y }, ball: me });
+    yield;
+    if (r.value > base.value) top[j] = r;
+  }
+  /* C: the finalists slightly mis-hit, scored on the mean */
+  const best = recs.slice().sort((a, b) => b.value - a.value);
+  for (const r of best) r.mean = r.value;
+  for (const r of best.slice(0, L.robust)) {
+    let sum = r.value;
+    for (const k of [1, -1]) { sum += sim(Object.assign({}, r.shot, { angle: r.shot.angle + k * Math.max(L.noise, 0.0015) * 1.5 })).value; yield; }
+    r.mean = sum / 3;
+  }
+  const pick = best.slice(0, Math.max(1, L.robust)).reduce((a, b) => b.mean > a.mean ? b : a, best[0]);
+  return play(pick.shot);
+}
+/* auto aim's suggestion: the best of a small noiseless search (the 'hint' level), as the cue
+   angle and the object ball it meets first ({ angle, n, k: -1 }: there is no pocket to mark) */
+function suggestCarom(g) {
+  if (g.winner !== null) return null;
+  const s = cpuShot(g, 1, 'hint'), n = s.first === null ? caromTargets(g)[0] : s.first, t = g.balls.find(b => b.n === n);
+  return t ? { angle: s.angle, n: t.n, k: -1, power: s.power, spin: s.spin } : null;
+}
 // #endregion sim
 
 /* ============ 2. AUDIO ============ */
@@ -3570,17 +3864,20 @@ const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3:
 const BUMPER_COLOR = [[200, 38, 44], [244, 241, 230]];
 /* snooker's reds and colours (1i: reds 41-55, the colours 57 yellow to 62 black) */
 const SNOOKER_COLOR = { red: [196, 28, 36], 57: [246, 206, 40], 58: [26, 132, 72], 59: [124, 66, 34], 60: [30, 80, 196], 61: [246, 146, 176], 62: [22, 22, 24] };
-const colorOf = n => n > 40 ? (isRed(n) ? SNOOKER_COLOR.red : SNOOKER_COLOR[n]) : n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
+/* carom's white and yellow cue balls and its red (balls 70-72, 1j) */
+const CAROM_COLOR = [[247, 244, 234], [244, 196, 48], [206, 34, 40]];
+const colorOf = n => n >= 70 ? CAROM_COLOR[n - 70] : n > 40 ? (isRed(n) ? SNOOKER_COLOR.red : SNOOKER_COLOR[n]) : n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
 /* the cloths (settings.cloth): bed, cushion rubber, the illegal colour, the floor under every
    white overlay on the bed, and the bed's colour bounced into the balls' shadow sides. Each
    overlay (guide lines and rings, placement rings and chevrons, the kitchen line, the loupe) is
    white at least ovMin opaque, or ILLEGAL, and so keeps 3:1 on the brightest lit cloth of
    either colour; the halo is near white. render-check measures them all on both. ILLEGAL is
    #ffa597 on green (over 3:1; the signal red only reaches 2.2:1) and a warm yellow on red, where
-   no red or pink can read. */
+   no red or pink can read, and on blue (carom's classic cloth; any game may use it). */
 const CLOTHS = {
   green: { base: '#1b5d47', cushion: '#1d6450', illegal: '#ffa597', ovMin: 0.6, bounce: '120,200,160', lamp: '255,248,220' },
   red: { base: '#9a1f26', cushion: '#a2242b', illegal: '#ffe27a', ovMin: 0.68, bounce: '236,122,118', lamp: '255,196,160' },
+  blue: { base: '#1d4f91', cushion: '#21579c', illegal: '#ffe27a', ovMin: 0.66, bounce: '120,160,230', lamp: '235,240,255' },
 };
 let CL = CLOTHS.green, CLOTH = CL.base, CUSHION = CL.cushion, ILLEGAL = CL.illegal;
 const clothOf = () => CLOTHS[settings && settings.cloth] || CLOTHS.green;
@@ -3649,6 +3946,7 @@ function drawTableImage(w = table.width, h = table.height) {
   paintClothLight(g, co, rnd);
   paintBevels(g, co, L, px);
   paintPocketLips(g, co, L, px);
+  if (TABLE === 'carom') { paintCaromSpots(g, px); trayBox = trayGeom(); return c; }
   /* head string, foot spot and head spot: just enough to find (snooker: its baulk line, D and spots) */
   if (TABLE === 'snooker') paintSnookerMarks(g, px);
   else {
@@ -3766,8 +4064,8 @@ function railPath(g, co) {
     g.closePath();
     return;
   }
-  /* bumper pool has no caps to wrap: a plain rounded rail */
-  const r = BUMPERS.length ? Math.min(0.045, RAIL) : Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co);
+  /* bumper pool and carom have no caps to wrap: a plain rounded rail */
+  const r = !MOUTHS.length ? Math.min(0.045, RAIL) : Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co);
   const x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL;
   g.moveTo(x0 + r, y0); g.arcTo(x1, y0, x1, y1, r); g.arcTo(x1, y1, x0, y1, r); g.arcTo(x0, y1, x0, y0, r); g.arcTo(x0, y0, x1, y0, r); g.closePath();
 }
@@ -3847,10 +4145,11 @@ function paintPocketCaps(g, co, L, px) {
   });
   g.restore();
 }
-/* mother-of-pearl sights at the quarter marks of each side, halfway across the wood, sized to it */
+/* mother-of-pearl sights at the quarter marks of each side, halfway across the wood, sized to it
+   (the eighths on a long rail; a carom table has no side pocket, so it has the middle one too) */
 function paintSights(g, co, L, px) {
   const mid = (co + RAIL) / 2, hw = Math.min(0.0062, 0.3 * (RAIL - co)), hl = hw * 1.7, at = [];
-  for (const i of [1, 2, 3, 5, 6, 7]) at.push([TL * i / 8, -mid, 0], [TL * i / 8, TW + mid, 0]);
+  for (const i of MOUTHS.length ? [1, 2, 3, 5, 6, 7] : [1, 2, 3, 4, 5, 6, 7]) at.push([TL * i / 8, -mid, 0], [TL * i / 8, TW + mid, 0]);
   for (const i of [1, 2, 3]) at.push([-mid, TW * i / 4, 1], [TL + mid, TW * i / 4, 1]);
   for (const [x, y, v] of at) {
     const ax = v ? 0 : hl, ay = v ? hl : 0, bx = v ? hw : 0, by = v ? 0 : hw;
@@ -4078,6 +4377,17 @@ function drawD() {
   ctx.fillStyle = 'rgba(255,255,240,0.06)'; ctx.fill();
   ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k; ctx.stroke();
 }
+/* ---- 4a''. the carom table ---- */
+/* The pool painters do the rest (rails, sights, cloth, cushions, light): with no mouths there are
+   no caps, holes or lips. The cloth's spots, as a match table has them: the foot spot, the centre
+   spot, the head spot and the two break spots on the head string beside it; no string line. */
+function paintCaromSpots(g, px) {
+  const r = 0.0042;
+  for (const [x, y, a] of [[FOOT[0], FOOT[1], 0.42], [TL / 2, TW / 2, 0.3], [HEAD_X, TW / 2, 0.42], [HEAD_X, TW / 2 - 0.1524, 0.3], [HEAD_X, TW / 2 + 0.1524, 0.3]]) {
+    g.fillStyle = `rgba(255,255,255,${a})`; circle(g, x, y, r); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.18)'; g.lineWidth = px; circle(g, x, y, r + px / 2); g.stroke();
+  }
+}
 
 /* ---- 4a'. the bumper pool table ---- */
 /* The same rails and cloth as the pool table, read from the same globals (CUSHION_POLYS: four
@@ -4300,8 +4610,8 @@ function paintPosts(g, L, px) {
    ends, number circles), the number as a decal mapped onto its circle, then one cached sprite
    with the lamp's shading and highlight. No per-pixel work per frame. */
 const orient = {}, IDENT = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-/* every ball number: pool's 0-15, bumper pool's red and white, snooker's reds and colours */
-const ALL_BALLS = [...Array(16).keys(), 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, ...Array.from({ length: 15 }, (_, i) => 41 + i), ...S_COLS];
+/* every ball number: pool's 0-15, bumper pool's red and white, snooker's reds and colours, carom's three */
+const ALL_BALLS = [...Array(16).keys(), 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, ...Array.from({ length: 15 }, (_, i) => 41 + i), ...S_COLS, 70, 71, 72];
 function randomOrient() {
   for (const n of ALL_BALLS) {
     let m = IDENT;
@@ -4354,7 +4664,7 @@ for (const n of [21, 22, 23, 24, 25, 31, 32, 33, 34, 35]) {
   const spot = n === 21 ? IVORY : '#c8262c';
   PAINT[n] = { base: rgb(colorOf(n)), caps: n === 21 || n === 31 ? [[0, 0.94, spot], [1, 0.94, spot], [2, 0.94, spot]] : [] };
 }
-/* snooker: plain balls, no numbers and no paint */
+/* snooker and carom: plain balls, no numbers and no paint, as match balls are */
 for (const n of ALL_BALLS) if (n > 40) PAINT[n] = { base: rgb(colorOf(n)), caps: [] };
 /* The part of the cap {v . p >= ca} on the unit sphere that faces the eye, projected. Its rim
    projects to an ellipse; where the rim goes round the limb the outline follows the limb. */
@@ -4711,12 +5021,16 @@ function cutLine(pts, len) {
    Never touches game or tab.
    The state: { cue, obj } polylines (cue from its first contact), first, crossed (the cue ball
    was past the head string before it touched a ball), cuePot / objPot (pocket or -1), objHit
-   (it turned off its line), cueStop (it came to rest inside the horizon), done. */
+   (it turned off its line), cueStop (it came to rest inside the horizon), done. Carom (carom:
+   the cushions a point needs, else 0): the cue ball's path runs on past its contacts until it has
+   hit that many cushions and then PV_TAIL more, so the guide shows the first three bounces
+   (cc counts them, bounces holds where), and the horizon is PV_CAROM_CAP steps. */
 const PV_CAP = 4800;              /* steps: 4 s of table time, whatever the power */
 const PV_SLOW = 0.03;             /* m/s: a ball this slow has under 5 mm to go, so its path is done */
 const PV_GAP = 0.01;              /* polyline points at least this far apart */
 const PV_BUDGET = 3;              /* ms of simulation per frame: most previews finish in the frame that starts them */
 const PV_FULL = [0.7, 2.0], PV_SHORT = [0.2, 0.2];   /* cue path past contact, object path: 'full' and 'short' */
+const PV_CAROM = [12, 0.6], PV_TAIL = 0.25, PV_CAROM_CAP = 3 * PV_CAP;   /* carom's full guide: see above */
 function previewStart(ang, pw, sp, h, lens) {
   const R = BALL_R, c = cueBall(), cn = c.n, dx = Math.cos(ang), dy = Math.sin(ang);
   let balls = game.balls.filter(b => b.on);
@@ -4739,6 +5053,8 @@ function previewStart(ang, pw, sp, h, lens) {
   const S = { lens, full, solo, others: full.balls.filter(b => b.n !== cn), tab: solo, ball: solo.balls[0], safe: 0, s: 0,
     ev: false, cueDone: false, cl: 0, o: null, objDone: true, ol: 0, odx: 0, ody: 0,
     cue: [], obj: null, first: null, crossed: c.x > HEAD_X, cuePot: -1, objPot: -1, objHit: false, cueStop: false, done: false };
+  /* carom: count the cue ball's cushions (full guide only: the short one stays a stub) */
+  if (game.kind === 'carom' && lens === PV_CAROM) Object.assign(S, { carom: game.need || 3, cc: 0, tail: 0, bounces: [] });
   return S;
 }
 function previewRun(S, ms) {
@@ -4757,8 +5073,9 @@ function previewRun(S, ms) {
       }
       S.safe--;
     }
-    const tab = S.tab, o = S.o, was = tab.first, evWas = S.ev, px = cue.x, py = cue.y, ox = o && o.x, oy = o && o.y, live = stepTable(tab);
+    const tab = S.tab, o = S.o, was = tab.first, evWas = S.ev, px = cue.x, py = cue.y, ox = o && o.x, oy = o && o.y, rc = tab.rails[tab.cue] || 0, live = stepTable(tab);
     S.s++;
+    if (S.carom && cue.on && (tab.rails[tab.cue] || 0) > rc) { S.cc++; if (S.cc <= S.carom) S.bounces.push([cue.x, cue.y]); }
     if (was === null && cue.on) {
       if (cue.x > HEAD_X) S.crossed = true;
       if (!S.ev && (tab.first !== null || tab.hits.some(k => k[0] === 'rail' || k[0] === 'jaw'))) { S.ev = true; S.cue.push([cue.x, cue.y]); }
@@ -4777,7 +5094,8 @@ function previewRun(S, ms) {
         S.cl += Math.hypot(cue.x - px, cue.y - py);
         /* slow is not stopped while follow or draw (spin about a horizontal axis) can drive it on */
         const stop = Math.hypot(cue.vx, cue.vy) < PV_SLOW && BALL_R * Math.hypot(cue.wx, cue.wy) < PV_SLOW;
-        if (stop || S.cl >= lens[0]) { S.cueDone = true; S.cueStop = stop; S.cue.push([cue.x, cue.y]); } else add(S.cue, cue.x, cue.y, PV_GAP);
+        if (S.carom && S.cc >= S.carom) S.tail += Math.hypot(cue.x - px, cue.y - py);
+        if (stop || S.cl >= lens[0] || S.tail >= PV_TAIL) { S.cueDone = true; S.cueStop = stop; S.cue.push([cue.x, cue.y]); } else add(S.cue, cue.x, cue.y, PV_GAP);
       }
     }
     if (o && !S.objDone) {
@@ -4790,7 +5108,7 @@ function previewRun(S, ms) {
         if (turned || v < PV_SLOW || S.ol >= lens[1]) { S.objDone = true; S.objHit = turned; S.obj.push([o.x, o.y]); } else add(S.obj, o.x, o.y, 3 * PV_GAP);
       }
     }
-    if (!live || S.s >= PV_CAP || (S.cueDone && S.objDone && (tab.first !== null || !cue.on))) S.done = true;
+    if (!live || S.s >= (S.carom ? PV_CAROM_CAP : PV_CAP) || (S.cueDone && S.objDone && (tab.first !== null || !cue.on || S.carom))) S.done = true;
   }
   return S;
 }
@@ -4811,7 +5129,7 @@ const previewMs = [];
 const PV_SNAP = 2e-5, PV_SYNC = 12, PV_STALE = 2;
 function shotPreview(ang, h, full, budget = PV_BUDGET) {
   const pw = clamp(state === 'stroke' && stroke ? stroke.power : state === 'thinking' && cpuPlan ? cpuPlan.power : pull ? power : markPower, 0, 1);
-  const sp = spinOf(cueSpin), lens = full ? PV_FULL : PV_SHORT, c = cueBall(), q = (v, s) => Math.round(v / s);
+  const sp = spinOf(cueSpin), lens = full ? (game.kind === 'carom' ? PV_CAROM : PV_FULL) : PV_SHORT, c = cueBall(), q = (v, s) => Math.round(v / s);
   let lay = `${lens[0]}`;
   for (const b of game.balls) if (b.n) lay += b.on ? `|${b.x},${b.y}` : '|-';
   const key = `${q(ang, PV_SNAP)}|${q(pw, 0.001)}|${q(sp.x, 0.005)}|${q(sp.y, 0.005)}|${c.x},${c.y}|${lay}`;
@@ -4863,20 +5181,21 @@ function guide(c, ang) {
   const h = aimTrace(c.x, c.y, dx, dy, [c.n], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
   /* the verdict comes from a complete preview only; with none yet (a turn's first frame on a
      slow device) the last one stands, so the ring never flips on half-known data */
-  let first = null, legal = guideLegal, cue = [];
+  let first = null, legal = guideLegal, cue = [], bounces = [];
   if (P) {
     first = P.first === null ? null : game.balls.find(b => b.n === P.first);
     const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
     /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
     const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
       && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
-    /* bumper pool: any contact, or none, is legal */
-    legal = guideLegal = game.kind === 'bumper' || (first ? !wrong && !kitchen : false);
+    /* bumper pool: any contact, or none, is legal; carom: cushions first is fine, but on the break the red first */
+    legal = guideLegal = game.kind === 'bumper' || (game.kind === 'carom' ? !wrong : first ? !wrong && !kitchen : false);
     /* a preview a frame or two behind a moving aim that still meets the same ball or cushion:
        its cue ball path moves with the ghost ball, so the two never come apart */
     const same = P.hb === (h.ball ? h.ball.n : -1) && P.hk === h.kind && (h.kind === 'ball' || h.kind === 'rail') && P.cuePot < 0 && Math.abs(P.ang - ang) < 0.03;
     const ox = same ? gx - P.gx : 0, oy = same ? gy - P.gy : 0;
     cue = ox || oy ? P.cue.map(q => [q[0] + ox, q[1] + oy]) : P.cue;
+    if (P.bounces) bounces = P.bounces.map(q => [q[0] + ox, q[1] + oy]);
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -4898,6 +5217,8 @@ function guide(c, ang) {
     strokeLine(cue, wa(0.55), 1.5, [5, 5]);
     const end = cue[cue.length - 1];
     if (full && P.cueStop) guideRing(end[0], end[1], rp, wa(0.3), 1.25);
+    /* carom: a dot where each of the first three cushions turns it */
+    for (const q of bounces) guideRing(q[0], q[1], 2.5, wa(0.85), 1, wa(0.85));
     if (P.cuePot >= 0) {
       let tail = cue.slice().reverse(), len = 0;
       for (let i = 1; i < tail.length; i++) len += Math.hypot(tail[i][0] - tail[i - 1][0], tail[i][1] - tail[i - 1][1]);
@@ -5284,8 +5605,9 @@ const felt = window.felt = {
   /* the table's footprint on screen, CSS px: the rail's outer edge */
   tableRect() { const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
-/* the ball the cue strikes: the cue ball, or in bumper pool the shooter's chosen ball (game.striker) */
-const cueN = () => game.kind === 'bumper' ? game.striker : 0;
+/* the ball the cue strikes: the cue ball, or in bumper pool the shooter's chosen ball and in carom
+   the shooter's own cue ball (game.striker) */
+const cueN = () => game.kind === 'bumper' || game.kind === 'carom' ? game.striker : 0;
 const cueBall = () => game.balls.find(b => b.n === cueN());
 const human = () => !(cpuMode && game.turn === 1);
 /* two players go by the names given at setup (settings.names), else Player 1 and Player 2 */
@@ -5297,6 +5619,9 @@ const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300)
    shot moments by key (shotMoments), counted; brk: the break ({ p, down, foul }); visit: the visit
    in progress ({ p, pots, fromBreak }) or null; last: the moments of the latest shot */
 function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []], pots: [0, 0], best: [0, 0], notes: [{}, {}], brk: null, visit: null, last: [], lastP: null }; }
+/* carom: the breaker's cue ball goes left or right of the head spot, alternately game to game */
+let caromSide = -1;
+const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCush, side: caromSide = -caromSide });
 
 /* o: a career rack (6c) plays on its own terms instead of the settings: { level, table, pockets,
    bumperTable, breaker (1: the CPU breaks) }; any other start ends the career match */
@@ -5309,8 +5634,8 @@ function start(kind, o = null) {
   setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
   setPockets(o ? o.pockets : settings.pockets);
   if (kind === 'snooker') setTable('snooker', settings.snookerTable);
-  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind);
-  if (o && o.breaker === 1 && kind !== 'bumper') game.turn = 1;
+  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind, kind === 'carom' ? caromOpts() : undefined);
+  if (o && o.breaker === 1 && kind !== 'bumper' && kind !== 'carom') game.turn = 1;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
@@ -5323,8 +5648,9 @@ function start(kind, o = null) {
   enterHand();
   keepAim();
   autoAim();
-  say(human() ? handHint() : turnOf(1) + '.');
+  say(!human() ? turnOf(1) + '.' : kind === 'carom' ? aimHint() : handHint());
   if (kind === 'bumper') flash('turn', 'Opening shots', `${cpuMode ? 'You shoot' : 'Red shoots'} the marked ball at the far cup`, 1600);
+  else if (kind === 'carom') flash('turn', cpuMode ? 'You break' : `${nameOf(0)} breaks`, `Hit the red first. ${game.need === 1 ? 'One cushion' : 'Three cushions'}, ${game.race} points`, 1600);
   else flash('turn', !human() ? `${career ? careerFoe().first : 'The CPU'} breaks` : cpuMode ? 'You break' : 'Player 1 breaks', kind === 'snooker' ? 'Ball in hand in the D' : 'Ball in hand behind the line', 1400);
   hud();
 }
@@ -5460,7 +5786,7 @@ function autoAim() {
   /* bumper pool: the suggested ball becomes the one to strike, on the suggested line */
   if (game.kind === 'bumper' && !picked) game.striker = s.n;
   const c = cueBall(), T = POCKETS[s.k] || [t.x, t.y];
-  const to = game.kind !== 'bumper' ? Math.atan2(t.y - c.y, t.x - c.x) : game.striker === s.n ? s.angle : Math.atan2(T[1] - c.y, T[0] - c.x);
+  const to = game.kind === 'carom' ? s.angle : game.kind !== 'bumper' ? Math.atan2(t.y - c.y, t.x - c.x) : game.striker === s.n ? s.angle : Math.atan2(T[1] - c.y, T[0] - c.x);
   if (!Number.isFinite(to)) return;
   lockAim();
   if (reducedMotion()) { aimAngle = to; keepAim(); return; }
@@ -5527,6 +5853,7 @@ function settle() {
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
   if (game.kind === 'snooker') { snookerWords(v, shooter, who); hud(); return; }
+  if (game.kind === 'carom') { caromWords(v, shooter, who); hud(); return; }
   if (v.foul) {
     const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
     flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2400 : 1500);
@@ -5611,6 +5938,27 @@ function concedeFrame() {
   autoAim();
   snookerWords(v, p, game.turn);
   hud();
+}
+/* carom's banners and status line after a shot: a point and the score, else why there was none
+   (sfx('point') sounds once the audio has a voice for it) */
+const NUMW = ['No', 'One', 'Two', 'Three'];
+const caromWhy = c => !c.balls.length ? 'No ball hit' : c.balls.length < 2 ? 'Only one ball' : `${NUMW[c.cushions] || c.cushions} cushion${c.cushions === 1 ? '' : 's'} before the second ball`;
+function caromWords(v, shooter, who) {
+  if (v.foul) {
+    flash('foul', `Foul: ${v.foul}`, turnOf(who), 1500);
+    say(`Foul: ${v.foul}. ${turnOf(who)}.`);
+    sfx('foul', 1);
+  } else if (v.point) {
+    const sc = `${game.score[shooter]} of ${game.race}`, run = game.run > 1 ? `, a run of ${game.run}` : '';
+    flash('turn', `Point: ${sc}`, `${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'shoot' : 'shoots'} again${run}`, 900);
+    say(`Point: ${sc}${run}. ${nameOf(shooter)} ${cpuMode && shooter === 0 ? 'go' : 'goes'} again.`);
+    sfx('point', 1);
+  } else {
+    const why = caromWhy(v.count);
+    flash('turn', turnOf(who), why, 1100);
+    say(`${why}. ${turnOf(who)}.`);
+    sfx('turn', 1);
+  }
 }
 /* bumper pool: strike ball n from now on (a ball of the shooter's, any but on the opening) */
 function pickBall(n) {
@@ -5717,13 +6065,13 @@ const REPLAY_OFFER_MS = 3500, REPLAY_NOTABLE_MS = 6500;
 const REPLAY_LEAD = 0.5;          /* s: the cue at address, drawn back, then through */
 const REPLAY_SLOW = 0.35, SLOW_IN = 0.09, SLOW_OUT = 0.12, SLOW_RAMP = 0.06;   /* sim s round each moment: 0.6 s at 0.35x */
 const REPLAY_GAIN = 0.45;         /* replay sounds, against live */
-const NOTABLE = { bank: 'Nice bank. Replay?', kick: 'Nice kick. Replay?', combo: 'Nice combo. Replay?', long: 'Long pot. Replay?' };
+const NOTABLE = { point: 'What a point. Replay?', bank: 'Nice bank. Replay?', kick: 'Nice kick. Replay?', combo: 'Nice combo. Replay?', long: 'Long pot. Replay?' };
 let rp = null, offer = null, eatUntil = 0, eatId = null;
-const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, TW, BALL_R].join();   /* snooker: its size and ball (1i) too */
+const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, TW, BALL_R].join();   /* snooker's size and every table's ball (BALL_R) too */
 /* the record of a shot about to be played: the stroke ({ angle, power, spin, ball }) and what it
    needs to be played again. The ball orientations ride along unlisted (for the replay's look). */
 function shotRecord(shot) {
-  const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, snookerSize: SNOOKER_SIZE, ballR: BALL_R, geo: geoSig(), breakShot: !!game.breakShot, notable: null });
+  const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, snookerSize: SNOOKER_SIZE, ballR: BALL_R, geo: geoSig(), breakShot: !!game.breakShot, need: game.need, notable: null });
   Object.defineProperty(rec, 'orient', { value: Object.assign({}, orient) });
   camPred = camPredict(rec);
   return rec;
@@ -5731,8 +6079,11 @@ function shotRecord(shot) {
 /* worth a replay: a pot after two or more cushions (the potted ball's, plus the cue ball's before
    it hit anything: a bank or a kick), a combination (the potted ball first touched by another
    object ball), or a pot from more than 70% of the table's length away. Never a break, never a
-   scratch. res: resultOf the roll; rec: its record. Returns 'bank', 'kick', 'combo', 'long' or null. */
+   scratch. Carom: a point. res: resultOf the roll; rec: its record. Returns 'point', 'bank', 'kick',
+   'combo', 'long' or null. */
 function notableOf(res, rec) {
+  /* carom: nothing is potted; a point is the moment (the break too: scoring off it is rare) */
+  if (rec.kind === 'carom') return caromCount(res.seq || [], rec.need || 3).point && !res.potted.length ? 'point' : null;
   const cue = rec.ball || 0, bumper = rec.kind === 'bumper';
   if (rec.breakShot || (!bumper && res.potted.includes(cue))) return null;
   const objs = res.potted.filter(n => bumper || n !== cue), kick = res.kick || 0;
@@ -6780,10 +7131,11 @@ Object.defineProperties(felt, {
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not.
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
-   game the menu last started (Play again replays it on the current settings), null at first. */
+   game the menu last started (Play again replays it on the current settings), null at first.
+   caromRace (5, 10 or 15 points) and caromCush (3, or 1 for the one-cushion game): carom's setup. */
 function loadSettings() {
   /* snooker's table: compact (10 ft) on a phone, where the full table's balls get small; full on a bigger screen */
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'auto', names: ['', ''], last: null,
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'auto', names: ['', ''], last: null,
     snookerTable: Math.min(innerWidth, innerHeight) < 700 ? 'compact' : 'full', snookerFrames: 1 };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
@@ -6795,13 +7147,15 @@ function loadSettings() {
     if (['7', '9'].includes(o.table)) s.table = o.table;
     if (['regulation', 'generous'].includes(o.pockets)) s.pockets = o.pockets;
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
-    if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
+    if (['green', 'red', 'blue'].includes(o.cloth)) s.cloth = o.cloth;
+    if (CAROM_RACES.includes(o.caromRace)) s.caromRace = o.caromRace;
+    if ([1, 3].includes(o.caromCush)) s.caromCush = o.caromCush;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
     if (['compact', 'full'].includes(o.snookerTable)) s.snookerTable = o.snookerTable;
     if ([1, 3].includes(o.snookerFrames)) s.snookerFrames = o.snookerFrames;
     if (['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
-    if (['8', '9', 'bumper', 'snooker'].includes(o.last)) s.last = o.last;
+    if (['8', '9', 'bumper', 'carom', 'snooker'].includes(o.last)) s.last = o.last;
   } catch (e) { }
   return s;
 }
@@ -6830,8 +7184,10 @@ const SEGS = [
   ['table', [[tb7, '7'], [tb9, '9']]],
   ['pockets', [[pkReg, 'regulation'], [pkGen, 'generous']]],
   ['autoAim', [[aaOn, true], [aaOff, false]]],
-  ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
+  ['cloth', [[clGreen, 'green'], [clRed, 'red'], [clBlue, 'blue']]],
   ['bumperTable', [[btOct, 'octagon'], [btRect, 'rect']]],
+  ['caromRace', [[cr5, 5], [cr10, 10], [cr15, 15]]],
+  ['caromCush', [[cc3, 3], [cc1, 1]]],
   ['snookerTable', [[stCompact, 'compact'], [stFull, 'full']]],
   ['snookerFrames', [[sf1, 1], [sf3, 3]]],
   ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
@@ -6862,7 +7218,7 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
-/* ---- 6m. the menu's sheets. Home: Play again, the three games (each opens its setup), the solo
+/* ---- 6m. the menu's sheets. Home: Play again, the four games (each opens its setup), the solo
    row, Stats, Settings and How to play. Setup: the opponent (two players, named or not, or one
    of three CPU opponents), the table options that game has, Break. Every sheet goes back to the
    menu it came from (home, or the pause menu); so does Esc. ---- */
@@ -6870,6 +7226,7 @@ const KINDS = {
   8: { name: '8-ball', ball: 'b8', num: '8', sub: 'Solids and stripes. Clear your group, then pot the 8.' },
   9: { name: '9-ball', ball: 'b9', num: '9', sub: 'Lowest ball first. A legal 9 wins, whenever it drops.' },
   bumper: { name: 'Bumper pool', ball: 'bb', num: '', sub: 'Red against white, five each, round the posts to the far cup.' },
+  carom: { name: 'Three-cushion', ball: 'bc', num: '', sub: 'No pockets. Your cue ball meets both others, three cushions before the second.' },
   snooker: { name: 'Snooker', ball: 'bsnk', num: '', sub: 'A red, then a colour, and again. Most points wins the frame.' },
 };
 /* the CPU opponents, one per level of cpuSearch */
@@ -6896,6 +7253,7 @@ function setupWords(kind) {
   const n = settings.names, who = settings.cpu ? ` vs ${FOES[settings.level]} (CPU ${settings.level})`
     : n[0] || n[1] ? `, ${n[0] || 'Player 1'} v ${n[1] || 'Player 2'}` : ', two players';
   const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon')
+    : kind === 'carom' ? `${settings.caromRace} points` + (settings.caromCush === 1 ? ', one cushion' : '')
     : kind === 'snooker' ? (settings.snookerTable === 'full' ? 'full 12 ft' : 'compact 10 ft') + (settings.snookerFrames === 3 ? ', best of 3' : '')
     : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '');
   return KINDS[kind].name + who + ', ' + tb;
@@ -6931,8 +7289,9 @@ function showSetup(kind) {
   setupTitle.textContent = k.name; setupSub.textContent = k.sub;
   setupBall.className = 'ball ' + k.ball; setupBall.textContent = k.num;
   breakBtn.textContent = kind === 'bumper' ? 'Play' : 'Break';
-  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'snooker';
+  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'carom' || kind === 'snooker';
   for (const el of setupSheet.querySelectorAll('.bump')) el.hidden = kind !== 'bumper';
+  for (const el of setupSheet.querySelectorAll('.carom')) el.hidden = kind !== 'carom';
   for (const el of setupSheet.querySelectorAll('.snk')) el.hidden = kind !== 'snooker';
   name1.value = settings.names[0]; name2.value = settings.names[1];
   previewGame(kind);
@@ -6951,7 +7310,7 @@ function quitToHome() {
   cancelGestures();
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
-  game = newGame(['bumper', 'snooker', '9'].includes(game.kind) ? game.kind : '8');
+  game = newGame(['bumper', 'carom', 'snooker', '9'].includes(game.kind) ? game.kind : '8');
   closeSolo();
   showMenu();
   hud();
@@ -6986,9 +7345,9 @@ function coverView(w, h, kind, mode, obj, low) {
     k = wide ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = wide ? -0.02 : RAIL;
   } else {
     /* pool: only the cloth shows (no rail or pocket under the scrim), the rack a good part of the
-       card but clear of the words */
+       card but clear of the words; carom's three balls, sparse, a little closer on a card */
     const xs = obj.map(b => b.x), ys = obj.map(b => b.y), span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * BALL_R;
-    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span); e = -0.02;
+    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' ? 1.5 : 1); e = -0.02;
   }
   const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
   const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : w * 0.7) : w * 0.5, ty = wide ? h / 2 : Math.min(h * 0.42, free / 2 + 4);
@@ -7026,6 +7385,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
     const g = newGame(kind), balls = g.balls.filter(b => b.on);
+    if (kind === 'carom' && mode !== 'fit') caromArt(balls);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
@@ -7053,6 +7413,13 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
   }
 }
 
+/* carom's card: the three balls in play near the middle of the table, close up (its setup shows
+   the start instead) */
+function caromArt(balls) {
+  const at = { 70: [0.497, 0.6], 71: [0.532, 0.66], 72: [0.52, 0.42] };
+  for (const b of balls) if (at[b.n]) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; }
+}
+
 /* ---- the record: games played and won, kept when a game ends (finish -> recordGame). Per game
    kind: played, two-player games, and wins and losses against each CPU opponent; the current and
    best run of wins against the CPU. localStorage under REC_KEY, versioned; anything unreadable
@@ -7060,7 +7427,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
 const REC_KEY = 'felt.record.v1', LEVELS = ['easy', 'medium', 'hard'];
 function freshRec() {
   const k = () => ({ played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } } });
-  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }) }, streak: 0, best: 0 };
+  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), carom: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }) }, streak: 0, best: 0 };
 }
 function loadRec() {
   const r = freshRec(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
@@ -7110,9 +7477,9 @@ function showStats() {
   const head = document.createElement('thead'), body = document.createElement('tbody'), hr = document.createElement('tr');
   hr.append(cell('th', 'Game'), cell('th', 'Played'), ...LEVELS.map(lv => cell('th', FOES[lv])), cell('th', '2P'));
   head.appendChild(hr);
-  for (const kind of ['8', '9', 'bumper', 'snooker']) {
+  for (const kind of ['8', '9', 'bumper', 'carom', 'snooker']) {
     const r = rec.kinds[kind], tr = document.createElement('tr');
-    tr.append(cell('th', kind === 'bumper' ? 'Bumper' : KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
+    tr.append(cell('th', kind === 'bumper' ? 'Bumper' : kind === 'carom' ? 'Carom' : KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
       ...LEVELS.map(lv => { const o = r.cpu[lv]; return cell('td', `${o.w}-${o.l}`, o.w + o.l ? '' : 'z'); }), cell('td', String(r.two), r.two ? '' : 'z'));
     body.appendChild(tr);
   }
@@ -7125,7 +7492,7 @@ function showStats() {
 }
 
 /* ---- how to play: one tab per topic; arrows move between tabs ---- */
-const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabSnk, panSnk], [tabSolo, panSolo]];
+const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tabSolo, panSolo]];
 function pickTab(tab, focus) {
   for (const [t, p] of TABS) { const on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; p.hidden = !on; }
   if (focus) tab.focus({ preventScroll: true });
@@ -7139,13 +7506,14 @@ tabCtl.parentElement.addEventListener('keydown', e => {
 });
 /* opened from a paused game, the tab for that game; from home, the controls */
 function showHelp() {
-  pickTab(!paused ? tabCtl : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
+  pickTab(!paused ? tabCtl : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'carom' ? tabCarom : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
   openSheet(helpSheet, helpBack);
 }
 
 play8.addEventListener('click', () => showSetup('8'));
 play9.addEventListener('click', () => showSetup('9'));
 playB.addEventListener('click', () => showSetup('bumper'));
+playC.addEventListener('click', () => showSetup('carom'));
 playS.addEventListener('click', () => showSetup('snooker'));
 concedeBtn.addEventListener('click', () => { audioOn(); concedeFrame(); });
 breakBtn.addEventListener('click', () => playSetup(setupKind));
@@ -7185,6 +7553,7 @@ function fillDots(box, list, big) {
 /* what a player's card says: their group and what is left of it, or the ball on */
 function cardOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n);
+  if (game.kind === 'carom') return { meta: `${p ? 'Yellow' : 'White'}, ${game.score[p]} of ${game.race}` + (game.high[p] > 1 ? `, best run ${game.high[p]}` : ''), dots: [C_CUE[p]], warn: false };
   /* snooker: the score, the break while at the table and the best; the ball on, for the player to shoot */
   if (game.kind === 'snooker') {
     const up = p === game.turn && game.winner === null, need = up && snookersNeeded(game, p);
@@ -7218,6 +7587,8 @@ function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
   if (game.kind === 'snooker') return { balls: [], num: String(game.score[p]) };
   if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
+  /* carom: the points in the player's ball colour, over the race */
+  if (game.kind === 'carom') return { balls: [], num: String(game.score[p]), of: '/' + game.race, col: C_CUE[p] };
   if (game.kind === '9') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
   if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
@@ -7230,11 +7601,12 @@ function hudChip() {
   for (const p of [0, 1]) {
     const el = document.getElementById('pchip' + p), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
     if (name.textContent !== nm) name.textContent = nm;
-    const key = c.balls.join(',') + '|' + c.num;
+    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '');
     if (box.dataset.key !== key) {
       box.dataset.key = key;
       const els = c.balls.map(n => dotEl(n));
-      if (c.num) { const t = document.createElement('span'); t.className = 'num'; t.textContent = c.num; els.push(t); }
+      if (c.num) { const t = document.createElement('span'); t.className = 'num' + (c.col ? ' c' + c.col : ''); t.textContent = c.num; els.push(t); }
+      if (c.of) { const t = document.createElement('span'); t.className = 'of'; t.textContent = c.of; els.push(t); }
       box.replaceChildren(...els);
     }
     el.classList.toggle('on', p === game.turn);
@@ -7259,6 +7631,7 @@ function hudMenu() {
   for (const b of game.balls) if (!b.on && b.n > 0 && !potted.includes(b.n)) potted.push(b.n);
   fillDots(potDots, potted);
   if (!potted.length) potDots.textContent = 'none yet';
+  potRow.hidden = game.kind === 'carom';   /* nothing is potted at carom: the cards hold the score */
   if (menuMsg.textContent !== msg.textContent) menuMsg.textContent = msg.textContent;
 }
 function hud() {
@@ -7378,6 +7751,7 @@ function overLine(g) {
     if (/before|clear|early/.test(why)) return `${who(l)} potted the 8 before clearing ${their(l)} group.`;
   }
   if (/\b9\b/.test(why)) return `${who(w)} potted the 9 to win.`;
+  if (/points/.test(why)) return `${who(w)} reached ${why} first` + (g.high && g.high[w] > 1 ? `, with a best run of ${g.high[w]}.` : '.');
   if (/all five/.test(why)) return `${who(w)} got all five ${cpuMode && w === 0 ? 'of yours' : w ? 'whites' : 'reds'} down${v.foul ? ` (${who(l)} fouled: ${v.foul})` : ''}.`;
   return `${who(w)} won: ${why}.`;
 }
@@ -7438,7 +7812,7 @@ function overBallOf(w) {
   return game.kind === '9' ? ['ball b9', '9'] : ['ball b8', '8'];
 }
 function showOver() {
-  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind + '-ball';
+  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind === 'carom' ? (game.need === 1 ? 'One-cushion' : 'Three-cushion') : game.kind + '-ball';
   const n = stats.shots[0] + stats.shots[1];
   overKind.textContent = `${kind}${cpuMode ? ` vs ${FOES[cpuLevel]}` : ''}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
@@ -7474,12 +7848,18 @@ function showOver() {
   };
   const head = document.createElement('thead'), body = document.createElement('tbody');
   head.appendChild(row('', [0, 1].map(p => nameOf(p)), true));
-  /* snooker: the frame's score and the highest breaks (and the frames, in a match) in place of the potted balls and the best run */
-  const fo = game.verdict && game.verdict.frameOver, sc = fo ? fo.score : game.score;
-  const lead = game.kind === 'snooker' ? [row('Score', sc.map(String)), row('High break', game.high.map(String)), ...(game.frames > 1 ? [row('Frames', game.won.map(String))] : [])]
-    : [row('Potted', [dots(0), dots(1)]), row('Best run', stats.best.map(String))];
-  body.append(...lead, row('Accuracy', [0, 1].map(acc)), row('Fouls', stats.fouls.map(String)), row('Shots of note', [noteCell(0), noteCell(1)]));
-  body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
+  /* snooker: the frame's score and the highest breaks (and the frames, in a match) in place of the
+     potted balls and the best run; carom: points, innings (turns at the table), the average per
+     inning and the best run */
+  const fo = game.verdict && game.verdict.frameOver, sc = fo ? fo.score : game.score, g = game;
+  const avg = p => (g.score[p] / Math.max(1, g.innings[p])).toFixed(2);
+  if (g.kind === 'carom') body.append(row('Points', g.score.map(String)), row('Innings', g.innings.map(String)), row('Average', [avg(0), avg(1)]), row('High run', g.high.map(String)));
+  else {
+    const lead = g.kind === 'snooker' ? [row('Score', sc.map(String)), row('High break', g.high.map(String)), ...(g.frames > 1 ? [row('Frames', g.won.map(String))] : [])]
+      : [row('Potted', [dots(0), dots(1)]), row('Best run', stats.best.map(String))];
+    body.append(...lead, row('Accuracy', [0, 1].map(acc)), row('Fouls', stats.fouls.map(String)), row('Shots of note', [noteCell(0), noteCell(1)]));
+    body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
+  }
   overStats.replaceChildren(head, body);
   menu.classList.remove('show');
   over.classList.add('show');

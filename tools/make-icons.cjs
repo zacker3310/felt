@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 /* make-icons: renders the felt app icon and writes every size the web app needs.
-   The art is an action shot: the break, the instant the cue ball smashes into the rack, seen
-   from just above the foot rail, with the balls coming at the viewer. It is drawn in headless
-   Chromium: a small deterministic ray tracer (lit, glossy spheres with a specular lamp
-   reflection, soft area-light shadows, contact occlusion, true motion blur, red cloth with a
-   light falloff, dark wood rails, a corner pocket) writes the pixels into a 2D canvas, then the
-   canvas API adds the graphic layer (impact flash, speed lines, chalk dust, vignette) and does
-   the downscaling. Ball numbers are drawn as stroked paths, not text, so no font is involved
+   The chosen art (scene A) is a product shot: one ivory cue ball with the brand's red spot
+   turned to camera, studio lit (a soft key, a rim, one sharp highlight) on deep green cloth
+   that falls away into the dark. One subject and one accent colour make it read at 29 pt and
+   in tinted mode. The other scenes stay for comparison: B the drop (an 8 going into a corner
+   pocket), C the monogram ("f." with the cue ball as the stop), D the kiss (cue ball and 8),
+   Ar the product shot on red, and A0..C0 the earlier action shots of the break.
+   It is drawn in headless Chromium: a small deterministic ray tracer (lit, glossy spheres with
+   a specular lamp reflection, soft boxes for rims, soft area-light shadows, contact occlusion,
+   true motion blur, cloth with a light falloff, dark wood rails, pockets) writes the pixels
+   into a 2D canvas, then the canvas API adds the graphic layer (the monogram, glints, impact
+   flash, speed lines, chalk dust, vignette) and does the downscaling. Ball numbers are drawn as stroked paths, not text, so no font is involved
    and the output is the same on every machine with the same Chromium.
 
    Usage: node tools/make-icons.cjs                  writes icons/ from the chosen scene
-          node tools/make-icons.cjs --scene B --out DIR [--size 1024] [--spp 4]
+          node tools/make-icons.cjs --scene B --out DIR [--size 1024] [--spp N]
                                                      renders one scene to DIR (candidates)
    npm run icons runs the first form. */
 'use strict';
@@ -45,15 +49,19 @@ function scene(o) {
     lamp: { c: [Q[0] + o.lamp[0], Q[1] + o.lamp[1], o.lamp[2]], s: o.lampSize || [0.7, 0.45], ambient: o.ambient || 0.1 },
     exposure: o.exposure || 1,
     cloth: o.cloth,
-    balls: o.balls.map(b => ({ n: b.n, p: at(b.p), v: b.v || [0, 0, 0], f: b.f || [0, 0, 0] })),
-    cue: { tip: at([-R - (o.tipGap || 0), 0, o.tipZ || 0]), dir: o.cueDir || [-1, 0, 0.1], v: o.cueV || 0 },
-    fx: o.fx || [],
+    balls: o.balls.map(b => ({ n: b.n, p: at(b.p), v: b.v || [0, 0, 0], f: b.f || [0, 0, 0], dot: b.dot || 0 })),
+    cue: o.noCue ? null : { tip: at([-R - (o.tipGap || 0), 0, o.tipZ || 0]), dir: o.cueDir || [-1, 0, 0.1], v: o.cueV || 0 },
+    fx: (o.fx || []).map(f => f.p ? Object.assign({}, f, { p: at(f.p) }) : f),
+    /* studio extras: bare = an endless cloth with no table round it; sky, the colour above the
+       horizon; env, soft boxes seen only in the balls' reflections (rim lights); vig, the
+       vignette; leather, the pocket liner */
+    bare: !!o.bare, spp: o.spp, sky: o.sky, env: o.env || [], vig: o.vig, leather: o.leather,
   };
 }
 const SCENES = {
   /* A: low and close behind the shot. The tip has just struck the cue ball; ahead, the rack
      bursts apart and balls fly back toward the camera. */
-  A: scene({
+  A0: scene({
     Q: [LX - 1.05, LY / 2 + 0.02],
     cam: [-0.21, -0.15, 0.19], look: [0.21, 0.0, -0.03], fov: 50,
     lamp: [0.24, -0.04, 0.85],
@@ -77,7 +85,7 @@ const SCENES = {
   }),
   /* B: nearly overhead, the table turned 45 degrees so the corner pocket sits at the top and
      the rails run down from it. The cue comes up from the bottom; the rack bursts open. */
-  B: scene({
+  B0: scene({
     Q: [LX - 0.30, 0.24],
     cam: [-0.04, 0.04, 0.56], look: [0.115, -0.115, 0], fov: 50, up: [1, -1, 0],
     lamp: [0.14, -0.14, 0.8],
@@ -101,7 +109,7 @@ const SCENES = {
   }),
   /* C: from above the foot corner pocket, looking back up the table: the rack bursts toward the
      camera, the cue ball and the cue beyond it. */
-  C: scene({
+  C0: scene({
     Q: [LX * 0.75 - 0.30, LY / 2 + 0.02],
     cam: [0.78, -0.42, 0.30], look: [0.10, 0.0, -0.03], fov: 40,
     lamp: [0.3, -0.05, 0.85],
@@ -123,6 +131,52 @@ const SCENES = {
     ],
   }),
 };
+const DOT = 0.2; /* the cue ball's red spot: angular radius, radians */
+const KISS = 0.014; /* how far the 8 sits behind the cue ball in the kiss, metres */
+/* A: the product shot. One cue ball, its red spot to camera like a badge, studio lit on deep
+   cloth that falls away into the dark. */
+const productShot = cloth => scene({
+  Q: [1.2, 0.6], bare: true, noCue: true, spp: 32,
+  cam: [-0.142, -0.006, 0.088], look: [0, -0.003, 0.031], fov: 30,
+  lamp: [-0.05, 0.11, 0.42], lampSize: [0.26, 0.26], ambient: 0.05,
+  env: [{ d: [0.9, -0.75, 0.45], a: 0.45, soft: 0.25, k: 2.6 }, { d: [0.6, 0.9, 0.2], a: 0.2, soft: 0.2, k: 0.25 }],
+  cloth, vig: { x: 0.46, y: 0.5, r0: 0.22, r1: 0.74, a: 0.62 },
+  balls: [{ n: 0, p: [0, 0], dot: DOT, f: [-0.1, 0.07, 0] }],
+});
+SCENES.A = productShot('#0f4c39');
+SCENES.Ar = productShot('#7a1219');
+/* B: the drop. Straight down into a corner pocket, a black 8 half gone over the lip; the
+   cushion noses meet at the jaws in a hard diagonal. */
+SCENES.B = scene({
+  Q: [LX - 0.007, 0.007], noCue: true, spp: 16,
+  cam: [0.008, -0.008, 0.6], look: [0.008, -0.008, 0], fov: 19, up: [1, 0, 0],
+  lamp: [-0.35, 0.3, 0.9], ambient: 0.08, cloth: '#155c46', leather: '#3b2a20',
+  env: [{ d: [-0.4, 0.4, 1], a: 0.3, soft: 0.2, k: 0.6 }],
+  vig: { x: 0.5, y: 0.5, r0: 0.3, r1: 0.8, a: 0.4 },
+  balls: [{ n: 8, p: [0, 0, -0.017], f: [0.1, 0.1, 0.4] }],
+});
+/* C: the monogram. A heavy lowercase f standing on the cloth with the cue ball for its full
+   stop: "f.", the wordmark's mark. Seen from straight above. */
+SCENES.C = scene({
+  Q: [1.2, 0.6], bare: true, noCue: true, spp: 32,
+  cam: [0, -0.3, 0.46], look: [0, 0.004, 0.01], fov: 25,
+  lamp: [-0.12, 0.17, 0.75], lampSize: [0.4, 0.4], ambient: 0.07,
+  env: [{ d: [-0.3, 0.5, 1], a: 0.35, soft: 0.25, k: 0.5 }],
+  cloth: '#135741', vig: { x: 0.5, y: 0.5, r0: 0.3, r1: 0.78, a: 0.5 },
+  balls: [{ n: 0, p: [0.0472, -0.0435], dot: 0.3, f: [-0.1, 0.12, 0] }],
+  fx: [{ type: 'mono', p: [-0.0856, -0.072], s: 0.16, w: 0.22, hook: 0.19, tail: 0.10, bar: [0.06, 0.56, 0.48], h: 0.016, shadow: 0.65, bevel: 0.005, top: ['#fffdf6', '#e6e0cf'] }],
+});
+/* D: the kiss. Macro on the cue ball meeting the 8: ivory and black, one point of contact. */
+const kd = Math.sqrt(D * D - KISS * KISS);
+SCENES.D = scene({
+  Q: [1.2, 0.6], bare: true, noCue: true, spp: 32,
+  cam: [-0.21, -kd / 2, 0.085], look: [KISS / 2, -kd / 2, 0.027], fov: 31,
+  lamp: [0.03, 0.02, 0.42], lampSize: [0.22, 0.22], ambient: 0.04,
+  env: [{ d: [0.8, 0.9, 0.45], a: 0.3, soft: 0.2, k: 1.4 }, { d: [0.8, -0.9, 0.45], a: 0.3, soft: 0.2, k: 1.4 }],
+  cloth: '#0b2b22', sky: '#000000', vig: { x: 0.5, y: 0.5, r0: 0.2, r1: 0.72, a: 0.7 },
+  balls: [{ n: 0, p: [0, 0], dot: DOT, f: [0.12, 0.06, 0] }, { n: 8, p: [KISS, -kd], f: [-0.22, 0.12, 0.15] }],
+  fx: [{ type: 'glint', p: [KISS / 2, -kd / 2, 0], r: 0.012, alpha: 0.7, rot: 0.4 }],
+});
 
 /* ---------- the browser side: the renderer ---------- */
 function renderArt(cfg) {
@@ -160,7 +214,7 @@ function renderArt(cfg) {
   /* ---- materials ---- */
   const CLOTH = col(sc.cloth || '#a8242a');
   const WOOD = col('#4a2414'), WOOD2 = col('#2a120a');
-  const LEATHER = col('#141012');
+  const LEATHER = col(sc.leather || '#141012');
   const IVORY = col('#f7f4ea');
   const BALLC = { 0: '#f7f4ea', 1: '#f6ba1c', 2: '#1f4fbf', 3: '#d9281c', 8: '#151517', 9: '#f6ba1c', 10: '#1f4fbf', 11: '#d9281c',
     4: '#5c2e92', 5: '#f2701a', 6: '#167842', 7: '#7a1e20', 12: '#5c2e92', 13: '#f2701a', 14: '#167842', 15: '#7a1e20' };
@@ -208,25 +262,28 @@ function renderArt(cfg) {
     push([0, 1, 1], [0, RAIL_IN, 0.040]);
     solids.push({ planes: P, mat: 'rail', top: RAIL_TOP, edge: ei });
   }
-  frames.forEach((fr, ei) => {
+  if (!sc.bare) frames.forEach((fr, ei) => {
     const long = fr.Le > 2;
     if (long) { cushion(fr, ei, AC, fr.Le / 2 - AS, 'c', 's'); cushion(fr, ei, fr.Le / 2 + AS, fr.Le - AC, 's', 'c'); }
     else cushion(fr, ei, AC, fr.Le - AC, 'c', 'c');
     rail(fr, ei);
   });
-  /* the slate bed */
+  /* the slate bed (bare: a cloth that runs out of the light in every direction) */
+  const BED = sc.bare ? 60 : 0.06;
   solids.push({ planes: [
     { n: [0, 0, 1], d: 0 }, { n: [0, 0, -1], d: 0.05 },
-    { n: [1, 0, 0], d: LX + 0.06 }, { n: [-1, 0, 0], d: 0.06 }, { n: [0, 1, 0], d: LY + 0.06 }, { n: [0, -1, 0], d: 0.06 },
+    { n: [1, 0, 0], d: LX + BED }, { n: [-1, 0, 0], d: BED }, { n: [0, 1, 0], d: LY + BED }, { n: [0, -1, 0], d: BED },
   ], mat: 'cloth', top: 0 });
   /* pockets */
   const holes = [];
   const HC = 0.064, HS = 0.058, HO = 0.03, HSO = 0.052, HBOT = -0.16;
+  if (!sc.bare) {
   for (const [x, y, sx, sy] of [[0, 0, -1, -1], [LX, 0, 1, -1], [0, LY, -1, 1], [LX, LY, 1, 1]]) holes.push({ c: [x + sx * HO, y + sy * HO], r: HC });
   holes.push({ c: [LX / 2, -HSO], r: HS }, { c: [LX / 2, LY + HSO], r: HS });
+  }
   /* diamonds on the rail tops */
   const diamonds = [];
-  frames.forEach((fr, ei) => {
+  if (!sc.bare) frames.forEach((fr, ei) => {
     const n = fr.Le > 2 ? 8 : 4;
     for (let k = 1; k < n; k++) { if (n === 8 && k === 4) continue; const g = fr.M(k * fr.Le / n, (RAIL_IN + RAIL_OUT) / 2 - 0.005); diamonds.push({ c: g, e: ei }); }
   });
@@ -251,7 +308,7 @@ function renderArt(cfg) {
     const E0 = cross(A0, N), ca = Math.cos(b.f[2] || 0), sa = Math.sin(b.f[2] || 0);
     const A = norm(add(mul(A0, ca), mul(E0, sa)));
     const E1 = cross(A, N);
-    return { n: b.n, p: b.p, v: b.v, N, A, E1, col: col(BALLC[b.n]), stripe: b.n > 8, r: b.r || R };
+    return { n: b.n, p: b.p, v: b.v, N, A, E1, col: col(BALLC[b.n]), stripe: b.n > 8, r: b.r || R, dot: b.dot ? Math.cos(b.dot) : 0 };
   });
   const ballAt = (b, t) => [b.p[0] + b.v[0] * (t - 0.5), b.p[1] + b.v[1] * (t - 0.5), b.p[2] + b.v[2] * (t - 0.5)];
 
@@ -485,10 +542,25 @@ function renderArt(cfg) {
     const t = 0.35 + 0.65 * g;
     return [WOOD2[0] + (WOOD[0] - WOOD2[0]) * t, WOOD2[1] + (WOOD[1] - WOOD2[1]) * t, WOOD2[2] + (WOOD[2] - WOOD2[2]) * t];
   }
+  const SKY = sc.sky ? col(sc.sky) : null;
   function sky(d) { /* the dark room */
+    if (SKY) return SKY;
     const k = Math.max(0, d[2]);
     return [0.004 + 0.01 * k, 0.004 + 0.009 * k, 0.005 + 0.009 * k];
   }
+  /* soft boxes: round lights far off, seen only in a ball's mirror (a rim, a second highlight);
+     d points at the light, a is its angular radius, soft its edge (radians) */
+  const ENV = (sc.env || []).map(e => ({ d: norm(e.d), a: e.a, soft: e.soft || 0.05, c: mul(col(e.c || '#ffffff'), e.k), diff: e.diff || 0 }));
+  function envSeen(r) {
+    let o = [0, 0, 0];
+    for (const e of ENV) {
+      const ang = Math.acos(Math.max(-1, Math.min(1, dot(r, e.d))));
+      const w = Math.min(1, Math.max(0, 0.5 + (e.a - ang) / e.soft));
+      if (w > 0) o = add(o, mul(e.c, w));
+    }
+    return o;
+  }
+  const RED = col('#e8483a');
   function shade(h, d, time, u1, u2, depth) {
     if (!h) return sky(d);
     const p = h.p, n = h.n, V = mul(d, -1);
@@ -508,6 +580,11 @@ function renderArt(cfg) {
       if (b.stripe && Math.abs(ca) > BAND) alb = IVORY;
       else alb = b.col;
       if (b.n === 0) alb = IVORY;
+      if (b.dot) {
+        /* the cue ball's red spot, with an anti-aliased rim */
+        const k = Math.min(1, Math.max(0, (dot(v, b.N) - b.dot) / 0.004));
+        alb = [alb[0] + (RED[0] - alb[0]) * k, alb[1] + (RED[1] - alb[1]) * k, alb[2] + (RED[2] - alb[2]) * k];
+      }
       if (b.n > 0 && cn > NUM_CA) {
         const uu = dot(v, b.E1) / cn / NUM_T, vv = ca / cn / NUM_T;
         const m = sampleMask(b.mask, uu, vv);
@@ -521,7 +598,9 @@ function renderArt(cfg) {
       const ao = occl(p, n, time, h.bi);
       /* cloth bounce from below */
       const bounce = Math.max(0, -n[2]) * 0.16;
-      const diff = [alb[0] * (AMB * ao + dl.e + bounce * CLOTH[0] * 2), alb[1] * (AMB * ao + dl.e + bounce * CLOTH[1] * 2), alb[2] * (AMB * ao + dl.e + bounce * CLOTH[2] * 2)];
+      let ek = 0;
+      for (const e of ENV) if (e.diff) ek += e.diff * Math.max(0, dot(n, e.d));
+      const diff = [alb[0] * (AMB * ao + dl.e + ek + bounce * CLOTH[0] * 2), alb[1] * (AMB * ao + dl.e + ek + bounce * CLOTH[1] * 2), alb[2] * (AMB * ao + dl.e + ek + bounce * CLOTH[2] * 2)];
       const cs = Math.max(0, dot(n, V)), F = fres(cs, 0.045);
       const r = sub(d, mul(n, 2 * dot(d, n)));
       let refl;
@@ -529,8 +608,8 @@ function renderArt(cfg) {
       if (depth < 1) {
         const rh = trace(add(p, mul(n, 1e-5)), r, time, 1e-5, h.bi);
         refl = rh ? shade(rh, r, time, u1, u2, depth + 1) : sky(r);
-        if (!rh || rh.mat === 'floor') refl = add(refl, mul([1, 0.97, 0.9], 9 * ls));
-      } else refl = add(sky(r), mul([1, 0.97, 0.9], 9 * ls));
+        if (!rh || rh.mat === 'floor') refl = add(add(refl, mul([1, 0.97, 0.9], 9 * ls)), envSeen(r));
+      } else refl = add(add(sky(r), mul([1, 0.97, 0.9], 9 * ls)), envSeen(r));
       return [diff[0] * (1 - F) + refl[0] * F, diff[1] * (1 - F) + refl[1] * F, diff[2] * (1 - F) + refl[2] * F];
     }
     if (h.mat === 'cue') {
@@ -576,7 +655,7 @@ function renderArt(cfg) {
     const alb = clothAlbedo(p);
     const dl = direct(p, n, time, u1, u2);
     let ao = occl(p, n, time, -1);
-    if (h.mat === 'cloth') {
+    if (h.mat === 'cloth' && !sc.bare) {
       const de = Math.min(p[0], LX - p[0], p[1], LY - p[1]);
       ao *= 1 - 0.45 * Math.exp(-Math.max(0, de) / 0.018);
     }
@@ -683,10 +762,95 @@ function renderArt(cfg) {
       g.restore();
     }
   }
+  for (const fx of sc.fx || []) {
+    if (fx.type === 'glint') {
+      /* a small four-point catch light, for the kiss between two balls */
+      const P = project(fx.p), rad = fx.r * P.k;
+      g.save(); g.globalCompositeOperation = 'lighter';
+      const gr = g.createRadialGradient(P.x, P.y, 0, P.x, P.y, rad * 0.5);
+      gr.addColorStop(0, `rgba(255,252,244,${fx.alpha})`); gr.addColorStop(0.3, `rgba(255,240,215,${fx.alpha * 0.35})`); gr.addColorStop(1, 'rgba(255,230,200,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(P.x, P.y, rad * 0.5, 0, Math.PI * 2); g.fill();
+      for (let i = 0; i < 4; i++) {
+        const ang = (fx.rot || 0) + i * Math.PI / 2, len = rad * (i % 2 ? 0.62 : 1), wdt = rad * 0.045;
+        const ex = P.x + Math.cos(ang) * len, ey = P.y + Math.sin(ang) * len;
+        const lg = g.createLinearGradient(P.x, P.y, ex, ey);
+        lg.addColorStop(0, `rgba(255,250,238,${fx.alpha})`); lg.addColorStop(1, 'rgba(255,240,215,0)');
+        g.fillStyle = lg; g.beginPath();
+        g.moveTo(P.x + Math.cos(ang + Math.PI / 2) * wdt, P.y + Math.sin(ang + Math.PI / 2) * wdt);
+        g.lineTo(ex, ey);
+        g.lineTo(P.x + Math.cos(ang - Math.PI / 2) * wdt, P.y + Math.sin(ang - Math.PI / 2) * wdt);
+        g.closePath(); g.fill();
+      }
+      g.restore();
+    }
+    if (fx.type === 'mono') drawMono(fx);
+  }
+  /* the monogram: a heavy geometric lowercase f, drawn as strokes in em units (y up, baseline
+     0) on the cloth, raised fx.h metres: side walls, a soft cast shadow toward the lamp's far
+     side, a lit top with a bevel. fx.p is the em origin on the cloth, fx.s metres per em. */
+  function drawMono(fx) {
+    const ax = norm([RT[0], RT[1], 0]), ay = norm([UP[0], UP[1], 0]);
+    const W = fx.w;
+    const glyph = c => {
+      c.lineCap = 'butt'; c.lineJoin = 'miter'; c.lineWidth = W; c.strokeStyle = '#fff';
+      c.beginPath(); c.moveTo(0.30, 0); c.lineTo(0.30, 0.60);
+      c.arc(0.30 + fx.hook, 0.60, fx.hook, Math.PI, Math.PI / 2, true);
+      c.lineTo(0.30 + fx.hook + fx.tail, 0.60 + fx.hook); c.stroke();
+      c.beginPath(); c.moveTo(fx.bar[0], fx.bar[2]); c.lineTo(fx.bar[1], fx.bar[2]); c.stroke();
+    };
+    /* the em square to the screen at height z, as an affine map (the camera looks straight down) */
+    const at = (z, du = 0, dv = 0) => {
+      const w = (u, v) => project([fx.p[0] + (ax[0] * u + ay[0] * v) * fx.s + du, fx.p[1] + (ax[1] * u + ay[1] * v) * fx.s + dv, z]);
+      const o = w(0, 0), a = w(1, 0), b = w(0, 1);
+      return [a.x - o.x, a.y - o.y, b.x - o.x, b.y - o.y, o.x, o.y];
+    };
+    const layer = () => { const c = document.createElement('canvas'); c.width = c.height = S; return c; };
+    const maskAt = (m, alpha = 1) => { const c = layer(), x = c.getContext('2d'); x.globalAlpha = alpha; x.setTransform(...m); glyph(x); return c; };
+    const top = at(fx.h), px = Math.hypot(top[0], top[1]) * fx.s; /* screen px per metre */
+    /* cast shadow: the lamp's ray through the top edge, softened by the lamp's size */
+    const Lr = (LC[2] - fx.h), sh = [(fx.p[0] - LC[0]) * fx.h / Lr, (fx.p[1] - LC[1]) * fx.h / Lr];
+    const pen = fx.h * Math.max(LS[0], LS[1]) / Lr * px;
+    const tint = (c, color, filter) => { const o = layer(), x = o.getContext('2d'); x.filter = filter || 'none'; x.drawImage(c, 0, 0); x.filter = 'none'; x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.fillRect(0, 0, S, S); return o; };
+    g.save();
+    g.globalAlpha = fx.shadow; g.drawImage(tint(maskAt(at(0, sh[0] * 0.7, sh[1] * 0.7)), '#000', `blur(${(pen * 0.45).toFixed(2)}px)`), 0, 0);
+    g.globalAlpha = 0.55; g.drawImage(tint(maskAt(at(0)), '#000', `blur(${(fx.h * 0.25 * px).toFixed(2)}px)`), 0, 0);
+    g.restore();
+    /* side walls: the glyph stacked from the cloth up to its top */
+    const steps = Math.max(4, Math.ceil(fx.h * px / 1.5));
+    for (let i = 0; i < steps; i++) {
+      const z = fx.h * i / steps, k = i / steps;
+      const shade = Math.round(120 + 70 * k);
+      g.drawImage(tint(maskAt(at(z)), `rgb(${shade},${shade - 4},${shade - 12})`), 0, 0);
+    }
+    /* the top: ivory, lit from the lamp's side, with a bevel (a light edge toward the lamp, a
+       darker one away) */
+    const M = maskAt(top), body = layer(), bx = body.getContext('2d');
+    const P0 = project([fx.p[0], fx.p[1], fx.h]), PL = project([LC[0], LC[1], fx.h]);
+    const gr = bx.createLinearGradient(PL.x, PL.y, P0.x + (P0.x - PL.x) * 0.2, P0.y + (P0.y - PL.y) * 0.2);
+    gr.addColorStop(0, fx.top[0]); gr.addColorStop(1, fx.top[1]);
+    bx.fillStyle = gr; bx.fillRect(0, 0, S, S);
+    bx.globalCompositeOperation = 'destination-in'; bx.drawImage(M, 0, 0);
+    let dx = PL.x - P0.x, dy = PL.y - P0.y; const dl = Math.hypot(dx, dy) || 1; dx /= dl; dy /= dl;
+    const bev = fx.bevel * px;
+    const edge = (sx, sy, color, op, alpha) => {
+      /* the part of the glyph not covered by itself shifted (sx, sy), blurred, kept inside */
+      const e = layer(), ex = e.getContext('2d');
+      ex.fillStyle = color; ex.fillRect(0, 0, S, S);
+      ex.globalCompositeOperation = 'destination-out'; ex.drawImage(M, sx, sy);
+      const b2 = layer(), x2 = b2.getContext('2d');
+      x2.filter = `blur(${(bev * 0.6).toFixed(2)}px)`; x2.drawImage(e, 0, 0); x2.filter = 'none';
+      x2.globalCompositeOperation = 'destination-in'; x2.drawImage(M, 0, 0);
+      bx.save(); bx.globalCompositeOperation = op; bx.globalAlpha = alpha; bx.drawImage(b2, 0, 0); bx.restore();
+    };
+    edge(-dx * bev, -dy * bev, '#fff', 'screen', 0.8);
+    edge(dx * bev, dy * bev, '#5a4a3a', 'multiply', 0.55);
+    g.drawImage(body, 0, 0);
+  }
   /* vignette */
   {
-    const vg = g.createRadialGradient(S * 0.5, S * 0.45, S * 0.3, S * 0.5, S * 0.5, S * 0.78);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.42)');
+    const v = sc.vig || { x: 0.5, y: 0.45, r0: 0.3, r1: 0.78, a: 0.42 };
+    const vg = g.createRadialGradient(S * v.x, S * v.y, S * v.r0, S * 0.5, S * 0.5, S * v.r1);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, `rgba(0,0,0,${v.a})`);
     g.fillStyle = vg; g.fillRect(0, 0, S, S);
   }
 
@@ -780,7 +944,7 @@ async function render(browser, scene, { size, spp, zoom, outputs }) {
   const sceneName = opt('scene', CHOSEN);
   const scene = SCENES[sceneName];
   if (!scene) { console.error('make-icons: no scene ' + sceneName); process.exit(2); }
-  const spp = +opt('spp', 8);
+  const spp = +opt('spp', scene.spp || 8);
   if (args.includes('--out')) {
     /* one scene to a folder: for candidates and previews */
     const dir = path.resolve(opt('out')), size = +opt('size', 1024), ss = +opt('ss', 2);

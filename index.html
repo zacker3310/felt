@@ -6360,7 +6360,7 @@ Object.defineProperties(felt, {
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
    game the menu last started (Play again replays it on the current settings), null at first. */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'auto', names: ['', ''], last: null };
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'off', camV: 2, names: ['', ''], last: null };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
@@ -6373,7 +6373,9 @@ function loadSettings() {
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
     if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
-    if (['auto', 'off'].includes(o.camera)) s.camera = o.camera;
+    /* the follow camera is opt-in (it gave players vertigo): a choice saved before camV 2, when
+       Follow was the default, is not kept */
+    if (o.camV === 2 && ['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
     if (['8', '9', 'bumper'].includes(o.last)) s.last = o.last;
   } catch (e) { }

@@ -52,7 +52,11 @@ const { check, done, open } = require('./lib.cjs');
   check('camera: the zoomed table always covers the window it fills at z = 1 (no margin, nothing past the rails)', map.cover);
   check('camera: let go while aiming, z is exactly 1 and the view is the fitted one', map.z === 1 && map.same, JSON.stringify(map));
 
-  /* 2. a live shot: the camera follows (zooms in a little, never fast) and is back to 1 when the next turn starts */
+  /* 2. Fixed is the default (follow gave players vertigo), and a Follow saved before camV 2 is not kept */
+  const def = await page.evaluate(() => ({ mode: felt.cam.mode, pressed: camOff.getAttribute('aria-pressed') }));
+  check('camera: Fixed by default', def.mode === 'off' && def.pressed === 'true', JSON.stringify(def));
+  /* a live shot with Follow on: the camera follows (zooms in a little, never fast) and is back to 1 when the next turn starts */
+  await page.evaluate(() => camAuto.click());
   let ang = await setup();
   await watch();
   const live0 = await page.evaluate(a => felt.shoot(a, 0.62, { x: 0, y: 0.3 }), ang);
@@ -134,6 +138,8 @@ const { check, done, open } = require('./lib.cjs');
   const off = await page.evaluate(() => ({ max: window.__cam.max, mode: felt.cam.mode, saved: JSON.parse(localStorage.getItem('felt.settings')).camera, pressed: camOff.getAttribute('aria-pressed'), label: camAuto.textContent + '/' + camOff.textContent }));
   check('Camera: Fixed keeps z = 1 through a whole roll, and is remembered', off.max === 1 && off.mode === 'off' && off.saved === 'off' && off.pressed === 'true' && off.label === 'Follow/Fixed', JSON.stringify(off));
   await page.evaluate(() => camAuto.click());
+  const old = await page.evaluate(() => { localStorage.setItem('felt.settings', JSON.stringify({ camera: 'auto' })); return loadSettings().camera; });
+  check('camera: a Follow saved before camV 2 loads as Fixed', old === 'off', old);
 
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();

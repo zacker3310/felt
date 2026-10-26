@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `9/9 suites, N/N checks  ok` (about 3 min; CPU match games and play-check dominate) |
+| test | `npm test` | `10/10 suites, N/N checks  ok` (about 3 min; CPU match games and play-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |

@@ -281,7 +281,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.evaluate(() => felt.forceWin(0));
   await page.waitForTimeout(100);
   const over = await page.evaluate(() => ({ s: felt.state, vis: getComputedStyle(rematch).display, title: overText.textContent, rows: overStats.querySelectorAll('tbody tr').length }));
-  check('a win shows who won, the stats and the rematch button', over.s === 'over' && over.vis !== 'none' && over.title === 'You win' && over.rows === 3, JSON.stringify(over));
+  check('a win shows who won, the stats and the rematch button', over.s === 'over' && over.vis !== 'none' && over.title === 'You win' && over.rows === 5, JSON.stringify(over));
   await page.click('#rematch');
   check('rematch starts a fresh rack', await page.evaluate(() => felt.game.shots === 0 && felt.game.winner === null && felt.state === 'aim' && felt.game.inHand === 'kitchen'));
 

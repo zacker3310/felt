@@ -17,7 +17,8 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'BUMPERS', 'BUMPER_R', 'CUP_IN', 'CUP_R', 'CUP_LIP', 'B_MARK', 'B_BALLS', 'bumperStrikers', 'bumperFree', 'CPU_BUMPER',
   'BUMPER_SHAPE', 'BED_LINES', 'OCTA_F', 'OCTA_CUP_IN', 'CUSH_W', 'bumperBanks', 'suggestBumper',
   'onTable', 'copyGame', 'canDrop', 'scatter', 'newPractice', 'practiceJudge', 'addBall', 'removeBall', 'PRACTICE_SCATTER',
-  'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP'];
+  'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP',
+  'shotMoments', 'MOMENTS', 'MOMENT_WORDS', 'LONG_POT', 'RUN_MIN'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

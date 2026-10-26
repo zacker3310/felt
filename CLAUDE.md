@@ -47,6 +47,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   from `finish()` (`careerRackOver`). Stored as `felt.lesson.v1` and `felt.career.v1`; `tests/lib.cjs` marks
   the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
 - `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
+- Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
+  through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
+  `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

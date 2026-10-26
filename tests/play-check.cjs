@@ -20,6 +20,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   /* auto aim off for the gesture checks (it swings the aim at each turn); it has its own below */
   await page.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
   await page.click('#play9');
+  await page.click('#breakBtn');
   await page.waitForTimeout(200);
   /* ball in hand: put the cue ball somewhere predictable (the hook moves it as a drag would) */
   const inHand = () => page.evaluate(() => { if (felt.game.inHand) felt.place(0.4, 0.3); });
@@ -256,9 +257,11 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
 
   /* 7. vs CPU on hard: miss on purpose, the foul banner shows, the CPU places and shoots */
   await page.click('#menuBtn');
+  await page.click('#exitBtn');
+  await page.click('#play8');
   await page.click('#vsCpu');
   await page.click('#lvHard');
-  await page.click('#play8');
+  await page.click('#breakBtn');
   const k = await page.evaluate(() => felt.toScreen(HEAD_X - 0.1, TW / 2));
   await page.mouse.click(k[0], k[1]);
   await page.evaluate(() => felt.shoot(Math.PI, 0.01, 0));
@@ -283,6 +286,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
 
   /* 9. settings survive a reload */
   await page.click('#menuBtn');
+  await page.click('#pPrefsBtn');
   await page.click('#gShort');
   await page.click('#sndOff');
   await page.evaluate(() => { window.oldImg = tableImg; });
@@ -295,10 +299,68 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const st = await page.evaluate(() => ({ s: felt.settings, hard: lvHard.getAttribute('aria-pressed'), short: gShort.getAttribute('aria-pressed'), level: getComputedStyle(levelSeg).display }));
   check('settings persist across a reload', st.s.guide === 'short' && st.s.cpu === true && st.s.level === 'hard' && st.s.sound === false && st.hard === 'true' && st.short === 'true' && st.level !== 'none', JSON.stringify(st));
 
+  /* 9b. the menu flow. A game tile opens its setup; the choices there start that game (and are
+     the last setup); a finished game is recorded against the CPU opponent it was played against
+     and shows in Stats; Play again replays the setup; a loss ends the run of wins; two players'
+     names show on the chips, the pause cards and game over, and persist. */
+  await page.click('#play8');
+  const su = await page.evaluate(() => ({ shown: setupSheet.classList.contains('show'), home: menu.classList.contains('show'), title: setupTitle.textContent, names: getComputedStyle(nameRow).display, foes: [...levelSeg.querySelectorAll('b')].map(b => b.textContent), go: breakBtn.textContent }));
+  check('setup: a game tile opens its setup sheet (8-ball, the CPU opponents Rookie, Regular, Hustler; no name fields against the CPU), Break to start',
+    su.shown && !su.home && su.title === '8-ball' && su.names === 'none' && su.foes.join() === 'Rookie,Regular,Hustler' && su.go === 'Break', JSON.stringify(su));
+  await page.click('#lvEasy');
+  const rec0 = await page.evaluate(() => felt.record);
+  await page.click('#breakBtn');
+  const g1 = await page.evaluate(() => ({ s: felt.state, kind: felt.game.kind, cpu: felt.cpu, lvl: felt.cpuLevel, last: settings.last, menu: menu.classList.contains('show'), sheet: setupSheet.classList.contains('show') }));
+  check('setup: Break starts the game with the chosen options (8-ball vs the CPU on easy) and remembers it as the last setup',
+    g1.s === 'aim' && g1.kind === '8' && g1.cpu && g1.lvl === 'easy' && g1.last === '8' && !g1.menu && !g1.sheet, JSON.stringify(g1));
+  await page.click('#menuBtn');
+  const pc = await page.evaluate(() => ({ p1: p1name.textContent, kick: soloKind.textContent }));
+  await page.click('#resumeBtn');
+  await page.evaluate(() => felt.forceWin(0));
+  const won1 = await page.evaluate(() => ({ r: felt.record, kind: overKind.textContent, ls: JSON.parse(localStorage.getItem('felt.record.v1')) }));
+  check('stats: a forced win against Rookie is recorded (played, a win against easy, the run of wins), stored, and game over names the opponent',
+    won1.r.kinds['8'].played === rec0.kinds['8'].played + 1 && won1.r.kinds['8'].cpu.easy.w === rec0.kinds['8'].cpu.easy.w + 1 && won1.r.streak === rec0.streak + 1
+    && won1.ls.kinds['8'].cpu.easy.w === won1.r.kinds['8'].cpu.easy.w && /vs Rookie/.test(won1.kind) && pc.p1 === 'Rookie (CPU)' && /vs Rookie/.test(pc.kick), JSON.stringify({ rec0, won1, pc }));
+  await page.click('#overMenu');
+  const home1 = await page.evaluate(() => ({ again: !againBtn.hidden && againBtn.getClientRects().length > 0, sum: againSum.textContent }));
+  check('home after a game: Play again shows the last setup in words', home1.again && home1.sum === '8-ball vs Rookie (CPU easy), 7 ft', JSON.stringify(home1));
+  await page.click('#statsBtn');
+  const st1 = await page.evaluate(() => ({ row: [...recTable.querySelectorAll('tbody tr')][0].textContent, kp: kpis.textContent }));
+  check('stats sheet: the 8-ball row has the win against Rookie, the run of wins shows', /^8-ball\d+1-0/.test(st1.row) && /Win streak[1-9]/.test(st1.kp), JSON.stringify(st1));
+  await page.click('#statsBack');
+  await page.click('#againBtn');
+  const g2 = await page.evaluate(() => ({ s: felt.state, kind: felt.game.kind, cpu: felt.cpu, lvl: felt.cpuLevel, shots: felt.game.shots }));
+  check('Play again replays the last setup: a fresh 8-ball rack against the CPU on easy', g2.s === 'aim' && g2.kind === '8' && g2.cpu && g2.lvl === 'easy' && g2.shots === 0, JSON.stringify(g2));
+  await page.evaluate(() => felt.forceWin(1));
+  const lost = await page.evaluate(() => felt.record);
+  check('stats: a loss is recorded against that opponent and ends the run of wins (the best is kept)', lost.kinds['8'].cpu.easy.l === rec0.kinds['8'].cpu.easy.l + 1 && lost.streak === 0 && lost.best >= 1, JSON.stringify(lost));
+  await page.click('#overMenu');
+  await page.click('#play9');
+  await page.click('#vs2p');
+  await page.fill('#name1', ' Zac ');
+  await page.fill('#name2', 'Samantha Jones');
+  await page.click('#breakBtn');
+  await page.click('#menuBtn');
+  const nm = await page.evaluate(() => ({ s: settings.names, chips: [pchip0.firstChild.textContent, pchip1.firstChild.textContent], cards: [p0name.textContent, p1name.textContent], kick: soloKind.textContent }));
+  await page.click('#resumeBtn');
+  await page.evaluate(() => felt.forceWin(0));
+  nm.over = await page.evaluate(() => overText.textContent);
+  check('names: two players\' names (trimmed, at most 12 characters) on the chips (short), the pause cards and game over',
+    nm.s[0] === 'Zac' && nm.s[1] === 'Samantha Jon' && nm.chips.join() === 'Zac,Sam' && nm.cards.join() === 'Zac,Samantha Jon' && nm.over === 'Zac wins' && /Paused, 9-ball/.test(nm.kick), JSON.stringify(nm));
+  await page.reload();
+  await page.waitForFunction(() => window.booted === true);
+  await page.click('#play9');
+  const nm2 = await page.evaluate(() => ({ s: felt.settings.names, v: [name1.value, name2.value], sum: againSum.textContent, two: felt.record.kinds['9'].two }));
+  check('names persist across a reload (the setup shows them), and the two-player game was recorded', nm2.s[0] === 'Zac' && nm2.v[0] === 'Zac' && nm2.v[1] === 'Samantha Jon' && nm2.two >= 1, JSON.stringify(nm2));
+  await page.fill('#name1', '');
+  await page.fill('#name2', '');
+  await page.click('#setupBack');
+
   /* a cue-ball drag still held through a shot cannot stop the roll or move the ball */
   if (!(await page.evaluate(() => menu.classList.contains('show')))) await page.click('#menuBtn');
-  await page.click('#vs2p');
   await page.click('#play9');
+  await page.click('#vs2p');
+  await page.click('#breakBtn');
   const hold = await page.evaluate(() => { const c = felt.game.balls[0]; return felt.toScreen(c.x, c.y); });
   await page.mouse.move(hold[0], hold[1]);
   await page.mouse.down();
@@ -466,9 +528,13 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
      that suggestion's { n, k }, cleared once the shot is fired. Off: no hint, the aim is left
      alone. The setting persists. */
   await page.click('#menuBtn');
+  await page.click('#pPrefsBtn');
   await page.click('#aaOn');
-  await page.click('#vs2p');
+  await page.click('#prefsBack');
+  await page.click('#exitBtn');
   await page.click('#play9');
+  await page.click('#vs2p');
+  await page.click('#breakBtn');
   const brk = await page.evaluate(async () => {
     felt.speed = 40;
     await new Promise(r => setTimeout(r, 150));
@@ -494,7 +560,9 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     autoRuns.every(r => r.s === 'aim' && r.d !== null && r.d < 1 && r.locked && r.hint && r.hint.n === r.want.n && r.hint.k === r.want.k) && autoRuns[0].hand === 'table', JSON.stringify(autoRuns));
   check('auto aim on: the hint is cleared once the shot is fired', hintAfterShot.every(h => h === null), JSON.stringify(hintAfterShot));
   await page.click('#menuBtn');
+  await page.click('#pPrefsBtn');
   await page.click('#aaOff');
+  await page.keyboard.press('Escape');
   await page.click('#resumeBtn');
   const offShot = await page.evaluate(() => felt.state === 'aim' && felt.shoot(Math.PI / 2 + 0.3, 0.02, 0));
   await settled(page);
@@ -517,6 +585,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const wrapTable = () => page.evaluate(() => { window.tableCalls = []; const f = setTable; window.setTable = s => { tableCalls.push(s); f(s); }; });
   await wrapTable();
   const t7 = await page.evaluate(() => ({ s: felt.settings.table, p: tb7.getAttribute('aria-pressed') }));
+  await page.click('#play8');
   await page.click('#tb9');
   const preview = await page.evaluate(() => tableCalls.slice());
   await page.reload();
@@ -524,6 +593,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await wrapTable();
   const t9 = await page.evaluate(() => ({ s: felt.settings.table, p: tb9.getAttribute('aria-pressed') }));
   await page.click('#play8');
+  await page.click('#breakBtn');
   const g9 = await page.evaluate(() => ({ calls: tableCalls.slice(), table: felt.table, s: felt.state }));
   check('table size: 7 ft by default, the menu choice persists, and a new game starts on that table', t7.s === '7' && t7.p === 'true' && preview.includes('9') && t9.s === '9' && t9.p === 'true' && g9.calls[g9.calls.length - 1] === '9' && g9.table === '9' && g9.s === 'aim', JSON.stringify({ t7, preview, t9, g9 }));
   /* the 9 ft table plays too: the live roll still equals simulateShot byte for byte */
@@ -537,6 +607,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   });
   check('9 ft table: the live break matches simulateShot exactly', nine.same && nine.TL > 2.5, JSON.stringify(nine));
   await page.click('#menuBtn');
+  await page.click('#exitBtn');
+  await page.click('#play8');
   await page.click('#tb7');
   const g7 = await page.evaluate(() => { tableCalls.length = 0; felt.start('8'); return { calls: tableCalls.slice(), table: felt.table, TL }; });
   check('table size: back to 7 ft, the next game is on the 7 ft table (1.981 m)', g7.calls[0] === '7' && g7.table === '7' && Math.abs(g7.TL - 1.981) < 1e-9, JSON.stringify(g7));
@@ -549,6 +621,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.waitForFunction(() => window.booted === true);
   await wrapPk();
   const pr = await page.evaluate(() => ({ s: felt.settings.pockets, p: pkReg.getAttribute('aria-pressed'), now: felt.pockets, R: felt.pocketR }));
+  await page.click('#play8');
   await page.click('#pkGen');
   const pg = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }));
   check('pockets: regulation by default; choosing Generous rebuilds the table behind the menu at once', pr.s === 'regulation' && pr.p === 'true' && pr.now === 'regulation'
@@ -558,6 +631,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await wrapPk();
   const pb = await page.evaluate(() => ({ s: felt.settings.pockets, p: pkGen.getAttribute('aria-pressed'), now: felt.pockets }));
   await page.click('#play9');
+  await page.click('#breakBtn');
   const pn = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, s: felt.state }));
   check('pockets: the choice persists across a reload, and a new game starts with generous pockets', pb.s === 'generous' && pb.p === 'true' && pb.now === 'generous'
     && pn.calls[pn.calls.length - 1] === 'generous' && pn.now === 'generous' && pn.s === 'aim', JSON.stringify({ pb, pn }));
@@ -572,6 +646,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   });
   check('generous pockets: the live break matches simulateShot exactly', gen.same && gen.pockets === 'generous', JSON.stringify(gen));
   await page.click('#menuBtn');
+  await page.click('#exitBtn');
+  await page.click('#play8');
   await page.click('#pkReg');
   const pz = await page.evaluate(() => { pkCalls.length = 0; felt.start('8'); return { calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }; });
   check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.058, JSON.stringify(pz));
@@ -673,6 +749,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const t = await open('', { viewport: { width: 390, height: 844 }, hasTouch: true });
   await t.page.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
   await t.page.tap('#play9');
+  await t.page.tap('#breakBtn');
   await t.page.waitForTimeout(100);
   check('touch: the break turn is aimable at once, the cue ball in hand on a legal kitchen spot', await t.page.evaluate(() => felt.state === 'aim' && felt.game.inHand === 'kitchen' && canPlace(felt.game, felt.game.balls[0].x, felt.game.balls[0].y)));
   const ap = await t.page.evaluate(() => { const c = felt.game.balls[0]; return { s: felt.toScreen(FOOT[0], FOOT[1]), want: Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x) }; });
@@ -876,6 +953,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const hscr = (x, y) => hp.evaluate(([x, y]) => felt.toScreen(x, y), [x, y]);
   await hp.evaluate(() => { felt.speed = 40; settings.autoAim = false; });
   await hp.tap('#play8');
+  await hp.tap('#breakBtn');
   await hp.waitForTimeout(150);
   const h0 = await hcue();
   check('touch 440: the break turn is aimable at once, the cue ball in hand on a legal kitchen spot', h0.st === 'aim' && h0.hand === 'kitchen' && h0.ok, JSON.stringify(h0));
@@ -927,6 +1005,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     const kp = k.page;
     await kp.evaluate(() => { localStorage.clear(); settings.cpu = false; settings.autoAim = true; });
     await kp.click('#playB');
+    await kp.click('#breakBtn');
     await kp.waitForTimeout(300);
     const s0 = await kp.evaluate(() => ({ shape: settings.bumperTable, cush: CUSH.length, TL, kind: felt.game.kind, st: felt.state, striker: felt.striker, table: felt.table, chip: document.querySelector('.pchip.on .pb').textContent, chipName: turnChip.dataset.name, hint: felt.hint, sub: bannerSub.textContent }));
     check('bumper: the menu card starts a bumper game on the bumper table, red to open with the marked ball, auto aim on it',
@@ -1009,7 +1088,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     /* the bumper table's shape: the octagon by default (the game above ran on it), a menu control
        picks the rectangle, and the choice survives a reload; on each, a bar shot byte for byte */
     check('bumper: the default bumper table is the octagon (eight cushions, 40 in across the flats)', s0.shape === 'octagon' && s0.cush === 8 && Math.abs(s0.TL - 1.016) < 1e-9, JSON.stringify(s0));
-    await kp.evaluate(() => { felt.start('bumper'); showMenu(); });
+    await kp.evaluate(() => { felt.start('bumper'); showSetup('bumper'); });
     const ctl = await kp.evaluate(() => ({ shown: !!btOct.getClientRects().length && !!btRect.getClientRects().length, oct: btOct.getAttribute('aria-pressed') }));
     await kp.click('#btRect');
     const rs = await kp.evaluate(() => { const was = TL; felt.start('bumper'); return { was, s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, kind: felt.game.kind, pressed: btRect.getAttribute('aria-pressed') }; });
@@ -1023,7 +1102,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     const o4 = await barShot(0.3);
     check('bumper rectangle: a bar shot, live equal to simulateShot byte for byte', o4.same && o4.ball === 21, JSON.stringify(o4));
     await settled(kp);
-    await kp.evaluate(() => showMenu());
+    await kp.evaluate(() => showSetup('bumper'));
     await kp.click('#btOct');
     const ob = await kp.evaluate(() => { felt.start('bumper'); felt.speed = 40; return { s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, st: felt.state }; });
     const o5 = await barShot(0.45);

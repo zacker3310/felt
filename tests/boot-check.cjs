@@ -18,18 +18,75 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
-  /* the Bumper control in the Table section: Octagon and Rectangle, 44 px each, the octagon pressed by default */
-  const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent }; }));
-  check('menu: the Bumper table control (Octagon, Rectangle) in the Table section, 44 px targets, the octagon by default',
-    bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Bumper') && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify(bt));
-  /* the Pockets control in the Table section: two 44 px choices, regulation pressed by default */
-  const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed') }; }));
-  check('menu: Pockets, Regulation / Generous, 44 px each, regulation by default', pk[0].t === 'Regulation' && pk[1].t === 'Generous' && pk.every(b => b.w >= 44 && b.h >= 44)
+  check('home: the three game tiles, the solo row and Stats, Settings, How to play; no Play again on a first run, no pause part',
+    await page.evaluate(() => [play8, play9, playB, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length) && againBtn.hidden
+      && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
+  /* each game tile has its rack drawn at the device's pixels */
+  const art = await page.evaluate(() => [...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data; return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio), a: d[3] }; }));
+  check('home: every game tile shows its table, drawn at the device pixel ratio', art.length === 3 && art.every(a => a.ok && a.a === 255), JSON.stringify(art));
+  /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
+  await page.click('#playB');
+  const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent, pool: !!tb7.getClientRects().length }; }));
+  check('setup (bumper pool): its Table control (Octagon, Rectangle), 44 px targets, the octagon by default; no pool table options',
+    bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Table' && !b.pool) && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify(bt));
+  check('setup (bumper pool): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  await page.click('#setupBack');
+  /* 8-ball setup: size and pockets, regulation by default, no bumper control */
+  await page.click('#play8');
+  const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), bump: !!btOct.getClientRects().length }; }));
+  check('setup (8-ball): Pockets, Regulation / Generous, 44 px each, regulation by default; no bumper control', pk[0].t === 'Regulation' && pk[1].t === 'Generous' && pk.every(b => b.w >= 44 && b.h >= 44 && !b.bump)
     && pk[0].p === 'true' && pk[1].p === 'false' && await page.evaluate(() => felt.pockets === 'regulation'), JSON.stringify(pk));
-  await page.click('#how summary');
-  check('menu text is 4.5:1 or better, how-to open', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
+  check('setup (8-ball): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  await page.keyboard.press('Escape');
+  check('Esc closes the setup sheet back to home', await page.evaluate(() => !setupSheet.classList.contains('show') && menu.classList.contains('show') && felt.state === 'menu'));
+  /* how to play, settings and stats sheets: every tab, targets and contrast */
+  await page.click('#helpBtn');
+  const tabs = [];
+  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabSolo']) {
+    await page.click('#' + id);
+    tabs.push(await page.evaluate(id => ({ id, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), sel: document.getElementById(id).getAttribute('aria-selected'), text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
+    const lc = await lowContrast(page);
+    if (lc.length) tabs.push({ lc });
+  }
+  check('how to play: five tabs (controls, 8-ball, 9-ball, bumper, solo), one panel each, text 4.5:1', tabs.length === 5 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100), JSON.stringify(tabs));
+  check('no em dashes anywhere on the page', await page.evaluate(() => !document.documentElement.outerHTML.includes('\u2014')));
+  await page.click('#helpBack');
+  for (const [btn, back] of [['#prefsBtn', '#prefsBack'], ['#statsBtn', '#statsBack']]) {
+    await page.click(btn);
+    await page.waitForTimeout(250);
+    check(`${btn.slice(1, -3)} sheet: targets 44 px, text 4.5:1, back returns home`, (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+    await page.click(back);
+  }
+  check('back from the sheets: home again', await page.evaluate(() => menu.classList.contains('show') && ![setupSheet, prefsSheet, statsSheet, helpSheet].some(s => s.classList.contains('show'))));
+
+  /* the home screen fits without scrolling: an iPhone 18 Pro Max either way up (insets simulated),
+     with Play again showing, and the other listed sizes but the smallest */
+  const fits = [];
+  for (const [w, h, ins] of [[440, 956, [62, 0, 34, 0]], [956, 440, [0, 62, 21, 62]], [440, 956, [0, 0, 0, 0]], [956, 440, [0, 0, 0, 0]], [390, 844, [0, 0, 0, 0]], [1280, 800, [0, 0, 0, 0]], [768, 1024, [0, 0, 0, 0]]]) {
+    await page.setViewportSize({ width: w, height: h });
+    fits.push(await page.evaluate(async ([ins, w, h]) => {
+      let st = document.getElementById('insets');
+      if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
+      st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
+      settings.last = '8'; relayout(); showMenu();
+      await new Promise(r => setTimeout(r, 300));
+      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, dailyBtn, statsBtn, helpBtn].map(R);
+      return { size: `${w}x${h}`, ins: ins.join(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth,
+        inside: all.every(r => r.top >= ins[0] - 0.5 && r.bottom <= h - ins[2] + 0.5 && r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
+    }, [ins, w, h]));
+  }
+  check('home fits without scrolling (440x956 and 956x440 with and without the iOS insets, 390x844, 1280x800, 768x1024), everything inside the safe area', fits.every(f => f.sh <= f.ch && f.sw <= f.vw && f.inside), JSON.stringify(fits));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(150);
+  const h390 = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: innerWidth }));
+  check('home: no horizontal scroll at 390 px', h390.sw <= h390.w, JSON.stringify(h390));
+  check('home at 390x844 with Play again: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  await page.evaluate(() => { document.getElementById('insets').remove(); settings.last = null; syncMenu(); });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.waitForTimeout(200);
 
   await page.click('#play8');
+  await page.click('#breakBtn');
   await page.waitForTimeout(200);
   const e = await page.evaluate(() => ({ s: felt.state, hand: felt.game.inHand, kind: felt.game.kind, balls: felt.game.balls.length, menu: getComputedStyle(menu).display }));
   check('8-ball starts: 16 balls, cue ball in hand in the kitchen', e.kind === '8' && e.balls === 16 && e.s === 'aim' && e.hand === 'kitchen' && e.menu === 'none', JSON.stringify(e));
@@ -43,8 +100,10 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('the power bar is empty while idle', await page.evaluate(() => powerFill.getBoundingClientRect().width * powerFill.getBoundingClientRect().height < 1));
 
   await page.click('#menuBtn');
-  await page.click('#vsCpu');
+  await page.click('#exitBtn');
   await page.click('#play9');
+  await page.click('#vsCpu');
+  await page.click('#breakBtn');
   await page.waitForTimeout(200);
   const n = await page.evaluate(() => ({ kind: felt.game.kind, balls: felt.game.balls.length, cpu: felt.cpu }));
   check('9-ball vs CPU starts with 10 balls', n.kind === '9' && n.balls === 10 && n.cpu === true, JSON.stringify(n));
@@ -138,10 +197,11 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
           inside: dots.every(d => d.left >= card.left && d.right <= card.right && d.top >= card.top && d.bottom <= card.bottom), h: card.height };
       });
       return { size: innerWidth + 'x' + innerHeight, shown: !gameNow.hidden && sec.height > 0, cards, potted: [...potDots.querySelectorAll('.dot')].map(d => d.title), say: menuMsg.textContent,
-        first: sec.top < res.top && res.top < R(document.querySelector('#menu .brand')).top, primary: resumeBtn.classList.contains('big') };
+        first: sec.top < res.top && res.top < R(restartBtn).top && !play8.getClientRects().length && getComputedStyle(document.querySelector('#menu .newgame')).display === 'none',
+        acts: [restartBtn, exitBtn, pPrefsBtn, pHelpBtn].every(b => b.getClientRects().length), primary: resumeBtn.classList.contains('big') };
     });
-    check(`pause menu at ${w}x${h}: both cards (active marker, group, remaining dots inside), the potted balls in order, the status line, then Resume`,
-      pm.shown && pm.first && pm.primary && pm.cards[0].on && !pm.cards[1].on && pm.cards[0].meta === 'Solids' && pm.cards[1].meta === 'Stripes' && pm.cards[0].n === 5 && pm.cards[1].n === 6
+    check(`pause menu at ${w}x${h}: both cards (active marker, group, remaining dots inside), the potted balls in order, the status line, then Resume, then Restart, Quit, Settings, How to play; no home tiles`,
+      pm.shown && pm.first && pm.acts && pm.primary && pm.cards[0].on && !pm.cards[1].on && pm.cards[0].meta === 'Solids' && pm.cards[1].meta === 'Stripes' && pm.cards[0].n === 5 && pm.cards[1].n === 6
       && pm.cards.every(c => c.inside) && pm.potted.join() === '1,3,9' && pm.say === 'Player 1 to shoot.', JSON.stringify(pm));
     check(`pause menu at ${w}x${h}: targets 44 px, text 4.5:1`, (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
     const dk = await page.evaluate(() => {
@@ -246,7 +306,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     return {
       meta: document.querySelector('meta[name="viewport"]').content,
       none: ['html', 'body', '#table', '#ui', '#turnChip', '#ctl', '#menuBtn', '#spinPad', '#powerBar', '#fineWheel', '#banner'].map(ta),
-      menu: [ta('#menu'), ta('#over'), ta('#menu .sheet'), ta('#play8')],
+      menu: [ta('#menu'), ta('#over'), ta('#menu .sheet'), ta('#play8'), ta('#setupSheet'), ta('#helpSheet')],
       how: [getComputedStyle(document.querySelector('.how .keys')).display, getComputedStyle(document.querySelector('.how .touch')).display],
     };
   });

@@ -17,7 +17,24 @@ offline. Or open `index.html` in any browser (or `npm run serve`, http://localho
 - **English:** move the tip on the cue-ball pad: high follow, low draw, sides for side english.
   Double tap to centre.
 - **Ball in hand:** drag or tap to place; tap the ball to pick it up again.
-- **Menu:** 7 ft or 9 ft table, green or red cloth, aim guide, auto aim, sound, CPU level.
+
+## Menu
+
+- **Home:** Play again (your last setup, in one line), then the three games as tiles, each with
+  its rack drawn on your cloth. Below them the solo row: Practice, Trick shots (your stars) and
+  the Daily shot (your day streak). Stats, Settings and How to play sit at the bottom (top right
+  in landscape). It fits one screen either way up.
+- **Setup:** tap a game. Pick two players (type your names if you like) or one of three CPU
+  opponents: Rookie (easy), Regular (medium) or Hustler (hard), each with your record against
+  them. Then only that game's table options: 7 ft bar or 9 ft pro and regulation or generous
+  pockets for pool, the octagon or the rectangle for bumper pool. Break.
+- **Settings:** cloth (green or red), aim guide, auto aim, sound.
+- **Daily shot:** one trick shot a day, the same for everyone that day. Your first try counts:
+  play on consecutive days and the streak grows. Retries are practice.
+- **Stats:** games played per game, wins and losses against each CPU opponent, two-player games,
+  your run of wins against the CPU, trick stars and the daily streak. Kept on the device.
+- **Pause:** the players and the balls down, Resume, then Restart, Quit to home, Settings and
+  How to play. Esc (or a sheet's back button) closes any sheet.
 
 ## Rules
 

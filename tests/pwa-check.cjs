@@ -92,6 +92,7 @@ const pngInfo = src => fetch(src).then(async r => {
   check('with the network off, a reload boots the game from the cache', off);
   if (off) {
     await page.click('#play8');
+    await page.click('#breakBtn');
     await page.waitForTimeout(200);
     check('and a game starts offline', await page.evaluate(() => felt.state === 'aim' && felt.game.inHand === 'kitchen' && felt.game.balls.length === 16));
   }

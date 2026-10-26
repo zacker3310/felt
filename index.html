@@ -751,6 +751,21 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @container (max-width: 360px) { .cc { padding: 10px 12px 12px; } .cc small { font-size: 12px; } .ccAv .av { width: 30px; height: 30px; font-size: 12px; } }
 @media (prefers-reduced-motion: reduce) { .cc, .cc:active { transition: none; transform: none; } }
 
+/* ---- snooker: the scoreboard on the top rail (the break, the ball on, the points left), the
+   concession in the pause menu, the setup's red ball ---- */
+#snkBar { position: absolute; z-index: 1; top: 12px; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; max-width: calc(100% - 8px);
+  padding: 2px 10px; border-radius: 999px; background: rgba(15, 15, 16, .9); border: 1px solid var(--line); font-size: 12px; line-height: 16px; font-weight: 600;
+  color: var(--text); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+#snkBar[hidden] { display: none; }
+/* the replay's pill, badge and Skip (5r) take the rail while they show */
+#stage:has(#replayBtn:not([hidden])) #snkBar, #stage:has(#replayBadge:not([hidden])) #snkBar { visibility: hidden; }
+#snkBar span { display: inline-flex; align-items: center; gap: 4px; }
+#snkBar .k { color: var(--muted); font-weight: 500; }
+#snkBar .dot { width: 10px; height: 10px; }
+#snkBar .warn { color: var(--illegal); }
+#concedeBtn { grid-column: 1 / -1; }
+#concedeBtn[hidden] { display: none; }
+.bsnk { background-color: #c41c24; background-image: radial-gradient(circle at 35% 30%, #e8504a, #8a1218 72%); }
 </style>
 </head>
 <body>
@@ -758,6 +773,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 <div id="ui">
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div>
     <div id="callout" aria-hidden="true"><span id="calloutText"></span></div>
+    <div id="snkBar" aria-hidden="true" hidden></div>
     <div id="tools" role="group" aria-label="Practice tools" hidden>
       <button class="tool" id="handBtn" aria-pressed="false">Ball in hand</button>
       <button class="tool" id="resetBtn">Reset rack</button>
@@ -817,6 +833,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="act" id="exitBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/></svg>Quit to home</button>
         <button class="act" id="pPrefsBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2"/><circle cx="8" cy="17" r="2.2"/></svg>Settings</button>
         <button class="act" id="pHelpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg>How to play</button>
+        <button class="act" id="concedeBtn" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 4h11l-2.5 4L17 12H6"/></svg>Concede frame</button>
       </div>
     </div>
     <div class="newgame">
@@ -835,6 +852,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
         <button class="tile" id="play9" data-kind="9"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span></button>
         <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper pool</b><small>Round the posts</small></span></button>
+        <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
         <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
@@ -874,6 +892,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
     <div class="field bump" hidden><span class="label" id="btLab">Table</span>
       <div class="seg" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
+    <div class="field snk" hidden><span class="label" id="stLab">Table</span>
+      <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
+    <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
+      <div class="seg" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
     <button class="big cta" id="breakBtn">Break</button>
     </div>
   </div>
@@ -897,7 +919,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
     <div class="field"><span class="label" id="hapLab">Haptics</span>
       <div class="seg" role="group" aria-labelledby="hapLab"><button id="hapOn" aria-pressed="true">On</button><button id="hapOff" aria-pressed="false">Off</button></div></div>
-    <p class="note">The cloth applies to all three games. Table size and pockets are chosen when you start a game.</p>
+    <p class="note">The cloth applies to every game. Table size and pockets are chosen when you start a game.</p>
     <p class="diag" id="diag"></p>
   </div>
 </div>
@@ -911,6 +933,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <h3 class="sect" id="careerStatLab">Career</h3>
     <dl class="kpis" id="careerKpis" aria-labelledby="careerStatLab"></dl>
     <p class="note">Against the CPU: wins and losses. A game counts when it finishes.</p>
+    <p class="note" id="snkStat"></p>
   </div>
 </div>
 
@@ -923,6 +946,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <button role="tab" id="tab8" aria-controls="pan8" aria-selected="false" tabindex="-1">8-ball</button>
       <button role="tab" id="tab9" aria-controls="pan9" aria-selected="false" tabindex="-1">9-ball</button>
       <button role="tab" id="tabBump" aria-controls="panBump" aria-selected="false" tabindex="-1">Bumper</button>
+      <button role="tab" id="tabSnk" aria-controls="panSnk" aria-selected="false" tabindex="-1">Snooker</button>
       <button role="tab" id="tabSolo" aria-controls="panSolo" aria-selected="false" tabindex="-1">Solo</button>
     </div>
     <div class="pan" id="panCtl" role="tabpanel" aria-labelledby="tabCtl">
@@ -965,6 +989,15 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Turn</dt><dd>Pot one of yours in the far cup and you go again; otherwise the turn passes.</dd>
         <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
         <dt>Win</dt><dd>The first with all five down. Choose the classic octagon or the rectangle when you start a bumper game.</dd>
+      </dl>
+    </div>
+    <div class="pan" id="panSnk" role="tabpanel" aria-labelledby="tabSnk" hidden>
+      <dl class="rules" id="snookerRules">
+        <dt>Snooker</dt><dd>Fifteen reds and six colours. Pot a red (1 point), then a colour: the first colour the cue ball hits is the one you are on. Then a red again, and so on. Colours go back on their spots while reds remain. With the reds gone, pot the colours in order: yellow 2, green 3, brown 4, blue 5, pink 6, black 7.</dd>
+        <dt>Break</dt><dd>Ball in hand in the D, the half circle on the baulk line: drag the cue ball anywhere inside it. Hit a red first. The usual break clips the end red of the back row and brings the cue ball back to baulk.</dd>
+        <dt>Fouls</dt><dd>Missing every ball, hitting or potting a ball you are not on, or the cue ball going in (an in-off). Your opponent scores the value of the ball on or the highest ball involved: at least 4, at most 7. After an in-off they play from the D, otherwise from where the cue ball stopped.</dd>
+        <dt>Frame</dt><dd>Most points wins. With only the black left, the first score or foul ends the frame; if that leaves the scores level, the black is re-spotted and the other player plays it from the D. Concede a frame from the pause menu. Choose one frame or the best of three, and the compact 10 ft or the full 12 ft table, when you start.</dd>
+        <dt>Score</dt><dd>The chips show the scores; the bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed. Not in felt yet: the free ball and the miss rule.</dd>
       </dl>
     </div>
     <div class="pan" id="panSolo" role="tabpanel" aria-labelledby="tabSolo" hidden>
@@ -1097,7 +1130,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    are the usual measured ones (Marlow, Alciatore, pooltool): cloth slide 0.2, roll 0.01,
    ball-ball friction falling with slip speed, cushion friction 0.2 (0.3 along the rail). */
 const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a quarter radius */
-const BALL_R = 0.028575;          /* 2 1/4 in */
+/* the ball's radius: per table, set by setTable (1b) like the other table globals; read it at
+   call time. Pool and bumper pool play 2 1/4 in balls, snooker 52.5 mm (1i). */
+const POOL_BALL_R = 0.028575, SNOOKER_BALL_R = 0.02625;
+let BALL_R = POOL_BALL_R;
 /* playing surfaces between cushion noses: 7 ft (78 x 39 in) and 9 ft (100 x 50 in). The table
    globals below are set by setTable (1b); read them at call time, never cache them. */
 const TABLE_SIZES = { 7: [1.981, 0.991], 9: [2.54, 1.27] };
@@ -1131,6 +1167,10 @@ const SQUIRT = 0.026;             /* rad of cue-ball deflection at full side, aw
 const POCKET_STYLES = {
   regulation: { corner: 0.1207, side: 0.1334, cornerFace: 142, sideFace: 104, cornerR: 0.056, sideR: 0.058, shelf: 0.032, sideBack: 0.034 },
   generous: { corner: 0.1334, side: 0.1461, cornerFace: 139, sideFace: 100, cornerR: 0.062, sideR: 0.064, shelf: 0.030, sideBack: 0.029 },
+  /* snooker (1i), whatever setPockets says: WPBSA-template mouths, the jaws rounded (round: the
+     radius of the rubber's curve from the nose into the facing, JAW_ARCS) and the drops set
+     deeper behind the nose. Tuned in physics against the pool pockets (snooker-check). */
+  snooker: { corner: 0.090, side: 0.104, cornerFace: 137, sideFace: 101, cornerR: 0.05, sideR: 0.05, shelf: 0.045, sideBack: 0.04, round: 0.03, sideRound: 0.022 },
 };
 const CUSH_W = 0.05;              /* cushion depth, nose to rail */
 const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
@@ -1222,13 +1262,24 @@ let BUMPERS = [], POOL_TABLE = '7';
    the bed's edges as inward lines [nx, ny, c] (a centre at (x, y) is d = nx x + ny y - c inside
    that cushion's nose line); null on the rectangle and the pool tables, which use the box test */
 let BUMPER_SHAPE = 'octagon', BED_LINES = null;
+/* rounded jaws (snooker, 1i): circles [x, y, r] tangent to each jaw's nose and facing, which a
+   ball strikes like a cushion; the nose and facing segments in CUSH stop where each circle
+   meets them. Empty on every other table. JAW_RAD: [corner, middle] radius, 0 when square. */
+let JAW_ARCS = [], JAW_RAD = [0, 0];
+/* the snooker table (1i): its size ('compact' or 'full', setTable('snooker', size)), the D's
+   radius and the colours' spots by ball number, built with the table; D_R 0 and SPOTS empty on
+   every other table. The beds between the cushion noses: the 12 ft table, and the same scaled
+   to 10 ft (balls and pockets the same size). */
+const SNOOKER_SIZES = { full: [3.569, 1.778], compact: [3.569 * 5 / 6, 1.778 * 5 / 6] };
+let SNOOKER_SIZE = 'compact', D_R = 0, SPOTS = {};
 /* one rebuild from TABLE and POCKETS_STYLE, so setTable and setPockets compose in either order */
 function buildTable() {
-  BED_LINES = null;
+  BED_LINES = null; JAW_ARCS = []; JAW_RAD = [0, 0]; SPOTS = {}; D_R = 0;
+  BALL_R = TABLE === 'snooker' ? SNOOKER_BALL_R : POOL_BALL_R;
   if (TABLE === 'bumper') { buildBumper(); return; }
   BUMPERS = [];
-  const st = POCKET_STYLES[POCKETS_STYLE];
-  [TL, TW] = TABLE_SIZES[TABLE];
+  const snk = TABLE === 'snooker', st = POCKET_STYLES[snk ? 'snooker' : POCKETS_STYLE];
+  [TL, TW] = snk ? SNOOKER_SIZES[SNOOKER_SIZE] : TABLE_SIZES[TABLE];
   HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
   CORNER_W = st.corner; SIDE_W = st.side; CORNER_SHELF = st.shelf; SIDE_BACK = st.sideBack;
   CORNER_FACE = st.cornerFace * Math.PI / 180; SIDE_FACE = st.sideFace * Math.PI / 180;
@@ -1244,14 +1295,22 @@ function buildTable() {
   HOLE_IN = Math.max(0, st.sideR - st.sideBack);
   CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
+  if (snk) buildSnooker(st);
 }
-/* size '7' or '9' (anything else is '7'), or 'bumper' (1g). Ball, mouths, jaws, shelf and cushions are the same on
-   both; only the bed changes, with the head string and foot spot at a quarter from each end.
+/* size '7' or '9' (anything else is '7'), 'bumper' (1g) or 'snooker' (1i). Ball, mouths, jaws, shelf and cushions are the same on
+   both pool sizes; only the bed changes, with the head string and foot spot at a quarter from each end.
    shape, when given, sets the bumper table's shape ('rect', anything else 'octagon') for this and
-   every later bumper table. Never mid-game: a game's balls keep their coordinates. Returns the size set. */
+   every later bumper table; with 'snooker' it sets the snooker table's size instead ('full', the
+   12 ft table, anything else 'compact', 10 ft) for this and every later one. The ball's radius
+   (BALL_R) follows the table. Never mid-game: a game's balls keep their coordinates. Returns the size set. */
 function setTable(size, shape) {
-  if (shape !== undefined) BUMPER_SHAPE = shape === 'rect' ? 'rect' : 'octagon';
-  TABLE = size === 'bumper' ? 'bumper' : (POOL_TABLE = String(size) === '9' ? '9' : '7');
+  if (size === 'snooker') {
+    if (shape !== undefined) SNOOKER_SIZE = shape === 'full' ? 'full' : 'compact';
+    TABLE = 'snooker';
+  } else {
+    if (shape !== undefined) BUMPER_SHAPE = shape === 'rect' ? 'rect' : 'octagon';
+    TABLE = size === 'bumper' ? 'bumper' : (POOL_TABLE = String(size) === '9' ? '9' : '7');
+  }
   buildTable();
   return TABLE;
 }
@@ -1343,6 +1402,16 @@ function hitSeg(b, ax, ay, bx, by) {
   const d = Math.sqrt(d2);
   nx /= d; ny /= d;
   b.x = px + nx * BALL_R; b.y = py + ny * BALL_R;
+  return rail(b, nx, ny);
+}
+/* a round post of radius r at (px, py): the cushion's impulse model along the line of centres */
+function hitPost(b, px, py, r) {
+  let nx = b.x - px, ny = b.y - py;
+  const D = BALL_R + r, d2 = nx * nx + ny * ny;
+  if (d2 >= D * D || d2 < 1e-24) return 0;
+  const d = Math.sqrt(d2);
+  nx /= d; ny /= d;
+  b.x = px + nx * D; b.y = py + ny * D;
   return rail(b, nx, ny);
 }
 /* Equal masses: split the overlap, exchange the normal impulse (restitution BALL_E), then
@@ -1473,6 +1542,11 @@ function stepTable(tab) {
           tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
         }
       }
+      /* snooker's rounded jaws (1i); none on any other table */
+      for (const q of JAW_ARCS) {
+        const v = hitPost(b, q[0], q[1], q[2]);
+        if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['jaw', v]); }
+      }
       /* the drop: a centre over a hole, or past the nose line (only a mouth lets it get there).
          A centre off the bed and nowhere near a mouth means something got through: pot it. */
       const off = BED_LINES ? !bedIn(b.x, b.y, 0) : b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
@@ -1527,12 +1601,14 @@ const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a,
 const copyGame = g => JSON.parse(JSON.stringify(g));
 function newGame(kind) {
   if (kind === 'bumper') return bumperGame();
-  if (TABLE === 'bumper') setTable(POOL_TABLE);
+  if (kind === 'snooker') return snookerGame();
+  if (TABLE === 'bumper' || TABLE === 'snooker') setTable(POOL_TABLE);
   return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null };
 }
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
   if (g.kind === 'bumper') return onTable(g);   /* any ball may be touched first */
+  if (g.kind === 'snooker') return snookerOn(g);
   const on = onTable(g);
   if (g.mode) return on;   /* practice and trick shots: any ball first */
   if (g.kind === '9') return on.slice(0, 1);
@@ -1561,6 +1637,7 @@ function canPlace(g, x, y) {
   if (g.kind === 'bumper') return bumperFree(g.balls, x, y, -1);
   if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
   if (g.inHand === 'kitchen' && x > HEAD_X) return false;
+  if (g.inHand === 'D' && !inD(x, y)) return false;
   if (CUSH.some(c => segGap(c[0], c[1], c[2], c[3], x, y) < BALL_R - 1e-9)) return false;
   if (POCKET_AIM.some(p => Math.hypot(p[0] - x, p[1] - y) < 2 * BALL_R)) return false;
   return g.balls.every(b => b.n === 0 || !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R);
@@ -1584,6 +1661,7 @@ function placeCue(g, x, y) {
    safety loops. */
 function judge(g, r) {
   if (g.kind === 'bumper') return judgeBumper(g, r);
+  if (g.kind === 'snooker') return judgeSnooker(g, r);
   const n = copyGame(g), me = g.turn, op = 1 - me;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
@@ -1895,6 +1973,7 @@ const cpuAim = (l, psi) => Math.atan2(l.ty - 2 * BALL_R * Math.sin(psi) - l.cy, 
    and kicks that do cross are left to the simulation, which judges them like any shot. */
 function cpuTargets(g) {
   const all = legalTargets(g);
+  if (g.kind === 'snooker') return snkNearest(g, all);
   if (g.inHand !== 'kitchen') return all;
   const up = all.filter(n => g.balls.find(b => b.n === n).x >= HEAD_X);
   return up.length ? up : all;
@@ -1927,6 +2006,7 @@ function cpuDryCost(g, j, v) {
 }
 /* the score of a judged outcome j of a shot from g, for the player who shot */
 function cpuValue(g, j, L) {
+  if (g.kind === 'snooker') return cpuSnookerValue(g, j, L);
   const me = g.turn;
   if (j.winner !== null) return j.winner === me ? 1000 : -1000;
   let v;
@@ -1965,6 +2045,9 @@ function cpuSpots(g, targets, L) {
   };
   if (g.inHand === 'kitchen') {
     for (const x of [HEAD_X - 0.02, HEAD_X - 0.2, HEAD_X - 0.4]) for (let y = 0.12; y < TW - 0.1; y += 0.1) add(x, y);
+  } else if (g.inHand === 'D') {
+    /* snooker: a fan of spots across the D */
+    for (const dx of [0.01, 0.1, 0.2]) { const h = Math.sqrt(Math.max(0, D_R * D_R - dx * dx)) - 0.005; for (let i = -4; i <= 4; i++) add(HEAD_X - dx, TW / 2 + h * i / 4); }
   } else {
     const cue = g.balls.find(b => b.n === 0);
     if (cue.on) add(cue.x, cue.y);
@@ -1979,7 +2062,7 @@ function cpuSpots(g, targets, L) {
   }
   const out = [...best.values()].sort((a, b) => b.q - a.q).slice(0, L.place).map(s => [s.x, s.y]);
   if (seen.length) { const s = seen.reduce((a, b) => b.D < a.D ? b : a); out.push([s.x, s.y]); }
-  for (let x = g.inHand === 'kitchen' ? HEAD_X - 0.02 : TL / 4; !out.length && x >= BALL_R; x -= 0.05)
+  for (let x = g.inHand === 'kitchen' || g.inHand === 'D' ? HEAD_X - 0.02 : TL / 4; !out.length && x >= BALL_R; x -= 0.05)
     for (let y = TW / 2, i = 0; y > BALL_R && y < TW - BALL_R; i++, y = TW / 2 + (i % 2 ? 1 : -1) * Math.ceil(i / 2) * 0.05) if (canPlace(g, x, y)) { out.push([x, y]); break; }
   for (let x = TL - BALL_R; !out.length && x >= BALL_R; x -= 0.02) for (let y = BALL_R; y <= TW - BALL_R; y += 0.02) if (canPlace(g, x, y)) { out.push([x, y]); break; }
   return out;
@@ -2027,12 +2110,13 @@ function cpuBreak(g, rnd, L) {
    legal turned up. The shot played carries the level's aim noise. */
 function* cpuSearch(g, seed, level = 'medium') {
   if (g.kind === 'bumper') return yield* cpuBumper(g, seed, level);
-  const L = CPU_LEVELS[level] || CPU_LEVELS.medium, rnd = rng(seed * 2654435761 + 1), me = g.turn;
+  const L0 = CPU_LEVELS[level] || CPU_LEVELS.medium, L = g.kind === 'snooker' ? Object.assign({}, L0, SNK_CPU[level] || SNK_CPU.medium) : L0;
+  const rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
   const play = s => ({ angle: s.angle + gauss() * L.noise, power: cpuPower(cpuSpeedAt(s.power) * (1 + gauss() * L.pnoise)),
     spin: { x: s.spin.x, y: s.spin.y }, place: g.inHand ? s.place : null });
-  if (g.breakShot) return play(cpuBreak(g, rnd, L));
+  if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L));
   const targets = cpuTargets(g), cue = g.balls.find(b => b.n === 0), spots = g.inHand ? cpuSpots(g, targets, L) : [null];
   const recs = [];
   let sims = 0;
@@ -2124,6 +2208,7 @@ function* cpuSearch(g, seed, level = 'medium') {
   if (L.safe && (!recs.length || pool().reduce((m, r) => Math.max(m, r.mean), -Infinity) < L.safeBar)) {
     const safes = [], got = [];
     for (const place of spots.length > 2 ? [spots[0], spots[spots.length - 1]] : spots) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
+    if (g.kind === 'snooker' && g.breakShot) safes.push(...snkBreaks(g));
     safes.sort((a, b) => b.pri - a.pri);
     for (const s of safes.slice(0, L.safe)) {
       if (sims >= L.sims - (L.robust ? 8 : 0)) break;
@@ -2159,13 +2244,23 @@ function suggestAim(g) {
   if (g.kind === 'bumper') return suggestBumper(g);
   if (g.winner !== null || !c || !c.on) return null;
   const targets = cpuTargets(g), at = n => g.balls.find(b => b.n === n), toward = t => ({ angle: Math.atan2(t.y - c.y, t.x - c.x), n: t.n, k: -1 });
-  if (g.breakShot) {
+  /* snooker's break-off: a thin contact on the outside of the back row's end red on the cue ball's side (snkBreaks) */
+  if (g.breakShot && g.kind === 'snooker') {
+    const sd = c.y >= TW / 2 ? 1 : -1, reds = g.balls.filter(b => b.on && isRed(b.n));
+    if (reds.length) {
+      const t = reds.reduce((a, b) => sd * b.y * 10 + b.x > sd * a.y * 10 + a.x ? b : a), D = Math.hypot(t.x - c.x, t.y - c.y);
+      return { angle: Math.atan2(t.y - c.y, t.x - c.x) + sd * Math.asin(Math.min(1, 0.88 * 2 * BALL_R / D)), n: t.n, k: -1 };
+    }
+  }
+  if (g.breakShot && g.kind !== 'snooker') {
     const objs = g.balls.filter(b => b.on && b.n > 0);
     return objs.length ? toward((g.kind === '9' && at(1)) || objs.reduce((a, b) => b.x < a.x ? b : a)) : null;
   }
   const l = cpuLines(g.balls, c.x, c.y, targets, SUGGEST)[0];
   if (l) return { angle: l.angle, n: l.n, k: l.k };
-  const near = targets.map(at).filter(t => t && t.on).reduce((a, b) => !a || Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a, null);
+  /* snooker: a ball in sight before one behind another (the break: not the red behind the pink) */
+  const all = targets.map(at).filter(t => t && t.on), seen = g.kind === 'snooker' ? all.filter(t => cpuSight(g.balls, c.x, c.y, [t.n])) : [];
+  const near = (seen.length ? seen : all).reduce((a, b) => !a || Math.hypot(b.x - c.x, b.y - c.y) < Math.hypot(a.x - c.x, a.y - c.y) ? b : a, null);
   return near ? toward(near) : null;
 }
 /* ---- 1g. bumper pool ---- */
@@ -2692,6 +2787,250 @@ function shotMoments(g, r, n, run = { pots: 0, fromBreak: false }) {
     if (total >= RUN_MIN && clear) keys.push(run.fromBreak ? 'breakRun' : 'runOut');
   }
   return { legal: legal.length, keys: MOMENTS.filter(k => keys.includes(k)) };
+}
+
+/* ---- 1i. snooker ---- */
+/* The table (setTable('snooker', size), its bed in SNOOKER_SIZES): x runs from the baulk
+   cushion's nose (x = 0) to the top cushion's, y across, yellow's side at y > TW / 2 (on the
+   right seen from baulk). The baulk line is SNK_BAULK from the baulk cushion (HEAD_X), the D a
+   half circle of radius SNK_D on its baulk side, centred on the brown's spot; yellow and green
+   sit on the D's corners, blue in the middle, pink midway between blue and the top cushion,
+   black SNK_BLACK_IN from the top cushion. These are the 12 ft table's; on the compact table they
+   scale with the bed. The pockets are POCKET_STYLES.snooker's, their jaws rounded (roundJaws). */
+const SNK_BAULK = 0.737, SNK_D = 0.292, SNK_BLACK_IN = 0.324;
+/* the reds' apex ball stands this far off the pink: as close as it can without touching */
+const SNK_APEX = 0.001;
+function buildSnooker(st) {
+  const s = TL / SNOOKER_SIZES.full[0], y = TW / 2;
+  HEAD_X = SNK_BAULK * s; D_R = SNK_D * s;
+  SPOTS = { 57: [HEAD_X, y + D_R], 58: [HEAD_X, y - D_R], 59: [HEAD_X, y], 60: [TL / 2, y], 61: [0.75 * TL, y], 62: [TL - SNK_BLACK_IN * s, y] };
+  FOOT = SPOTS[61].slice();
+  roundJaws(st);
+}
+/* Each jaw point's corner of rubber (nose to facing) is rounded with a circle tangent to both,
+   st.round at the corners, st.sideRound at the middles: the circle goes in JAW_ARCS, and the nose
+   and facing segments are cut back to where it meets them. CUSH keeps cushions()'s order (six
+   noses, then each rubber's two facings), so JAW_FROM still parts noses from jaws; CUSHION_POLYS
+   keep their sharp jaw points, which the canvas rounds by the same radius (jawRadius). */
+const unit2 = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
+const jawSide = p => Math.abs(p[0] - TL / 2) < TL / 4;
+/* the rounding radius at jaw point p (0 on a table with square jaws) */
+const jawRadius = p => JAW_ARCS.length ? JAW_RAD[jawSide(p) ? 1 : 0] : 0;
+function roundJaws(st) {
+  JAW_RAD = [st.round, st.sideRound];
+  const one = (j, o) => {
+    const p = j.p, r = JAW_RAD[jawSide(p) ? 1 : 0], u = unit2(p, o), f = unit2(p, j.e);
+    const th = Math.acos(clamp(u[0] * f[0] + u[1] * f[1], -1, 1)), t = r / Math.tan(th / 2), c = r / Math.sin(th / 2);
+    const bx = u[0] + f[0], by = u[1] + f[1], bl = Math.hypot(bx, by);
+    JAW_ARCS.push([p[0] + bx / bl * c, p[1] + by / bl * c, r]);
+    return { n: [p[0] + u[0] * t, p[1] + u[1] * t], f: [p[0] + f[0] * t, p[1] + f[1] * t] };
+  };
+  const ends = RUBBERS.map(([a, b]) => [one(a, b.p), one(b, a.p)]);
+  CUSH = ends.map(([a, b]) => [a.n[0], a.n[1], b.n[0], b.n[1]]);
+  RUBBERS.forEach(([a, b], i) => CUSH.push([ends[i][0].f[0], ends[i][0].f[1], a.e[0], a.e[1]], [ends[i][1].f[0], ends[i][1].f[1], b.e[0], b.e[1]]));
+}
+/* (x, y) is in the D: on the baulk side of the line, within its radius of the brown's spot */
+const inD = (x, y) => x <= HEAD_X + 1e-9 && Math.hypot(x - HEAD_X, y - TW / 2) <= D_R + 1e-9;
+/* the balls: the cue ball 0, reds 41 to 55, the colours 57 (yellow, 2) to 62 (black, 7). A
+   colour's value is n - 55. (Every number under 64, so hitBalls' pair keys stay unique.) */
+const S_COLS = [57, 58, 59, 60, 61, 62], S_BLACK = 62;
+const isRed = n => n >= 41 && n <= 55;
+const snkValue = n => isRed(n) ? 1 : n >= 57 && n <= 62 ? n - 55 : 0;
+const SNK_NAME = { 57: 'yellow', 58: 'green', 59: 'brown', 60: 'blue', 61: 'pink', 62: 'black' };
+const snkName = n => isRed(n) ? 'red' : SNK_NAME[n] || 'cue ball';
+/* the rack: the fifteen reds in a triangle behind the pink, its apex SNK_APEX off it, the
+   colours on their spots, and the cue ball in hand in the D (between the brown and the yellow) */
+function snookerRack() {
+  const sp = 2 * BALL_R + RACK_GAP, dx = sp * Math.sqrt(3) / 2, x0 = SPOTS[61][0] + 2 * BALL_R + SNK_APEX, out = [newBall(0, HEAD_X - 0.06, TW / 2 + D_R * 0.5)];
+  let n = 41;
+  for (let k = 0; k < 5; k++) for (let j = 0; j <= k; j++) out.push(newBall(n++, x0 + k * dx, TW / 2 + (j - k / 2) * sp));
+  for (const c of S_COLS) out.push(newBall(c, SPOTS[c][0], SPOTS[c][1]));
+  return out;
+}
+/* A frame, or the first of a match. frames: 1, or 3 (best of three); first: the player who
+   breaks; won: frames won so far; high: each player's highest break so far. on: what the player
+   to shoot is on: 'red', 'colour' (any colour, after a red: the first one hit is the one
+   nominated) or a colour's number (the colours in order, once the reds are gone; null when none
+   is left). score, brk (the current break), reblack (a tie re-spotted the black). */
+function snookerGame(frames = 1, first = 0, won = [0, 0], high = [0, 0]) {
+  if (TABLE !== 'snooker') setTable('snooker');
+  return { kind: 'snooker', balls: snookerRack(), turn: first, groups: [null, null], open: false, breakShot: true, inHand: 'D', fouls: [0, 0], winner: null,
+    shots: 0, dry: 0, verdict: null, on: 'red', score: [0, 0], brk: 0, high: high.slice(), frames: frames === 3 ? 3 : 1, won: won.slice(), frame: won[0] + won[1] + 1, breaker: first, reblack: false };
+}
+/* the balls on: the reds; after a red any colour; then the colours in order */
+function snookerOn(g) {
+  const on = onTable(g);
+  if (g.on === 'red') return on.filter(isRed);
+  if (g.on === 'colour') return on.filter(n => snkValue(n) > 1);
+  return on.includes(g.on) ? [g.on] : [];
+}
+/* a colour back on the table: on its own spot; if that is taken (a ball would touch it), the
+   highest-value spot that is free; if every spot is taken, as near its own spot as it will go
+   on the line from it toward the top cushion, else toward the baulk cushion */
+function snookerSpot(balls, n) {
+  const b = balls.find(o => o.n === n), free = (x, y) => balls.every(o => o === b || !o.on || Math.hypot(o.x - x, o.y - y) >= 2 * BALL_R);
+  let at = free(...SPOTS[n]) ? SPOTS[n] : null;
+  for (let i = S_COLS.length - 1; !at && i >= 0; i--) if (free(...SPOTS[S_COLS[i]])) at = SPOTS[S_COLS[i]];
+  const [sx, sy] = SPOTS[n];
+  for (let x = sx; !at && x <= TL - BALL_R; x += 0.0005) if (free(x, sy)) at = [x, sy];
+  for (let x = sx; !at && x >= BALL_R; x -= 0.0005) if (free(x, sy)) at = [x, sy];
+  if (at) Object.assign(b, { x: at[0], y: at[1], vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, on: true });
+  return balls;
+}
+/* the points left on the table for the player to shoot: each red with a black after it, the
+   colour due after a red, then the colours */
+function snookerLeft(g) {
+  const reds = g.balls.filter(b => b.on && isRed(b.n)).length, cols = S_COLS.filter(c => g.balls.some(b => b.n === c && b.on));
+  if (reds || g.on === 'colour') return reds * 8 + (g.on === 'colour' ? 7 : 0) + 27;
+  return cols.reduce((a, c) => a + snkValue(c), 0);
+}
+/* player p needs snookers: further behind than the points left on the table */
+const snookersNeeded = (g, p) => g.score[1 - p] - g.score[p] > snookerLeft(g);
+/* The rules (How to play says the same):
+   1. The player is on a red while reds are on the table; after potting one, on a colour (the
+      first colour the cue ball hits is the one nominated), then on a red again. With the reds
+      gone, the colours in order: yellow, green, brown, blue, pink, black.
+   2. A red scores 1 (every red down on one shot counts); a colour its value. A pot keeps the turn.
+   3. Colours potted while reds remain, and the colour after the last red, are re-spotted
+      (snookerSpot); in the colours' order they stay down.
+   4. Fouls: missing every ball, hitting a ball not on first, potting a ball not on (a colour
+      other than the one hit), the cue ball potted (in-off), a ball off the table. The opponent
+      scores the value of the ball on or of the highest ball involved, at least 4 and at most 7.
+      Colours potted on a foul come back; reds stay down. The turn passes; the next player
+      plays from where the cue ball lies, or in hand in the D after an in-off.
+   5. The frame ends with the last ball down, or with the first score or foul when only the black
+      is left. Level then: the black is re-spotted and the player who did not end it plays it
+      from the D; the next score or foul wins. A frame can be conceded (concedeSnooker).
+   6. A match is one frame or the best of three; the players take turns to break.
+   Not implemented (yet): the free ball, the miss rule, a fouled player putting the fouler back
+   in. The verdict: foul, pen (its points), pts (scored), keep, nom (the colour nominated), win,
+   why, potted (balls that stayed down), back (colours re-spotted), scratch, brk (the break so far),
+   ended (the break this shot ended, 0 when it goes on), frameOver ({ winner, score, frame, won,
+   conceded } when a frame ended), reblack. A finished frame of an unfinished match comes back as
+   the next frame's new game, carrying that verdict. */
+function judgeSnooker(g, r) {
+  const n = copyGame(g), me = g.turn, op = 1 - me, pk = r.pocketOf || {};
+  n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
+  n.shots++;
+  const pot = r.potted.filter(x => x !== 0), scratch = r.potted.includes(0), first = r.first, targets = snookerOn(g);
+  const nom = g.on === 'colour' && first !== null && targets.includes(first) ? first : null;
+  const onVal = g.on === 'red' ? 1 : g.on === 'colour' ? snkValue(nom) : snkValue(g.on);
+  const fair = x => g.on === 'red' ? isRed(x) : g.on === 'colour' ? x === nom : x === g.on;
+  let foul = null, worth = onVal;
+  const blame = (why, x) => { foul = foul || why; if (x !== undefined) worth = Math.max(worth, snkValue(x)); };
+  if (first === null) blame('missed every ball');
+  else if (!targets.includes(first)) blame(`hit the ${snkName(first)} first`, first);
+  for (const x of pot) {
+    if (!(pk[x] >= 0)) blame(`the ${snkName(x)} left the table`, x);
+    else if (!fair(x)) blame(`potted the ${snkName(x)}`, x);
+  }
+  if (scratch) blame('in-off');
+  const pen = foul ? clamp(worth, 4, 7) : 0, pts = foul ? 0 : g.on === 'red' ? pot.length : pot.length ? onVal : 0;
+  if (foul) n.score[op] += pen; else n.score[me] += pts;
+  /* the colours that come back, the highest first (it has the first claim on a spot) */
+  const back = pot.filter(x => !isRed(x) && (foul || g.on === 'colour')).sort((a, b) => b - a);
+  for (const x of back) snookerSpot(n.balls, x);
+  const up = x => n.balls.some(b => b.n === x && b.on), reds = n.balls.some(b => b.on && isRed(b.n)), cols = S_COLS.filter(up);
+  const keep = !foul && pts > 0;
+  n.on = keep && g.on === 'red' ? 'colour' : reds ? 'red' : cols.length ? cols[0] : null;
+  n.brk = keep ? g.brk + pts : 0;
+  n.high[me] = Math.max(n.high[me], g.brk + pts);
+  n.turn = keep ? me : op;
+  n.inHand = scratch ? 'D' : null;
+  n.breakShot = false;
+  n.dry = pot.length ? 0 : (g.dry || 0) + 1;
+  n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
+  const v = n.verdict = { foul, pen, pts, keep, nom, win: null, why: '', potted: pot.filter(x => !up(x)), back, scratch, grouped: false, twoFouls: false,
+    brk: n.brk, ended: keep ? 0 : g.brk + pts, frameOver: null, reblack: false };
+  if (!cols.length || (g.on === S_BLACK && (foul || pts > 0))) return snookerEnd(n, v, me, null);
+  return n;
+}
+/* the end of a frame. ender: who potted or fouled last; winner: the frame's winner when it is
+   decided otherwise (a concession), else the score decides, and a tie re-spots the black */
+function snookerEnd(n, v, ender, winner) {
+  if (winner === null && n.score[0] === n.score[1]) {
+    n.balls.find(o => o.n === 0).on = false;
+    snookerSpot(n.balls, S_BLACK);
+    Object.assign(n, { on: S_BLACK, turn: 1 - ender, inHand: 'D', reblack: true, brk: 0 });
+    Object.assign(v, { reblack: true, keep: false });
+    return n;
+  }
+  const w = winner !== null ? winner : n.score[0] > n.score[1] ? 0 : 1;
+  n.won[w]++;
+  v.frameOver = { winner: w, score: n.score.slice(), frame: n.frame, won: n.won.slice(), conceded: winner !== null };
+  if (n.won[w] * 2 > n.frames) {
+    Object.assign(n, { winner: w, turn: w, inHand: null, on: null, brk: 0 });
+    v.win = w; v.why = winner !== null ? 'conceded' : 'the frame';
+    return n;
+  }
+  const nx = snookerGame(n.frames, 1 - n.breaker, n.won, n.high);
+  nx.verdict = v;
+  return nx;
+}
+/* player p concedes the frame (in a game of snooker not yet won): the next game, g untouched */
+function concedeSnooker(g, p) {
+  const n = copyGame(g);
+  n.brk = 0;
+  const v = n.verdict = { foul: null, pen: 0, pts: 0, keep: false, nom: null, win: null, why: '', potted: [], back: [], scratch: false, grouped: false, twoFouls: false,
+    brk: 0, ended: g.brk, frameOver: null, reblack: false };
+  return snookerEnd(n, v, p, 1 - p);
+}
+/* the CPU at snooker is cpuSearch itself (its pots, position play, safeties and ball in hand in
+   the D), with these changes: a judged outcome is scored on its points (cpuSnookerValue), the
+   reds proposed are the SNK_NEAR nearest the cue ball (22 balls on the table cost more per
+   simulation, and a far red is seldom the shot), and the levels a little leaner (SNK_CPU) so a
+   turn thinks for about as long on a phone as a pool turn. */
+const SNK_NEAR = 7;
+const SNK_CPU = { easy: { sims: 10 }, medium: { sims: 32, lines: 7 }, hard: { sims: 90, lines: 10, safe: 14 } };
+function snkNearest(g, all) {
+  if (all.length <= SNK_NEAR) return all;
+  /* seen from the cue ball, or with it in hand from either side of the D: a red in sight first */
+  const c = g.balls.find(b => b.n === 0), from = g.inHand || !c.on ? [[HEAD_X - 0.05, TW / 2 - 0.6 * D_R], [HEAD_X - 0.05, TW / 2 + 0.6 * D_R]] : [[c.x, c.y]];
+  const key = n => {
+    const b = g.balls.find(o => o.n === n), d = Math.min(...from.map(p => Math.hypot(b.x - p[0], b.y - p[1])));
+    return d + (from.some(p => cpuClear(g.balls, p[0], p[1], b.x, b.y, n)) ? 0 : 10);
+  };
+  const k = new Map(all.map(n => [n, key(n)]));
+  return all.slice().sort((a, b) => k.get(a) - k.get(b)).slice(0, SNK_NEAR);
+}
+/* the break-off: from the D beside the yellow (or the green), a thin contact on the outside of
+   the back row's end red on that side, so the cue ball runs off the top and side cushions back
+   to baulk: about two table lengths and more of roll. A few thicknesses and paces, from either
+   side, for cpuSearch to simulate and score on the leave, the likeliest first (its safeties phase
+   plays them, as no pot is on from the D). No side: its squirt finds the next red first. */
+function snkBreaks(g) {
+  const reds = g.balls.filter(b => b.on && isRed(b.n)), out = [], R2 = 2 * BALL_R;
+  if (!reds.length) return out;
+  for (const s of [1, -1]) {
+    const t = reds.reduce((a, b) => s * b.y * 10 + b.x > s * a.y * 10 + a.x ? b : a), place = [HEAD_X - 0.01, TW / 2 + s * 0.6 * D_R];
+    if (!canPlace(g, place[0], place[1])) continue;
+    const D = Math.hypot(t.x - place[0], t.y - place[1]), base = Math.atan2(t.y - place[1], t.x - place[0]);
+    [0.88, 0.8, 0.94].forEach((th, i) => [2.3, 2, 2.6].forEach((f, j) => out.push({
+      angle: base + s * Math.asin(th * R2 / D), power: cpuPower(cpuSpeedFor(D + f * TL)), spin: { x: 0, y: 0 }, place, pri: 10 - i - j - (s < 0 ? 0.5 : 0) })));
+  }
+  return out.sort((a, b) => b.pri - a.pri);
+}
+/* the leave after a shot that hands over the table: the cue ball far from every ball the
+   opponent is on, and tight on the baulk cushion */
+function snkLeave(j) {
+  const c = j.balls.find(b => b.n === 0);
+  if (!c || !c.on || j.inHand) return 0;
+  const d = snookerOn(j).reduce((m, n) => { const b = j.balls.find(o => o.n === n); return Math.min(m, Math.hypot(b.x - c.x, b.y - c.y)); }, 9);
+  return 40 * Math.min(1, d / (TL / 2)) + (c.x < HEAD_X ? 25 * (1 - c.x / HEAD_X) : 0);
+}
+/* the score of a judged outcome j for the player who shot from g: a frame won or lost, a foul
+   by its penalty, a pot by its points plus the chance of the next pot (so the colour picked is
+   the one that leaves the best red, its value counting too), a miss by the opponent's chance
+   and the safety's leave */
+function cpuSnookerValue(g, j, L) {
+  const me = g.turn, v = j.verdict;
+  if (j.winner !== null) return j.winner === me ? 1000 : -1000;
+  if (v.frameOver) return v.frameOver.winner === me ? 900 : -900;
+  let s;
+  if (v.foul) s = -400 - 25 * v.pen;
+  else if (j.turn === me) s = 300 + 25 * v.pts + (L.position ? 250 * cpuChance(j, me, L) : 0);
+  else s = (L.position ? -250 * cpuChance(j, j.turn, L) : 0) + snkLeave(j);
+  return s - cpuDryCost(g, j, s);
 }
 // #endregion sim
 
@@ -3229,7 +3568,9 @@ function camPin(z, x, y) {
 const BALL_COLOR = { 0: [247, 244, 234], 1: [246, 186, 28], 2: [28, 72, 184], 3: [208, 42, 36], 4: [92, 46, 146], 5: [242, 112, 26], 6: [22, 120, 66], 7: [122, 30, 32], 8: [20, 20, 22] };
 /* bumper pool's red and white (balls 21-25 and 31-35, 1g) */
 const BUMPER_COLOR = [[200, 38, 44], [244, 241, 230]];
-const colorOf = n => n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
+/* snooker's reds and colours (1i: reds 41-55, the colours 57 yellow to 62 black) */
+const SNOOKER_COLOR = { red: [196, 28, 36], 57: [246, 206, 40], 58: [26, 132, 72], 59: [124, 66, 34], 60: [30, 80, 196], 61: [246, 146, 176], 62: [22, 22, 24] };
+const colorOf = n => n > 40 ? (isRed(n) ? SNOOKER_COLOR.red : SNOOKER_COLOR[n]) : n > 20 ? BUMPER_COLOR[n > 30 ? 1 : 0] : BALL_COLOR[n > 8 ? n - 8 : n];
 /* the cloths (settings.cloth): bed, cushion rubber, the illegal colour, the floor under every
    white overlay on the bed, and the bed's colour bounced into the balls' shadow sides. Each
    overlay (guide lines and rings, placement rings and chevrons, the kitchen line, the loupe) is
@@ -3299,7 +3640,7 @@ function drawTableImage(w = table.width, h = table.height) {
   g.restore();
   if (BED_LINES) paintOctaRails(g, co, L, px, rnd); else paintRails(g, co, L, px, rnd);
   if (BUMPERS.length) { paintBumperTable(g, co, L, px, K, rnd); trayBox = trayGeom(); return c; }
-  paintSights(g, co, L, px);
+  if (TABLE !== 'snooker') paintSights(g, co, L, px);   /* a snooker table has no sights */
   /* the cloth runs under the cushions to the wood */
   g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
   paintPocketCaps(g, co, L, px);
@@ -3308,13 +3649,16 @@ function drawTableImage(w = table.width, h = table.height) {
   paintClothLight(g, co, rnd);
   paintBevels(g, co, L, px);
   paintPocketLips(g, co, L, px);
-  /* head string, foot spot and head spot: just enough to find */
-  g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 1.2 * px;
-  g.beginPath(); g.moveTo(HEAD_X, 0); g.lineTo(HEAD_X, TW); g.stroke();
-  g.fillStyle = 'rgba(255,255,255,0.42)';
-  g.beginPath(); g.arc(FOOT[0], FOOT[1], 0.0045, 0, Math.PI * 2); g.fill();
-  g.fillStyle = 'rgba(255,255,255,0.2)';
-  g.beginPath(); g.arc(HEAD_X, TW / 2, 0.0032, 0, Math.PI * 2); g.fill();
+  /* head string, foot spot and head spot: just enough to find (snooker: its baulk line, D and spots) */
+  if (TABLE === 'snooker') paintSnookerMarks(g, px);
+  else {
+    g.strokeStyle = 'rgba(255,255,255,0.09)'; g.lineWidth = 1.2 * px;
+    g.beginPath(); g.moveTo(HEAD_X, 0); g.lineTo(HEAD_X, TW); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.42)';
+    g.beginPath(); g.arc(FOOT[0], FOOT[1], 0.0045, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.2)';
+    g.beginPath(); g.arc(HEAD_X, TW / 2, 0.0032, 0, Math.PI * 2); g.fill();
+  }
   /* the pocketed-ball tray's slot, only where layout() gives the tray a band (view.tray) */
   const T = trayBox = trayGeom();
   if (!T) return c;
@@ -3550,8 +3894,8 @@ const JAW_ROUND = 0.0035;
    off the back (the side against the wood): the nose and both facings, for the contact line */
 function rubberPath(g, p, open) {
   g.moveTo(p[0][0], p[0][1]);
-  g.arcTo(p[1][0], p[1][1], p[2][0], p[2][1], JAW_ROUND);
-  g.arcTo(p[2][0], p[2][1], p[3][0], p[3][1], JAW_ROUND);
+  g.arcTo(p[1][0], p[1][1], p[2][0], p[2][1], Math.max(JAW_ROUND, jawRadius(p[1])));   /* snooker's jaws are rounded (1i) */
+  g.arcTo(p[2][0], p[2][1], p[3][0], p[3][1], Math.max(JAW_ROUND, jawRadius(p[2])));
   g.lineTo(p[3][0], p[3][1]);
   if (!open) g.closePath();
 }
@@ -3715,6 +4059,24 @@ function paintBevels(g, co, L, px) {
   g.strokeStyle = 'rgba(255,215,170,0.08)'; g.lineWidth = px;
   g.strokeRect(-co - 1.5 * px, -co - 1.5 * px, TL + 2 * co + 3 * px, TW + 2 * co + 3 * px);
   g.restore();
+}
+
+/* ---- 4a''. snooker's markings ---- */
+/* the baulk line across the bed, the D on its baulk side and the colours' six spots, in a thin
+   chalk white: there to find, not to read (the D lights up while the cue ball is in hand, drawD) */
+function paintSnookerMarks(g, px) {
+  g.strokeStyle = 'rgba(255,255,255,0.32)'; g.lineWidth = Math.max(1.2 * px, 0.0018);
+  g.beginPath(); g.moveTo(HEAD_X, 0); g.lineTo(HEAD_X, TW); g.stroke();
+  g.beginPath(); g.arc(HEAD_X, TW / 2, D_R, Math.PI / 2, Math.PI * 1.5); g.stroke();
+  g.fillStyle = 'rgba(255,255,255,0.5)';
+  for (const c of S_COLS) { g.beginPath(); g.arc(SPOTS[c][0], SPOTS[c][1], Math.max(1.5 * px, 0.0035), 0, Math.PI * 2); g.fill(); }
+}
+/* the D while the cue ball is in hand there: a faint wash and its edge */
+function drawD() {
+  tableXform(ctx);
+  ctx.beginPath(); ctx.moveTo(HEAD_X, TW / 2 + D_R); ctx.arc(HEAD_X, TW / 2, D_R, Math.PI / 2, Math.PI * 1.5); ctx.closePath();
+  ctx.fillStyle = 'rgba(255,255,240,0.06)'; ctx.fill();
+  ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k; ctx.stroke();
 }
 
 /* ---- 4a'. the bumper pool table ---- */
@@ -3938,8 +4300,8 @@ function paintPosts(g, L, px) {
    ends, number circles), the number as a decal mapped onto its circle, then one cached sprite
    with the lamp's shading and highlight. No per-pixel work per frame. */
 const orient = {}, IDENT = [1, 0, 0, 0, 1, 0, 0, 0, 1];
-/* every ball number: pool's 0-15 and bumper pool's red and white */
-const ALL_BALLS = [...Array(16).keys(), 21, 22, 23, 24, 25, 31, 32, 33, 34, 35];
+/* every ball number: pool's 0-15, bumper pool's red and white, snooker's reds and colours */
+const ALL_BALLS = [...Array(16).keys(), 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, ...Array.from({ length: 15 }, (_, i) => 41 + i), ...S_COLS];
 function randomOrient() {
   for (const n of ALL_BALLS) {
     let m = IDENT;
@@ -3992,6 +4354,8 @@ for (const n of [21, 22, 23, 24, 25, 31, 32, 33, 34, 35]) {
   const spot = n === 21 ? IVORY : '#c8262c';
   PAINT[n] = { base: rgb(colorOf(n)), caps: n === 21 || n === 31 ? [[0, 0.94, spot], [1, 0.94, spot], [2, 0.94, spot]] : [] };
 }
+/* snooker: plain balls, no numbers and no paint */
+for (const n of ALL_BALLS) if (n > 40) PAINT[n] = { base: rgb(colorOf(n)), caps: [] };
 /* The part of the cap {v . p >= ca} on the unit sphere that faces the eye, projected. Its rim
    projects to an ellipse; where the rim goes round the limb the outline follows the limb. */
 function capPath(g, p, ca) {
@@ -4477,6 +4841,7 @@ function trimStart(pts, d) {
 /* a pot the guide shows as good (white) or not (ILLEGAL): in pool any object ball, never the
    cue ball; in bumper pool a ball of the shooter's into the far cup, the marked ball first */
 function potOk(n, k) {
+  if (game.kind === 'snooker') return n !== 0 && legalTargets(game).includes(n);
   if (game.kind !== 'bumper') return n !== 0;
   const me = game.turn, mark = B_MARK[me];
   return bOwner(n) === me && k === 1 - me && (n === mark || !game.balls.some(b => b.n === mark && b.on));
@@ -4642,6 +5007,7 @@ function draw(now) {
     ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k;
     ctx.beginPath(); ctx.moveTo(HEAD_X, 0); ctx.lineTo(HEAD_X, TW); ctx.stroke();
   }
+  if (state === 'aim' && game.inHand === 'D' && human()) drawD();
   /* the cue ball in hand: the ghost stands in for it while it moves on legal spots; over an
      illegal one the ball stays drawn on its last legal spot, where a release puts it back. It
      waits while the scratched cue ball is still dropping. */
@@ -4942,7 +5308,8 @@ function start(kind, o = null) {
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
   setPockets(o ? o.pockets : settings.pockets);
-  game = newGame(kind);
+  if (kind === 'snooker') setTable('snooker', settings.snookerTable);
+  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind);
   if (o && o.breaker === 1 && kind !== 'bumper') game.turn = 1;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
@@ -4958,7 +5325,7 @@ function start(kind, o = null) {
   autoAim();
   say(human() ? handHint() : turnOf(1) + '.');
   if (kind === 'bumper') flash('turn', 'Opening shots', `${cpuMode ? 'You shoot' : 'Red shoots'} the marked ball at the far cup`, 1600);
-  else flash('turn', !human() ? `${career ? careerFoe().first : 'The CPU'} breaks` : cpuMode ? 'You break' : 'Player 1 breaks', 'Ball in hand behind the line', 1400);
+  else flash('turn', !human() ? `${career ? careerFoe().first : 'The CPU'} breaks` : cpuMode ? 'You break' : 'Player 1 breaks', kind === 'snooker' ? 'Ball in hand in the D' : 'Ball in hand behind the line', 1400);
   hud();
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
@@ -4992,20 +5359,22 @@ function handSpot() {
   if (c.on && canPlace(game, c.x, c.y)) return [c.x, c.y];
   const s = cpuSpots(game, cpuTargets(game), CPU_LEVELS.easy)[0];
   if (s && canPlace(game, s[0], s[1])) return s;
-  return nearestLegal(game.inHand === 'kitchen' ? HEAD_X - 0.15 : TL / 4, TW / 2);
+  return nearestLegal(game.inHand === 'kitchen' ? HEAD_X - 0.15 : game.inHand === 'D' ? HEAD_X - 0.08 : TL / 4, TW / 2);
 }
 function enterHand() {
   if (!game.inHand || !human()) return;
   const p = handSpot();
   if (p) game = placeCue(game, p[0], p[1]);
 }
-const handHint = () => game.inHand === 'kitchen' ? 'Ball in hand behind the line: drag the cue ball to move it, pull the bar to shoot.' : 'Ball in hand: drag the cue ball to move it, pull the bar to shoot.';
+const handHint = () => game.inHand === 'kitchen' ? 'Ball in hand behind the line: drag the cue ball to move it, pull the bar to shoot.'
+  : game.inHand === 'D' ? 'Ball in hand in the D: drag the cue ball to move it, pull the bar to shoot.' : 'Ball in hand: drag the cue ball to move it, pull the bar to shoot.';
 /* the status line while aiming: whose turn, and that the cue ball may still move */
 const aimHint = () => `${turnOf(game.turn)}.` + (game.inHand ? ' Drag the cue ball to move it.' : '');
 const moveHint = key => key ? 'Moving the cue ball: arrows move it, M or Enter to aim again.' : 'Let go anywhere: an illegal spot puts the ball back.';
 /* why a ball-in-hand spot is refused, in words */
 function placeWhy(p) {
   if (game.inHand === 'kitchen' && p[0] > HEAD_X) return 'Behind the head string: the cue ball goes in the kitchen.';
+  if (game.inHand === 'D' && !inD(p[0], p[1])) return 'In the D: the cue ball goes inside the D.';
   const hit = game.balls.find(b => b.on && b.n > 0 && Math.hypot(b.x - p[0], b.y - p[1]) < 2 * BALL_R);
   if (hit) return `Too close to the ${hit.n}.`;
   return 'Keep the cue ball on the cloth.';
@@ -5013,7 +5382,9 @@ function placeWhy(p) {
 /* the nearest legal spot to (x, y): clamp into the allowed area, then search outward a few
    ball widths. Null when the area there is crowded. */
 function nearestLegal(x, y) {
-  const hi = game.inHand === 'kitchen' ? HEAD_X : TL - BALL_R;
+  const hi = game.inHand === 'kitchen' || game.inHand === 'D' ? HEAD_X : TL - BALL_R;
+  /* snooker: from inside the D */
+  if (game.inHand === 'D') { const dx = x - HEAD_X, dy = y - TW / 2, d = Math.hypot(dx, dy), r = D_R - BALL_R; if (d > r) { x = HEAD_X + dx / d * r; y = TW / 2 + dy / d * r; } }
   x = clamp(x, BALL_R, hi); y = clamp(y, BALL_R, TW - BALL_R);
   if (canPlace(game, x, y)) return [x, y];
   for (let r = 0.004; r <= 4 * BALL_R; r += 0.004) {
@@ -5138,6 +5509,7 @@ function settle() {
   if (v.foul) stats.fouls[shooter]++;
   stats.potted[shooter].push(...v.potted);
   noteShot(before, r, shooter);
+  if (game.kind === 'snooker') recordFrame(v);
   if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null; picked = false;
@@ -5154,6 +5526,7 @@ function settle() {
   const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
+  if (game.kind === 'snooker') { snookerWords(v, shooter, who); hud(); return; }
   if (v.foul) {
     const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
     flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2400 : 1500);
@@ -5189,6 +5562,55 @@ function bumperWords(v, shooter, who) {
     say(`${turnOf(who)}: ${tail}.`);
     if (who !== shooter) sfx('turn', 1);
   } else say(`${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again: ${left(who)} left.`);
+}
+/* ---- 5k. snooker's words, frames and concession ---- */
+const onWords = g => g.on === 'red' ? 'a red' : g.on === 'colour' ? 'a colour' : g.on ? `the ${snkName(g.on)}` : 'nothing';
+const ptsWord = n => `${n} point${n === 1 ? '' : 's'}`;
+const dWords = p => cpuMode ? `Ball in hand in the D for ${p === 0 ? 'you' : 'the CPU'}` : `${nameOf(p)}: ball in hand in the D`;
+/* a frame's winner in a banner: "You win the frame", "Player 2 wins the frame" */
+const frameHead = w => cpuMode ? (w === 0 ? 'You win the frame' : 'The CPU wins the frame') : `${nameOf(w)} wins the frame`;
+function snookerWords(v, shooter, who) {
+  const fo = v.frameOver;
+  if (fo) {
+    const s = fo.score, line = fo.conceded ? 'Conceded' : `${Math.max(s[0], s[1])}-${Math.min(s[0], s[1])}`;
+    const brk = cpuMode ? (who === 0 ? 'You break' : 'The CPU breaks') : `${nameOf(who)} breaks`;
+    flash('turn', frameHead(fo.winner), `${line}, frames ${fo.won[0]}-${fo.won[1]}\n${brk} frame ${game.frame}`, 2600);
+    say(`${frameHead(fo.winner)}, ${line}. Frames ${fo.won[0]}-${fo.won[1]}. ${brk} frame ${game.frame}.`);
+    sfx('turn', 1);
+  } else if (v.reblack) {
+    flash('turn', 'Re-spotted black', `Level at ${game.score[0]}\n${dWords(who)}`, 2200);
+    say(`Level at ${game.score[0]}: the black is re-spotted. ${dWords(who)}.`);
+    sfx('turn', 1);
+  } else if (v.foul) {
+    flash('foul', `Foul: ${v.foul}`, `${ptsWord(v.pen)} to ${nameOf(1 - shooter)}` + (game.inHand ? '\n' + dWords(who) : ''), 1700);
+    say(`Foul: ${v.foul}. ${ptsWord(v.pen)} to ${nameOf(1 - shooter)}. ${turnOf(who)}, on ${onWords(game)}.`);
+    sfx('foul', 1);
+  } else if (who === shooter) say(`${nameOf(who)}: ${ptsWord(v.pts)}, break ${v.brk}. On ${onWords(game)}.`);
+  else {
+    flash('turn', turnOf(who), v.ended ? `Break of ${v.ended}` : `On ${onWords(game)}`, 1000);
+    say(`${v.ended ? `Break of ${v.ended}. ` : ''}${turnOf(who)}, on ${onWords(game)}.`);
+    sfx('turn', 1);
+  }
+}
+/* the pause menu's Concede: the frame goes to the other player (against the CPU you concede; with
+   two players, the player to shoot). A match not yet won goes on to its next frame. */
+function concedeFrame() {
+  if (game.kind !== 'snooker' || game.winner !== null || !paused) return;
+  const p = cpuMode ? 0 : game.turn;
+  cancelGestures();
+  paused = null; tab = null; stroke = null; pull = null; cpuIt = null; cpuPlan = null; aimAnim = null;
+  game = concedeSnooker(game, p);
+  const v = game.verdict;
+  recordFrame(v);
+  hideOverlays();
+  if (game.winner !== null) { say(overLine(game)); finish(); return; }
+  cueSpin = { x: 0, y: 0 }; power = markPower;
+  placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
+  if (!human()) { state = 'thinking'; cpuPlan = null; cpuIt = cpuSearch(game, cpuSeed++, cpuLevel); } else { state = 'aim'; enterHand(); }
+  keepAim();
+  autoAim();
+  snookerWords(v, p, game.turn);
+  hud();
 }
 /* bumper pool: strike ball n from now on (a ball of the shooter's, any but on the opening) */
 function pickBall(n) {
@@ -5297,11 +5719,11 @@ const REPLAY_SLOW = 0.35, SLOW_IN = 0.09, SLOW_OUT = 0.12, SLOW_RAMP = 0.06;   /
 const REPLAY_GAIN = 0.45;         /* replay sounds, against live */
 const NOTABLE = { bank: 'Nice bank. Replay?', kick: 'Nice kick. Replay?', combo: 'Nice combo. Replay?', long: 'Long pot. Replay?' };
 let rp = null, offer = null, eatUntil = 0, eatId = null;
-const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, TL, TW].join();
+const geoSig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, TW, BALL_R].join();   /* snooker: its size and ball (1i) too */
 /* the record of a shot about to be played: the stroke ({ angle, power, spin, ball }) and what it
    needs to be played again. The ball orientations ride along unlisted (for the replay's look). */
 function shotRecord(shot) {
-  const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, geo: geoSig(), breakShot: !!game.breakShot, notable: null });
+  const rec = Object.assign({}, shot, { balls: game.balls.map(b => Object.assign({}, b)), kind: game.kind, table: TABLE, pockets: POCKETS_STYLE, bumperShape: BUMPER_SHAPE, snookerSize: SNOOKER_SIZE, ballR: BALL_R, geo: geoSig(), breakShot: !!game.breakShot, notable: null });
   Object.defineProperty(rec, 'orient', { value: Object.assign({}, orient) });
   camPred = camPredict(rec);
   return rec;
@@ -6360,7 +6782,9 @@ Object.defineProperties(felt, {
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
    game the menu last started (Play again replays it on the current settings), null at first. */
 function loadSettings() {
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'auto', names: ['', ''], last: null };
+  /* snooker's table: compact (10 ft) on a phone, where the full table's balls get small; full on a bigger screen */
+  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', camera: 'auto', names: ['', ''], last: null,
+    snookerTable: Math.min(innerWidth, innerHeight) < 700 ? 'compact' : 'full', snookerFrames: 1 };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
@@ -6373,9 +6797,11 @@ function loadSettings() {
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
     if (['green', 'red'].includes(o.cloth)) s.cloth = o.cloth;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
+    if (['compact', 'full'].includes(o.snookerTable)) s.snookerTable = o.snookerTable;
+    if ([1, 3].includes(o.snookerFrames)) s.snookerFrames = o.snookerFrames;
     if (['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
-    if (['8', '9', 'bumper'].includes(o.last)) s.last = o.last;
+    if (['8', '9', 'bumper', 'snooker'].includes(o.last)) s.last = o.last;
   } catch (e) { }
   return s;
 }
@@ -6389,11 +6815,11 @@ function setSetting(k, v) {
   if (k === 'autoAim' && !v) hint = null;
   /* a new table size, pocket style or bumper table shows at once behind the menu, unless a game
      is paused there: setTable and setPockets never run mid-game, so they wait for the next start() */
-  if ((k === 'table' || k === 'pockets' || k === 'bumperTable') && state === 'menu' && !paused) previewGame(game.kind);
+  if ((k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') && state === 'menu' && !paused) previewGame(game.kind);
   syncMenu();
   /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
   if (k === 'cloth') layout();
-  if (k === 'cloth' || k === 'table' || k === 'pockets' || k === 'bumperTable') paintArt();
+  if (k === 'cloth' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
 }
 const SEGS = [
   ['cpu', [[vs2p, false], [vsCpu, true]]],
@@ -6406,6 +6832,8 @@ const SEGS = [
   ['autoAim', [[aaOn, true], [aaOff, false]]],
   ['cloth', [[clGreen, 'green'], [clRed, 'red']]],
   ['bumperTable', [[btOct, 'octagon'], [btRect, 'rect']]],
+  ['snookerTable', [[stCompact, 'compact'], [stFull, 'full']]],
+  ['snookerFrames', [[sf1, 1], [sf3, 3]]],
   ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
 ];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
@@ -6416,6 +6844,7 @@ function syncMenu() {
   document.documentElement.dataset.cloth = settings.cloth;
   menu.toggleAttribute('data-paused', !!paused);
   resumeBtn.hidden = !paused;
+  concedeBtn.hidden = !(paused && game.kind === 'snooker' && !game.mode && game.winner === null);
   syncSoloMenu();
   syncHome();
 }
@@ -6441,6 +6870,7 @@ const KINDS = {
   8: { name: '8-ball', ball: 'b8', num: '8', sub: 'Solids and stripes. Clear your group, then pot the 8.' },
   9: { name: '9-ball', ball: 'b9', num: '9', sub: 'Lowest ball first. A legal 9 wins, whenever it drops.' },
   bumper: { name: 'Bumper pool', ball: 'bb', num: '', sub: 'Red against white, five each, round the posts to the far cup.' },
+  snooker: { name: 'Snooker', ball: 'bsnk', num: '', sub: 'A red, then a colour, and again. Most points wins the frame.' },
 };
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
@@ -6465,7 +6895,9 @@ function escSheet() {
 function setupWords(kind) {
   const n = settings.names, who = settings.cpu ? ` vs ${FOES[settings.level]} (CPU ${settings.level})`
     : n[0] || n[1] ? `, ${n[0] || 'Player 1'} v ${n[1] || 'Player 2'}` : ', two players';
-  const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon') : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '');
+  const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon')
+    : kind === 'snooker' ? (settings.snookerTable === 'full' ? 'full 12 ft' : 'compact 10 ft') + (settings.snookerFrames === 3 ? ', best of 3' : '')
+    : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '');
   return KINDS[kind].name + who + ', ' + tb;
 }
 /* the home screen's hero and the setup's records against each CPU opponent. The hero is Play
@@ -6487,6 +6919,7 @@ function previewGame(kind) {
   const sig = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, TL, TW].join(), was = sig();
   setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
   setPockets(settings.pockets);
+  if (kind === 'snooker') setTable('snooker', settings.snookerTable);
   game = newGame(kind);
   if (sig() !== was) layout();
   hud();
@@ -6498,8 +6931,9 @@ function showSetup(kind) {
   setupTitle.textContent = k.name; setupSub.textContent = k.sub;
   setupBall.className = 'ball ' + k.ball; setupBall.textContent = k.num;
   breakBtn.textContent = kind === 'bumper' ? 'Play' : 'Break';
-  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper';
+  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'snooker';
   for (const el of setupSheet.querySelectorAll('.bump')) el.hidden = kind !== 'bumper';
+  for (const el of setupSheet.querySelectorAll('.snk')) el.hidden = kind !== 'snooker';
   name1.value = settings.names[0]; name2.value = settings.names[1];
   previewGame(kind);
   syncMenu();
@@ -6517,7 +6951,7 @@ function quitToHome() {
   cancelGestures();
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
-  game = newGame(game.kind === 'bumper' ? 'bumper' : game.kind === '9' ? '9' : '8');
+  game = newGame(['bumper', 'snooker', '9'].includes(game.kind) ? game.kind : '8');
   closeSolo();
   showMenu();
   hud();
@@ -6582,19 +7016,21 @@ function paintScrim(x, W, H, mode) {
 function paintRack(cv, kind, mode = 'fit', low = 0) {
   const w = cv.clientWidth, h = cv.clientHeight, d = pixelRatio();
   if (!w || !h) return;
-  const key = [kind, mode, low, w, h, d, settings.cloth, settings.table, settings.pockets, settings.bumperTable].join();
+  const key = [kind, mode, low, w, h, d, settings.cloth, settings.table, settings.pockets, settings.bumperTable, settings.snookerTable].join();
   if (cv.dataset.key === key) return;
   cv.dataset.key = key;
   cv.width = Math.round(w * d); cv.height = Math.round(h * d);
-  const keep = { view, dpr, RAIL, table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, pockets: POCKETS_STYLE };
+  const keep = { view, dpr, RAIL, table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE };
   try {
-    GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
+    if (kind === 'snooker') GEO.setTable('snooker', settings.snookerTable);
+    else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
     const g = newGame(kind), balls = g.balls.filter(b => b.on);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
-    const obj = balls.filter(b => b.n > 0);
+    /* snooker: a close-up of the reds' triangle and the pink (the black just beyond them) */
+    const obj = kind === 'snooker' ? balls.filter(b => isRed(b.n) || b.n === 61) : balls.filter(b => b.n > 0);
     if (mode !== 'fit') view = coverView(w, h, kind, mode, obj, low);
     else {
       const k = kind === 'bumper' ? fit : Math.min(up ? w / W : h / H, fit * 1.7), span = (up ? h : w) / k, mid = obj.reduce((a, b) => a + b.x, 0) / Math.max(1, obj.length);
@@ -6613,7 +7049,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
   } finally {
     artCtx = null;
     view = keep.view; dpr = keep.dpr; RAIL = keep.RAIL;
-    GEO.setTable(keep.table, keep.shape); POOL_TABLE = keep.pool; GEO.setPockets(keep.pockets);
+    GEO.setTable(keep.table, keep.table === 'snooker' ? keep.snk : keep.shape); POOL_TABLE = keep.pool; BUMPER_SHAPE = keep.shape; SNOOKER_SIZE = keep.snk; GEO.setPockets(keep.pockets);
   }
 }
 
@@ -6624,7 +7060,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
 const REC_KEY = 'felt.record.v1', LEVELS = ['easy', 'medium', 'hard'];
 function freshRec() {
   const k = () => ({ played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } } });
-  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k() }, streak: 0, best: 0 };
+  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }) }, streak: 0, best: 0 };
 }
 function loadRec() {
   const r = freshRec(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
@@ -6636,6 +7072,7 @@ function loadRec() {
         if (!a || typeof a !== 'object') continue;
         b.played = n(a.played); b.two = n(a.two);
         for (const lv of LEVELS) if (a.cpu && a.cpu[lv]) { b.cpu[lv].w = n(a.cpu[lv].w); b.cpu[lv].l = n(a.cpu[lv].l); }
+        if (kind === 'snooker') { b.frames = n(a.frames); b.high = n(a.high); }
       }
       r.streak = n(o.streak); r.best = Math.max(n(o.best), r.streak);
     }
@@ -6653,6 +7090,15 @@ function recordGame() {
   } else r.two++;
   try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
 }
+/* snooker: every finished frame (the last of a match too) counts, and the highest break: yours
+   against the CPU, either player's with two */
+function recordFrame(v) {
+  if (game.mode || !v || !v.frameOver) return;
+  const r = rec.kinds.snooker;
+  r.frames++;
+  r.high = Math.max(r.high, ...(cpuMode ? [game.high[0]] : game.high));
+  try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+}
 function showStats() {
   const kp = [['Win streak', rec.streak, 'vs CPU'], ['Best streak', rec.best, 'vs CPU'], ['Trick stars', starTotal(), `of ${TRICKS.length * 3}`], ['Daily streak', dailyStreak(), `best ${dailyRec.best}`]];
   kpis.replaceChildren(...kp.map(([t, v, s]) => {
@@ -6664,20 +7110,22 @@ function showStats() {
   const head = document.createElement('thead'), body = document.createElement('tbody'), hr = document.createElement('tr');
   hr.append(cell('th', 'Game'), cell('th', 'Played'), ...LEVELS.map(lv => cell('th', FOES[lv])), cell('th', '2P'));
   head.appendChild(hr);
-  for (const kind of ['8', '9', 'bumper']) {
+  for (const kind of ['8', '9', 'bumper', 'snooker']) {
     const r = rec.kinds[kind], tr = document.createElement('tr');
     tr.append(cell('th', kind === 'bumper' ? 'Bumper' : KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
       ...LEVELS.map(lv => { const o = r.cpu[lv]; return cell('td', `${o.w}-${o.l}`, o.w + o.l ? '' : 'z'); }), cell('td', String(r.two), r.two ? '' : 'z'));
     body.appendChild(tr);
   }
   recTable.replaceChildren(head, body);
+  const sk = rec.kinds.snooker;
+  snkStat.textContent = `Snooker: ${sk.frames} frame${sk.frames === 1 ? '' : 's'} played, highest break ${sk.high}.`;
   recTable.setAttribute('aria-label', 'Games by kind: played, wins and losses against Rookie, Regular and Hustler, and two-player games');
   careerStats();
   openSheet(statsSheet, statsBack);
 }
 
 /* ---- how to play: one tab per topic; arrows move between tabs ---- */
-const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabSolo, panSolo]];
+const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabSnk, panSnk], [tabSolo, panSolo]];
 function pickTab(tab, focus) {
   for (const [t, p] of TABS) { const on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; p.hidden = !on; }
   if (focus) tab.focus({ preventScroll: true });
@@ -6691,13 +7139,15 @@ tabCtl.parentElement.addEventListener('keydown', e => {
 });
 /* opened from a paused game, the tab for that game; from home, the controls */
 function showHelp() {
-  pickTab(!paused ? tabCtl : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === '9' ? tab9 : tab8);
+  pickTab(!paused ? tabCtl : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
   openSheet(helpSheet, helpBack);
 }
 
 play8.addEventListener('click', () => showSetup('8'));
 play9.addEventListener('click', () => showSetup('9'));
 playB.addEventListener('click', () => showSetup('bumper'));
+playS.addEventListener('click', () => showSetup('snooker'));
+concedeBtn.addEventListener('click', () => { audioOn(); concedeFrame(); });
 breakBtn.addEventListener('click', () => playSetup(setupKind));
 againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); else showSetup('8'); });
 for (const [i, el] of [[0, name1], [1, name2]]) {
@@ -6719,7 +7169,7 @@ const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 
 const darkBall = n => (lumOf(colorOf(n)) + 0.05) / (lumOf([38, 38, 42]) + 0.05) < 3;
 function dotEl(n, big) {
   const d = document.createElement('span'), c = colorOf(n);
-  d.className = 'dot' + (n > 20 ? (n === 21 || n === 31 ? ' mark' : '') : n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
+  d.className = 'dot' + (n > 40 ? (darkBall(n) ? ' ring' : '') : n > 20 ? (n === 21 || n === 31 ? ' mark' : '') : n > 8 ? ' stripe' : darkBall(n) ? ' ring' : '') + (big ? ' big' : '');
   if (n === 21) d.style.setProperty('--mk', IVORY);
   if (n === 31) d.style.setProperty('--mk', '#c8262c');
   d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -6735,6 +7185,11 @@ function fillDots(box, list, big) {
 /* what a player's card says: their group and what is left of it, or the ball on */
 function cardOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n);
+  /* snooker: the score, the break while at the table and the best; the ball on, for the player to shoot */
+  if (game.kind === 'snooker') {
+    const up = p === game.turn && game.winner === null, need = up && snookersNeeded(game, p);
+    return { meta: `${ptsWord(game.score[p])}` + (up && game.brk ? `, break ${game.brk}` : '') + (need ? ', needs snookers' : ''), dots: up ? onDots(game) : [], warn: need };
+  }
   if (game.kind === 'bumper') {
     const mine = on.filter(n => bOwner(n) === p).sort((a, b) => a - b);
     return { meta: `${colourOf(p)}, ${mine.length} left` + (mine.includes(B_MARK[p]) && mine.length > 1 ? ', marked first' : ''), dots: mine, warn: false };
@@ -6761,6 +7216,7 @@ const cardName = p => cpuMode && p === 1 ? `${foeName()} (CPU)` : nameOf(p);
 const foeName = () => career ? careerFoe().name : FOES[cpuLevel];
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
+  if (game.kind === 'snooker') return { balls: [], num: String(game.score[p]) };
   if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
   if (game.kind === '9') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
@@ -6819,6 +7275,35 @@ function hud() {
     fillDots(document.getElementById('p' + p + 'dots'), c.dots);
   }
   hudControls();
+  hudSnooker();
+}
+/* ---- 6s. snooker's scoreboard: a slim bar on the top rail with the break, the ball on (its dot)
+   and the points left, and a warning when the player to shoot needs snookers. The chips carry
+   the scores. Hidden for every other game and on the home screen. ---- */
+/* the dots for what the player to shoot is on: a red, every colour on the table, or the one colour */
+const onDots = g => g.on === 'red' ? [41] : g.on === 'colour' ? S_COLS.filter(c => g.balls.some(b => b.n === c && b.on)) : g.on ? [g.on] : [];
+function hudSnooker() {
+  const show = game.kind === 'snooker' && game.winner === null && !(state === 'menu' && !paused);
+  if (snkBar.hidden !== !show) snkBar.hidden = !show;
+  if (!show) return;
+  /* centred on the top rail's wood of the fitted (unzoomed) table, as the replay's pill is */
+  const R = camRect(), st = stage.getBoundingClientRect(), top = (R.top + RAIL * viewBase.k / 2 - st.top).toFixed(1) + 'px';
+  if (snkBar.style.top !== top) snkBar.style.top = top;
+  const p = game.turn, need = snookersNeeded(game, p), dots = game.on === 'colour' ? [] : onDots(game);
+  const on = game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? snkName(game.on)[0].toUpperCase() + snkName(game.on).slice(1) : '';
+  const parts = [['Break', String(game.brk)], ['On', on, dots], [snookerLeft(game) + ' left', '']];
+  if (game.frames > 1) parts.unshift(['Frame ' + game.frame, `${game.won[0]}-${game.won[1]}`]);
+  if (need) parts.push(['', 'Snookers needed', null, true]);
+  const key = JSON.stringify(parts);
+  if (snkBar.dataset.key === key) return;
+  snkBar.dataset.key = key;
+  snkBar.replaceChildren(...parts.map(([k, val, ds, warn]) => {
+    const sp = document.createElement('span');
+    if (k) { const e = document.createElement('i'); e.className = 'k'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
+    for (const n of ds || []) sp.appendChild(dotEl(n));
+    if (val) { const e = document.createElement('b'); e.textContent = val; if (warn) e.className = 'warn'; sp.appendChild(e); }
+    return sp;
+  }));
 }
 const spinWords = s => {
   const parts = [];
@@ -6866,7 +7351,7 @@ function flash(kind, head, sub, ms = 1100) {
    landscape it also moves to the far end, so the start banner clears the kitchen. */
 function placeBanner() {
   const t = felt.tableRect(), st = stage.getBoundingClientRect(), c = cueBall();
-  const at = game.inHand === 'kitchen' ? [HEAD_X / 2, TW / 2] : placeAt || (c ? [c.x, c.y] : [TL / 2, TW / 2]);
+  const at = game.inHand === 'kitchen' || game.inHand === 'D' ? [HEAD_X / 2, TW / 2] : placeAt || (c ? [c.x, c.y] : [TL / 2, TW / 2]);
   const s = toScreen(at[0], at[1]), W = t.right - t.left, H = t.bottom - t.top;
   let x = t.left + W / 2, y = t.top + H / 2;
   if (view.portrait) y = t.top + H * (s[1] > y ? 0.27 : 0.73);
@@ -6881,6 +7366,11 @@ function overLine(g) {
   const v = g.verdict || {}, w = g.winner, l = 1 - w, why = v.why || '';
   const who = p => cpuMode ? (p === 0 ? 'You' : 'The CPU') : nameOf(p), their = p => cpuMode && p === 0 ? 'your' : 'their';
   if (w === null || why === 'forced' || !why) return 'Game over.';
+  if (g.kind === 'snooker') {
+    const fo = v.frameOver || { score: g.score, conceded: false }, s = fo.score, won = g.won;
+    if (fo.conceded) return `${who(l)} conceded${g.frames > 1 ? `: ${won[w]}-${won[l]} in frames` : ''}.`;
+    return g.frames > 1 ? `${who(w)} won the match ${won[w]}-${won[l]} in frames.` : `${who(w)} won the frame ${s[w]}-${s[l]}.`;
+  }
   if (/three fouls/.test(why)) return `${who(l)} fouled three times in a row.`;
   if (/\b8\b/.test(why)) {
     if (/legal/.test(why)) return `${who(w)} potted the 8 to win.`;
@@ -6948,7 +7438,7 @@ function overBallOf(w) {
   return game.kind === '9' ? ['ball b9', '9'] : ['ball b8', '8'];
 }
 function showOver() {
-  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind + '-ball';
+  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind + '-ball';
   const n = stats.shots[0] + stats.shots[1];
   overKind.textContent = `${kind}${cpuMode ? ` vs ${FOES[cpuLevel]}` : ''}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
@@ -6984,8 +7474,11 @@ function showOver() {
   };
   const head = document.createElement('thead'), body = document.createElement('tbody');
   head.appendChild(row('', [0, 1].map(p => nameOf(p)), true));
-  body.append(row('Potted', [dots(0), dots(1)]), row('Best run', stats.best.map(String)), row('Accuracy', [0, 1].map(acc)), row('Fouls', stats.fouls.map(String)),
-    row('Shots of note', [noteCell(0), noteCell(1)]));
+  /* snooker: the frame's score and the highest breaks (and the frames, in a match) in place of the potted balls and the best run */
+  const fo = game.verdict && game.verdict.frameOver, sc = fo ? fo.score : game.score;
+  const lead = game.kind === 'snooker' ? [row('Score', sc.map(String)), row('High break', game.high.map(String)), ...(game.frames > 1 ? [row('Frames', game.won.map(String))] : [])]
+    : [row('Potted', [dots(0), dots(1)]), row('Best run', stats.best.map(String))];
+  body.append(...lead, row('Accuracy', [0, 1].map(acc)), row('Fouls', stats.fouls.map(String)), row('Shots of note', [noteCell(0), noteCell(1)]));
   body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
   overStats.replaceChildren(head, body);
   menu.classList.remove('show');

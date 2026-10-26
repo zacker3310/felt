@@ -301,7 +301,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #playLab { grid-area: playlab; }
 #soloLab { grid-area: sololab; }
 .tiles { grid-area: tiles; display: grid; grid-template: minmax(0, 1.25fr) minmax(0, 1fr) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
-#playB { grid-column: 1 / -1; }
+#playB { grid-column: 1; }
 .tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
   text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
 .tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
@@ -363,7 +363,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   .newgame .sect { display: none; }
   .tiles { margin-top: 16px; }
   .solos { margin-top: 12px; }
-  .solo { min-height: 56px; }
+  .solo { min-height: 52px; }
 }
 @media (orientation: landscape) and (min-width: 1100px) {
   .newgame { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); max-height: min(600px, 100%); }
@@ -552,6 +552,104 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* How to play: touch words on a touch screen, mouse and keyboard words otherwise */
 .how .touch { display: none; }
 @media (hover: none) and (pointer: coarse) { .how .touch { display: grid; } .how .keys { display: none; } }
+
+/* ---- 6c: the lesson's coach marks, the first-run offer, the career ladder and its sheets ----
+   Gold (#f2c94c, the stars' colour) marks what the lesson points at: 4.6:1 on the green cloth,
+   6.9:1 on the red, 12:1 on the page, so the ring reads as a graphic anywhere. */
+.solo[hidden] { display: none; }
+#coach { position: fixed; z-index: 3; left: 0; top: 0; width: max-content; max-width: min(320px, calc(100vw - 32px)); padding: 10px 14px 11px; border-radius: 16px;
+  background: rgba(22, 22, 24, .95); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5); pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+#coach[hidden], #coachRing[hidden] { display: none; }
+#coachStep { margin: 0 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .01em; color: #f2c94c; }
+#coachText { margin: 0; font-size: 15px; line-height: 1.35; color: var(--text); }
+#coach.fresh { animation: coachIn .26s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes coachIn { from { opacity: 0; transform: translateY(6px) scale(.98); } }
+#coachRing { position: fixed; z-index: 3; left: 0; top: 0; border-radius: 16px; pointer-events: none;
+  box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 6px rgba(242, 201, 76, .28); animation: ringPulse 1.6s ease-in-out infinite; }
+#coachRing.round { border-radius: 50%; }
+@keyframes ringPulse { 50% { box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 12px rgba(242, 201, 76, 0); } }
+/* the first-run offer: a small sheet with a ball on the cloth; low on a phone held upright */
+#lessonOffer .sheet { max-width: 400px; text-align: center; }
+.offerArt { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 22px;
+  background: radial-gradient(circle at 50% 38%, #2b7d5e, #12402f 78%); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
+[data-cloth="red"] .offerArt { background: radial-gradient(circle at 50% 38%, #b2343b, #5c1218 78%); }
+.offerArt .ball { width: 34px; height: 34px; font-size: 12px; box-shadow: inset -4px -5px 8px rgba(0, 0, 0, .35), 0 6px 10px rgba(0, 0, 0, .35); }
+#lessonOffer .sub { margin: 0 0 20px; }
+@media (orientation: portrait) and (max-width: 600px) { #lessonOffer .sheet, #lessonDone .sheet { margin: auto auto 0; } }
+.lessonGo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; }
+.lessonGo svg { width: 20px; height: 20px; color: var(--muted); }
+/* avatars: the player's initials on their colour (white on each is 5.2:1 or better); the boss in gold on black */
+.av { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--av, #3a3a41); color: #fff;
+  font: 700 15px/1 var(--font); letter-spacing: .02em; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .22), inset 0 -8px 14px rgba(0, 0, 0, .16); }
+.av.boss { background: #141416; color: #f2c94c; box-shadow: inset 0 0 0 1.5px #f2c94c; }
+/* the ladder: a tier title, then its players as an inset grouped list; the one to play is lit,
+   the ones still locked are quiet (but still 4.5:1) behind a lock */
+#careerSheet .sheet { max-width: 520px; }
+#careerSub { margin: -4px 0 0; }
+.ladder { display: grid; margin-top: 8px; }
+.tier { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 16px 4px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.tier span { font-weight: 500; }
+.rungs { display: grid; overflow: hidden; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
+.rung { position: relative; min-width: 0; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 0; border-radius: 0; background: transparent; text-align: left; color: var(--text); }
+.rung + .rung::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.rung:not(:disabled):hover { background: rgba(255, 255, 255, .04); }
+.rung:not(:disabled):active { background: rgba(255, 255, 255, .08); }
+.rung:disabled { cursor: default; }
+.rung .tt { flex: 1; display: grid; min-width: 0; }
+.rung b { font-size: 16px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rung small { font-size: 13px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rung .meta { font-size: 12px; }
+.rung .st { flex: none; display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rung .st svg { width: 18px; height: 18px; }
+.rung[data-state="beaten"] .st svg { color: #3ddc84; }
+.rung[data-state="current"] { background: rgba(242, 201, 76, .07); box-shadow: inset 3px 0 0 #f2c94c; }
+.rung .play { display: grid; place-items: center; min-height: 32px; padding: 0 14px; border-radius: 16px; background: var(--signal); color: #fff; font-size: 14px; font-weight: 700; }
+.rung[data-state="locked"] b { color: #a3a3aa; }
+.rung[data-state="locked"] small { color: #9a9aa2; }
+.rung[data-state="locked"] .av { background: #303036; color: #b4b4bc; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); }
+/* the pause menu in a career match: who, their line, the score */
+#careerNow { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
+#careerNow[hidden] { display: none; }
+#careerNow .tt { flex: 1; display: grid; min-width: 0; }
+#careerNow b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#careerNow small { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#careerNow .score { flex: none; display: grid; justify-items: end; }
+#careerNow .score b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+/* between racks and the match result: the score, a pip per rack won of those needed */
+.board { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; margin: 12px 0 16px; padding: 12px 10px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
+.board .side { display: grid; justify-items: center; gap: 5px; min-width: 0; }
+.board .side small { max-width: 100%; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board .side b { font-size: 34px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.board .pips { display: flex; gap: 4px; }
+.board .pips i { width: 8px; height: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px #8e8e96; }
+.board .pips i.on { background: #f2c94c; box-shadow: none; }
+.board .vs { font-size: 13px; color: var(--muted); }
+#rackSheet .sheet, #matchSheet .sheet, #lessonDone .sheet { max-width: 440px; }
+.btns.three { grid-template-columns: 1fr 1fr; }
+.btns.three .big { grid-column: 1 / -1; }
+@media (min-width: 600px) { .btns.three { grid-template-columns: 2fr 1fr 1fr; } .btns.three .big { grid-column: auto; } #matchSheet .sheet { max-width: 520px; } }
+@media (max-height: 480px) { .board { margin: 8px 0 12px; padding: 8px 10px; } .board .side b { font-size: 28px; } }
+@media (prefers-reduced-motion: reduce) { #coach.fresh, #coachRing { animation: none; } }
+/* the career card beside bumper pool: the next players' faces, the ladder in words and a bar */
+.cc { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: grid; grid-template: "av sum" minmax(0, 1fr) "tt tt" auto "bar bar" auto / minmax(0, 1fr) auto;
+  gap: 0 8px; padding: 12px 14px 13px; border: 0; border-radius: 22px; text-align: left; color: #fff;
+  background: radial-gradient(120% 90% at 85% 0%, rgba(242, 201, 76, .16), transparent 60%), #17171a; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7), inset 0 0 0 .5px rgba(255, 255, 255, .13);
+  transition: transform .2s cubic-bezier(.3, 1.45, .55, 1); }
+.cc:active { transform: scale(.97); transition-duration: .12s; transition-timing-function: ease-out; }
+.ccAv { grid-area: av; display: flex; align-items: flex-start; min-width: 0; min-height: 0; overflow: hidden; padding: 3px; margin: -3px; }
+.ccAv .av { width: 34px; height: 34px; font-size: 13px; box-shadow: 0 0 0 2.5px #17171a, inset 0 -8px 14px rgba(0, 0, 0, .16); }
+.ccAv .av + .av { margin-left: -7px; }
+.ccAv .av.now { box-shadow: 0 0 0 2px #17171a, 0 0 0 3.5px #f2c94c; }
+.ccSum { grid-area: sum; align-self: start; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, .74); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cc .tt { grid-area: tt; display: block; min-width: 0; align-self: end; }
+.cc b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
+.cc small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ccBar { grid-area: bar; display: block; height: 4px; margin-top: 8px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
+.ccBar i { display: block; height: 100%; width: 0; border-radius: inherit; background: #f2c94c; }
+@container (max-width: 360px) { .cc { padding: 10px 12px 12px; } .cc small { font-size: 12px; } .ccAv .av { width: 30px; height: 30px; font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) { .cc, .cc:active { transition: none; transform: none; } }
+
 </style>
 </head>
 <body>
@@ -582,12 +680,19 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
   </div>
   <div id="msg" class="sr" role="status" aria-live="polite"></div>
+  <div id="coachRing" aria-hidden="true" hidden></div>
+  <div id="coach" role="note" aria-live="polite" hidden><p id="coachStep"></p><p id="coachText"></p></div>
 </div>
 
 <div class="overlay show" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
   <div class="sheet home">
     <div class="pausePart">
       <p class="kicker" id="soloKind">Paused</p>
+      <section id="careerNow" hidden aria-label="This match">
+        <span class="av" id="cnAv" aria-hidden="true"></span>
+        <span class="tt"><b id="cnName"></b><small id="cnLine"></small></span>
+        <span class="score"><b id="cnScore">0-0</b><small id="cnRace"></small></span>
+      </section>
       <section id="gameNow" hidden aria-label="This game">
         <div class="cards">
           <div class="pc" id="p0"><span class="turn" aria-hidden="true"></span><span class="name" id="p0name">Player 1</span><span class="line"><span class="meta" id="p0meta"></span><span class="dots" id="p0dots"></span></span></div>
@@ -625,9 +730,11 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
         <button class="tile" id="play9" data-kind="9"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span></button>
         <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper pool</b><small>Round the posts</small></span></button>
+        <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
+        <button class="solo" id="lessonBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt"><b>Learn to play</b><small>A 30 second lesson</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>No fouls, undo</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo" id="trickBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Trick shots</b><small id="trickSub">14 challenges</small></span><span class="acc"><svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg><span id="trickSum">0 of 42</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo daily" id="dailyBtn"><span class="ic cal" aria-hidden="true"><i></i><b id="dailyBall">1</b></span><span class="tt"><b>Daily shot</b><small id="dailyName">New every day</small></span><span class="acc" id="dailyAcc"><svg class="flame" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12.8 1.8c.4 3.6 5.7 5.9 5.7 12.2a6.5 6.5 0 0 1-13 0c0-2.7 1.1-4.7 2.7-6.3.1 2.2.9 3.6 2.1 4.2-.7-4 .4-7.4 2.5-10.1zM12 19.4a2.4 2.4 0 0 0 2.4-2.5c0-1.6-1.3-2.6-2-4.3-.8 1.5-2.7 2.6-2.7 4.4a2.4 2.4 0 0 0 2.3 2.4z"/></svg><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg><span id="dailySum"></span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
@@ -691,6 +798,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="htxt"><h2 class="title" id="statsTitle">Stats</h2></div></div>
     <dl class="kpis" id="kpis"></dl>
     <table class="rec" id="recTable"></table>
+    <h3 class="sect" id="careerStatLab">Career</h3>
+    <dl class="kpis" id="careerKpis" aria-labelledby="careerStatLab"></dl>
     <p class="note">Against the CPU: wins and losses. A game counts when it finishes.</p>
   </div>
 </div>
@@ -753,8 +862,58 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Practice</dt><dd>No opponent and no fouls, always your shot. Undo takes back the last shot; the tools button holds ball in hand, reset rack and, on a free table, adding and removing balls.</dd>
         <dt>Tricks</dt><dd>One layout, one goal. Three stars for a make on the first try, two within three tries, one for any make. Show me plays one way to make it.</dd>
         <dt>Daily</dt><dd>One trick shot a day, the same for everyone that day. Your first try counts: play on consecutive days and your streak grows, miss a day and it starts again. Retries are practice.</dd>
+        <dt>Career</dt><dd>Eight players, from the back room to the boss, each with a game and a table of their own. Every match is a race: first to win the set number of racks, the break alternating. Win the match and the next player is unlocked.</dd>
       </dl>
     </div>
+    <button class="ghost wide lessonGo" id="lessonAgain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg>Play the lesson</button>
+  </div>
+</div>
+
+<!-- 6c: the first-run lesson offer, the lesson's finish, the career ladder, between racks, the match result -->
+<div class="overlay" id="lessonOffer" role="dialog" aria-modal="true" aria-labelledby="offerTitle">
+  <div class="sheet offer">
+    <span class="offerArt" aria-hidden="true"><span class="ball b1">1</span></span>
+    <h2 class="title" id="offerTitle">New to felt?</h2>
+    <p class="sub">A 30 second lesson: aim, fine-tune, shoot. Three steps, no rules to learn.</p>
+    <div class="row"><button class="big" id="offerGo">Show me</button><button class="ghost" id="offerSkip">Skip</button></div>
+  </div>
+</div>
+
+<div class="overlay lite" id="lessonDone" role="dialog" aria-modal="true" aria-labelledby="doneTitle">
+  <div class="sheet">
+    <p class="kicker">Lesson complete</p>
+    <h2 class="title" id="doneTitle">You're ready.</h2>
+    <p class="sub">That is the whole stroke: aim, fine-tune, pull. The rules of each game are in How to play.</p>
+    <div class="row"><button class="big" id="donePlay">Play 8-ball</button><button class="ghost" id="doneHome">Home</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="careerSheet" role="dialog" aria-modal="true" aria-labelledby="careerTitle">
+  <div class="sheet career">
+    <div class="shead"><button class="back" id="careerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="htxt"><p class="kicker" id="careerKick">0 of 8 beaten</p><h2 class="title" id="careerTitle">Career</h2></div></div>
+    <p class="sub" id="careerSub">Beat each player in a race to move up the ladder.</p>
+    <div class="ladder" id="ladder"></div>
+  </div>
+</div>
+
+<div class="overlay lite" id="rackSheet" role="dialog" aria-modal="true" aria-labelledby="rackTitle">
+  <div class="sheet">
+    <p class="kicker" id="rackKick"></p>
+    <h2 class="title" id="rackTitle">Rack 2</h2>
+    <p class="sub" id="rackSub"></p>
+    <div class="board" id="rackBoard"></div>
+    <div class="row"><button class="big" id="rackGo">Next rack</button><button class="ghost" id="rackQuit">Quit match</button></div>
+  </div>
+</div>
+
+<div class="overlay lite" id="matchSheet" role="dialog" aria-modal="true" aria-labelledby="matchTitle">
+  <div class="sheet">
+    <p class="kicker" id="matchKick"></p>
+    <h2 class="title" id="matchTitle"></h2>
+    <p class="sub" id="matchSub"></p>
+    <div class="board" id="matchBoard"></div>
+    <div class="btns three"><button class="big" id="matchGo">Next match</button><button class="ghost" id="matchLadder">Career</button><button class="ghost" id="matchHome">Home</button></div>
   </div>
 </div>
 
@@ -4298,14 +4457,18 @@ const turnOf = p => game.mode ? 'Your shot' : cpuMode ? (p === 0 ? 'Your turn' :
 const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300);
 function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []] }; }
 
-function start(kind) {
-  cpuMode = settings.cpu; cpuLevel = settings.level; solo = null;
+/* o: a career rack (6c) plays on its own terms instead of the settings: { level, table, pockets,
+   bumperTable, breaker (1: the CPU breaks) }; any other start ends the career match */
+function start(kind, o = null) {
+  if (!o) career = null;
+  cpuMode = o ? true : settings.cpu; cpuLevel = o ? o.level : settings.level; solo = null;
   /* the table size and pockets take effect here, between games; the table is repainted only
      when either changed (its art reads the geometry globals) */
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
-  setTable(settings.table, settings.bumperTable);
-  setPockets(settings.pockets);
+  setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
+  setPockets(o ? o.pockets : settings.pockets);
   game = newGame(kind);
+  if (o && o.breaker === 1 && kind !== 'bumper') game.turn = 1;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
@@ -4314,12 +4477,13 @@ function start(kind) {
   hideOverlays();
   aimAngle = 0; handAimed = false; hint = null; placeAt = null; placeBack = null; move = null; picked = false;
   state = 'aim';
+  if (!human()) { state = 'thinking'; cpuPlan = null; felt.lastCpu = { seed: cpuSeed, level: cpuLevel }; cpuIt = cpuSearch(game, cpuSeed++, cpuLevel); }
   enterHand();
   keepAim();
   autoAim();
-  say(handHint());
+  say(human() ? handHint() : turnOf(1) + '.');
   if (kind === 'bumper') flash('turn', 'Opening shots', `${cpuMode ? 'You shoot' : 'Red shoots'} the marked ball at the far cup`, 1600);
-  else flash('turn', cpuMode ? 'You break' : 'Player 1 breaks', 'Ball in hand behind the line', 1400);
+  else flash('turn', !human() ? `${career ? careerFoe().first : 'The CPU'} breaks` : cpuMode ? 'You break' : 'Player 1 breaks', 'Ball in hand behind the line', 1400);
   hud();
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
@@ -4442,7 +4606,7 @@ function dropBall() {
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function autoAim() {
   aimAnim = null; hint = null;
-  if (!settings.autoAim || state !== 'aim' || !human()) return;
+  if (!settings.autoAim || state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6c) */
   const s = suggestAim(game), t = s && game.balls.find(b => b.n === s.n);
   if (!t) return;
   hint = { n: s.n, k: s.k };
@@ -4474,7 +4638,7 @@ function finish() {
   state = 'over'; stroke = null; pull = null; gest = null; paused = null;
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
-  showOver();
+  if (!careerRackOver()) showOver();   /* a career rack: between racks, or the match result (6c) */
   sfx('win', 1);
   hud();
 }
@@ -5236,6 +5400,7 @@ function settleSolo() {
   tab = null;
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
+  if (solo.kind === 'lesson') { lessonSettle(r); return; }   /* the lesson (6c) */
   if (game.mode === 'practice') {
     game = practiceJudge(game, r);
     const v = game.verdict, st = solo.st;
@@ -5297,7 +5462,7 @@ function showTrickRes(c, j) {
   trickRes.classList.add('show');
   if (byKeys) (j.ok ? trickNext : trickRetry).focus({ preventScroll: true });
 }
-function closeSolo() { for (const o of [prac, tricks, trickRes]) o.classList.remove('show'); }
+function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet]) o.classList.remove('show'); }
 function showPractice() {
   closeSolo(); menu.classList.remove('show');
   prac.classList.add('show');
@@ -5325,6 +5490,7 @@ const exitSolo = () => quitToHome();
 function restartSolo() {
   if (!solo) return;
   if (solo.kind === 'practice') startPractice(solo.layout, solo.seed);
+  else if (solo.kind === 'lesson') startLesson();
   else startTrick(solo.id, true);
 }
 
@@ -5332,6 +5498,7 @@ function restartSolo() {
 function hudSolo() {
   const s = game.mode && solo ? solo : null, prc = !!s && s.kind === 'practice';
   soloCtl.hidden = !prc;
+  if (s && s.kind === 'lesson') { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson: no chip, the coach speaks (6c) */
   tools.hidden = !(prc && s.tools && state === 'aim');
   toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
   editDone.hidden = !(prc && s.edit && state === 'aim');
@@ -5362,7 +5529,11 @@ function hudSoloMenu() {
   gameNow.hidden = true;
   if (!paused) return true;
   const cells = [];
-  if (s.kind === 'practice') {
+  if (s.kind === 'lesson') {
+    soloKind.textContent = `Lesson, step ${s.step} of 3`;
+    soloTitle.textContent = 'Learn to play';
+    soloGoal.textContent = LESSON_STEPS[s.step].text;
+  } else if (s.kind === 'practice') {
     soloKind.textContent = 'Practice';
     soloTitle.textContent = PRACTICE_NAMES[s.layout];
     soloGoal.textContent = s.edit ? 'Editing: tap the cloth to drop a ball, tap a ball to take it off.' : '';
@@ -5396,6 +5567,7 @@ function syncSoloMenu() {
   dailyBtn.dataset.daily = done ? 'done' : s ? 'streak' : 'new';
   dailyBtn.classList.toggle('done', done);
   dailyBtn.setAttribute('aria-label', `Daily shot, ${dayWords(day)}: ${dailyTrick(day).title}. ` + (done ? `Played today, day streak ${s}.` : s ? `Day streak ${s}: play today to keep it.` : 'A new shot every day.'));
+  syncCareerHome();
 }
 
 /* ---- the daily shot: one trick shot a day, picked by the local date, so it is the same for
@@ -5590,7 +5762,7 @@ const KINDS = {
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
 let setupKind = '8';
-const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet];
+const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet];
 function openSheet(el, focus) {
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
@@ -5601,6 +5773,7 @@ function closeSheets() { for (const s of SHEETS()) s.classList.remove('show'); }
 function backToMenu() { closeSheets(); closeSolo(); showMenu(); }
 /* Esc: the sheet on top closes (the trick result goes to the list); false when none was open */
 function escSheet() {
+  if (lessonOffer.classList.contains('show')) { skipLesson(); return true; }
   if (SHEETS().some(s => s.classList.contains('show')) || prac.classList.contains('show') || tricks.classList.contains('show')) { backToMenu(); return true; }
   if (trickRes.classList.contains('show')) { showTricks(); return true; }
   return false;
@@ -5659,7 +5832,7 @@ function playSetup(kind) {
 /* Quit to home, from a game or a solo session: a fresh rack of the same game behind the menu */
 function quitToHome() {
   cancelGestures();
-  solo = null; paused = null; state = 'menu';
+  solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
   game = newGame(game.kind === 'bumper' ? 'bumper' : game.kind === '9' ? '9' : '8');
   closeSolo();
@@ -5816,6 +5989,7 @@ function showStats() {
   }
   recTable.replaceChildren(head, body);
   recTable.setAttribute('aria-label', 'Games by kind: played, wins and losses against Rookie, Regular and Hustler, and two-player games');
+  careerStats();
   openSheet(statsSheet, statsBack);
 }
 
@@ -5851,7 +6025,7 @@ statsBtn.addEventListener('click', () => showStats());
 for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => openSheet(prefsSheet, prefsBack));
 for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp());
 for (const b of [setupBack, prefsBack, statsBack, helpBack]) b.addEventListener('click', () => backToMenu());
-restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else start(game.kind); });
+restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (career) careerRack(); else start(game.kind); });
 exitBtn.addEventListener('click', () => quitToHome());
 Object.assign(felt, { showSetup, showStats, showHelp, quitToHome, setupWords });
 Object.defineProperties(felt, { record: { get: () => JSON.parse(JSON.stringify(rec)) } });
@@ -5899,7 +6073,9 @@ function cardOf(p) {
    an open table one of each), the 8 once the group is gone, or in 9-ball the ball on */
 const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : settings.names[p] ? settings.names[p].slice(0, 3) : `P${p + 1}`;
 /* the pause menu's card: the CPU goes by its opponent's name there */
-const cardName = p => cpuMode && p === 1 ? `${FOES[cpuLevel]} (CPU)` : nameOf(p);
+const cardName = p => cpuMode && p === 1 ? `${foeName()} (CPU)` : nameOf(p);
+/* the CPU opponent by name: a career player (6c), else the level's name */
+const foeName = () => career ? careerFoe().name : FOES[cpuLevel];
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
   if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
@@ -5936,7 +6112,8 @@ function hudMenu() {
   if (hudSoloMenu()) return;
   gameNow.hidden = !paused;
   if (!paused) return;
-  const kick = `Paused, ${KINDS[game.kind].name}` + (cpuMode ? ` vs ${FOES[cpuLevel]}` : '');
+  hudCareerMenu();
+  const kick = `Paused, ${KINDS[game.kind].name}` + (cpuMode ? ` vs ${foeName()}` : '');
   if (soloKind.textContent !== kick) soloKind.textContent = kick;
   const potted = [];
   for (const n of [...stats.potted[0], ...stats.potted[1]]) if (n > 0 && !potted.includes(n)) potted.push(n);
@@ -6063,6 +6240,398 @@ resumeBtn.addEventListener('click', () => resume());
 rematch.addEventListener('click', () => { audioOn(); start(game.kind); });
 overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); });
 
+/* ============ 6c. LESSON AND CAREER ============ */
+/* ---- the lesson, "Learn to play": three short steps on one fixed layout, the 1 straight in to
+   a corner pocket. A solo session (solo.kind 'lesson', game.mode 'practice': no fouls, no CPU,
+   no auto aim) played with the ordinary controls; the lesson only watches, it never shoots (the
+   power bar is still the only way). Each step has a coach card (one sentence, placed by
+   placeCoach() inside the stage, clear of the cue ball, the 1, its pocket and the line between
+   them, so never over a control) and a gold ring round the thing to use.
+   1 Aim: the aim within LESSON_TOL of the straight-in line, with no gesture in progress.
+   2 Fine-tune: the wheel (a roll, a mouse wheel, or the arrows with it focused) moved the aim.
+   3 Shoot: the bar. The 1 down finishes the lesson; a miss puts the balls back ("Close. Try
+   again."). A shot taken early counts the same way. lessonRec persists under LESSON_KEY,
+   { v: 1, seen (the first-run offer was shown), done }; anything unreadable is a first run. ---- */
+const LESSON_KEY = 'felt.lesson.v1', LESSON_TOL = 2 * Math.PI / 180, LESSON_POCKET = 2;
+const LESSON_STEPS = [null,
+  { head: 'Aim', text: 'Drag anywhere on the table to swing the cue. Tap a ball to aim straight at it.' },
+  { head: 'Fine-tune', text: 'Roll the wheel to nudge the aim.' },
+  { head: 'Shoot', text: 'Pull the power bar and let go.' }];
+let lessonRec = loadLesson(), coachRaf = 0, coachKey = '';
+function loadLesson() {
+  const d = { seen: false, done: false };
+  try {
+    const o = JSON.parse(localStorage.getItem(LESSON_KEY) || 'null');
+    if (o && o.v === 1) { d.done = o.done === true; d.seen = o.seen === true || d.done; }
+  } catch (e) { }
+  return d;
+}
+function saveLesson() { try { localStorage.setItem(LESSON_KEY, JSON.stringify({ v: 1, seen: lessonRec.seen, done: lessonRec.done })); } catch (e) { } }
+const lessonOn = () => !!solo && solo.kind === 'lesson';
+/* the 1 six radii in from the pocket's mouth, the cue ball sixteen behind it on the same line:
+   any power from about a third up pots it, a degree either side of dead straight too */
+function lessonPoints() {
+  const n = CPU_MOUTH_N[LESSON_POCKET], A = POCKET_AIM[LESSON_POCKET], R = BALL_R;
+  const b = [A[0] + n[0] * 6 * R, A[1] + n[1] * 6 * R], c = [b[0] + n[0] * 16 * R, b[1] + n[1] * 16 * R];
+  return { b, c, line: Math.atan2(b[1] - c[1], b[0] - c[0]) };
+}
+function lessonGame() {
+  const P = lessonPoints();
+  return Object.assign(newGame('8'), { mode: 'practice', layout: 'lesson', seed: 0, hand: false, breakShot: false, inHand: null,
+    balls: [newBall(0, P.c[0], P.c[1]), newBall(1, P.b[0], P.b[1])] });
+}
+/* the aim a step starts on: well off the line for step 1, on it after that */
+function lessonAim() { aimAngle = lessonPoints().line + (solo.step === 1 ? 0.6 : 0); keepAim(); }
+function startLesson() {
+  lessonRec.seen = true; saveLesson();
+  career = null;
+  beginSolo(lessonGame, { kind: 'lesson', step: 1, undo: [], a0: 0, wheel: false, again: false });
+  lessonAim();
+  coachShow();
+  lessonLoop();
+}
+function skipLesson() {
+  lessonRec.seen = true; saveLesson();
+  lessonOffer.classList.remove('show');
+  syncMenu();
+  if (byKeys) againBtn.focus({ preventScroll: true });
+}
+function maybeOfferLesson() {
+  if (lessonRec.seen || state !== 'menu' || paused) return;
+  lessonOffer.classList.add('show');
+  if (byKeys) offerGo.focus({ preventScroll: true });
+}
+function lessonStep(n) {
+  solo.step = n; solo.again = false;
+  if (n === 2) { solo.a0 = aimAngle; solo.wheel = false; }
+  coachShow();
+  hud();
+}
+/* each frame of the lesson: has the step been done? */
+function lessonCheck() {
+  const s = solo;
+  if (state !== 'aim' || paused) return;
+  if (s.step === 1 && !gest && !fineAim && Math.abs(wrapAngle(aimAngle - lessonPoints().line)) <= LESSON_TOL) lessonStep(2);
+  else if (s.step === 2 && s.wheel && !fineAim && Math.abs(wrapAngle(aimAngle - s.a0)) > 1e-5) lessonStep(3);
+}
+/* a lesson shot is over (settleSolo): the 1 down finishes, else the balls go back */
+function lessonSettle(r) {
+  felt.lastLesson = { step: solo.step, made: r.potted.includes(1) };
+  if (r.potted.includes(1)) {
+    game = Object.assign(copyGame(game), { balls: r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 })) });
+    state = 'over';
+    lessonRec.seen = lessonRec.done = true; saveLesson();
+    coachHide();
+    lessonDone.classList.add('show');
+    if (byKeys) donePlay.focus({ preventScroll: true });
+    sfx('win', 1);
+    hud();
+    return;
+  }
+  game = lessonGame();
+  soloAim();
+  lessonAim();
+  solo.again = true;
+  if (solo.step === 2) solo.a0 = aimAngle;
+  coachShow();
+}
+function coachShow() {
+  const s = solo, st = LESSON_STEPS[s.step];
+  coachStep.textContent = s.again ? 'Close. Try again.' : `Step ${s.step} of 3: ${st.head}`;
+  coachText.textContent = st.text;
+  say(`${s.again ? 'Close. Try again. ' : ''}${st.text}`);
+  coach.hidden = false;
+  coach.classList.remove('fresh'); void coach.offsetWidth; coach.classList.add('fresh');
+  coachKey = '';
+  placeCoach();
+}
+function coachHide() { coach.hidden = true; coachRing.hidden = true; coachKey = ''; }
+function lessonLoop() {
+  cancelAnimationFrame(coachRaf);
+  const tick = () => {
+    if (!lessonOn()) { coachHide(); return; }
+    lessonCheck();
+    placeCoach();
+    coachRaf = requestAnimationFrame(tick);
+  };
+  coachRaf = requestAnimationFrame(tick);
+}
+/* the ring round what to use (the 1, the wheel, the bar), and the card where it hides the least:
+   of nine spots in the stage, the one furthest from the cue ball, the 1, the pocket and the
+   line through them, and clear of the ring */
+function placeCoach() {
+  const s = solo, on = lessonOn() && state !== 'menu' && state !== 'over' && !paused;
+  if (!on) { coach.hidden = true; coachRing.hidden = true; return; }
+  coach.hidden = false; coachRing.hidden = false;
+  let ring;
+  const one = game.balls.find(b => b.n === 1 && b.on);
+  if (s.step === 1 && one) { const p = toScreen(one.x, one.y), r = BALL_R * view.k + 10; ring = [p[0] - r, p[1] - r, 2 * r, 2 * r]; }
+  else {
+    /* just outside the control, but on screen: at an edge it hugs the control instead */
+    const q = (s.step === 2 ? fineWheel : powerBar).getBoundingClientRect(), [W, H] = appSize();
+    const l = Math.max(2, q.left - 4), t = Math.max(2, q.top - 4), r = Math.min(W - 2, q.right + 4), b = Math.min(H - 2, q.bottom + 4);
+    ring = [l, t, r - l, b - t];
+  }
+  const st = stage.getBoundingClientRect(), w = coach.offsetWidth, h = coach.offsetHeight, m = 12;
+  const key = [s.step, ...ring.map(Math.round), Math.round(st.width), Math.round(st.height), w, h, Math.round(view.k), view.portrait].join();
+  if (key === coachKey) return;
+  coachKey = key;
+  coachRing.classList.toggle('round', s.step === 1);
+  Object.assign(coachRing.style, { left: ring[0] + 'px', top: ring[1] + 'px', width: ring[2] + 'px', height: ring[3] + 'px' });
+  const P = lessonPoints(), pk = POCKETS[LESSON_POCKET], c = cueBall();
+  const pts = [[c.x, c.y], P.b, pk, [(c.x + P.b[0]) / 2, (c.y + P.b[1]) / 2]].map(q => toScreen(q[0], q[1]));
+  const rr = BALL_R * view.k + 26;
+  let best = null;
+  for (const fy of [0, 0.5, 1]) for (const fx of [0, 0.5, 1]) {
+    const x = st.left + m + fx * Math.max(0, st.width - w - 2 * m), y = st.top + m + fy * Math.max(0, st.height - h - 2 * m);
+    const d = Math.min(...pts.map(([px, py]) => Math.hypot(Math.max(x - px, 0, px - x - w), Math.max(y - py, 0, py - y - h)) - rr));
+    const hit = x < ring[0] + ring[2] && x + w > ring[0] && y < ring[1] + ring[3] && y + h > ring[1];
+    const score = Math.min(d, 400) - (hit ? 1000 : 0) + (fx === 0.5 ? 6 : 0);
+    if (!best || score > best.score) best = { x, y, score };
+  }
+  coach.style.left = Math.round(best.x) + 'px'; coach.style.top = Math.round(best.y) + 'px';
+}
+/* the wheel was used this step (a roll, a mouse wheel, or the arrows with it focused) */
+const wheelUsed = () => { if (lessonOn()) solo.wheel = true; };
+fineWheel.addEventListener('pointerdown', wheelUsed);
+fineWheel.addEventListener('wheel', wheelUsed);
+addEventListener('keydown', e => { if (e.key.startsWith('Arrow') && (document.activeElement === fineWheel || e.altKey || e.ctrlKey)) wheelUsed(); }, true);
+offerGo.addEventListener('click', () => { audioOn(); startLesson(); });
+offerSkip.addEventListener('click', () => skipLesson());
+lessonBtn.addEventListener('click', () => { audioOn(); startLesson(); });
+lessonAgain.addEventListener('click', () => { audioOn(); startLesson(); });
+donePlay.addEventListener('click', () => { audioOn(); quitToHome(); showSetup('8'); });
+doneHome.addEventListener('click', () => quitToHome());
+
+/* ---- the career: eight CPU players on a ladder in three tiers, each on cpuSearch's level for
+   their tier (the CPU's only knob: its play stays the sim's, seeded and deterministic) with their
+   own game, table, pockets and race. A match is a race to `race` racks over the ordinary game:
+   finish() hands each rack to careerRackOver(), which either shows the score between racks and
+   starts the next (the break alternates; bumper pool's opening is the player's) or ends the
+   match. Winning it unlocks the next player. career: the match in play, { id, need, score
+   [you, them], rack, done }, or null (start() without terms and quitToHome end it).
+   careerRec persists under CAREER_KEY: { v: 1, best: { id: [won, lost] } (the best winning
+   score against each player beaten), won, played (matches), racksW, racksL }; anything
+   unreadable starts the ladder again. ---- */
+const CAREER_KEY = 'felt.career.v1';
+const CAREER = [
+  { id: 'pip', name: 'Pip Larkin', first: 'Pip', line: 'Just happy to be here', tier: 0, kind: '8', table: '7', pockets: 'generous', race: 1, av: '#1f7a55' },
+  { id: 'benny', name: 'Benny Okafor', first: 'Benny', line: 'Never plays safe', tier: 0, kind: '9', table: '7', race: 1, av: '#2f6fb0' },
+  { id: 'rosa', name: 'Rosa Vance', first: 'Rosa', line: 'Lives on the rail', tier: 1, kind: '8', table: '7', race: 2, av: '#b03a2e' },
+  { id: 'gus', name: 'Gus Haldane', first: 'Gus', line: 'Talks the whole time', tier: 1, kind: 'bumper', table: '7', race: 2, av: '#8a5a12' },
+  { id: 'mei', name: 'Mei Tanaka', first: 'Mei', line: 'Patient. Very patient.', tier: 1, kind: '9', table: '9', race: 2, av: '#7b3fa0' },
+  { id: 'lefty', name: 'Lefty Doyle', first: 'Lefty', line: 'Plays left handed until you bet', tier: 2, kind: '8', table: '9', race: 2, av: '#375a7f' },
+  { id: 'carmen', name: 'Carmen Ruiz', first: 'Carmen', line: 'Chalks, stares, never misses twice', tier: 2, kind: '9', table: '9', race: 3, av: '#0f6e78' },
+  { id: 'baron', name: 'The Baron', first: 'The Baron', ini: 'B', line: 'Owns the hall. And the table.', tier: 2, kind: '8', table: '9', race: 3, boss: true },
+];
+const TIERS = [['Rookie tier', 'easy'], ['Regular tier', 'medium'], ['Hustler tier', 'hard']];
+const SVG_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg>';
+const SVG_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
+let career = null, careerRec = loadCareer();
+function freshCareer() { return { v: 1, best: {}, won: 0, played: 0, racksW: 0, racksL: 0 }; }
+function loadCareer() {
+  const r = freshCareer(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
+  try {
+    const o = JSON.parse(localStorage.getItem(CAREER_KEY) || 'null');
+    if (o && o.v === 1 && typeof o === 'object') {
+      for (const c of CAREER) {
+        const b = o.best && o.best[c.id];
+        if (Array.isArray(b) && b[0] === c.race && Number.isInteger(b[1]) && b[1] >= 0 && b[1] < c.race) r.best[c.id] = [b[0], b[1]];
+      }
+      r.played = n(o.played); r.won = Math.min(n(o.won), r.played); r.racksW = n(o.racksW); r.racksL = n(o.racksL);
+    }
+  } catch (e) { }
+  return r;
+}
+function saveCareer() { try { localStorage.setItem(CAREER_KEY, JSON.stringify(careerRec)); } catch (e) { } }
+/* how far up the ladder: the first player not yet beaten (CAREER.length once all are) */
+const careerAt = () => { const i = CAREER.findIndex(c => !careerRec.best[c.id]); return i < 0 ? CAREER.length : i; };
+const careerFoe = () => CAREER.find(c => c.id === career.id);
+const levelOf = c => TIERS[c.tier][1];
+const initials = c => c.ini || c.name.split(' ').map(w => w[0]).join('').slice(0, 2);
+const raceWords = n => n === 1 ? 'one rack' : `race to ${n}`;
+const careerWhere = c => c.kind === 'bumper' ? `Bumper pool, ${c.bumperTable === 'rect' ? 'rectangle' : 'octagon'}` : `${KINDS[c.kind].name}, ${c.table} ft${c.pockets === 'generous' ? ', generous' : ''}`;
+function avatarEl(c, cls = '') {
+  const a = document.createElement('span');
+  a.className = 'av' + (c.boss ? ' boss' : '') + cls;
+  a.setAttribute('aria-hidden', 'true');
+  if (c.av) a.style.setProperty('--av', c.av);
+  a.textContent = initials(c);
+  return a;
+}
+/* a match against player id (beaten or the next one; a locked player refuses) */
+function startCareer(id) {
+  const i = CAREER.findIndex(c => c.id === id);
+  if (i < 0 || i > careerAt()) return false;
+  career = { id, need: CAREER[i].race, score: [0, 0], rack: 1, done: false };
+  careerRack();
+  return true;
+}
+/* the current rack of the match, from the break */
+function careerRack() {
+  const c = careerFoe();
+  career.done = false;
+  start(c.kind, { level: levelOf(c), table: c.table, pockets: c.pockets || 'regulation', bumperTable: c.bumperTable || 'octagon', breaker: c.kind === 'bumper' ? 0 : (career.rack - 1) % 2 });
+}
+/* finish() of a career rack: true when it showed the career's own sheet instead of game over */
+function careerRackOver() {
+  if (!career || career.done || game.mode || game.winner === null) return false;
+  const w = game.winner, c = careerFoe();
+  career.score[w]++;
+  if (w === 0) careerRec.racksW++; else careerRec.racksL++;
+  if (career.score[w] >= career.need) {
+    career.done = true;
+    careerRec.played++;
+    if (w === 0) {
+      careerRec.won++;
+      const b = careerRec.best[c.id];
+      if (!b || career.score[1] < b[1]) careerRec.best[c.id] = career.score.slice();
+    }
+    saveCareer();
+    showMatch(w);
+  } else {
+    saveCareer();
+    career.rack++;
+    showRack();
+  }
+  return true;
+}
+function boardOf(box) {
+  const c = careerFoe(), side = (who, n) => {
+    const d = document.createElement('div'), s = document.createElement('small'), b = document.createElement('b'), p = document.createElement('span');
+    d.className = 'side'; s.textContent = who; b.textContent = String(n); p.className = 'pips';
+    for (let i = 0; i < career.need; i++) { const e = document.createElement('i'); if (i < n) e.className = 'on'; p.appendChild(e); }
+    d.append(s, b, p);
+    return d;
+  };
+  const vs = document.createElement('span');
+  vs.className = 'vs'; vs.textContent = 'vs';
+  box.replaceChildren(side('You', career.score[0]), vs, side(c.first, career.score[1]));
+  box.setAttribute('aria-label', `You ${career.score[0]}, ${c.first} ${career.score[1]}, race to ${career.need}`);
+}
+const leadWords = (c, a, b) => a > b ? `You lead ${a}-${b}.` : b > a ? `${c.first} leads ${b}-${a}.` : `All square at ${a}-${b}.`;
+function showRack() {
+  const c = careerFoe(), [a, b] = career.score, theirs = c.kind !== 'bumper' && (career.rack - 1) % 2 === 1;
+  rackKick.textContent = `${c.name}, race to ${career.need}`;
+  rackTitle.textContent = `Rack ${career.rack}`;
+  rackSub.textContent = `${leadWords(c, a, b)} ${c.kind === 'bumper' ? 'You open.' : theirs ? `${c.first} breaks.` : 'Your break.'}`;
+  boardOf(rackBoard);
+  menu.classList.remove('show'); over.classList.remove('show');
+  banner.classList.remove('show');   /* a rack's last banner does not linger over the sheet */
+  rackSheet.classList.add('show');
+  say(`Rack ${career.rack}. ${rackSub.textContent}`);
+  if (byKeys) rackGo.focus({ preventScroll: true });
+}
+function showMatch(w) {
+  const c = careerFoe(), i = CAREER.indexOf(c), next = CAREER[i + 1], [a, b] = career.score, won = w === 0;
+  matchSheet.dataset.won = String(won);
+  matchKick.textContent = `Career, ${c.name}, race to ${career.need}`;
+  matchTitle.textContent = won ? (c.boss ? 'Career complete' : `You beat ${c.first}`) : `${c.first} takes it`;
+  matchSub.textContent = won ? (c.boss ? `${a}-${b}. The hall is yours.` : `${a}-${b}. Next up: ${next.name}, ${next.line.toLowerCase()}.`)
+    : `${b}-${a} to ${c.first}. Win a ${raceWords(c.race)} to move on.`;
+  matchGo.textContent = won && !c.boss ? 'Next match' : won ? 'Play again' : 'Rematch';
+  matchGo.dataset.id = won && !c.boss ? next.id : c.id;
+  boardOf(matchBoard);
+  menu.classList.remove('show'); over.classList.remove('show');
+  banner.classList.remove('show');   /* a rack's last banner does not linger over the sheet */
+  matchSheet.classList.add('show');
+  say(`${matchTitle.textContent}. ${matchSub.textContent}`);
+  if (byKeys) matchGo.focus({ preventScroll: true });
+}
+/* the career sheet: a tier title, then its players; the one to play lit with Play, those beaten
+   with a tick and their best score (they can be played again), the rest locked */
+function showCareer() {
+  const at = careerAt();
+  careerKick.textContent = at >= CAREER.length ? 'All 8 beaten' : `${at} of ${CAREER.length} beaten`;
+  careerSub.textContent = at >= CAREER.length ? 'Every player beaten. Play any of them again.' : 'Win each match to unlock the next player. Every match is a race: the first to the set number of racks.';
+  const out = [];
+  TIERS.forEach(([title, level], t) => {
+    const h = document.createElement('p'), list = document.createElement('div');
+    h.className = 'tier'; h.innerHTML = `${title}<span>CPU ${level}</span>`;
+    list.className = 'rungs'; list.setAttribute('role', 'group'); list.setAttribute('aria-label', title);
+    for (const c of CAREER.filter(o => o.tier === t)) {
+      const i = CAREER.indexOf(c), best = careerRec.best[c.id], st = best ? 'beaten' : i === at ? 'current' : 'locked';
+      const b = document.createElement('button'), tt = document.createElement('span'), nm = document.createElement('b'), ln = document.createElement('small'), mt = document.createElement('small'), acc = document.createElement('span');
+      b.className = 'rung'; b.id = 'rung-' + c.id; b.dataset.state = st; b.dataset.id = c.id; b.disabled = st === 'locked';
+      tt.className = 'tt'; nm.textContent = c.name; ln.textContent = c.line; mt.className = 'meta'; mt.textContent = `${careerWhere(c)}, ${raceWords(c.race)}`;
+      tt.append(nm, ln, mt);
+      acc.className = 'st';
+      if (st === 'beaten') acc.innerHTML = `${SVG_TICK}<span>${best[0]}-${best[1]}</span>`;
+      else if (st === 'current') acc.innerHTML = '<span class="play">Play</span>';
+      else acc.innerHTML = SVG_LOCK;
+      b.append(avatarEl(c), tt, acc);
+      b.setAttribute('aria-label', `${c.name}: ${c.line}. ${mt.textContent}. ` + (st === 'beaten' ? `Beaten ${best[0]}-${best[1]}, play again.` : st === 'current' ? 'Play.' : 'Locked: beat the player before.'));
+      b.addEventListener('click', () => { audioOn(); startCareer(c.id); });
+      list.appendChild(b);
+    }
+    out.push(h, list);
+  });
+  ladder.replaceChildren(...out);
+  openSheet(careerSheet, careerBack);
+  const cur = document.querySelector('.rung[data-state="current"]');
+  if (cur) careerSheet.scrollTop = Math.max(0, cur.offsetTop - careerSheet.clientHeight / 2 + cur.offsetHeight);
+  if (byKeys && cur) cur.focus({ preventScroll: true });
+}
+/* the home row: how far up the ladder, and who is next */
+function syncCareerHome() {
+  const at = careerAt(), done = at >= CAREER.length, sum = `${at} of ${CAREER.length}`;
+  if (careerSum.textContent !== sum) careerSum.textContent = sum;
+  careerHint.textContent = done ? 'Every player beaten' : `Next: ${CAREER[at].name}`;
+  const from = Math.max(0, Math.min(at, CAREER.length - 3)), key = String(at);
+  if (careerAvs.dataset.key !== key) {
+    careerAvs.dataset.key = key;
+    careerAvs.replaceChildren(...CAREER.slice(from, from + 3).map(c => avatarEl(c, CAREER.indexOf(c) === at ? ' now' : '')));
+  }
+  careerFill.style.width = (100 * at / CAREER.length) + '%';
+  careerBtn.setAttribute('aria-label', `Career: ${at} of ${CAREER.length} players beaten. ` + (done ? 'Every player beaten.' : `Next: ${CAREER[at].name}.`));
+  lessonBtn.hidden = lessonRec.done;
+}
+/* the stats sheet's career numbers (showStats) */
+function careerStats() {
+  const at = careerAt(), racks = careerRec.racksW + careerRec.racksL;
+  const kp = [['Progress', at, `of ${CAREER.length}`], ['Matches won', careerRec.won, `of ${careerRec.played}`], ['Racks won', careerRec.racksW, `of ${racks}`], ['Next up', at >= CAREER.length ? 'Done' : CAREER[at].first, '']];
+  careerKpis.replaceChildren(...kp.map(([t, v, s]) => {
+    const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
+    dt.textContent = t; dd.textContent = String(v);
+    if (s) { const sm = document.createElement('small'); sm.textContent = s; dd.appendChild(sm); }
+    d.append(dt, dd);
+    return d;
+  }));
+}
+/* the pause menu in a career match: the player, their line, the score and the race */
+function hudCareerMenu() {
+  const on = !!career && !!paused && !game.mode;
+  careerNow.hidden = !on;
+  if (!on) return;
+  const c = careerFoe(), key = [c.id, ...career.score, career.rack].join();
+  if (careerNow.dataset.key === key) return;
+  careerNow.dataset.key = key;
+  cnAv.className = 'av' + (c.boss ? ' boss' : '');
+  cnAv.style.setProperty('--av', c.av || '');
+  cnAv.textContent = initials(c);
+  cnName.textContent = c.name;
+  cnLine.textContent = c.line;
+  cnScore.textContent = `${career.score[0]}-${career.score[1]}`;
+  cnRace.textContent = `Race to ${career.need}, rack ${career.rack}`;
+  careerNow.setAttribute('aria-label', `${c.name}, ${c.line}. You ${career.score[0]}, ${c.first} ${career.score[1]}. Race to ${career.need}, rack ${career.rack}.`);
+}
+careerBtn.addEventListener('click', () => { audioOn(); showCareer(); });
+careerBack.addEventListener('click', () => backToMenu());
+rackGo.addEventListener('click', () => { audioOn(); if (career) careerRack(); });
+rackQuit.addEventListener('click', () => quitToHome());
+matchGo.addEventListener('click', () => { audioOn(); startCareer(matchGo.dataset.id); });
+matchLadder.addEventListener('click', () => { quitToHome(); showCareer(); });
+matchHome.addEventListener('click', () => quitToHome());
+Object.assign(felt, { lesson: startLesson, skipLesson, career: startCareer, showCareer, careerRoster: () => CAREER.map(c => ({ id: c.id, name: c.name, line: c.line, level: levelOf(c), kind: c.kind, table: c.table, pockets: c.pockets || 'regulation', race: c.race, boss: !!c.boss })) });
+Object.defineProperties(felt, {
+  lessonRec: { get: () => Object.assign({}, lessonRec) },
+  lessonStep: { get: () => lessonOn() ? solo.step : null },
+  lessonLine: { get: () => lessonPoints().line },
+  careerRec: { get: () => JSON.parse(JSON.stringify(careerRec)) },
+  careerMatch: { get: () => career ? JSON.parse(JSON.stringify(career)) : null },
+  careerAt: { get: () => careerAt() },
+});
+
 /* ============ 7. BOOT ============ */
 muted = !settings.sound;
 /* a resize or a rotation drops any gesture in flight: its screen axes are stale */
@@ -6086,6 +6655,8 @@ layout();
 randomOrient();
 hud();
 paintArt();
+/* a first run: the lesson is offered once (6c) */
+maybeOfferLesson();
 requestAnimationFrame(frame);
 window.booted = true;
 </script>

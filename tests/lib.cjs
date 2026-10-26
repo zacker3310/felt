@@ -1,6 +1,7 @@
 /* lib: what every suite shares. check() prints PASS/FAIL lines and done() prints the
    "N/M passed" trailer run-all parses. open() launches Chromium with software rendering,
-   records console errors and network requests, and waits for boot. Taken from puttX. */
+   records console errors and network requests, and waits for boot (firstRun: true keeps the
+   first-run lesson offer, which every other suite skips). Taken from puttX. */
 'use strict';
 const URL = process.env.FELT_URL || 'http://127.0.0.1:4173/index.html';
 const results = [];
@@ -14,13 +15,16 @@ function done() {
   console.log(`\n${p}/${results.length} passed`);
   process.exit(p === results.length ? 0 : 1);
 }
-async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init } = {}) {
+async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init, firstRun = false } = {}) {
   const pw = require('playwright-core');
   const browser = await pw.chromium.launch({
     executablePath: process.env.CHROMIUM || pw.chromium.executablePath(),
     args: ['--autoplay-policy=no-user-gesture-required'],
   });
   const page = await browser.newPage({ viewport, hasTouch, isMobile, deviceScaleFactor, ...(screen ? { screen } : {}) });
+  /* the first-run lesson offer (a sheet over home) stays out of every suite but the one that
+     asks for a first run: as if it had been seen, unless the page has its own record */
+  if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.lesson.v1')) localStorage.setItem('felt.lesson.v1', '{"v":1,"seen":true,"done":false}'); } catch (e) { } });
   if (init) await page.addInitScript(init);
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

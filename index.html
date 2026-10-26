@@ -262,7 +262,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   --label: #f5f5f7; --label-2: rgba(235, 235, 245, .64); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
   grid-template: minmax(100%, max-content) / minmax(0, 1fr);
-  padding: max(12px, var(--sat)) max(var(--gut), var(--sar)) max(16px, var(--sab)) max(var(--gut), var(--sal));
+  /* iOS 26 blurs and fades the band just under the status bar (its scroll edge effect): the header
+     starts clear of it */
+  padding: calc(var(--sat) + 22px) max(var(--gut), var(--sar)) max(16px, var(--sab)) max(var(--gut), var(--sal));
   background: #09090a;
   -webkit-backdrop-filter: none; backdrop-filter: none; }
 [data-cloth="red"] #menu:not([data-paused]) { --accent: #ff8a7a; --glow: 186, 44, 52; }

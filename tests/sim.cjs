@@ -17,7 +17,9 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'BUMPERS', 'BUMPER_R', 'CUP_IN', 'CUP_R', 'CUP_LIP', 'B_MARK', 'B_BALLS', 'bumperStrikers', 'bumperFree', 'CPU_BUMPER',
   'BUMPER_SHAPE', 'BED_LINES', 'OCTA_F', 'OCTA_CUP_IN', 'CUSH_W', 'bumperBanks', 'suggestBumper',
   'onTable', 'copyGame', 'canDrop', 'scatter', 'newPractice', 'practiceJudge', 'addBall', 'removeBall', 'PRACTICE_SCATTER',
-  'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP'];
+  'TRICKS', 'TRICK_SOLS', 'TRICK_ZONE', 'trickById', 'trickPoints', 'trickBalls', 'trickGame', 'trickJudge', 'trickStars', 'trickSol', 'CPU_MOUTH_N', 'RACK_GAP',
+  'POOL_BALL_R', 'SNOOKER_BALL_R', 'SNOOKER_SIZES', 'SNOOKER_SIZE', 'SPOTS', 'D_R', 'JAW_ARCS', 'JAW_RAD', 'jawRadius', 'inD', 'isRed', 'snkValue', 'snkName', 'S_COLS', 'S_BLACK',
+  'snookerRack', 'snookerGame', 'snookerOn', 'snookerSpot', 'snookerLeft', 'snookersNeeded', 'judgeSnooker', 'concedeSnooker', 'SNK_APEX', 'SNK_CPU', 'SNK_BAULK', 'SNK_D', 'SNK_BLACK_IN', 'POCKET_STYLES', 'CORNER_W', 'SIDE_W', 'cpuTargets', 'cpuSpots', 'cpuSafeties', 'cpuCalibrate'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');

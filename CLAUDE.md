@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `9/9 suites, N/N checks  ok` (about 3 min; CPU match games and play-check dominate) |
+| test | `npm test` | `10/10 suites, N/N checks  ok` (about 3.5 min; CPU match games and play-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -42,6 +42,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   which globals, and the exported shapes (`CUSH`, `CUSHION_POLYS`, `POCKETS`, `POCKET_R`, `POCKET_AIM`, `spinOf`).
 - Practice and trick shots: `game.mode` (`'practice' | 'trick'`), sim 1e+ and 1g, page section 5s; contract in
   `.buildloop/spec/T2.3-solo.md`. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
+- Snooker: `game.kind === 'snooker'`, sim 1i, page 5k (words, Concede) and 6s (the scoreboard on the top rail);
+  `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft). `BALL_R` is per table (52.5 mm on
+  snooker, 2 1/4 in otherwise): a `let` that setTable sets, read it at call time. Rounded jaws are `JAW_ARCS`
+  (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55). `tests/snooker-check.cjs` pins it.
 - `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants

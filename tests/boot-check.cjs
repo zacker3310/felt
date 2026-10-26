@@ -47,7 +47,7 @@ const artContrast = page => page.evaluate(() => {
     await page.evaluate(() => [againBtn, play8, play9, playB, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
       && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
   /* the hero shows on a first run too (the layout never collapses): it starts 8-ball's setup */
-  const first = await page.evaluate(() => ({ shown: !againBtn.hidden && againBtn.getBoundingClientRect().height >= 150, cap: againCap.textContent, sum: againSum.textContent, label: againBtn.getAttribute('aria-label') }));
+  const first = await page.evaluate(() => ({ shown: !againBtn.hidden && againBtn.getBoundingClientRect().height >= 88, cap: againCap.textContent, sum: againSum.textContent, label: againBtn.getAttribute('aria-label') }));
   check('home on a first run: the hero is there, "Start a game", 8-ball', first.shown && first.cap === 'Start a game' && first.sum === '8-ball' && first.label === 'Start a game: 8-ball', JSON.stringify(first));
   /* the header: three round icon buttons, 44 px, each named for a screen reader, no visible words */
   const hdr = await page.evaluate(() => [statsBtn, prefsBtn, helpBtn].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: r.width, h: r.height, round: parseFloat(getComputedStyle(b).borderTopLeftRadius) >= r.width / 2 - 0.5, text: b.textContent.trim() }; }));

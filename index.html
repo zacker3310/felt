@@ -263,14 +263,14 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
   grid-template: minmax(100%, max-content) / minmax(0, 1fr);
   padding: max(12px, var(--sat)) max(var(--gut), var(--sar)) max(16px, var(--sab)) max(var(--gut), var(--sal));
-  background: radial-gradient(130% 62% at 50% -6%, rgba(var(--glow), .3), rgba(var(--glow), .08) 46%, rgba(var(--glow), 0) 72%), #09090a;
+  background: #09090a;
   -webkit-backdrop-filter: none; backdrop-filter: none; }
 [data-cloth="red"] #menu:not([data-paused]) { --accent: #ff8a7a; --glow: 186, 44, 52; }
 #menu[data-paused] .newgame, #menu:not([data-paused]) .pausePart { display: none; }
 .sheet.home { max-width: 560px; padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
 #menu:not([data-paused]) .sheet.home { display: grid; margin: 0 auto; align-self: stretch; animation: none; }
 .newgame { display: grid; align-self: center; min-width: 0; height: 100%; max-height: 900px; letter-spacing: -.005em;
-  grid-template: "brand" auto "hero" minmax(196px, 1fr) "playlab" auto "tiles" auto "sololab" auto "solos" auto / minmax(0, 1fr); }
+  grid-template: "brand" auto "hero" auto "playlab" auto "tiles" minmax(0, 1fr) "sololab" auto "solos" auto / minmax(0, 1fr); }
 .newgame > * { min-width: 0; }
 /* the header: the wordmark, and three round glass buttons */
 .brand { grid-area: brand; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
@@ -278,31 +278,29 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .brand h1 i { color: #e8483a; }
 .foot { display: flex; gap: 10px; }
 .nav { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; color: var(--label);
-  background-color: #222225; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14), inset 0 1px 0 rgba(255, 255, 255, .07), 0 6px 16px rgba(0, 0, 0, .28); }
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .nav { background-color: rgba(255, 255, 255, .1); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); }
-}
+  background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); }
 .nav svg { width: 22px; height: 22px; }
-.nav:hover { background-color: rgba(255, 255, 255, .16); }
+.nav:hover { background-color: #26262a; }
 /* the hero: the last game's table edge to edge under a scrim (painted into the art), the setup in
    words and a white Play capsule */
-.hero { grid-area: hero; position: relative; isolation: isolate; overflow: hidden; min-height: 0; display: flex; align-items: flex-end; margin-top: 16px; padding: 0;
-  border: 0; border-radius: 28px; text-align: left; color: #fff; background-color: #121214;
+.hero { grid-area: hero; position: relative; isolation: isolate; overflow: hidden; min-height: 0; height: 96px; display: flex; align-items: center; margin-top: 16px; padding: 0;
+  border: 0; border-radius: 22px; text-align: left; color: #fff; background-color: #121214;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 22px 44px -18px rgba(0, 0, 0, .7); }
 .hero::after, .tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .13); pointer-events: none; }
 .hero .art, .tile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
-.hero .tt { display: grid; justify-items: start; min-width: 0; padding: 20px; }
-.hero small { font-size: 15px; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, .74); }
-.hero b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 2px; font-size: 24px; font-weight: 700; line-height: 1.17; letter-spacing: -.018em; }
-.hero .go { justify-self: start; width: max-content; display: inline-flex; align-items: center; gap: 7px; height: 44px; margin-top: 14px; padding: 0 22px 0 18px; border-radius: 22px; background-color: #fff; color: #0a0a0b;
-  font-size: 17px; font-weight: 600; letter-spacing: -.01em; box-shadow: 0 8px 20px rgba(0, 0, 0, .32); }
-.hero .go svg { width: 15px; height: 15px; }
+.hero .tt { flex: 1; display: flex; align-items: center; gap: 14px; min-width: 0; padding: 0 16px 0 20px; }
+.hero .hw { flex: 1; display: grid; min-width: 0; max-width: calc(100% - 136px); }
+.hero small { font-size: 13px; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, .8); }
+.hero b { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; margin-top: 1px; font-size: 18px; font-weight: 600; line-height: 1.2; letter-spacing: -.016em; }
+.hero .go { flex: none; margin-left: auto; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background-color: #fff; color: #0a0a0b; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
+.hero .go svg { width: 18px; height: 18px; margin-left: 2px; }
 /* the games: three cards of one height, each rack bleeding to the edges, the name on the scrim */
 .newgame .sect { margin: 28px 0 12px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
 #playLab { grid-area: playlab; }
 #soloLab { grid-area: sololab; }
-.tiles { grid-area: tiles; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; aspect-ratio: 3 / 4; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
+.tiles { grid-area: tiles; display: grid; grid-template: minmax(0, 1.25fr) minmax(0, 1fr) / repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; }
+#playB { grid-column: 1 / -1; }
+.tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
   text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
 .tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
 .tile b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
@@ -311,15 +309,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* narrow cards (a phone upright): the words a size down; narrower still, the name alone (it may
    take two lines, standing on the same bottom edge as the others) */
 .tiles { container-type: inline-size; }
-@container (max-width: 420px) {
-  .tile .tt { padding: 0 11px 11px; }
-  .tile b { font-size: 15px; }
-  .tile small { font-size: 12px; letter-spacing: -.01em; }
-}
-@container (max-width: 380px) {
-  .tile .tt { padding: 0 11px 12px; }
-  .tile b { font-size: 16px; line-height: 1.15; white-space: normal; }
-  .tile small { display: none; }
+@container (max-width: 360px) {
+  .tile .tt { padding: 0 12px 12px; }
+  .tile small { font-size: 12px; }
 }
 /* press: a small give and a spring back */
 .hero, .tile, .nav { transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
@@ -355,11 +347,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (orientation: landscape) and (min-width: 560px) {
   #menu:not([data-paused]) { --gut: 24px; }
   #menu:not([data-paused]) .sheet.home { max-width: 1100px; }
-  .newgame { max-height: min(620px, 60vw); column-gap: 16px; grid-template: "brand brand" auto "hero tiles" minmax(0, 1fr) "hero solos" auto / minmax(0, 4fr) minmax(0, 5fr); }
+  .newgame { max-height: min(620px, 60vw); column-gap: 16px; grid-template: "brand brand" auto "hero tiles" auto "solos tiles" minmax(0, 1fr) / minmax(0, 1fr) minmax(0, 1fr); }
   .newgame .sect { display: none; }
   .tiles { margin-top: 16px; }
-  .tile { aspect-ratio: auto; }
-  .solos { margin-top: 12px; }
+  .solos { margin-top: 12px; grid-auto-rows: 1fr; }
   .solo { min-height: 52px; gap: 12px; padding-block: 6px; }
   .solo b { font-size: 16px; }
   .solo small { font-size: 12px; }
@@ -625,8 +616,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         </nav>
       </header>
       <button class="hero" id="againBtn"><canvas class="art" id="heroArt" aria-hidden="true"></canvas>
-        <span class="tt"><small id="againCap">Play again</small><b id="againSum">8-ball</b>
-          <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>Play</span></span></button>
+        <span class="tt"><span class="hw"><small id="againCap">Play again</small><b id="againSum">8-ball</b></span>
+          <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span></span></button>
       <h2 class="sect" id="playLab">Games</h2>
       <div class="tiles" id="playRow" role="group" aria-labelledby="playLab">
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
@@ -5558,22 +5549,24 @@ function paintArt() {
 /* the home's pictures cover their card (no letterbox), zoomed in on the rack and placed where the
    words are not: a view whose table, rails included, always reaches past every edge */
 function coverView(w, h, kind, mode, obj, low) {
-  const bump = kind === 'bumper', up = !bump && h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL;
+  /* hero: a slim banner, the words on the left; wide: a card much wider than tall, the words
+     bottom left and the picture to the right of them */
+  const bump = kind === 'bumper', wide = mode === 'hero' || w > h * 1.6, up = !bump && h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL;
   /* the room above the words (low: their height in CSS px): the rack sits in the middle of it */
   const free = Math.max(h * 0.3, h - low - 8);
   let k, e;
   if (bump) {
     /* the octagon lies across a card whole (a tall card zooms in a little), its rows of balls above
        the words; the hero is all cloth and balls */
-    k = mode === 'hero' ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = mode === 'hero' ? -0.02 : RAIL;
+    k = wide ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = wide ? -0.02 : RAIL;
   } else {
     /* pool: only the cloth shows (no rail or pocket under the scrim), the rack a good part of the
        card but clear of the words */
     const xs = obj.map(b => b.x), ys = obj.map(b => b.y), span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * BALL_R;
-    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, Math.min(w * (mode === 'hero' ? 0.36 : 0.56), h * 0.36, free * 0.78) / span); e = -0.02;
+    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span); e = -0.02;
   }
   const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
-  const tx = w * (mode === 'hero' && !up ? 0.64 : 0.5), ty = Math.min(h * 0.42, free / 2 + 4);
+  const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : w * 0.7) : w * 0.5, ty = wide ? h / 2 : Math.min(h * 0.42, free / 2 + 4);
   /* keep the edge e (metres past the cloth: the rail, or just inside the cushions) outside the card */
   const fit = (o, size, len) => { const lo = size - (len + e) * k, hi = e * k; return lo > hi ? (bump ? o : (lo + hi) / 2) : clamp(o, lo, hi); };
   return up ? { k, portrait: true, ox: fit(tx - fy * k, w, TW), oy: fit(ty - (TL - fx) * k, h, TL), tray: null }
@@ -5581,6 +5574,14 @@ function coverView(w, h, kind, mode, obj, low) {
 }
 /* the scrim under a card's words, painted into the art so it is exactly what the words sit on */
 function paintScrim(x, W, H, mode) {
+  if (mode === 'hero') {
+    /* the banner: dark under the words on the left, the cloth clear towards the play button */
+    const g = x.createLinearGradient(0, 0, W, 0);
+    for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(0.62 * u, `rgba(6,6,8,${(0.86 * (1 - u * u * (3 - 2 * u))).toFixed(3)})`); }
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    return;
+  }
   const g = x.createLinearGradient(0, 0, 0, H), from = mode === 'hero' ? 0.34 : 0.4, top = mode === 'hero' ? 0.86 : 0.84;
   for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(from + (1 - from) * u, `rgba(6,6,8,${(top * u * u * (3 - 2 * u)).toFixed(3)})`); }
   if (from > 0) g.addColorStop(0, 'rgba(6,6,8,0)');

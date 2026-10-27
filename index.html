@@ -471,6 +471,12 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 }
 /* stats: four numbers, then a row per game */
 #statsSheet .sheet, #helpSheet .sheet { max-width: 560px; }
+/* How to play scrolls inside itself, like an iOS sheet: the title and the topic tabs stay pinned
+   while a long topic (snooker's rules) scrolls under them */
+#helpSheet .sheet { max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overscroll-behavior: contain; padding-top: 0; }
+.howTop { position: sticky; top: 0; z-index: 1; margin: 0 -22px; padding: 24px 22px 0; background: var(--panel); }
+.howTop .tabs { margin-bottom: 12px; }
+.howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -12px; height: 12px; background: linear-gradient(var(--panel), transparent); pointer-events: none; }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
 .kpis div { min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
 .kpis dt { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -988,6 +994,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 
 <div class="overlay" id="helpSheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="sheet how">
+    <div class="howTop">
     <div class="shead"><button class="back" id="helpBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><h2 class="title" id="helpTitle">How to play</h2></div></div>
     <div class="tabs" role="tablist" aria-label="Topics">
@@ -998,6 +1005,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <button role="tab" id="tabCarom" aria-controls="panCarom" aria-selected="false" tabindex="-1">Carom</button>
       <button role="tab" id="tabSnk" aria-controls="panSnk" aria-selected="false" tabindex="-1">Snooker</button>
       <button role="tab" id="tabSolo" aria-controls="panSolo" aria-selected="false" tabindex="-1">Solo</button>
+    </div>
     </div>
     <div class="pan" id="panCtl" role="tabpanel" aria-labelledby="tabCtl">
       <dl class="keys">
@@ -3867,7 +3875,11 @@ function appSize() {
   const w = innerWidth;
   let h = Math.max(innerHeight, document.documentElement.clientHeight || 0);
   const S = window.screen;
-  if (standalone() && S && S.width && S.height) {
+  /* only under a translucent status bar does iOS lay the page out to the screen's top while
+     reporting innerHeight short of it; under the opaque bar (the default) the page really starts
+     below the bar, innerHeight is the truth, and the screen's height would overflow it */
+  const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if (standalone() && S && S.width && S.height && bar && bar.content === 'black-translucent') {
     const up = w <= h, sw = up ? Math.min(S.width, S.height) : Math.max(S.width, S.height), sh = up ? Math.max(S.width, S.height) : Math.min(S.width, S.height);
     if (Math.abs(sw - w) < 2 && sh > h) h = sh;
   }
@@ -7643,7 +7655,8 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     if (kind === 'snooker') GEO.setTable('snooker', settings.snookerTable);
     else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
-    const g = newGame(kind), balls = g.balls.filter(b => b.on);
+    /* the Play again banner shows the rack alone: the cue ball would sit under its words */
+    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'hero' && b.n === 0 && (kind === '8' || kind === '9' || kind === 'snooker')));
     if (kind === 'carom' && mode !== 'fit') caromArt(balls, mode === 'hero' || w > h * 1.6);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
@@ -7758,6 +7771,8 @@ function pickTab(tab, focus) {
   for (const [t, p] of TABS) { const on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; p.hidden = !on; }
   lessonAgain.hidden = tab !== tabCtl;   /* the controls' lesson; each game's tab ends with its tutorial (6d) */
   if (focus) tab.focus({ preventScroll: true });
+  /* the tab row scrolls on a narrow screen: bring the chosen topic into view */
+  if (tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 for (const [t] of TABS) t.addEventListener('click', () => pickTab(t));
 tabCtl.parentElement.addEventListener('keydown', e => {

@@ -379,12 +379,21 @@ const artContrast = page => page.evaluate(() => {
   check('phone: no console errors', ph3.errors.length === 0, ph3.errors.join(' | '));
   await ph3.browser.close();
 
-  /* an iOS home-screen app on a 440x956 pt screen reporting innerHeight short by the status bar
-     (62 pt): the app must still fill the screen, so no dead strip under the controls */
+  /* an iOS home-screen app on a 440x956 pt screen under the opaque status bar (the page's
+     setting): the page starts below the bar, so innerHeight (894) is the real height. Sizing
+     from the screen there pushed the bottom of every sheet and the controls off the screen. */
   const ios = await open('', { viewport: { width: 440, height: 894 }, screen: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3,
     init: () => Object.defineProperty(navigator, 'standalone', { get: () => true }) });
-  const st = await ios.page.evaluate(() => { felt.start('8'); const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, ctlBottom: c.bottom, back: table.height, dpr, diag: diag.textContent }; });
-  check('home-screen app: sized from the screen when iOS reports a short innerHeight; controls sit at the bottom', st.appH === '956px' && st.uiH === 956 && st.ctlBottom > 956 - 30 && st.back === 956 * st.dpr, JSON.stringify(st));
+  const st0 = await ios.page.evaluate(() => { felt.start('8'); const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, ctlBottom: c.bottom, back: table.height, dpr, bar: document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content }; });
+  check('home-screen app, opaque status bar: sized to innerHeight; the controls end inside the screen', st0.bar === 'black' && st0.appH === '894px' && st0.uiH === 894 && st0.ctlBottom <= 894 && st0.ctlBottom > 894 - 30 && st0.back === 894 * st0.dpr, JSON.stringify(st0));
+  /* the menu's sheets fit too: the lesson offer's buttons are on screen */
+  const off = await ios.page.evaluate(() => { felt.quit && felt.quit(); lessonOffer.classList.add('show'); const r = lessonOffer.querySelector('.sheet').getBoundingClientRect(); lessonOffer.classList.remove('show'); return { bottom: r.bottom, h: innerHeight }; });
+  check('home-screen app: a bottom sheet ends inside the screen', off.bottom <= off.h, JSON.stringify(off));
+  /* under a translucent bar iOS reports innerHeight short by the bar (62 pt) while the page fills
+     the screen: the app must still fill it, so no dead strip under the controls */
+  await ios.page.evaluate(() => { document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'black-translucent'; relayout(); });
+  const st = await ios.page.evaluate(() => { const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, ctlBottom: c.bottom, back: table.height, dpr, diag: diag.textContent }; });
+  check('home-screen app, translucent bar: sized from the screen when iOS reports a short innerHeight; controls sit at the bottom', st.appH === '956px' && st.uiH === 956 && st.ctlBottom > 956 - 30 && st.back === 956 * st.dpr, JSON.stringify(st));
   /* iOS changing its size with no resize event: the watch lays out again within a couple of seconds */
   await ios.page.setViewportSize({ width: 440, height: 956 });
   await ios.page.evaluate(() => Object.defineProperty(window.screen, 'height', { get: () => 1000 }));

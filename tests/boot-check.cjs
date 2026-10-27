@@ -389,17 +389,17 @@ const artContrast = page => page.evaluate(() => {
   /* the menu's sheets fit too: the lesson offer's buttons are on screen */
   const off = await ios.page.evaluate(() => { felt.quit && felt.quit(); lessonOffer.classList.add('show'); const r = lessonOffer.querySelector('.sheet').getBoundingClientRect(); lessonOffer.classList.remove('show'); return { bottom: r.bottom, h: innerHeight }; });
   check('home-screen app: a bottom sheet ends inside the screen', off.bottom <= off.h, JSON.stringify(off));
-  /* under a translucent bar iOS reports innerHeight short by the bar (62 pt) while the page fills
-     the screen: the app must still fill it, so no dead strip under the controls */
+  /* the app is sized to the window a fixed element can fill, never to the screen: the screen-height
+     guess is what pushed everything off the bottom of the home-screen app */
   await ios.page.evaluate(() => { document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]').content = 'black-translucent'; relayout(); });
-  const st = await ios.page.evaluate(() => { const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, ctlBottom: c.bottom, back: table.height, dpr, diag: diag.textContent }; });
-  check('home-screen app, translucent bar: sized from the screen when iOS reports a short innerHeight; controls sit at the bottom', st.appH === '956px' && st.uiH === 956 && st.ctlBottom > 956 - 30 && st.back === 956 * st.dpr, JSON.stringify(st));
+  const st = await ios.page.evaluate(() => ({ appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiBottom: ui.getBoundingClientRect().bottom, h: innerHeight }));
+  check('home-screen app: whatever the status bar, the app is the window (never the taller screen)', st.appH === st.h + 'px' && st.uiBottom <= st.h, JSON.stringify(st));
   /* iOS changing its size with no resize event: the watch lays out again within a couple of seconds */
-  await ios.page.setViewportSize({ width: 440, height: 956 });
-  await ios.page.evaluate(() => Object.defineProperty(window.screen, 'height', { get: () => 1000 }));
+  await ios.page.setViewportSize({ width: 440, height: 800 });
   await ios.page.waitForTimeout(2300);
   const st2 = await ios.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim());
-  check('a size change without a resize event is picked up', st2 === '1000px', st2);
+  check('a size change is picked up', st2 === '800px', st2);
+  check('Settings shows which build is running', await ios.page.evaluate(() => /^build \d{4}-\d{2}-\d{2}/.test(diag.textContent)), await ios.page.evaluate(() => diag.textContent));
   check('home-screen app: no console errors', ios.errors.length === 0, ios.errors.join(' | '));
   await ios.browser.close();
   done();

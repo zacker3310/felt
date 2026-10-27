@@ -3867,24 +3867,28 @@ function fitTable(r) {
   if (BED_LINES && Math.abs(kp - kl) <= 1e-9 * kl) return { k: kl, portrait: r.height > r.width };
   return kp > kl ? { k: kp, portrait: true } : { k: kl, portrait: false };
 }
-/* The size the app really has. An iOS home-screen app with a translucent status bar can report
-   innerHeight short by the status bar (worst at launch), which left a dead strip under the
-   controls; a home-screen app always fills the screen, so there the screen wins. */
+/* a home-screen app (shown in the Settings diagnostics line) */
 const standalone = () => navigator.standalone === true || !!(window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+/* the window the app may use, measured rather than guessed: a fixed element pinned to all four
+   edges is exactly the area fixed UI can fill. On iOS home-screen apps innerHeight has been seen
+   short of it (under a translucent status bar) and the screen's height is taller than it (under
+   the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
+/* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
+const BUILD = 'build 2026-10-27b';
+let sizeProbe = null;
 function appSize() {
-  const w = innerWidth;
-  let h = Math.max(innerHeight, document.documentElement.clientHeight || 0);
-  const S = window.screen;
-  /* only under a translucent status bar does iOS lay the page out to the screen's top while
-     reporting innerHeight short of it; under the opaque bar (the default) the page really starts
-     below the bar, innerHeight is the truth, and the screen's height would overflow it */
-  const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  if (standalone() && S && S.width && S.height && bar && bar.content === 'black-translucent') {
-    const up = w <= h, sw = up ? Math.min(S.width, S.height) : Math.max(S.width, S.height), sh = up ? Math.max(S.width, S.height) : Math.min(S.width, S.height);
-    if (Math.abs(sw - w) < 2 && sh > h) h = sh;
+  if (!sizeProbe) {
+    sizeProbe = document.createElement('div');
+    sizeProbe.setAttribute('aria-hidden', 'true');
+    sizeProbe.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;visibility:hidden;pointer-events:none;z-index:-1;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(sizeProbe);
   }
+  const r = sizeProbe.getBoundingClientRect();
+  const w = Math.round(r.width) || innerWidth, h = Math.round(r.height) || innerHeight;
   return [w, h];
 }
+/* the top safe-area inset as laid out (the status bar a page under a translucent bar sits beneath) */
+const insetTop = () => (sizeProbe ? parseFloat(getComputedStyle(sizeProbe).paddingTop) || 0 : 0);
 /* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
    (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
    crisp). sizeSig() changes whenever any of that does; boot re-lays out when it has. */
@@ -3898,7 +3902,7 @@ function layout() {
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
   layoutSig = sizeSig();
-  diag.textContent = `${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}`;
+  diag.textContent = `${BUILD}: ${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}, top inset ${insetTop()}`;
   RAIL = railFor(w, h);
   /* upright: the strip under the table, or the side column where that is clearly bigger (a
      tablet); on its side the column on the right */

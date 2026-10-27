@@ -63,6 +63,8 @@ const artContrast = page => page.evaluate(() => {
   check('home words over the art read at 4.5:1 on the cloth', (await artContrast(page)).every(c => c.r >= 4.5), JSON.stringify(await artContrast(page)));
   /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
   await page.click('#playB');
+  /* measure once the sheet has finished rising (mid-animation sizes come out a hair under 44) */
+  await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
   const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent, pool: !!tb7.getClientRects().length }; }));
   check('setup (bumper pool): its Table control (Octagon, Rectangle), 44 px targets, the octagon by default; no pool table options',
     bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Table' && !b.pool) && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify(bt));

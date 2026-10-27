@@ -1,7 +1,8 @@
 /* lib: what every suite shares. check() prints PASS/FAIL lines and done() prints the
    "N/M passed" trailer run-all parses. open() launches Chromium with software rendering,
    records console errors and network requests, and waits for boot (firstRun: true keeps the
-   first-run lesson offer, which every other suite skips). Taken from puttX. */
+   first-run lesson offer and the tutorials' first-Break offers, which every other suite skips).
+   Taken from puttX. */
 'use strict';
 const URL = process.env.FELT_URL || 'http://127.0.0.1:4173/index.html';
 const results = [];
@@ -25,6 +26,8 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
   /* the first-run lesson offer (a sheet over home) stays out of every suite but the one that
      asks for a first run: as if it had been seen, unless the page has its own record */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.lesson.v1')) localStorage.setItem('felt.lesson.v1', '{"v":1,"seen":true,"done":false}'); } catch (e) { } });
+  /* likewise each game's tutorial offer on its first Break: as if turned down for every game */
+  if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.tutorials.v1')) localStorage.setItem('felt.tutorials.v1', '{"v":1,"done":{},"skipped":{"8":true,"9":true,"bumper":true,"carom":true,"snooker":true},"never":false}'); } catch (e) { } });
   if (init) await page.addInitScript(init);
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

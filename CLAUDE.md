@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `14/14 suites, N/N checks  ok` (about 4 min; CPU match games and play-check dominate) |
+| test | `npm test` | `15/15 suites, N/N checks  ok` (about 4 min; CPU match games and play-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -46,6 +46,12 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   only watches the ordinary controls; the career passes its terms to `start(kind, o)` and takes each rack's end
   from `finish()` (`careerRackOver`). Stored as `felt.lesson.v1` and `felt.career.v1`; `tests/lib.cjs` marks
   the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
+- Tutorials: one per game (`TUTORIALS`, sim 1l; page 6d after the lesson), steps judged by the real `judge`
+  (the game has no `game.mode`; `solo.kind === 'tutorial'`, `tutOn()`). Each plays on its own table and puts the
+  geometry back exactly on the way home (`tutRestore`); settings are never touched. Show me plays `TUT_SOLS`
+  through `commit()`, like the trick shots. Re-solve with `node tools/tutorial-solver.cjs` (writes
+  `tests/tutorial-solutions.json`; paste the printed `TUT_SOLS`). Stored as `felt.tutorials.v1`; `tests/lib.cjs`
+  marks every offer skipped unless `firstRun: true`. Pinned by `tutorial-check`.
 - Per-table physics: one record per table (`POOL_PHYS`, `SNOOKER_PHYS`, `CAROM_PHYS`, sim 1b, `physOf`) that
   `buildTable` applies, setting `BALL_R`, `MU_ROLL`, `CUE_RATIO`, `CUSH_MU` and `RAIL_E`. They are `let`s that
   `setTable` changes: read them at call time, never cache them. `physics-check` (sim) and `play-check` (live

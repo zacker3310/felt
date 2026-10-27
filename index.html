@@ -747,6 +747,30 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (min-width: 600px) { .btns.three { grid-template-columns: 2fr 1fr 1fr; } .btns.three .big { grid-column: auto; } #matchSheet .sheet { max-width: 520px; } }
 @media (max-height: 480px) { .board { margin: 8px 0 12px; padding: 8px 10px; } .board .side b { font-size: 28px; } }
 @media (prefers-reduced-motion: reduce) { #coach.fresh, #coachRing { animation: none; } }
+/* the tutorials (6d): the coach card's one button (Show me, or Next after a result worth a look;
+   the card lets touches through to the table, the button takes its own), the setup sheet's quiet
+   link while the game's tutorial is not done, How to play's buttons, the first Break's offer */
+#coachBtn { pointer-events: auto; display: block; min-width: 96px; min-height: 44px; margin: 8px 0 0 auto; padding: 0 16px; border-radius: 12px;
+  border: 1px solid #5a5a62; background: #303036; color: var(--text); font-size: 15px; font-weight: 600; }
+#coachBtn:hover { background: #3a3a41; }
+#coachBtn[hidden] { display: none; }
+.tutLink { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; margin: 12px 0 0; padding: 7px 12px 7px 10px; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--panel-2); text-align: left; color: var(--text); }
+.tutLink:hover { background: var(--panel-3); }
+.tutLink[hidden] { display: none; }
+.tutLink .ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #f2c94c; background: rgba(242, 201, 76, .12); }
+.tutLink .ic svg { width: 19px; height: 19px; }
+.tutLink .tt { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; color: var(--muted); }
+.tutLink .tt b { color: #f2c94c; font-weight: 600; white-space: nowrap; }
+.tutLink .chev { flex: none; width: 16px; height: 16px; color: var(--muted); }
+.tutGo[hidden] { display: none; }
+#tutOffer .sheet { max-width: 400px; text-align: center; }
+#tutOffer .sub { margin: 0 0 20px; }
+.quiet { display: block; width: 100%; min-height: 44px; margin-top: 8px; border: 0; border-radius: 12px; background: none; color: var(--muted); font-size: 15px; font-weight: 600; }
+.quiet:hover { color: var(--text); }
+#tutDone .sheet { max-width: 440px; }
+#tutDone .sub { margin: 0 0 16px; }
+@media (orientation: portrait) and (max-width: 600px) { #tutOffer .sheet, #tutDone .sheet { margin: auto auto 0; } }
 /* the career card beside snooker: the next players' faces, the ladder as a count over a short bar
    (top right), the name and the next player where the other cards have theirs */
 .cc { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: 0; display: grid; grid-template: "av sum" auto "av bar" minmax(0, 1fr) "tt tt" auto / minmax(0, 1fr) auto;
@@ -819,7 +843,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   </div>
   <div id="msg" class="sr" role="status" aria-live="polite"></div>
   <div id="coachRing" aria-hidden="true" hidden></div>
-  <div id="coach" role="note" aria-live="polite" hidden><p id="coachStep"></p><p id="coachText"></p></div>
+  <div id="coach" role="note" aria-live="polite" hidden><p id="coachStep"></p><p id="coachText"></p><button id="coachBtn" hidden>Show me</button></div>
 </div>
 
 <div class="overlay show" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
@@ -890,6 +914,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <div class="shead"><button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><p class="kicker">New game</p><h2 class="title" id="setupTitle">8-ball</h2></div><span class="ball b8" id="setupBall" aria-hidden="true">8</span></div>
     <p class="sub" id="setupSub"></p>
+    <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">New to 8-ball? <b>Play the tutorial</b></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
     <div class="field"><span class="label" id="oppLab">Opponent</span>
       <div class="seg" role="group" aria-labelledby="oppLab"><button id="vs2p" aria-pressed="true">Two players</button><button id="vsCpu" aria-pressed="false">CPU</button></div></div>
     <div class="foes" id="levelSeg" role="group" aria-label="CPU opponent">
@@ -956,6 +981,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <dl class="kpis" id="careerKpis" aria-labelledby="careerStatLab"></dl>
     <p class="note">Against the CPU: wins and losses. A game counts when it finishes.</p>
     <p class="note" id="snkStat"></p>
+    <p class="note" id="tutStat"></p>
   </div>
 </div>
 
@@ -996,6 +1022,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Fouls</dt><dd>The wrong ball first, no rail after contact, or the cue ball down: your opponent gets ball in hand anywhere.</dd>
         <dt>Win</dt><dd>Clear your group, then pot the 8. Pot the 8 before your group is clear, or scratch while potting it, and you lose.</dd>
       </dl>
+      <button class="ghost wide lessonGo tutGo" id="tutGo8" data-tut="8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 8-ball tutorial</span></button>
     </div>
     <div class="pan" id="pan9" role="tabpanel" aria-labelledby="tab9" hidden>
       <dl class="rules">
@@ -1004,6 +1031,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Fouls</dt><dd>Ball in hand anywhere for your opponent. Three fouls in a row lose the game; the chip and the pause menu warn on two.</dd>
         <dt>Win</dt><dd>Pot the 9 on a legal shot, whenever it comes: early in a combination or last.</dd>
       </dl>
+      <button class="ghost wide lessonGo tutGo" id="tutGo9" data-tut="9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 9-ball tutorial</span></button>
     </div>
     <div class="pan" id="panBump" role="tabpanel" aria-labelledby="tabBump" hidden>
       <dl class="rules" id="bumperRules">
@@ -1013,6 +1041,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
         <dt>Win</dt><dd>The first with all five down. Choose the classic octagon or the rectangle when you start a bumper game.</dd>
       </dl>
+      <button class="ghost wide lessonGo tutGo" id="tutGoB" data-tut="bumper"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the bumper pool tutorial</span></button>
     </div>
     <div class="pan" id="panCarom" role="tabpanel" aria-labelledby="tabCarom" hidden>
       <dl class="rules" id="caromRules">
@@ -1023,6 +1052,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Fouls</dt><dd>A ball off the table (it goes back on its spot) or, on the break, not the red first: no point, and the turn passes.</dd>
         <dt>Win</dt><dd>The first to the race: 5, 10 or 15 points, chosen when you start. The full aim guide traces your cue ball through its first three cushions, a dot on each; after that you are on your own.</dd>
       </dl>
+      <button class="ghost wide lessonGo tutGo" id="tutGoC" data-tut="carom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the three-cushion tutorial</span></button>
     </div>
     <div class="pan" id="panSnk" role="tabpanel" aria-labelledby="tabSnk" hidden>
       <dl class="rules" id="snookerRules">
@@ -1032,6 +1062,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <dt>Frame</dt><dd>Most points wins. With only the black left, the first score or foul ends the frame; if that leaves the scores level, the black is re-spotted and the other player plays it from the D. Concede a frame from the pause menu. Choose one frame or the best of three, and the compact 10 ft or the full 12 ft table, when you start.</dd>
         <dt>Score</dt><dd>The chips show the scores; the bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed. Not in felt yet: the free ball and the miss rule.</dd>
       </dl>
+      <button class="ghost wide lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the snooker tutorial</span></button>
     </div>
     <div class="pan" id="panSolo" role="tabpanel" aria-labelledby="tabSolo" hidden>
       <dl class="rules">
@@ -1061,6 +1092,26 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <h2 class="title" id="doneTitle">You're ready.</h2>
     <p class="sub">That is the whole stroke: aim, fine-tune, pull. The rules of each game are in How to play.</p>
     <div class="row"><button class="big" id="donePlay">Play 8-ball</button><button class="ghost" id="doneHome">Home</button></div>
+  </div>
+</div>
+
+<!-- 6d: a game's tutorial, offered on its first Break, and its finish -->
+<div class="overlay" id="tutOffer" role="dialog" aria-modal="true" aria-labelledby="tutOfferTitle">
+  <div class="sheet offer">
+    <span class="offerArt" aria-hidden="true"><span class="ball b8" id="tutOfferBall">8</span></span>
+    <h2 class="title" id="tutOfferTitle">First time playing 8-ball?</h2>
+    <p class="sub" id="tutOfferSub">A one minute tutorial: the rules, played. Or skip it and break.</p>
+    <div class="row"><button class="big" id="tutOfferGo">Show me</button><button class="ghost" id="tutOfferSkip">Skip</button></div>
+    <button class="quiet" id="tutOfferNever">Don't ask again</button>
+  </div>
+</div>
+
+<div class="overlay lite" id="tutDone" role="dialog" aria-modal="true" aria-labelledby="tutDoneTitle">
+  <div class="sheet">
+    <p class="kicker" id="tutDoneKick">Tutorial complete</p>
+    <h2 class="title" id="tutDoneTitle">That's 8-ball.</h2>
+    <p class="sub" id="tutDoneSub"></p>
+    <div class="row"><button class="big" id="tutPlay">Play 8-ball</button><button class="ghost" id="tutHome">Home</button></div>
   </div>
 </div>
 
@@ -3341,6 +3392,177 @@ function suggestCarom(g) {
   const s = cpuShot(g, 1, 'hint'), n = s.first === null ? caromTargets(g)[0] : s.first, t = g.balls.find(b => b.n === n);
   return t ? { angle: s.angle, n: t.n, k: -1, power: s.power, spin: s.spin } : null;
 }
+/* ---- 1l. tutorials: each game's rules, played ----
+   One short tutorial per game (TUTORIALS, by game kind), each a few steps. A step is a fixed
+   layout on the tutorial's own table (table: setTable's arguments, pockets: setPockets'), built
+   at call time from table fractions and the trick shots' pocket-relative helpers (trickHelpers),
+   and a game state for it (setup: the group, the ball on, ball in hand, the cushions needed, the
+   ball to strike). A step's goal is judged by the real rules: goal(g, r, n) gets the game before
+   the shot, its result and judge(g, r), and returns null when the step is done, else why not in
+   words. Nothing here is a mode: the game is an ordinary game (no game.mode), so legalTargets,
+   the aim guide's illegal ring and judge are the ones every game uses.
+   Step fields: head, text(c) (one or two sentences; c the tutorial's context, { group } in 8-ball,
+   'solids' until the first step picks it), balls(T) ([n, [x, y]] pairs, the struck ball first),
+   setup(g), goal, aim (the ball auto aim points at, a hint, not the line; none on harder steps),
+   pocket (the pocket for it), pick (bumper pool: the ball to tap first), ring(g, s) (what the coach
+   rings: { ball }, { pocket }, { spot }, { el }, { d: true }, { rail: true }), done(n) (the banner
+   after it), then ({ text, ring(n) }: the result is shown with a Next button before the next step),
+   demo (a step that shows a foul: Show me is the way through), swap (8-ball: the numbers follow the
+   group the first step gave, solids as laid out, stripes swapped). TUT_SOLS holds one stored winning
+   shot per step ([angle, power, side, vertical], then the cue ball's placement [x, y] for a ball-in-hand
+   step or the ball to strike in bumper pool); tools/tutorial-solver.cjs finds them and writes
+   tests/tutorial-solutions.json, which the page's copy must equal (tutorial-check). */
+const TUT_FOUL = v => v.foul ? `Foul: ${v.foul}.` : '';
+const swapGroup = n => n > 0 && n < 8 ? n + 8 : n > 8 && n < 16 ? n - 8 : n;
+const legalPot = (n, ok) => { const v = n.verdict; return TUT_FOUL(v) || (v.potted.some(ok) && n.turn === 0 ? null : 'Nothing of yours went down.'); };
+const TUTORIALS = [
+  { id: '8', kind: '8', name: '8-ball', table: ['7'], pockets: 'regulation', ctx: () => ({ group: 'solids' }), steps: [
+    { head: 'Open table', text: () => 'The table is open: pot any ball but the 8, and its group is yours.',
+      balls: T => [[0, T.at(0.55, 0.5)], [3, T.lip(2, 5)], [11, T.lip(5, 5)], [8, T.at(0.3, 0.3)], [1, T.at(0.2, 0.75)], [6, T.at(0.38, 0.84)], [10, T.at(0.13, 0.22)], [14, T.at(0.42, 0.14)]],
+      aim: 3, pocket: 2, ring: () => ({ ball: 3 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.groups[0] ? null : 'Nothing went down.'),
+      done: n => [`You're ${n.groups[0]}`, 'and you shoot again'] },
+    { head: 'Your group first', swap: true, text: c => `You're ${c.group}: hit one of yours first. The ${c.group === 'solids' ? 'stripe' : 'solid'} nearest you is not yours.`,
+      balls: T => [[0, T.at(0.3, 0.5)], [12, T.at(0.4, 0.66)], [4, T.lip(2, 5)], [9, T.at(0.7, 0.82)], [15, T.at(0.12, 0.22)], [8, T.at(0.78, 0.7)], [6, T.at(0.2, 0.85)]],
+      setup: (g, c) => { g.open = false; g.groups = [c.group, c.group === 'solids' ? 'stripes' : 'solids']; },
+      aim: 4, pocket: 2, ring: () => ({ ball: 4 }),
+      goal: (g, r, n) => legalPot(n, x => groupOf(x) === g.groups[0]),
+      done: () => ['Your ball, first', 'that is a legal shot'] },
+    { head: 'Ball in hand', swap: true, text: c => `Your opponent fouled, so you have ball in hand. Drag the cue ball anywhere, then pot a ${c.group === 'solids' ? 'solid' : 'stripe'}.`,
+      balls: T => [[0, T.at(0.035, 0.6)], [5, T.lip(5, 4)], [14, T.at(0.1, 0.5)], [10, T.at(0.1, 0.64)], [2, T.at(0.45, 0.25)], [8, T.at(0.62, 0.5)], [13, T.at(0.8, 0.2)]],
+      setup: (g, c) => { g.open = false; g.groups = [c.group, c.group === 'solids' ? 'stripes' : 'solids']; g.inHand = 'table'; },
+      places: T => { const b = T.lip(5, 4); return [T.line(b, 5, 12), T.line(b, 5, 16), T.line(b, 5, 9)]; },
+      aim: 5, pocket: 5, ring: (g, s) => s.moved ? { ball: 5 } : { ball: 0 },
+      flash: ['Foul by your opponent', 'Ball in hand anywhere'],
+      goal: (g, r, n) => legalPot(n, x => groupOf(x) === g.groups[0]),
+      done: () => ['Ball in hand', 'put it where the shot is easy'] },
+    { head: 'The 8 last', swap: true, text: c => `Your ${c.group} are all down, so the 8 is yours. Pot it to win the rack.`,
+      balls: T => [[0, T.at(0.62, 0.4)], [8, T.lip(2, 6)], [9, T.at(0.3, 0.75)], [13, T.at(0.18, 0.3)], [15, T.at(0.5, 0.85)]],
+      setup: (g, c) => { g.open = false; g.groups = [c.group, c.group === 'solids' ? 'stripes' : 'solids']; },
+      aim: 8, pocket: 2, ring: () => ({ ball: 8 }),
+      goal: (g, r, n) => n.winner === 0 ? null : n.winner === 1 ? 'The 8 went down on a foul: that loses the rack.' : TUT_FOUL(n.verdict) || 'The 8 stayed up.' },
+  ] },
+  { id: '9', kind: '9', name: '9-ball', table: ['7'], pockets: 'regulation', steps: [
+    { head: 'Lowest ball first', text: () => 'Hit the lowest ball on the table first: here, the 2. Pot it.',
+      balls: T => [[0, T.at(0.45, 0.6)], [2, T.lip(5, 5)], [5, T.at(0.42, 0.3)], [7, T.at(0.76, 0.24)], [9, T.at(0.25, 0.25)], [4, T.at(0.2, 0.8)]],
+      aim: 2, pocket: 5, ring: () => ({ ball: 2 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.potted.length ? null : 'Nothing went down.'),
+      done: () => ['The 2, first', 'now the lowest is the 4'] },
+    { head: 'Combination', text: () => 'Any ball you pot counts, as long as you hit the lowest first. Play the 3 into the 6.',
+      balls: T => { const b = T.lip(2, 3), a = T.line(b, 2, 6); return [[0, T.line(a, 2, 16)], [3, a], [6, b], [9, T.at(0.25, 0.8)], [8, T.at(0.2, 0.3)], [5, T.at(0.6, 0.85)]]; },
+      aim: 3, pocket: 2, ring: () => ({ ball: 6 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.potted.includes(6) ? null : 'The 6 stayed up.'),
+      done: () => ['Combination', 'the 6 counts: the 3 was hit first'] },
+    { head: 'The 9 wins', text: () => 'The 9 wins the rack whenever it drops on a legal shot. Hit the 4 into the 9.',
+      balls: T => { const b = T.lip(5, 3), a = T.line(b, 5, 6); return [[0, T.off(T.line(a, 5, 14), 0, -2)], [4, a], [9, b], [7, T.at(0.25, 0.25)], [6, T.at(0.3, 0.8)]]; },
+      aim: 4, pocket: 5, ring: () => ({ ball: 9 }),
+      goal: (g, r, n) => n.winner === 0 ? null : TUT_FOUL(n.verdict) || 'The 9 stayed up.' },
+  ] },
+  { id: 'bumper', kind: 'bumper', name: 'Bumper pool', table: ['bumper', 'octagon'], pockets: 'regulation', steps: [
+    { head: 'The marked ball', text: () => 'You play red, and your marked ball (the spot) goes first: tap it to strike it. Send it to the far cup.',
+      balls: T => [[22, [0.3, 0.27]], [21, [0.93, 0.32]], [23, [0.22, 0.74]], [24, [0.45, 0.2]], [25, [0.4, 0.8]], [31, [0.62, 0.8]], [32, [0.75, 0.25]], [33, [0.92, 0.75]], [34, [0.32, 0.65]], [35, [0.68, 0.7]]],
+      setup: g => { g.striker = 22; }, pick: 21, aim: 21, pocket: 1,
+      ring: g => g.striker === 21 ? { pocket: 1 } : { ball: 21 },
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.potted.includes(21) ? null : 'The marked red stayed up.'),
+      done: () => ['Marked ball down', 'now any red may go'] },
+    { head: 'Round the posts', text: () => 'The posts guard the cup: straight in is blocked. Bank off a cushion and come in from the back.',
+      balls: T => [[22, [0.62, 0.2]], [23, [0.22, 0.74]], [24, [0.45, 0.16]], [25, [0.4, 0.8]], [31, [0.62, 0.8]], [33, [0.8, 0.84]], [34, [0.32, 0.65]], [35, [0.68, 0.7]]],
+      setup: g => { g.striker = 22; }, pocket: 1, ring: () => ({ pocket: 1 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (!n.verdict.potted.includes(22) ? 'The red stayed up.' : (r.rails[22] || 0) < 1 ? 'In, but no bank: off a cushion this time.' : null),
+      done: () => ['Banked in', 'round the posts'] },
+    { head: 'Your own cup', demo: true, text: () => 'The cup behind you is your own: a ball in it is a foul. Tap Show me to see what it costs.',
+      balls: T => [[23, [0.21, 0.25]], [24, [0.45, 0.16]], [25, [0.4, 0.8]], [31, [0.62, 0.8]], [33, [0.8, 0.84]], [34, [0.32, 0.65]], [35, [0.68, 0.7]]],
+      setup: g => { g.striker = 23; }, pocket: 0, ring: () => ({ pocket: 0 }),
+      goal: (g, r, n) => n.verdict.foul === 'into your own cup' ? null : 'Tap Show me to watch it.',
+      then: { text: () => 'Foul. Your red comes back to your marked spot, white drops one of theirs in for free, and the turn passes.', ring: n => ({ ball: n.verdict.back[0] }) } },
+    { head: 'The right way', text: () => 'Now pot a red in the far cup, coming in from behind the posts.',
+      balls: T => [[23, [0.93, 0.72]], [24, [0.45, 0.16]], [25, [0.4, 0.8]], [31, [0.62, 0.8]], [33, [0.7, 0.9]], [34, [0.32, 0.65]], [35, [0.68, 0.7]]],
+      setup: g => { g.striker = 23; }, aim: 23, pocket: 1, ring: () => ({ pocket: 1 }),
+      goal: (g, r, n) => legalPot(n, () => true) },
+  ] },
+  { id: 'carom', kind: 'carom', name: 'Three-cushion', table: ['carom'], pockets: 'regulation', steps: [
+    { head: 'One cushion', text: () => 'A point: your white meets both other balls, with a cushion before the second. The guide\'s dots show the cushions.',
+      balls: T => [[70, T.at(0.4, 0.45)], [72, T.at(0.62, 0.12)], [71, T.at(0.74, 0.12)]],
+      setup: g => { g.need = 1; }, aim: 72, ring: () => ({ ball: 71 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.point ? null : caromNo(n.verdict.count, 1)),
+      done: () => ['Point', 'one cushion before the second ball'] },
+    { head: 'Three cushions', text: () => 'The real game: three cushions before the second ball. Follow the guide\'s line round the table.',
+      balls: T => [[70, T.at(0.3, 0.3)], [72, T.at(0.45, 0.22)], [71, T.at(0.08, 0.86)]],
+      natural: true, aim: 72, ring: () => ({ ball: 71 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.point ? null : caromNo(n.verdict.count, 3)),
+      done: () => ['Point', 'three cushions'] },
+    { head: 'A system shot', text: () => 'Cushions first: aim at the ringed spot by the diamonds, and the table brings it round to both balls.',
+      balls: T => [[70, T.at(0.2, 0.2)], [72, T.at(0.86, 0.84)], [71, T.at(0.93, 0.72)]],
+      ring: () => ({ rail: true }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (!(r.seq[0] < 0) ? 'Cushion first this time.' : n.verdict.point ? null : caromNo(n.verdict.count, 3)) },
+  ] },
+  { id: 'snooker', kind: 'snooker', name: 'Snooker', table: ['snooker', 'compact'], pockets: 'regulation', steps: [
+    { head: 'On a red', text: () => 'You\'re on a red: the bar on the top rail says so. Pot a red for 1 point.',
+      balls: T => [[0, T.at(0.62, 0.58)], [41, T.lip(5, 5)], ...snkReds(T, 42, 5), ...snkColours()],
+      aim: 41, pocket: 5, ring: () => ({ el: 'snkBar' }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.pts > 0 ? null : 'Nothing went down.'),
+      done: () => ['1 point', 'now you are on a colour'] },
+    { head: 'Then a colour', text: () => 'After a red you\'re on a colour: the first one you hit. Pot the black for 7.',
+      balls: T => { const b = T.lip(2, 6); return [[0, T.off(T.line(b, 2, 14), 0, 1.5)], [62, b], ...snkReds(T, 42, 5), ...snkColours().filter(([n]) => n !== 62)]; },
+      setup: g => { g.on = 'colour'; g.score = [1, 0]; g.brk = 1; }, aim: 62, pocket: 2, ring: () => ({ ball: 62 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.nom === 62 && n.verdict.pts === 7 ? null : n.verdict.pts ? 'A colour, but the black this time.' : 'The black stayed up.'),
+      then: { text: () => 'Seven. While reds are left, a potted colour goes back on its spot, and you are on a red again.', ring: () => ({ spot: 62 }) } },
+    { head: 'In-off', text: () => 'Your opponent went in-off: 4 points to you, and ball in hand in the D. Place the cue ball in the D, then pot a red.',
+      balls: T => [[0, [HEAD_X - 0.02, TW / 2 - 0.5 * D_R]], [41, T.lip(3, 6)], ...snkReds(T, 42, 5), ...snkColours()],
+      setup: g => { g.inHand = 'D'; g.score = [4, 0]; },
+      places: T => { const b = T.lip(3, 6); return [T.line(b, 3, 23), T.line(b, 3, 22), T.line(b, 3, 24)]; },
+      aim: 41, pocket: 3, ring: (g, s) => s.moved ? { ball: 41 } : { d: true },
+      flash: ['In-off by your opponent', 'Ball in hand in the D'],
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.pts > 0 ? null : 'Nothing went down.'),
+      done: () => ['From the D', 'a red, 1 point'] },
+    { head: 'Colours in order', text: () => 'The reds are gone: now the colours in order, yellow first. Pot the yellow.',
+      balls: T => { const b = T.lip(3, 5); return [[0, T.off(T.line(b, 3, 16), 2, 0)], [57, b], ...snkColours().filter(([n]) => n !== 57)]; },
+      setup: g => { g.on = 57; g.score = [40, 22]; }, aim: 57, pocket: 3, ring: () => ({ ball: 57 }),
+      goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.potted.includes(57) ? null : 'The yellow stayed up.') },
+  ] },
+];
+/* carom's "why no point", in words (the page's banner says the same) */
+function caromNo(c, need) {
+  return !c.balls.length ? 'No ball hit.' : c.balls.length < 2 ? 'Only one ball.' : `${c.cushions} cushion${c.cushions === 1 ? '' : 's'} before the second ball: it needs ${need}.`;
+}
+/* snooker's layouts: k reds from n up in a loose pack past the blue, and the colours on their spots */
+const snkReds = (T, n, k) => [[0.62, 0.38], [0.66, 0.5], [0.64, 0.64], [0.7, 0.42], [0.71, 0.58], [0.68, 0.3]].slice(0, k).map(([fx, fy], i) => [n + i, T.at(fx, fy)]);
+const snkColours = () => S_COLS.map(c => [c, SPOTS[c].slice()]);
+const tutById = id => TUTORIALS.find(t => t.id === id) || null;
+/* a step's balls for the current table, with 8-ball's numbers swapped for stripes */
+function tutBalls(t, i, c = {}) {
+  const st = t.steps[i], sw = st.swap && c.group === 'stripes';
+  return st.balls(trickHelpers()).map(([n, p]) => newBall(sw ? swapGroup(n) : n, p[0], p[1]));
+}
+/* a step's number (aim, pocket's ball, pick) as the context has it */
+const tutNum = (t, i, c, n) => n === undefined ? undefined : t.steps[i].swap && c && c.group === 'stripes' ? swapGroup(n) : n;
+/* a step's game: an ordinary game of the tutorial's kind on its layout, player 0 to shoot, no break */
+function tutGame(t, i, c = {}) {
+  const st = t.steps[i];
+  const g = t.kind === 'snooker' ? snookerGame() : t.kind === 'carom' ? caromGame({ cushions: 3 }) : newGame(t.kind);
+  Object.assign(g, { balls: tutBalls(t, i, c), turn: 0, breakShot: false, inHand: null, shots: 1 });
+  if (t.kind === 'bumper') Object.assign(g, { opening: 0, openPot: [true, true] });
+  if (st.setup) st.setup(g, c);
+  return g;
+}
+/* one shot of a step, judged: { ok, why, n: judge(g, r) } (the game is not touched) */
+function tutJudge(t, i, g, r) {
+  const n = judge(g, r), why = t.steps[i].goal(g, r, n);
+  return { ok: !why, why: why || '', n };
+}
+const TUT_SOLS = {
+  '8': [[0.418879, 0.38, 0, 0], [1.980949, 0.3, 0, 0], [0.820305, 0.22, 0, 0, 1.615037, 0.625037], [-0.340339, 0.38, 0, 0]],
+  '9': [[0.235619, 0.3, 0, 0], [-0.794125, 0.38, 0, 0], [0.890118, 0.3, 0, 0]],
+  'bumper': [[1.492257, 0.55, -0.5, 0, 21], [0.506145, 0.22, 0, 0, 22], [1.937315, 0.15, 0, 0, 23], [-1.902409, 0.15, 0, 0, 23]],
+  'carom': [[-0.829031, 0.38, 0, 0], [-1.37881, 1, 0, 0], [-2.975786, 0.65, 0.5, 0]],
+  'snooker': [[0.445059, 0.38, 0, 0], [-0.872665, 0.22, 0, 0], [2.356194, 0.65, 0, 0, 0.570105, 0.911562], [2.443461, 0.22, 0, 0]],
+};
+/* the stored solution of a step as a shot: { angle, power, spin, place ([x, y] or null), ball } */
+function tutSol(id, i) {
+  const s = (TUT_SOLS[id] || [])[i];
+  if (!s) return null;
+  return { angle: s[0], power: s[1], spin: { x: s[2], y: s[3] }, place: s.length >= 6 ? [s[4], s[5]] : null, ball: s.length === 5 ? s[4] : undefined };
+}
 // #endregion sim
 
 /* ============ 2. AUDIO ============ */
@@ -5196,7 +5418,7 @@ function potOk(n, k) {
    of a complete preview (see shotPreview), so nothing in the guide blinks or grows. */
 let guideLegal = true;
 function guide(c, ang) {
-  const mode = settings.guide;
+  const mode = solo && solo.guide ? solo.guide : settings.guide;   /* a tutorial shows the full guide (6d) */
   if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
   const h = aimTrace(c.x, c.y, dx, dy, [c.n], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
@@ -5633,7 +5855,7 @@ const cueBall = () => game.balls.find(b => b.n === cueN());
 const human = () => !(cpuMode && game.turn === 1);
 /* two players go by the names given at setup (settings.names), else Player 1 and Player 2 */
 const nameOf = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : (settings.names[p] || `Player ${p + 1}`);
-const turnOf = p => game.mode ? 'Your shot' : cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
+const turnOf = p => game.mode || tutOn() ? 'Your shot' : cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
 /* full power is this long a pull, in CSS px: a thumb's reach on a phone, more with a mouse */
 const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300);
 /* a game's numbers. pots: legal pots; best: the most legal pots in one visit; notes: each player's
@@ -5799,15 +6021,16 @@ function dropBall() {
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 function autoAim() {
   aimAnim = null; hint = null;
-  if (!settings.autoAim || state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6d) */
-  const s = suggestAim(game), t = s && game.balls.find(b => b.n === s.n);
+  if (state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6d) */
+  /* a tutorial step (6d) points at its own ball whatever the setting says, or not at all */
+  const s = tutOn() ? tutHint() : settings.autoAim ? suggestAim(game) : null, t = s && game.balls.find(b => b.n === s.n);
   if (!t) return;
   hint = { n: s.n, k: s.k };
-  if (handAimed) return;
+  if (handAimed || s.still) return;
   /* bumper pool: the suggested ball becomes the one to strike, on the suggested line */
   if (game.kind === 'bumper' && !picked) game.striker = s.n;
   const c = cueBall(), T = POCKETS[s.k] || [t.x, t.y];
-  const to = game.kind === 'carom' ? s.angle : game.kind !== 'bumper' ? Math.atan2(t.y - c.y, t.x - c.x) : game.striker === s.n ? s.angle : Math.atan2(T[1] - c.y, T[0] - c.x);
+  const to = s.to !== undefined ? s.to : game.kind === 'carom' ? s.angle : game.kind !== 'bumper' ? Math.atan2(t.y - c.y, t.x - c.x) : game.striker === s.n ? s.angle : Math.atan2(T[1] - c.y, T[0] - c.x);
   if (!Number.isFinite(to)) return;
   lockAim();
   if (reducedMotion()) { aimAngle = to; keepAim(); return; }
@@ -5845,7 +6068,7 @@ function handWords(p, kitchen) {
 /* 9-ball: a player on two fouls in a row loses with a third (stream C may say so in the verdict) */
 const onTwo = (g, p) => g.kind === '9' && g.winner === null && g.fouls[p] >= 2;
 function settle() {
-  if (game.mode) { settleSolo(); return; }   /* practice and trick shots (5s) */
+  if (game.mode || tutOn()) { settleSolo(); return; }   /* practice, trick shots (5s) and the tutorials (6d) */
   const r = resultOf(tab);
   felt.lastResult = r;
   const shooter = game.turn, before = game;
@@ -6001,7 +6224,7 @@ function ballAt(sx, sy) {
 function say(t) { if (msg.textContent !== t) msg.textContent = t; }
 
 function pause() {
-  if (state === 'menu' || state === 'over') return;
+  if (state === 'menu' || (state === 'over' && !(tutOn() && solo.then))) return;   /* a tutorial's result on show (6d) can pause */
   cancelGestures();
   /* an auto-aim swing in flight lands first: left to stepAutoAim it would stop half way */
   finishAutoAim();
@@ -6113,7 +6336,7 @@ function offerReplay(res) {
   const nb = notableOf(res, rec);
   if (nb) { rec.notable = nb; felt.lastNotable = rec; }
   if (state !== 'aim' && state !== 'thinking') return;
-  if (solo && solo.kind === 'lesson') return;   /* the lesson (6d) offers no replay: its coach card is the focus */
+  if (coachOn()) return;   /* the lesson and the tutorials (6d) offer no replay: the coach card is the focus */
   offer = { rec, notable: nb, until: performance.now() + (nb ? REPLAY_NOTABLE_MS : REPLAY_OFFER_MS) };
   replayBtn.toggleAttribute('data-notable', !!nb);
   /* the callout over the table has already named the moment: the pill just says Replay, in gold */
@@ -6138,7 +6361,7 @@ function placeReplay() {
 /* play a record back (the offer's, else the last shot). False when there is none, the table has
    changed since, or it is not a turn (aim or thinking). */
 function startReplay(rec = offer ? offer.rec : felt.lastShot) {
-  if (rp || !rec || !rec.balls || rec.geo !== geoSig() || (state !== 'aim' && state !== 'thinking') || (solo && solo.kind === 'lesson')) return false;
+  if (rp || !rec || !rec.balls || rec.geo !== geoSig() || (state !== 'aim' && state !== 'thinking') || coachOn()) return false;
   if (!rec.track) { const P = camPred && camPred.rec === rec ? camPred : camPredict(rec); while (!camPredStep(P, 1000)); }
   cancelGestures();
   hideOffer();
@@ -6757,6 +6980,12 @@ function saveTricks() { try { localStorage.setItem(TRICKS_KEY, JSON.stringify(tr
 const starTotal = () => TRICKS.reduce((a, c) => a + (trickBest[c.id] || 0), 0);
 const PRACTICE_NAMES = { 8: '8-ball rack', 9: '9-ball rack', scatter: 'Free table', empty: 'Empty table' };
 const freeTable = () => !!solo && solo.kind === 'practice' && (solo.layout === 'scatter' || solo.layout === 'empty');
+/* a tutorial (6d): an ordinary game (no game.mode, the real rules) run as a solo session */
+const tutOn = () => !!solo && solo.kind === 'tutorial';
+/* the session in play when it is solo: practice, a trick shot, the lesson or a tutorial; else null */
+const soloOf = () => solo && (game.mode || solo.kind === 'tutorial') ? solo : null;
+/* the lesson and the tutorials speak through the coach card (6d) */
+const coachOn = () => !!solo && (solo.kind === 'lesson' || solo.kind === 'tutorial');
 
 /* a fresh turn on the current game: every gesture, move and swing of the last one dropped */
 function soloAim() {
@@ -6858,6 +7087,7 @@ function settleSolo() {
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
   if (solo.kind === 'lesson') { lessonSettle(r); return; }   /* the lesson (6d) */
+  if (solo.kind === 'tutorial') { tutSettle(r); return; }   /* a tutorial step (6d) */
   if (game.mode === 'practice') {
     game = practiceJudge(game, r);
     const v = game.verdict, st = solo.st;
@@ -6919,7 +7149,7 @@ function showTrickRes(c, j) {
   trickRes.classList.add('show');
   if (byKeys) (j.ok ? trickNext : trickRetry).focus({ preventScroll: true });
 }
-function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet]) o.classList.remove('show'); }
+function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet, tutDone, tutOffer]) o.classList.remove('show'); }
 function showPractice() {
   closeSolo(); menu.classList.remove('show');
   prac.classList.add('show');
@@ -6948,14 +7178,15 @@ function restartSolo() {
   if (!solo) return;
   if (solo.kind === 'practice') startPractice(solo.layout, solo.seed);
   else if (solo.kind === 'lesson') startLesson();
+  else if (solo.kind === 'tutorial') tutStep(solo.step);
   else startTrick(solo.id, true);
 }
 
 /* the strip, the chip, the tools panel: hudChip() calls this first; true in a solo session */
 function hudSolo() {
-  const s = game.mode && solo ? solo : null, prc = !!s && s.kind === 'practice';
+  const s = soloOf(), prc = !!s && s.kind === 'practice';
   soloCtl.hidden = !prc;
-  if (s && s.kind === 'lesson') { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson: no chip, the coach speaks (6d) */
+  if (s && (s.kind === 'lesson' || s.kind === 'tutorial')) { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson and the tutorials: no chip, the coach speaks (6d) */
   tools.hidden = !(prc && s.tools && state === 'aim');
   toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
   editDone.hidden = !(prc && s.edit && state === 'aim');
@@ -6980,7 +7211,7 @@ function hudSolo() {
 }
 /* the pause menu's session section; true in a solo session (the players' cards stay hidden) */
 function hudSoloMenu() {
-  const s = game.mode && solo ? solo : null;
+  const s = soloOf();
   soloNow.hidden = !(s && paused);
   if (!s) return false;
   gameNow.hidden = true;
@@ -6990,6 +7221,11 @@ function hudSoloMenu() {
     soloKind.textContent = `Lesson, step ${s.step} of 3`;
     soloTitle.textContent = 'Learn to play';
     soloGoal.textContent = LESSON_STEPS[s.step].text;
+  } else if (s.kind === 'tutorial') {
+    const t = tutById(s.id), st = t.steps[s.step];
+    soloKind.textContent = `${t.name} tutorial, step ${s.step + 1} of ${t.steps.length}`;
+    soloTitle.textContent = st.head;
+    soloGoal.textContent = st.text(s.ctx);
   } else if (s.kind === 'practice') {
     soloKind.textContent = 'Practice';
     soloTitle.textContent = PRACTICE_NAMES[s.layout];
@@ -7208,7 +7444,7 @@ function syncMenu() {
   document.documentElement.dataset.cloth = settings.cloth;
   menu.toggleAttribute('data-paused', !!paused);
   resumeBtn.hidden = !paused;
-  concedeBtn.hidden = !(paused && game.kind === 'snooker' && !game.mode && game.winner === null);
+  concedeBtn.hidden = !(paused && game.kind === 'snooker' && !game.mode && !tutOn() && game.winner === null);
   syncSoloMenu();
   syncHome();
 }
@@ -7252,6 +7488,7 @@ function backToMenu() { closeSheets(); closeSolo(); showMenu(); }
 /* Esc: the sheet on top closes (the trick result goes to the list); false when none was open */
 function escSheet() {
   if (lessonOffer.classList.contains('show')) { skipLesson(); return true; }
+  if (tutOffer.classList.contains('show')) { tutOfferAnswer('skip'); return true; }
   if (SHEETS().some(s => s.classList.contains('show')) || prac.classList.contains('show') || tricks.classList.contains('show')) { backToMenu(); return true; }
   if (trickRes.classList.contains('show')) { showTricks(); return true; }
   return false;
@@ -7302,6 +7539,7 @@ function showSetup(kind) {
   for (const el of setupSheet.querySelectorAll('.carom')) el.hidden = kind !== 'carom';
   for (const el of setupSheet.querySelectorAll('.snk')) el.hidden = kind !== 'snooker';
   name1.value = settings.names[0]; name2.value = settings.names[1];
+  syncTutLinks(kind);   /* the tutorial's link while it is not done (6d) */
   previewGame(kind);
   syncMenu();
   openSheet(setupSheet, breakBtn);
@@ -7316,9 +7554,11 @@ function playSetup(kind) {
 /* Quit to home, from a game or a solo session: a fresh rack of the same game behind the menu */
 function quitToHome() {
   cancelGestures();
+  if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
-  game = newGame(['bumper', 'carom', 'snooker', '9'].includes(game.kind) ? game.kind : '8');
+  game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9'].includes(game.kind) ? game.kind : '8'));
+  tutKeptKind = null;
   closeSolo();
   showMenu();
   hud();
@@ -7505,6 +7745,7 @@ function showStats() {
   recTable.replaceChildren(head, body);
   const sk = rec.kinds.snooker;
   snkStat.textContent = `Snooker: ${sk.frames} frame${sk.frames === 1 ? '' : 's'} played, highest break ${sk.high}.`;
+  tutStat.textContent = `Tutorials: ${tutDoneCount()} of ${TUT_IDS.length} done.`;
   recTable.setAttribute('aria-label', 'Games by kind: played, wins and losses against Rookie, Regular and Hustler, and two-player games');
   careerStats();
   openSheet(statsSheet, statsBack);
@@ -7514,6 +7755,7 @@ function showStats() {
 const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tabSolo, panSolo]];
 function pickTab(tab, focus) {
   for (const [t, p] of TABS) { const on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; p.hidden = !on; }
+  lessonAgain.hidden = tab !== tabCtl;   /* the controls' lesson; each game's tab ends with its tutorial (6d) */
   if (focus) tab.focus({ preventScroll: true });
 }
 for (const [t] of TABS) t.addEventListener('click', () => pickTab(t));
@@ -7525,7 +7767,8 @@ tabCtl.parentElement.addEventListener('keydown', e => {
 });
 /* opened from a paused game, the tab for that game; from home, the controls */
 function showHelp() {
-  pickTab(!paused ? tabCtl : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'carom' ? tabCarom : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
+  pickTab(!paused ? tabCtl : tutOn() ? TUT_TABS[solo.id] : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'carom' ? tabCarom : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
+  syncTutLinks(setupKind);
   openSheet(helpSheet, helpBack);
 }
 
@@ -7535,7 +7778,7 @@ playB.addEventListener('click', () => showSetup('bumper'));
 playC.addEventListener('click', () => showSetup('carom'));
 playS.addEventListener('click', () => showSetup('snooker'));
 concedeBtn.addEventListener('click', () => { audioOn(); concedeFrame(); });
-breakBtn.addEventListener('click', () => playSetup(setupKind));
+breakBtn.addEventListener('click', () => { if (!maybeOfferTut(setupKind)) playSetup(setupKind); });   /* a first Break may offer the tutorial (6d) */
 againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); else showSetup('8'); });
 for (const [i, el] of [[0, name1], [1, name2]]) {
   el.addEventListener('input', () => { const n = settings.names.slice(); n[i] = cleanName(el.value); setSetting('names', n); });
@@ -7994,35 +8237,40 @@ function lessonSettle(r) {
   coachShow();
 }
 function coachShow() {
-  const s = solo, st = LESSON_STEPS[s.step];
-  coachStep.textContent = s.again ? 'Close. Try again.' : `Step ${s.step} of 3: ${st.head}`;
-  coachText.textContent = st.text;
-  say(`${s.again ? 'Close. Try again. ' : ''}${st.text}`);
+  const s = solo;
+  if (tutOn()) {
+    const t = tutById(s.id), st = t.steps[s.step];
+    coachStep.textContent = s.again ? 'Close. Try again.' : `${t.name}, step ${s.step + 1} of ${t.steps.length}: ${st.head}`;
+    coachText.textContent = s.then ? st.then.text(s.ctx) : (s.again && s.why ? s.why + ' ' : '') + st.text(s.ctx);
+    coachBtn.textContent = s.then ? 'Next' : 'Show me';
+  } else {
+    const st = LESSON_STEPS[s.step];
+    coachStep.textContent = s.again ? 'Close. Try again.' : `Step ${s.step} of 3: ${st.head}`;
+    coachText.textContent = st.text;
+    coachBtn.hidden = true;
+  }
+  say(`${s.again ? 'Close. Try again. ' : ''}${coachText.textContent}`);
   coach.hidden = false;
   coach.classList.remove('fresh'); void coach.offsetWidth; coach.classList.add('fresh');
   coachKey = '';
   placeCoach();
 }
 function coachHide() { coach.hidden = true; coachRing.hidden = true; coachKey = ''; }
+/* each frame of the lesson or a tutorial: the lesson's step checks, and the card and ring placed */
 function lessonLoop() {
   cancelAnimationFrame(coachRaf);
   const tick = () => {
-    if (!lessonOn()) { coachHide(); return; }
-    lessonCheck();
+    if (!coachOn()) { coachHide(); return; }
+    if (lessonOn()) lessonCheck();
     placeCoach();
     coachRaf = requestAnimationFrame(tick);
   };
   coachRaf = requestAnimationFrame(tick);
 }
-/* the ring round what to use (the 1, the wheel, the bar), and the card where it hides the least:
-   of nine spots in the stage, the one furthest from the cue ball, the 1, the pocket and the
-   line through them, and clear of the ring */
-function placeCoach() {
-  const s = solo, on = lessonOn() && state !== 'menu' && state !== 'over' && !paused && !rp;
-  if (!on) { coach.hidden = true; coachRing.hidden = true; return; }
-  coach.hidden = false; coachRing.hidden = false;
+/* the lesson's ring round what to use (the 1, the wheel, the bar) and the points its card keeps off */
+function lessonMarks() {
+  const s = solo, one = game.balls.find(b => b.n === 1 && b.on);
   let ring;
-  const one = game.balls.find(b => b.n === 1 && b.on);
   if (s.step === 1 && one) { const p = toScreen(one.x, one.y), r = BALL_R * view.k + 10; ring = [p[0] - r, p[1] - r, 2 * r, 2 * r]; }
   else {
     /* just outside the control, but on screen: at an edge it hugs the control instead */
@@ -8030,20 +8278,37 @@ function placeCoach() {
     const l = Math.max(2, q.left - 4), t = Math.max(2, q.top - 4), r = Math.min(W - 2, q.right + 4), b = Math.min(H - 2, q.bottom + 4);
     ring = [l, t, r - l, b - t];
   }
+  const P = lessonPoints(), pk = POCKETS[LESSON_POCKET], c = cueBall();
+  return { ring, round: s.step === 1, pts: [[c.x, c.y], P.b, pk, [(c.x + P.b[0]) / 2, (c.y + P.b[1]) / 2]] };
+}
+/* the ring round the thing to use (or null), and the card where it hides the least: of nine
+   spots in the stage, the one furthest from the marks' points (the cue ball, the ball and pocket
+   to play, the line between them), and clear of the ring */
+function placeCoach() {
+  const s = solo, tut = tutOn();
+  const on = coachOn() && state !== 'menu' && (state !== 'over' || (tut && !!s.then)) && !paused && !rp;
+  if (!on) { coach.hidden = true; coachRing.hidden = true; return; }
+  coach.hidden = false;
+  if (tut) { const off = !(s.then || (state === 'aim' && !!tutSol(s.id, s.step))); if (coachBtn.hidden !== off) { coachBtn.hidden = off; coachKey = ''; } }
+  const M = tut ? tutMarks() : lessonMarks(), ring = M.ring;
+  coachRing.hidden = !ring;
   const st = stage.getBoundingClientRect(), w = coach.offsetWidth, h = coach.offsetHeight, m = 12;
-  const key = [s.step, ...ring.map(Math.round), Math.round(st.width), Math.round(st.height), w, h, Math.round(view.k), view.portrait].join();
+  const key = [s.step, !!s.then, ...(ring || []).map(Math.round), Math.round(st.width), Math.round(st.height), w, h, Math.round(view.k), view.portrait].join();
   if (key === coachKey) return;
   coachKey = key;
-  coachRing.classList.toggle('round', s.step === 1);
-  Object.assign(coachRing.style, { left: ring[0] + 'px', top: ring[1] + 'px', width: ring[2] + 'px', height: ring[3] + 'px' });
-  const P = lessonPoints(), pk = POCKETS[LESSON_POCKET], c = cueBall();
-  const pts = [[c.x, c.y], P.b, pk, [(c.x + P.b[0]) / 2, (c.y + P.b[1]) / 2]].map(q => toScreen(q[0], q[1]));
+  if (ring) {
+    coachRing.classList.toggle('round', !!M.round);
+    Object.assign(coachRing.style, { left: ring[0] + 'px', top: ring[1] + 'px', width: ring[2] + 'px', height: ring[3] + 'px' });
+  }
+  const pts = M.pts.map(q => toScreen(q[0], q[1]));
+  /* snooker's scoreboard on the top rail stays in sight */
+  if (!snkBar.hidden) { const q = snkBar.getBoundingClientRect(); if (q.width) pts.push([q.left + q.width / 2, q.top + q.height / 2], [q.left + 10, q.top + q.height / 2], [q.right - 10, q.top + q.height / 2]); }
   const rr = BALL_R * view.k + 26;
   let best = null;
   for (const fy of [0, 0.5, 1]) for (const fx of [0, 0.5, 1]) {
     const x = st.left + m + fx * Math.max(0, st.width - w - 2 * m), y = st.top + m + fy * Math.max(0, st.height - h - 2 * m);
     const d = Math.min(...pts.map(([px, py]) => Math.hypot(Math.max(x - px, 0, px - x - w), Math.max(y - py, 0, py - y - h)) - rr));
-    const hit = x < ring[0] + ring[2] && x + w > ring[0] && y < ring[1] + ring[3] && y + h > ring[1];
+    const hit = !!ring && x < ring[0] + ring[2] && x + w > ring[0] && y < ring[1] + ring[3] && y + h > ring[1];
     const score = Math.min(d, 400) - (hit ? 1000 : 0) + (fx === 0.5 ? 6 : 0);
     if (!best || score > best.score) best = { x, y, score };
   }
@@ -8060,6 +8325,270 @@ lessonBtn.addEventListener('click', () => { audioOn(); startLesson(); });
 lessonAgain.addEventListener('click', () => { audioOn(); startLesson(); });
 donePlay.addEventListener('click', () => { audioOn(); quitToHome(); showSetup('8'); });
 doneHome.addEventListener('click', () => quitToHome());
+
+/* ---- the tutorials: one per game (TUTORIALS, sim 1l), its rules taught by playing them. A
+   tutorial is a solo session (solo.kind 'tutorial') on an ordinary game of that kind, no
+   game.mode: the aim guide, its illegal ring and judge are the real ones. settle() hands each shot
+   to tutSettle(), which judges it with the step's goal (tutJudge, the real judge underneath): done,
+   the next step (a banner says what it taught), or for a step with `then` the result stays on the
+   table with the coach's words and a Next button; not done, the step's layout comes back ("Close.
+   Try again.", and why). The coach card (placeCoach, shared with the lesson) has one button, Show
+   me: the stored solution (TUT_SOLS) played through commit(), the same path as the trick shots'
+   Show me, which counts like a shot of the player's own. Only it and the power bar shoot.
+   Each tutorial plays on its own table (setTable and setPockets with the tutorial's arguments);
+   the geometry before it (TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, as the
+   art keeps it) is kept in solo.keep and put back exactly on the way home (tutRestore), and the
+   settings are never touched. A step's auto aim points at its ball whatever the setting (a hint,
+   not the line), and the full guide shows whatever the setting (solo.guide).
+   Entry: the setup sheet's link (until that tutorial is done), How to play's button on each game's
+   tab, and the offer on a game's first Break (Show me, Skip: not for this game again, Don't ask
+   again: not for any). tutRec persists under TUT_KEY: { v: 1, done: { id: true }, skipped:
+   { id: true }, never }; anything unreadable starts fresh. ---- */
+const TUT_KEY = 'felt.tutorials.v1', TUT_IDS = ['8', '9', 'bumper', 'carom', 'snooker'];
+const TUT_TABS = { 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk };
+const TUT_WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker' };
+const TUT_RECAP = {
+  8: 'Open table, your group first, ball in hand after a foul, and the 8 last. The full rules are in How to play.',
+  9: 'The lowest ball first, any pot counts, and a legal 9 wins whenever it drops. The full rules are in How to play.',
+  bumper: 'Your marked ball first, round the posts to the far cup, and never your own cup. The full rules are in How to play.',
+  carom: 'Both balls, with three cushions before the second, and the cushions can come first. The full rules are in How to play.',
+  snooker: 'A red, then a colour, and again; ball in hand in the D after an in-off; then the colours in order. The full rules are in How to play.',
+};
+let tutRec = loadTut();
+function freshTut() { return { v: 1, done: {}, skipped: {}, never: false }; }
+function loadTut() {
+  const r = freshTut();
+  try {
+    const o = JSON.parse(localStorage.getItem(TUT_KEY) || 'null');
+    if (o && typeof o === 'object' && o.v === 1) {
+      for (const id of TUT_IDS) {
+        if (o.done && o.done[id] === true) r.done[id] = true;
+        if (o.skipped && o.skipped[id] === true) r.skipped[id] = true;
+      }
+      r.never = o.never === true;
+    }
+  } catch (e) { }
+  return r;
+}
+function saveTut() { try { localStorage.setItem(TUT_KEY, JSON.stringify(tutRec)); } catch (e) { } }
+const tutDoneCount = () => TUT_IDS.filter(id => tutRec.done[id]).length;
+const geoSigNow = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, TW].join();
+/* a tutorial from its first step; from inside one, the geometry it keeps is the one before it */
+function startTutorial(id) {
+  const t = tutById(id);
+  if (!t) return false;
+  career = null;
+  const keep = tutOn() ? solo.keep : { table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE, kind: game.kind };
+  tutBegin(t, 0, t.ctx ? t.ctx() : {}, keep);
+  return true;
+}
+/* step i of tutorial t on its own table: the layout, a fresh turn, the coach */
+function tutBegin(t, i, ctx, keep) {
+  cpuMode = false;
+  const was = geoSigNow();
+  setTable(...t.table);
+  setPockets(t.pockets);
+  game = tutGame(t, i, ctx);
+  if (geoSigNow() !== was) layout();
+  randomOrient();
+  solo = { kind: 'tutorial', id: t.id, step: i, ctx, keep, again: false, why: '', then: false, demo: false, guide: 'full', cue0: null, rail: null };
+  cueSpin = { x: 0, y: 0 }; power = markPower = 0.5; paused = null; stats = newStats(); aimAngle = 0;
+  hideOverlays();
+  soloAim();
+  const c = cueBall();
+  solo.cue0 = c ? [c.x, c.y] : null;
+  const st = t.steps[i];
+  if (st.flash) flash('foul', st.flash[0], st.flash[1], 1800);
+  /* a system shot starts pointed at its mark on the rail: the hint, not the line */
+  const rs = st.ring(game, { moved: false }) || {}, q = rs.rail ? tutRail() : null;
+  if (q && c) { aimAngle = Math.atan2(q[1] - c.y, q[0] - c.x); keepAim(); }
+  coachShow();
+  lessonLoop();
+  hud();
+}
+const tutStep = i => tutBegin(tutById(solo.id), i, solo.ctx, solo.keep);
+/* the geometry from before the tutorial, exactly; quitToHome then racks the game that was behind the menu */
+let tutKeptKind = null;
+function tutRestore() {
+  const k = solo.keep, was = geoSigNow();
+  setTable(k.table, k.table === 'snooker' ? k.snk : k.shape); POOL_TABLE = k.pool; BUMPER_SHAPE = k.shape; SNOOKER_SIZE = k.snk; setPockets(k.pockets);
+  tutKeptKind = k.kind;
+  if (geoSigNow() !== was) layout();
+  coachHide();
+}
+/* auto aim in a tutorial (autoAim calls it): the step's ball, its pocket marked, the cue at the
+   ball's centre (bumper pool: the ball to strike at the far cup; before the ball to tap is picked,
+   only the hint ring) */
+function tutHint() {
+  const t = tutById(solo.id), i = solo.step, st = t.steps[i], n = tutNum(t, i, solo.ctx, st.aim);
+  if (solo.then || n === undefined) return null;
+  const k = st.pocket === undefined ? -1 : st.pocket;
+  if (game.kind === 'bumper') {
+    if (st.pick !== undefined && game.striker !== st.pick) return { n: st.pick, k: -1, still: true };
+    const b = game.balls.find(o => o.n === game.striker && o.on), T = POCKETS[k];
+    return b && T ? { n: b.n, k, to: Math.atan2(T[1] - b.y, T[0] - b.x) } : null;
+  }
+  const b = game.balls.find(o => o.n === n && o.on), c = cueBall();
+  return b && c ? { n, k, to: Math.atan2(b.y - c.y, b.x - c.x) } : null;
+}
+/* a tutorial shot is over (settleSolo) */
+function tutSettle(r) {
+  const s = solo, t = tutById(s.id), i = s.step, st = t.steps[i];
+  const j = tutJudge(t, i, game, r), v = j.n.verdict;
+  felt.lastTut = { id: t.id, step: i, ok: j.ok, why: j.why, demo: s.demo, foul: v.foul || null };
+  s.demo = false;
+  if (!j.ok) {
+    game = tutGame(t, i, s.ctx);
+    soloAim();
+    s.again = true; s.why = j.why;
+    const c = cueBall();
+    s.cue0 = c ? [c.x, c.y] : null;
+    if (v.foul) { flash('foul', `Foul: ${v.foul}`, 'The balls go back', 1500); sfx('foul', 1); }
+    coachShow();
+    hud();
+    return;
+  }
+  if (t.ctx && i === 0 && j.n.groups && j.n.groups[0]) s.ctx.group = j.n.groups[0];
+  game = Object.assign(j.n, { balls: j.n.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0, wx: 0, wy: 0, wz: 0 })) });
+  if (st.then) {
+    state = 'over'; s.then = true; s.again = false; hint = null;
+    sfx('turn', 1);
+    coachShow();
+    hud();
+    return;
+  }
+  tutNext(st.done ? st.done(j.n) : null);
+}
+/* on to the next step (a banner with what the last one taught), or the finish */
+function tutNext(words) {
+  const s = solo, t = tutById(s.id), i = s.step;
+  if (i + 1 >= t.steps.length) { tutFinish(); return; }
+  tutBegin(t, i + 1, s.ctx, s.keep);
+  if (words && !t.steps[i + 1].flash) flash('turn', words[0], words[1], 1500);
+  sfx('point', 1);
+}
+function tutFinish() {
+  const t = tutById(solo.id);
+  tutRec.done[t.id] = true; saveTut();
+  state = 'over'; hint = null;
+  coachHide();
+  banner.classList.remove('show');   /* the last step's banner does not linger over the card */
+  tutDoneTitle.textContent = `That's ${t.name}.`;
+  tutDoneSub.textContent = TUT_RECAP[t.id];
+  tutPlay.textContent = `Play ${t.name}`;
+  tutDone.classList.add('show');
+  if (byKeys) tutPlay.focus({ preventScroll: true });
+  say(`Tutorial complete. That's ${t.name}.`);
+  sfx('win', 1);
+  hud();
+}
+/* the coach's button: Show me (the stored solution from the step's own layout, the cue ball placed
+   first in hand, the ball to strike picked in bumper pool), or Next after a result shown */
+function tutShowMe() {
+  if (!tutOn() || paused) return false;
+  if (solo.then) { tutNext(null); return true; }
+  const t = tutById(solo.id), sol = tutSol(solo.id, solo.step);
+  if (!sol || state !== 'aim') return false;
+  game = tutGame(t, solo.step, solo.ctx);
+  soloAim();
+  if (sol.place) game = placeCue(game, sol.place[0], sol.place[1]);
+  if (sol.ball !== undefined) { game.striker = sol.ball; picked = true; }
+  solo.demo = true;
+  aimAnim = null; hint = null; aimAngle = sol.angle; cueSpin = spinOf(sol.spin);
+  const m = markPower;
+  commit(sol.power);
+  markPower = m;
+  flash('turn', 'Show me', 'One way to do it', 1100);
+  return true;
+}
+/* what the coach rings, as a screen box, and the table points its card keeps off */
+function tutMarks() {
+  const s = solo, t = tutById(s.id), i = s.step, st = t.steps[i], c = cueBall();
+  const moved = !!c && !!s.cue0 && Math.hypot(c.x - s.cue0[0], c.y - s.cue0[1]) > 1e-4;
+  const spec = (s.then ? st.then.ring(game) : st.ring(game, { moved })) || {};
+  const pts = [], k = view.k, ballN = n => game.balls.find(b => b.n === n && b.on);
+  if (c && c.on) pts.push([c.x, c.y]);
+  /* carom's three balls are all in play; elsewhere the ball and pocket to play, the ringed thing */
+  if (game.kind === 'carom') for (const b of game.balls) if (b.on) pts.push([b.x, b.y]);
+  const aim = ballN(tutNum(t, i, s.ctx, st.aim));
+  if (aim) { pts.push([aim.x, aim.y]); if (c) pts.push([(c.x + aim.x) / 2, (c.y + aim.y) / 2]); }
+  if (POCKETS[st.pocket]) { pts.push(POCKETS[st.pocket]); if (aim) pts.push([(aim.x + POCKETS[st.pocket][0]) / 2, (aim.y + POCKETS[st.pocket][1]) / 2]); }
+  const round = (x, y, r) => { pts.push([x, y]); const p = toScreen(x, y); return { ring: [p[0] - r, p[1] - r, 2 * r, 2 * r], round: true, pts }; };
+  if (spec.ball !== undefined) { const b = ballN(s.then ? spec.ball : tutNum(t, i, s.ctx, spec.ball)); if (b) return round(b.x, b.y, BALL_R * k + 10); }
+  if (spec.pocket !== undefined && POCKETS[spec.pocket]) return round(POCKETS[spec.pocket][0], POCKETS[spec.pocket][1], POCKET_R[spec.pocket] * k + 9);
+  if (spec.spot !== undefined && SPOTS[spec.spot]) return round(SPOTS[spec.spot][0], SPOTS[spec.spot][1], BALL_R * k + 12);
+  if (spec.rail) { const q = tutRail(); if (q) return round(q[0], q[1], 16); }
+  if (spec.d && D_R) {
+    const a = toScreen(HEAD_X - D_R, TW / 2 - D_R), b = toScreen(HEAD_X, TW / 2 + D_R), pad = 8;
+    const l = Math.min(a[0], b[0]) - pad, tp = Math.min(a[1], b[1]) - pad;
+    return { ring: [l, tp, Math.abs(a[0] - b[0]) + 2 * pad, Math.abs(a[1] - b[1]) + 2 * pad], round: false, pts };
+  }
+  if (spec.el) {
+    const e = document.getElementById(spec.el), q = e && !e.hidden ? e.getBoundingClientRect() : null;
+    if (q && q.width) return { ring: [q.left - 4, q.top - 4, q.width + 8, q.height + 8], round: false, pts };
+  }
+  return { ring: null, pts };
+}
+/* the system shot's mark: where the stored solution's line first meets a cushion, out on the rail
+   by the diamonds (the cue ball's centre at that contact, resultOf's railAt, pushed out past the
+   nose); cached per step */
+function tutRail() {
+  const s = solo, key = s.id + '/' + s.step;
+  if (s.rail && s.rail.key === key) return s.rail.at;
+  const sol = tutSol(s.id, s.step), c = cueBall();
+  let at = null;
+  if (sol && c) {
+    const r = simulateShot(game.balls, { angle: sol.angle, power: sol.power, spin: sol.spin, ball: c.n }), p = r.railAt[c.n];
+    if (p) {
+      const d = [p[0], TL - p[0], p[1], TW - p[1]], m = d.indexOf(Math.min(...d)), out = BALL_R + 0.035;
+      at = [p[0] + (m === 0 ? -out : m === 1 ? out : 0), p[1] + (m === 2 ? -out : m === 3 ? out : 0)];
+    }
+  }
+  s.rail = { key, at };
+  return at;
+}
+/* the first Break of a game whose tutorial is neither done nor turned down: the offer instead */
+function maybeOfferTut(kind) {
+  if (!tutById(kind) || tutRec.done[kind] || tutRec.skipped[kind] || tutRec.never) return false;
+  tutOffer.dataset.kind = kind;
+  tutOfferTitle.textContent = `First time playing ${TUT_WORD[kind]}?`;
+  tutOfferBall.className = 'ball ' + KINDS[kind].ball; tutOfferBall.textContent = KINDS[kind].num;
+  tutOffer.classList.add('show');
+  if (byKeys) tutOfferGo.focus({ preventScroll: true });
+  return true;
+}
+/* the offer's answer: 'go' plays the tutorial; 'skip' (not for this game again) and 'never' (not
+   for any game) break as asked */
+function tutOfferAnswer(a) {
+  const kind = tutOffer.dataset.kind;
+  tutOffer.classList.remove('show');
+  if (!kind) return;
+  if (a === 'go') { audioOn(); startTutorial(kind); return; }
+  if (a === 'never') tutRec.never = true; else tutRec.skipped[kind] = true;
+  saveTut();
+  playSetup(kind);
+}
+/* the setup sheet's link (showSetup) and How to play's buttons (showHelp) say where each stands */
+function syncTutLinks(kind) {
+  const t = tutById(kind);
+  tutLink.hidden = !t || !!tutRec.done[kind];
+  if (t) tutLinkText.innerHTML = `New to ${TUT_WORD[kind]}? <b>Play the tutorial</b>`;
+  tutLink.setAttribute('aria-label', t ? `New to ${TUT_WORD[kind]}? Play the tutorial` : '');
+  for (const b of document.querySelectorAll('.tutGo')) b.lastChild.textContent = `${tutRec.done[b.dataset.tut] ? 'Replay' : 'Play'} the ${TUT_WORD[b.dataset.tut]} tutorial`;
+}
+coachBtn.addEventListener('click', () => { audioOn(); tutShowMe(); });
+tutLink.addEventListener('click', () => { audioOn(); startTutorial(setupKind); });
+for (const b of document.querySelectorAll('.tutGo')) b.addEventListener('click', () => { audioOn(); startTutorial(b.dataset.tut); });
+tutOfferGo.addEventListener('click', () => tutOfferAnswer('go'));
+tutOfferSkip.addEventListener('click', () => tutOfferAnswer('skip'));
+tutOfferNever.addEventListener('click', () => tutOfferAnswer('never'));
+tutPlay.addEventListener('click', () => { const id = solo && solo.id; audioOn(); quitToHome(); if (id) showSetup(id); });
+tutHome.addEventListener('click', () => quitToHome());
+Object.assign(felt, { tutorial: startTutorial, tutShowMe, tutSol: (id, i) => tutSol(id, i), lastTut: null });
+Object.defineProperties(felt, {
+  tutRec: { get: () => JSON.parse(JSON.stringify(tutRec)) },
+  tut: { get: () => tutOn() ? { id: solo.id, step: solo.step, then: solo.then, again: solo.again, group: solo.ctx.group || null } : null },
+});
 
 /* ---- the career: eight CPU players on a ladder in three tiers, each on cpuSearch's level for
    their tier (the CPU's only knob: its play stays the sim's, seeded and deterministic) with their

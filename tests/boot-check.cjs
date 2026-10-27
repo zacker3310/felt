@@ -89,6 +89,10 @@ const artContrast = page => page.evaluate(() => {
     if (lc.length) tabs.push({ lc });
   }
   check('how to play: seven tabs (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), one panel each, the sheet inside the screen (the tab row scrolls), text 4.5:1', tabs.length === 7 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100 && t.fits), JSON.stringify(tabs));
+  /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS) */
+  const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
+    .filter(r => r.style && ['backdrop-filter', '-webkit-backdrop-filter', 'filter'].some(k => /blur/.test(r.style.getPropertyValue(k)))).map(r => r.selectorText));
+  check('no backdrop or blur filters anywhere (the table behind a sheet or a callout stays sharp)', blurs.length === 0, JSON.stringify(blurs));
   check('no em dashes anywhere on the page', await page.evaluate(() => !document.documentElement.outerHTML.includes('\u2014')));
   await page.click('#helpBack');
   await page.setViewportSize(wide);

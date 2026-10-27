@@ -399,6 +399,10 @@ const artContrast = page => page.evaluate(() => {
   await ios.page.waitForTimeout(2300);
   const st2 = await ios.page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim());
   check('a size change is picked up', st2 === '800px', st2);
+  /* iOS reporting a layout window taller than what is visible (seen on smaller iPhones as a home-screen
+     app): the app follows the visible height, so the controls stay on screen */
+  const vis = await ios.page.evaluate(() => { const real = visualViewport.height; Object.defineProperty(visualViewport, 'height', { configurable: true, get: () => real - 60 }); relayout(); const c = ctl.getBoundingClientRect(); return { appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), want: Math.floor(real - 60), ctlBottom: c.bottom }; });
+  check('home-screen app: never taller than the visible area (visualViewport); the controls end inside it', vis.appH === vis.want + 'px' && vis.ctlBottom <= vis.want, JSON.stringify(vis));
   check('Settings shows which build is running', await ios.page.evaluate(() => /^build \d{4}-\d{2}-\d{2}/.test(diag.textContent)), await ios.page.evaluate(() => diag.textContent));
   check('home-screen app: no console errors', ios.errors.length === 0, ios.errors.join(' | '));
   await ios.browser.close();

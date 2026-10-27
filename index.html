@@ -3874,7 +3874,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-27b';
+const BUILD = 'build 2026-10-27c';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -3884,7 +3884,13 @@ function appSize() {
     document.body.appendChild(sizeProbe);
   }
   const r = sizeProbe.getBoundingClientRect();
-  const w = Math.round(r.width) || innerWidth, h = Math.round(r.height) || innerHeight;
+  const w = Math.round(r.width) || innerWidth;
+  let h = Math.round(r.height) || innerHeight;
+  /* and never taller than what is actually on screen: iOS home-screen apps have reported a layout
+     window taller than the visible one on some phones, which cut the controls off the bottom.
+     visualViewport is the visible area (ignored while pinch-zoomed, when it is smaller on purpose). */
+  const vv = window.visualViewport;
+  if (vv && vv.height > 0 && Math.abs(vv.scale - 1) < 0.01 && vv.height < h - 0.5) h = Math.floor(vv.height);
   return [w, h];
 }
 /* the top safe-area inset as laid out (the status bar a page under a translucent bar sits beneath) */
@@ -3902,7 +3908,7 @@ function layout() {
   table.width = Math.round(w * dpr); table.height = Math.round(h * dpr);
   table.style.width = w + 'px'; table.style.height = h + 'px';
   layoutSig = sizeSig();
-  diag.textContent = `${BUILD}: ${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}, top inset ${insetTop()}`;
+  diag.textContent = `${BUILD}: ${w}x${h} @${+dpr.toFixed(2)}x, canvas ${table.width}x${table.height}, ${standalone() ? 'home screen' : 'browser'}, inner ${innerWidth}x${innerHeight}, screen ${screen.width}x${screen.height}, top inset ${insetTop()}, visible ${window.visualViewport ? Math.round(visualViewport.height) : '?'}`;
   RAIL = railFor(w, h);
   /* upright: the strip under the table, or the side column where that is clearly bigger (a
      tablet); on its side the column on the right */

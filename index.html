@@ -274,9 +274,6 @@ h1 i { font-style: normal; color: var(--signal); }
 .bc { background-color: #f4c430; background-image: radial-gradient(circle at 35% 30%, #ffe48a, #c99512 72%); }
 .bb { background-color: #c8262c; background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 17%, transparent 19%), radial-gradient(circle at 35% 30%, #e0473f, #8e1a1d 72%); }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
-.how dl { margin: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px 12px; font-size: 14px; line-height: 1.45; }
-.how dt { color: var(--text); font-weight: 600; }
-.how dd { margin: 0; color: var(--muted); }
 kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 
 /* ---- the home screen: the menu with no game in progress. One hero (Play again, or on a first
@@ -470,13 +467,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   #prefsSheet .field { grid-template-columns: 84px minmax(0, 1fr); }
 }
 /* stats: four numbers, then a row per game */
-#statsSheet .sheet, #helpSheet .sheet { max-width: 560px; }
-/* How to play scrolls inside itself, like an iOS sheet: the title and the topic tabs stay pinned
-   while a long topic (snooker's rules) scrolls under them */
-#helpSheet .sheet { max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overscroll-behavior: contain; padding-top: 0; }
-.howTop { position: sticky; top: 0; z-index: 1; margin: 0 -22px; padding: 24px 22px 0; background: var(--panel); }
-.howTop .tabs { margin-bottom: 12px; }
-.howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -12px; height: 12px; background: linear-gradient(var(--panel), transparent); pointer-events: none; }
+#statsSheet .sheet { max-width: 560px; }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
 .kpis div { min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
 .kpis dt { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -489,13 +480,100 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .rec thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
 .rec tbody th { font-weight: 700; }
 .rec td.z { color: var(--muted); }
-/* how to play: tabs over the topics */
-.tabs { display: flex; gap: 4px; margin: 0 0 16px; padding: 4px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
-.tabs::-webkit-scrollbar { display: none; }
-.tabs button { flex: 1 0 auto; min-height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
-.tabs button:hover { color: var(--text); }
-.tabs button[aria-selected="true"] { background: var(--panel-3); color: var(--text); box-shadow: inset 0 0 0 1px #55555e; }
-.pan[hidden] { display: none; }
+/* ---- How to play: a navigation stack in the iOS manner. The root page is an inset grouped list of
+   the topics (the home's Solo list: hairlines inset to the text, chevrons), each with a small tile
+   of cloth and its ball. A topic is pushed in from the right: its rules as short rows (a heading
+   and a sentence or two), the rare cases in a quiet fine print, and its action (the game's
+   tutorial, or the lesson) pinned at the foot, clear of the home indicator. The back button pops
+   to the list, and from the list goes home. The header stays pinned while the page scrolls under
+   it. Full screen on a phone held upright, a card on anything wider. One accent from the cloth. ---- */
+#helpSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
+[data-cloth="red"] #helpSheet { --accent: #ff8a7a; }
+[data-cloth="blue"] #helpSheet { --accent: #7cb6ff; }
+#helpSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+  padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+@media (max-width: 600px) {
+  #helpSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  #helpSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  #helpSheet .howTop { padding-top: calc(var(--sat) + 14px); }
+}
+.howTop { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 18px var(--pr) 8px var(--pl); background: var(--page); }
+.howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px; background: linear-gradient(var(--page), rgba(11, 11, 12, 0)); pointer-events: none; }
+#helpSheet .shead { margin: 0; gap: 14px; }
+#helpSheet .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#helpSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+#helpSheet .back:hover { background: #26262a; }
+.how .group { margin: 8px 0 0; padding: 0; list-style: none; overflow: hidden; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.howList { padding: 0 0 max(24px, var(--sab)); }
+.howList[hidden], .pan[hidden] { display: none; }
+/* on a full-screen phone a short page still puts its action at the foot of the screen */
+#helpSheet .sheet { display: flex; flex-direction: column; }
+.how .pan:not([hidden]) { flex: 1 0 auto; display: flex; flex-direction: column; }
+.how .pan .howAct { margin-top: auto; }
+/* the topics */
+.topic { position: relative; width: 100%; min-height: 62px; display: flex; align-items: center; gap: 14px; padding: 9px 14px; border: 0; border-radius: 0;
+  background: transparent; text-align: left; color: var(--label); transition: background-color .15s; }
+.topic + .topic::before, .how .rules li + li::before { content: ""; position: absolute; top: 0; left: 60px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.topic:hover { background: rgba(255, 255, 255, .04); }
+.topic:active { background: rgba(255, 255, 255, .09); transition-duration: 0s; }
+.topic .tt { flex: 1; min-width: 0; }
+.topic b { display: block; font-size: 17px; font-weight: 500; line-height: 1.25; }
+.topic small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic .chev { color: var(--label-3); }
+.htile { flex: none; width: 32px; height: 32px; display: grid; place-items: center; overflow: hidden; border-radius: 9px;
+  background: radial-gradient(circle at 50% 35%, #2b7d5e, #12402f 92%); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
+[data-cloth="red"] .htile { background: radial-gradient(circle at 50% 35%, #b2343b, #5c1218 92%); }
+[data-cloth="blue"] .htile { background: radial-gradient(circle at 50% 35%, #346fbd, #122f5c 92%); }
+.htile > svg { width: 32px; height: 32px; }
+.htile > svg[width] { width: 20px; height: 20px; }
+.htile .ball { width: 20px; height: 20px; font-size: 8px; box-shadow: inset -2px -3px 4px rgba(0, 0, 0, .35), 0 1.5px 2px rgba(0, 0, 0, .4); }
+/* a topic's rules: a heading and a sentence or two each */
+.how .rules li { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 12px 16px 13px; }
+.how .rules li + li::before { left: 16px; }
+.how .rules.keys li + li::before, .how .rules.touch li + li::before { left: 60px; }
+.how .rules li > div { flex: 1; min-width: 0; }
+.how .rules b { display: block; font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--label); }
+.how .rules p { margin: 2px 0 0; font-size: 15px; line-height: 1.4; color: var(--label-2); }
+.how .rules .ic { flex: none; width: 30px; height: 30px; margin-top: 1px; display: grid; place-items: center; border-radius: 8px; color: var(--accent); background: rgba(255, 255, 255, .08); }
+.how .rules .ic svg { width: 19px; height: 19px; }
+/* snooker's colours in order, a dot and its value each */
+.cols { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--label); font-variant-numeric: tabular-nums; }
+.cols > span { display: inline-flex; align-items: center; gap: 6px; }
+.cols i { width: 13px; height: 13px; border-radius: 50%; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .3); }
+.cols i.k { background: radial-gradient(circle at 35% 30%, #5a5a60, #0e0e10 70%); box-shadow: 0 0 0 1px #6e6e76; }
+.how kbd { display: inline-block; min-width: 22px; padding: 3px 6px; border: 0; border-radius: 6px; background: #2e2e33; color: var(--label); font-size: 12px; font-weight: 600; line-height: 1.1;
+  font-family: inherit; text-align: center; vertical-align: 1px; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .45), inset 0 0 0 .5px rgba(255, 255, 255, .14); }
+/* the fine print: quiet, smaller, no container */
+.how .fineHead { margin: 26px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
+.how .fine { margin: 0; padding: 0 16px; list-style: none; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+.how .fine li + li { margin-top: 8px; }
+#panSolo { padding-bottom: max(28px, var(--sab)); }
+/* the page's action, pinned at the foot */
+.howAct { position: sticky; bottom: 0; z-index: 1; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(18px, var(--sab)) var(--pl);
+  background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 22px); }
+.howAct button { width: 100%; min-height: 52px; margin: 0; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #07110b; font-size: 17px; font-weight: 600;
+  transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), filter .15s; }
+.howAct button[hidden] { display: none; }
+.howAct button svg { color: currentColor; }
+.howAct button:hover { filter: brightness(1.06); }
+.howAct button:active { transform: scale(.98); transition-duration: .12s; }
+/* push and pop: the page comes in from the right, the list back from the left */
+.how .push { animation: pushIn .4s cubic-bezier(.22, .9, .28, 1) both; }
+.how .pop { animation: popIn .4s cubic-bezier(.22, .9, .28, 1) both; }
+#helpTitle.swap { animation: titleIn .32s ease-out both; }
+@keyframes pushIn { from { transform: translateX(100%); } }
+@keyframes popIn { from { transform: translateX(-30%); opacity: .2; } }
+@keyframes titleIn { from { opacity: 0; transform: translateX(16px); } }
+/* a short screen (a phone on its side): a tighter header and foot, so more rules show */
+@media (max-height: 500px) {
+  .howTop { padding-top: 12px; padding-bottom: 4px; }
+  #helpSheet .shead .title { font-size: 24px; }
+  .howAct { padding-top: 16px; padding-bottom: max(12px, var(--sab)); }
+  .howAct button { min-height: 46px; font-size: 16px; }
+  .how .rules li { padding-top: 10px; padding-bottom: 11px; }
+}
 @media (max-height: 500px) {
   .sheet { padding: 16px 20px 16px; }
   .shead { margin-bottom: 8px; }
@@ -504,6 +582,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (prefers-reduced-motion: reduce) {
   .overlay.show .sheet { animation: none; }
   .hero, .tile, .nav, .hero:active, .tile:active, .nav:active { transition: none; transform: none; }
+  .how .push, .how .pop, #helpTitle.swap { animation: none; }
+  .topic, .howAct button, .howAct button:active { transition: none; transform: none; }
   #menu.show:not([data-paused]) .newgame > * { animation: none; }
 }
 /* game over */
@@ -993,95 +1073,170 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 </div>
 
 <div class="overlay" id="helpSheet" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-  <div class="sheet how">
+  <div class="sheet how" id="howSheet">
     <div class="howTop">
     <div class="shead"><button class="back" id="helpBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><h2 class="title" id="helpTitle">How to play</h2></div></div>
-    <div class="tabs" role="tablist" aria-label="Topics">
-      <button role="tab" id="tabCtl" aria-controls="panCtl" aria-selected="true">Controls</button>
-      <button role="tab" id="tab8" aria-controls="pan8" aria-selected="false" tabindex="-1">8-ball</button>
-      <button role="tab" id="tab9" aria-controls="pan9" aria-selected="false" tabindex="-1">9-ball</button>
-      <button role="tab" id="tabBump" aria-controls="panBump" aria-selected="false" tabindex="-1">Bumper</button>
-      <button role="tab" id="tabCarom" aria-controls="panCarom" aria-selected="false" tabindex="-1">Carom</button>
-      <button role="tab" id="tabSnk" aria-controls="panSnk" aria-selected="false" tabindex="-1">Snooker</button>
-      <button role="tab" id="tabSolo" aria-controls="panSolo" aria-selected="false" tabindex="-1">Solo</button>
     </div>
+    <!-- the root page: one row per topic, each opening its page -->
+    <div class="howList" id="howList">
+      <div class="group" role="group" aria-label="Topics">
+        <button class="topic" id="tabCtl" aria-controls="panCtl"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M13.6 18.4l5.2-5.2" fill="none" stroke="#f6f4ec" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1.6 2.6"/><circle cx="22" cy="10" r="4.4" fill="none" stroke="#f6f4ec" stroke-width="1.5"/><circle cx="10.5" cy="21.5" r="5" fill="#f6f4ec"/></svg></span><span class="tt"><b>Controls</b><small>Aim, power, spin</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tab8" aria-controls="pan8"><span class="htile" aria-hidden="true"><span class="ball b8">8</span></span><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tab9" aria-controls="pan9"><span class="htile" aria-hidden="true"><span class="ball b9">9</span></span><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabBump" aria-controls="panBump"><span class="htile" aria-hidden="true"><span class="ball bb"></span></span><span class="tt"><b>Bumper pool</b><small>Five each, to the far cup</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabCarom" aria-controls="panCarom"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="10.5" r="4.6" fill="#d8302e"/><circle cx="10" cy="20.5" r="4.6" fill="#f6f4ec"/><circle cx="22" cy="20.5" r="4.6" fill="#f4c430"/></svg></span><span class="tt"><b>Three-cushion</b><small>Three cushions, no pockets</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabSnk" aria-controls="panSnk"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="20.5" cy="12" r="5.2" fill="#141416" stroke="#f6f4ec" stroke-opacity=".35" stroke-width=".8"/><circle cx="11.5" cy="20" r="5.2" fill="#d8302e"/></svg></span><span class="tt"><b>Snooker</b><small>A red, then a colour</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabSolo" aria-controls="panSolo"><span class="htile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#f2c94c" width="20" height="20"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Solo modes</b><small>Practice, tricks, career</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+      </div>
     </div>
-    <div class="pan" id="panCtl" role="tabpanel" aria-labelledby="tabCtl">
-      <dl class="keys">
-        <dt>Aim</dt><dd>Point at the cloth, or click a spot; drag on the table to swing the cue round the cue ball. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> fine-tune (<kbd>Shift</kbd> coarse, <kbd>Alt</kbd> fine), and so does the ridged wheel beside the power bar (drag it or scroll on it). A fine-tuned aim holds still until the mouse moves away or clicks, and the aim never follows the pointer off the cloth. Auto aim starts each turn pointed at the ball to play next and marks a pocket for it: the cut is up to you.</dd>
-        <dt>Shoot</dt><dd>Pull along the power bar (down, or right when it lies flat). Past a short dead zone the cue draws back: let go to shoot, the further the harder. To cancel, come back past the start or slide off the bar. Nothing else shoots: not the table, not a key.</dd>
-        <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double click it or press <kbd>R</kbd> to centre.</dd>
-        <dt>In hand</dt><dd>The cue ball starts on a legal spot; drag it to move it, as often as you like. Letting go never locks it: only the shot does. Let go somewhere illegal and it goes back to the last good spot. Or press <kbd>M</kbd>, move it with the arrows (<kbd>Shift</kbd> for bigger steps) and press <kbd>M</kbd> again to aim.</dd>
-        <dt>Pause</dt><dd>The pause button or <kbd>Esc</kbd>. The game waits. <kbd>Esc</kbd> also closes a sheet like this one.</dd>
-      </dl>
-      <dl class="touch">
-        <dt>Aim</dt><dd>Tap where the cue ball should go, or drag anywhere on the table to swing the cue: it follows your finger round the cue ball. For the last hair, roll the ridged wheel beside the power bar. With auto aim on, each turn starts pointed at the ball to play next, with a pocket marked for it: the cut is up to you. The table only aims: it never shoots.</dd>
-        <dt>Shoot</dt><dd>Pull along the power bar. Past a short dead zone the cue draws back on the table: let go to shoot, the further the harder. To cancel, slide back to the start or off the bar.</dd>
-        <dt>English</dt><dd>Move the blue tip on the cue ball: high for follow, low for draw, the sides for english. Double tap it to centre.</dd>
-        <dt>In hand</dt><dd>The cue ball starts on a legal spot. Drag it (start on or next to it) to move it, as often as you like: letting go never locks it, only the shot does. Let go somewhere illegal and it goes back to the last good spot. A drag anywhere else still aims.</dd>
-        <dt>Pause</dt><dd>The pause button. The game waits.</dd>
-      </dl>
-    </div>
-    <div class="pan" id="pan8" role="tabpanel" aria-labelledby="tab8" hidden>
-      <dl class="rules">
-        <dt>Break</dt><dd>Ball in hand behind the head string. An 8 potted on the break is spotted and the breaker carries on.</dd>
-        <dt>Groups</dt><dd>The table is open until the first legal pot after the break: that player takes that group, solids (1 to 7) or stripes (9 to 15), and the other player the rest.</dd>
-        <dt>Shot</dt><dd>Hit a ball of your group first (the 8 once your group is gone), then pot a ball or send any ball to a rail. Any pocket counts. Pot one of yours and you go again.</dd>
-        <dt>Fouls</dt><dd>The wrong ball first, no rail after contact, or the cue ball down: your opponent gets ball in hand anywhere.</dd>
-        <dt>Win</dt><dd>Clear your group, then pot the 8. Pot the 8 before your group is clear, or scratch while potting it, and you lose.</dd>
-      </dl>
-      <button class="ghost wide lessonGo tutGo" id="tutGo8" data-tut="8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 8-ball tutorial</span></button>
-    </div>
-    <div class="pan" id="pan9" role="tabpanel" aria-labelledby="tab9" hidden>
-      <dl class="rules">
-        <dt>Rack</dt><dd>Nine balls in a diamond: the 1 at the front, the 9 in the middle. Break with ball in hand behind the head string.</dd>
-        <dt>Shot</dt><dd>Always hit the lowest ball on the table first, then pot a ball or hit a rail. Whatever you pot counts, so combinations and caroms are fine.</dd>
-        <dt>Fouls</dt><dd>Ball in hand anywhere for your opponent. Three fouls in a row lose the game; the chip and the pause menu warn on two.</dd>
-        <dt>Win</dt><dd>Pot the 9 on a legal shot, whenever it comes: early in a combination or last.</dd>
-      </dl>
-      <button class="ghost wide lessonGo tutGo" id="tutGo9" data-tut="9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 9-ball tutorial</span></button>
-    </div>
-    <div class="pan" id="panBump" role="tabpanel" aria-labelledby="tabBump" hidden>
-      <dl class="rules" id="bumperRules">
-        <dt>Bumper</dt><dd>Red against white, five balls each, on a small table with two cups and twelve rubber posts. You strike your own balls (no cue ball) at the cup at the far end; the marked ball (the one with the spot) must go down before any other of yours. Tap one of your balls (or press <kbd>B</kbd>) to choose the one to strike; auto aim picks one and a line.</dd>
-        <dt>Opening</dt><dd>Red shoots the marked ball, then white. Whoever potted theirs shoots next (red if both); if neither did, the one nearer the far cup. A foul on white's opening gives red the table.</dd>
-        <dt>Turn</dt><dd>Pot one of yours in the far cup and you go again; otherwise the turn passes.</dd>
-        <dt>Fouls</dt><dd>Striking a ball not your own; a ball of yours in your own cup; an unmarked ball of yours before your marked one; potting your opponent's ball (it counts for them); a ball off the table. Your balls that dropped on a foul come back to your marked spot, and your opponent drops one of theirs in: the marked ball if it is still up, else the one furthest from their cup.</dd>
-        <dt>Win</dt><dd>The first with all five down. Choose the classic octagon or the rectangle when you start a bumper game.</dd>
-      </dl>
-      <button class="ghost wide lessonGo tutGo" id="tutGoB" data-tut="bumper"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the bumper pool tutorial</span></button>
-    </div>
-    <div class="pan" id="panCarom" role="tabpanel" aria-labelledby="tabCarom" hidden>
-      <dl class="rules" id="caromRules">
-        <dt>Carom</dt><dd>Three-cushion billiards: three balls and no pockets on a 10 ft table. Your cue ball (white for player 1, yellow for player 2), your opponent's, and the red. You only ever strike your own.</dd>
-        <dt>Point</dt><dd>Your cue ball hits both other balls, and before it hits the second one it has hit the cushions at least three times, in any order. The same cushion twice counts twice, and cushions before the first ball count too. In the one-cushion game, once is enough.</dd>
-        <dt>Turn</dt><dd>Score a point and you shoot again; otherwise the turn passes.</dd>
-        <dt>Break</dt><dd>The red on the foot spot, your opponent's ball on the head spot, yours beside it on the head string. On the break, hit the red first.</dd>
-        <dt>Fouls</dt><dd>A ball off the table (it goes back on its spot) or, on the break, not the red first: no point, and the turn passes.</dd>
-        <dt>Win</dt><dd>The first to the race: 5, 10 or 15 points, chosen when you start. The full aim guide traces your cue ball through its first three cushions, a dot on each; after that you are on your own.</dd>
-      </dl>
-      <button class="ghost wide lessonGo tutGo" id="tutGoC" data-tut="carom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the three-cushion tutorial</span></button>
-    </div>
-    <div class="pan" id="panSnk" role="tabpanel" aria-labelledby="tabSnk" hidden>
-      <dl class="rules" id="snookerRules">
-        <dt>Snooker</dt><dd>Fifteen reds and six colours. Pot a red (1 point), then a colour: the first colour the cue ball hits is the one you are on. Then a red again, and so on. Colours go back on their spots while reds remain. With the reds gone, pot the colours in order: yellow 2, green 3, brown 4, blue 5, pink 6, black 7.</dd>
-        <dt>Break</dt><dd>Ball in hand in the D, the half circle on the baulk line: drag the cue ball anywhere inside it. Hit a red first. The usual break clips the end red of the back row and brings the cue ball back to baulk.</dd>
-        <dt>Fouls</dt><dd>Missing every ball, hitting or potting a ball you are not on, or the cue ball going in (an in-off). Your opponent scores the value of the ball on or the highest ball involved: at least 4, at most 7. After an in-off they play from the D, otherwise from where the cue ball stopped.</dd>
-        <dt>Frame</dt><dd>Most points wins. With only the black left, the first score or foul ends the frame; if that leaves the scores level, the black is re-spotted and the other player plays it from the D. Concede a frame from the pause menu. Choose one frame or the best of three, and the compact 10 ft or the full 12 ft table, when you start.</dd>
-        <dt>Score</dt><dd>The chips show the scores; the bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed. Not in felt yet: the free ball and the miss rule.</dd>
-      </dl>
-      <button class="ghost wide lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the snooker tutorial</span></button>
-    </div>
-    <div class="pan" id="panSolo" role="tabpanel" aria-labelledby="tabSolo" hidden>
-      <dl class="rules">
-        <dt>Practice</dt><dd>No opponent and no fouls, always your shot. Undo takes back the last shot; the tools button holds ball in hand, reset rack and, on a free table, adding and removing balls.</dd>
-        <dt>Tricks</dt><dd>One layout, one goal. Three stars for a make on the first try, two within three tries, one for any make. Show me plays one way to make it.</dd>
-        <dt>Daily</dt><dd>One trick shot a day, the same for everyone that day. Your first try counts: play on consecutive days and your streak grows, miss a day and it starts again. Retries are practice.</dd>
-        <dt>Career</dt><dd>Eight players, from the back room to the boss, each with a game and a table of their own. Every match is a race: first to win the set number of racks, the break alternating. Win the match and the next player is unlocked.</dd>
-      </dl>
-    </div>
-    <button class="ghost wide lessonGo" id="lessonAgain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg>Play the lesson</button>
+    <!-- a page per topic: short rules as rows, rare cases in the fine print, its action pinned at the foot -->
+    <section class="pan" id="panCtl" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules keys">
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><div><b>Aim</b><p>Point at the cloth or click a spot. Drag to swing the cue round the ball.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 7v10M12 7v10M16 7v10"/></svg></span><div><b>Fine-tune</b><p><kbd>&larr;</kbd> <kbd>&rarr;</kbd> nudge the aim, with <kbd>Shift</kbd> for big steps and <kbd>Alt</kbd> for tiny ones. The ridged wheel works too.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="4"/><path d="M12 7v7.5M9.6 12.2 12 14.6l2.4-2.4"/></svg></span><div><b>Shoot</b><p>Pull along the power bar and let go. The further you pull, the harder the hit.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double click it or press <kbd>R</kbd> to centre.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/></svg></span><div><b>Ball in hand</b><p>Drag the cue ball to place it. Or press <kbd>M</kbd>, move it with the arrows, and press <kbd>M</kbd> again.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6.5v11M15 6.5v11"/></svg></span><div><b>Pause</b><p>Press <kbd>Esc</kbd> or the pause button. <kbd>Esc</kbd> also closes this page.</p></div></li>
+      </ul>
+      <ul class="group rules touch">
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><div><b>Aim</b><p>Drag anywhere on the table to swing the cue. Or tap where the cue ball should go.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 7v10M12 7v10M16 7v10"/></svg></span><div><b>Fine-tune</b><p>Roll the ridged wheel beside the power bar for the last hair.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="4"/><path d="M12 7v7.5M9.6 12.2 12 14.6l2.4-2.4"/></svg></span><div><b>Shoot</b><p>Pull along the power bar and let go. The further you pull, the harder the hit.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double tap it to centre.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/></svg></span><div><b>Ball in hand</b><p>Drag the cue ball to place it, as often as you like. Only the shot locks it in.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6.5v11M15 6.5v11"/></svg></span><div><b>Pause</b><p>Tap the pause button. The game waits.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine keys">
+        <li>Only the power bar shoots. No key and no click on the table ever will.</li>
+        <li>To cancel a shot, bring the pull back past the start or slide off the bar.</li>
+        <li>A fine-tuned aim holds until the mouse moves away or clicks. The aim never follows the pointer off the cloth.</li>
+        <li>Auto aim starts each turn on the ball to play and marks a pocket. The cut is up to you.</li>
+        <li>Drop the cue ball somewhere illegal and it goes back to the last good spot. <kbd>Shift</kbd> with the arrows moves it further.</li>
+      </ul>
+      <ul class="fine touch">
+        <li>Only the power bar shoots. The table only aims.</li>
+        <li>To cancel a shot, slide back to the start or off the bar.</li>
+        <li>Auto aim starts each turn on the ball to play and marks a pocket. The cut is up to you.</li>
+        <li>To move the cue ball, start the drag on or next to it. Drop it somewhere illegal and it goes back to the last good spot.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo" id="lessonAgain"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the lesson</span></button></div>
+    </section>
+    <section class="pan" id="pan8" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Break</b><p>Ball in hand behind the head string.</p></div></li>
+        <li><div><b>Groups</b><p>The table is open until the first legal pot. That player takes the group: solids (1 to 7) or stripes (9 to 15).</p></div></li>
+        <li><div><b>Your shot</b><p>Hit one of yours first. Then pot a ball or send any ball to a rail.</p></div></li>
+        <li><div><b>Go again</b><p>Pot one of yours, in any pocket, and you shoot again.</p></div></li>
+        <li><div><b>Fouls</b><p>The wrong ball first, no rail, or the cue ball down. Your opponent gets ball in hand anywhere.</p></div></li>
+        <li><div><b>Win</b><p>Clear your group, then pot the 8.</p></div></li>
+        <li><div><b>Lose</b><p>Pot the 8 before your group is clear, or scratch while potting it.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>Once your group is gone, the 8 is the ball to hit first.</li>
+        <li>An 8 potted on the break is spotted and the breaker carries on.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGo8" data-tut="8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 8-ball tutorial</span></button></div>
+    </section>
+    <section class="pan" id="pan9" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Rack</b><p>Nine balls in a diamond: the 1 in front, the 9 in the middle. Break from behind the head string.</p></div></li>
+        <li><div><b>Lowest first</b><p>Always hit the lowest ball on the table first. Then pot a ball or hit a rail.</p></div></li>
+        <li><div><b>Any pot counts</b><p>Whatever drops counts, so combinations and caroms are fine.</p></div></li>
+        <li><div><b>Fouls</b><p>Your opponent gets ball in hand anywhere.</p></div></li>
+        <li><div><b>Three in a row</b><p>Three fouls in a row lose the game. You are warned after two.</p></div></li>
+        <li><div><b>Win</b><p>Pot the 9 on a legal shot, early or last.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>The warning after two fouls shows on the chip and in the pause menu.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGo9" data-tut="9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 9-ball tutorial</span></button></div>
+    </section>
+    <section class="pan" id="panBump" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules" id="bumperRules">
+        <li><div><b>The game</b><p>Red against white, five balls each, round twelve posts. There is no cue ball: you strike your own.</p></div></li>
+        <li><div><b>Aim for the far cup</b><p>Pot your balls in the cup at the far end. Never your own cup.</p></div></li>
+        <li><div><b>Marked ball first</b><p>Your ball with the spot must drop before any other of yours.</p></div></li>
+        <li><div><b>Pick a ball</b><p>Tap one of yours to strike it. Auto aim picks one, and a line, for you.</p></div></li>
+        <li><div><b>Opening</b><p>Red, then white, shoot their marked ball. Whoever potted goes next (red if both). If neither did, the one nearer the far cup.</p></div></li>
+        <li><div><b>Go again</b><p>Pot one of yours in the far cup and you shoot again.</p></div></li>
+        <li><div><b>Fouls</b><p>Striking their ball, one of yours in your own cup, an unmarked ball before your marked one, potting theirs, or a ball off the table.</p></div></li>
+        <li><div><b>After a foul</b><p>Your balls that dropped go back to your marked spot. Your opponent drops one of theirs in.</p></div></li>
+        <li><div><b>Win</b><p>The first with all five down.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>A foul on white's opening shot gives red the table.</li>
+        <li>Potting your opponent's ball counts for them.</li>
+        <li>The ball they drop in is their marked one if it is still up, else the one furthest from their cup.</li>
+        <li>With a keyboard, <kbd>B</kbd> picks the ball to strike.</li>
+        <li>Choose the classic octagon or the rectangle when you start.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGoB" data-tut="bumper"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the bumper pool tutorial</span></button></div>
+    </section>
+    <section class="pan" id="panCarom" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules" id="caromRules">
+        <li><div><b>The game</b><p>Three balls and no pockets on a 10 ft table. You only ever strike your own cue ball: white for player 1, yellow for player 2.</p></div></li>
+        <li><div><b>Score a point</b><p>Your cue ball hits both other balls, and three cushions before the second one.</p></div></li>
+        <li><div><b>Counting cushions</b><p>Any order. The same cushion twice counts twice, and cushions before the first ball count too.</p></div></li>
+        <li><div><b>Go again</b><p>Score and you shoot again. Otherwise the turn passes.</p></div></li>
+        <li><div><b>Break</b><p>Hit the red first.</p></div></li>
+        <li><div><b>Fouls</b><p>A ball off the table, or not the red first on the break. No point, and the turn passes.</p></div></li>
+        <li><div><b>Win</b><p>The first to the race: 5, 10 or 15 points, chosen when you start.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>In the one-cushion game, one cushion is enough.</li>
+        <li>The break: the red on the foot spot, your opponent's ball on the head spot, yours beside it on the head string.</li>
+        <li>A ball off the table goes back on its spot.</li>
+        <li>The full aim guide traces your cue ball through its first three cushions, a dot on each.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGoC" data-tut="carom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the three-cushion tutorial</span></button></div>
+    </section>
+    <section class="pan" id="panSnk" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules" id="snookerRules">
+        <li><div><b>The game</b><p>Fifteen reds and six colours. Pot a red, then a colour, then a red again.</p></div></li>
+        <li><div><b>Reds</b><p>A red is 1 point. While reds remain, potted colours come back on their spots.</p></div></li>
+        <li><div><b>The ball on</b><p>After a red, the first colour the cue ball hits is the one you are on.</p></div></li>
+        <li><div><b>Colours last</b><p>With the reds gone, pot the colours in order.</p>
+          <span class="cols" aria-hidden="true"><span><i style="background:#f4c430"></i>2</span><span><i style="background:#1f9a55"></i>3</span><span><i style="background:#8a5530"></i>4</span><span><i style="background:#2f6fd0"></i>5</span><span><i style="background:#f08cb4"></i>6</span><span><i class="k"></i>7</span></span>
+          <span class="sr">Yellow 2, green 3, brown 4, blue 5, pink 6, black 7.</span></div></li>
+        <li><div><b>Break</b><p>Place the cue ball anywhere in the D, the half circle on the baulk line. Hit a red first.</p></div></li>
+        <li><div><b>Fouls</b><p>Missing every ball, hitting or potting a ball you are not on, or going in-off. Your opponent scores 4 to 7.</p></div></li>
+        <li><div><b>After a foul</b><p>They play from where the cue ball stopped, or from the D after an in-off.</p></div></li>
+        <li><div><b>Win the frame</b><p>Most points wins. You can concede from the pause menu.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>A foul is worth the ball on or the highest ball involved, whichever is more, from 4 up to 7.</li>
+        <li>With only the black left, the first score or foul ends the frame. If that leaves it level, the black is re-spotted and the other player plays it from the D.</li>
+        <li>The usual break clips the end red of the back row and brings the cue ball back to baulk.</li>
+        <li>The bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed.</li>
+        <li>Choose one frame or best of three, and the 10 ft or 12 ft table, when you start.</li>
+        <li>Not in felt yet: the free ball and the miss rule.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the snooker tutorial</span></button></div>
+    </section>
+    <section class="pan" id="panSolo" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Practice</b><p>No opponent and no fouls, always your shot. Undo takes back the last one.</p></div></li>
+        <li><div><b>Practice tools</b><p>The tools button holds ball in hand and reset rack. On a free table it adds and removes balls.</p></div></li>
+        <li><div><b>Trick shots</b><p>One layout, one goal. Show me plays one way to make it.</p></div></li>
+        <li><div><b>Stars</b><p>Three for a make on the first try, two within three tries, one for any make.</p></div></li>
+        <li><div><b>Daily shot</b><p>One trick shot a day, the same for everyone. Your first try counts.</p></div></li>
+        <li><div><b>Streak</b><p>Play on consecutive days and it grows. Miss a day and it starts again.</p></div></li>
+        <li><div><b>Career</b><p>Eight players, from the back room to the boss, each with a game and table of their own.</p></div></li>
+        <li><div><b>Matches</b><p>A race to a set number of racks, the break alternating. Win to unlock the next player.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>Retries on the daily shot are practice. They never change your streak.</li>
+      </ul>
+    </section>
   </div>
 </div>
 
@@ -7775,25 +7930,32 @@ function showStats() {
   openSheet(statsSheet, statsBack);
 }
 
-/* ---- how to play: one tab per topic; arrows move between tabs ---- */
+/* ---- how to play: a navigation stack. The list of topics (howList), and one page per topic
+   (TABS: its row, its page), pushed from the right; the back button pops to the list, and from the
+   list goes home. pickTab(null) is the list. Each game's page ends with its tutorial (6d), the
+   controls' with the lesson, pinned at the foot. ---- */
 const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tabSolo, panSolo]];
-function pickTab(tab, focus) {
-  for (const [t, p] of TABS) { const on = t === tab; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; p.hidden = !on; }
-  lessonAgain.hidden = tab !== tabCtl;   /* the controls' lesson; each game's tab ends with its tutorial (6d) */
-  if (focus) tab.focus({ preventScroll: true });
-  /* the tab row scrolls on a narrow screen: bring the chosen topic into view */
-  if (tab.scrollIntoView) tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, solo: tabSolo };
+let helpPage = null;
+function pickTab(tab, anim) {
+  const was = helpPage, page = tab ? TABS.find(([t]) => t === tab)[1] : howList;
+  helpPage = tab || null;
+  howList.hidden = !!tab;
+  for (const [t, p] of TABS) { p.hidden = t !== tab; p.classList.remove('push'); }
+  howList.classList.remove('pop'); helpTitle.classList.remove('swap');
+  lessonAgain.hidden = tab !== tabCtl;   /* the controls' lesson; each game's page ends with its tutorial (6d) */
+  helpTitle.textContent = tab ? tab.querySelector('b').textContent : 'How to play';
+  helpBack.setAttribute('aria-label', tab ? 'Back to How to play' : 'Back');
+  howSheet.scrollTop = 0;
+  if (anim && tab !== was) { void page.offsetWidth; page.classList.add(tab ? 'push' : 'pop'); helpTitle.classList.add('swap'); }
+  if (anim && byKeys) (tab ? helpBack : was || tabCtl).focus({ preventScroll: true });
 }
-for (const [t] of TABS) t.addEventListener('click', () => pickTab(t));
-tabCtl.parentElement.addEventListener('keydown', e => {
-  const i = TABS.findIndex(([t]) => t === document.activeElement), dx = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
-  if (i < 0 || !dx) return;
-  pickTab(TABS[(i + dx + TABS.length) % TABS.length][0], true);
-  e.preventDefault();
-});
-/* opened from a paused game, the tab for that game; from home, the controls */
-function showHelp() {
-  pickTab(!paused ? tabCtl : tutOn() ? TUT_TABS[solo.id] : game.mode ? tabSolo : game.kind === 'bumper' ? tabBump : game.kind === 'carom' ? tabCarom : game.kind === 'snooker' ? tabSnk : game.kind === '9' ? tab9 : tab8);
+for (const [t] of TABS) t.addEventListener('click', () => pickTab(t, true));
+helpBack.addEventListener('click', () => { if (helpPage) pickTab(null, true); else backToMenu(); });
+/* showHelp(kind) opens that topic's page ('ctl', a game kind, 'solo'); with none, a paused game
+   opens on its own page and home on the list */
+function showHelp(kind) {
+  pickTab(kind ? HELP_KINDS[kind] || null : !paused ? null : tutOn() ? TUT_TABS[solo.id] : game.mode ? tabSolo : HELP_KINDS[game.kind] || tab8);
   syncTutLinks(setupKind);
   openSheet(helpSheet, helpBack);
 }
@@ -7813,7 +7975,7 @@ for (const [i, el] of [[0, name1], [1, name2]]) {
 statsBtn.addEventListener('click', () => showStats());
 for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => openSheet(prefsSheet, prefsBack));
 for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp());
-for (const b of [setupBack, prefsBack, statsBack, helpBack]) b.addEventListener('click', () => backToMenu());
+for (const b of [setupBack, prefsBack, statsBack]) b.addEventListener('click', () => backToMenu());
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (career) careerRack(); else start(game.kind); });
 exitBtn.addEventListener('click', () => quitToHome());
 Object.assign(felt, { showSetup, showStats, showHelp, quitToHome, setupWords });

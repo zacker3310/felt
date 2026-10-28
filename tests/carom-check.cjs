@@ -218,7 +218,7 @@ S.setTable('7');
   /* the pause menu: points over the race, no potted row */
   await page.click('#menuBtn');
   const pm = await page.evaluate(() => ({ m0: p0meta.textContent, m1: p1meta.textContent, pot: getComputedStyle(potRow).display, tab: (showHelp(), [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id)) }));
-  check('pause menu: each card shows its colour and points of the race, no potted row; How to play opens on the Carom tab', /^White, \d+ of 10/.test(pm.m0) && /^Yellow, \d+ of 10/.test(pm.m1) && pm.pot === 'none' && pm.tab.join() === 'panCarom', JSON.stringify(pm));
+  check('pause menu: each card shows its colour and points of the race, no potted row; How to play opens on the Carom page', /^White, \d+ of 10/.test(pm.m0) && /^Yellow, \d+ of 10/.test(pm.m1) && pm.pot === 'none' && pm.tab.join() === 'panCarom', JSON.stringify(pm));
   await page.evaluate(() => backToMenu());
   await page.click('#resumeBtn');
   /* the CPU plays yellow and hands the turn back */

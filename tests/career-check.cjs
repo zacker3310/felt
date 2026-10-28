@@ -125,6 +125,7 @@ async function pullBar(T, frac) {
         await ev(T, () => lessonBtn.hidden && !lessonOffer.classList.contains('show') && lessonAgain.textContent.trim() === 'Play the lesson'));
       /* a miss: well off the line at step 1, a soft pull: the balls go back, "Close. Try again." */
       await T.page.click('#helpBtn');
+      await T.page.click('#tabCtl');
       await T.page.click('#lessonAgain');
       await T.page.waitForTimeout(200);
       const before = await ev(T, () => JSON.stringify(felt.game.balls.map(b => [b.n, b.x, b.y])));

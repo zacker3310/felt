@@ -384,8 +384,9 @@ async function portrait() {
     }, [go]));
     tabs[tabs.length - 1].small = (await smallTargets(T.page)).length;
     tabs[tabs.length - 1].low = (await lowContrast(T.page)).length;
+    await T.page.click('#helpBack');
   }
-  check('How to play at 375x667: Controls keeps "Play the lesson", each game\'s tab ends with "Play the <game> tutorial" (scrolled to, on screen); the sheet inside the screen\'s width; 44 px, 4.5:1',
+  check('How to play at 375x667: Controls keeps "Play the lesson", each game\'s page ends with "Play the <game> tutorial" (scrolled to, on screen); the sheet inside the screen\'s width; 44 px, 4.5:1',
     tabs[0].text === 'Play the lesson' && tabs[0].lesson && tabs.slice(1).every((t, k) => t.shown && !t.lesson && t.text === `Play the ${WORD[IDS[k]]} tutorial`) && tabs.every(t => t.fits && t.reach && !t.small && !t.low), JSON.stringify(tabs));
   check('no em dashes on the page', await ev(T, () => !document.documentElement.outerHTML.includes('\u2014')));
   check('portrait: no page errors', T.errors.length === 0, T.errors.join(' | '));

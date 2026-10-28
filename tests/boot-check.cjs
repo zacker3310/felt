@@ -83,14 +83,26 @@ const artContrast = page => page.evaluate(() => {
   const wide = page.viewportSize();
   await page.setViewportSize({ width: 375, height: 667 });
   await page.click('#helpBtn');
+  const fitsNow = async () => (await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && helpSheet.contains(a.effect.target))), page.evaluate(() => (r => r.left >= 0 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5)(howSheet.getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth && howSheet.scrollWidth <= howSheet.clientWidth));
+  const root = await page.evaluate(() => ({ list: !howList.hidden, rows: [...howList.querySelectorAll('.topic')].map(b => b.id), title: helpTitle.textContent, pages: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).length }));
+  check('how to play from home: the list of seven topics, no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tabSolo' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
+    && (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify(root));
   const tabs = [];
   for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo']) {
     await page.click('#' + id);
-    tabs.push(await page.evaluate(id => ({ id, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), sel: document.getElementById(id).getAttribute('aria-selected'), text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length, fits: (r => r.left >= 0 && r.right <= innerWidth + 0.5)(document.querySelector('#helpSheet .sheet').getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth }), id));
-    const lc = await lowContrast(page);
-    if (lc.length) tabs.push({ lc });
+    tabs.push(await page.evaluate(id => ({ id, list: !howList.hidden, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), title: helpTitle.textContent === document.getElementById(id).querySelector('b').textContent, text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
+    const t = tabs[tabs.length - 1];
+    t.fits = await fitsNow(); t.small = (await smallTargets(page)).length; t.low = await lowContrast(page);
+    await page.click('#helpBack');
+    t.back = await page.evaluate(() => helpSheet.classList.contains('show') && !howList.hidden && helpTitle.textContent === 'How to play');
   }
-  check('how to play: seven tabs (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), one panel each, the sheet inside the screen (the tab row scrolls), text 4.5:1', tabs.length === 7 && tabs.every(t => t.shown.length === 1 && t.sel === 'true' && t.text > 100 && t.fits), JSON.stringify(tabs));
+  check('how to play: seven topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 7 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
+  await page.click('#tabSnk');
+  const pin = await page.evaluate(() => { const r = tutGoS.getBoundingClientRect(), s = howSheet.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, foot: s.bottom, long: howSheet.scrollHeight > howSheet.clientHeight }; });
+  check('how to play: the longest page (snooker) scrolls under its tutorial button, pinned at the foot of the screen', pin.long && pin.bottom <= pin.foot + 0.5 && pin.bottom >= pin.foot - 40, JSON.stringify(pin));
+  await page.keyboard.press('Escape');
+  check('how to play: Esc on a page closes the sheet back to home', await page.evaluate(() => !helpSheet.classList.contains('show') && menu.classList.contains('show')));
+  await page.click('#helpBtn');
   /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS) */
   const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
     .filter(r => r.style && ['backdrop-filter', '-webkit-backdrop-filter', 'filter'].some(k => /blur/.test(r.style.getPropertyValue(k)))).map(r => r.selectorText));

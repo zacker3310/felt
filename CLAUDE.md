@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `22/22 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `23/23 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -113,6 +113,16 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed
   is exact; a gesture without them runs at the harness's pace, which reads as a slow finger.
+- Looks (section 4l): `LOOKS` (`CLOTHS`, `CUES`, `CHALKS`, `RAILS`, `BALLSETS`, `RINGS`); `look()` is the career's
+  equipped items in a career match (`lookCareer`, 6d) else the settings' (`cloth`, `cue`, `chalk`, `rail`, `balls`,
+  each only if unlocked: `felt.looks.v1`, the base plus anything any career owned). A shop id names its look
+  (`cloth-grey` is `CLOTHS.grey`). Page only: the sim never reads a look. The career `SHOP` adds rail, balls and
+  achievement items (`need`: hof, title, wins100, drillGold); `Career.equipped()`. Pinned by `cosmetics-check`
+  (renders, contrast on new cloths, byte-identical physics in every look, buy/equip/persist).
+- Stats and records (page 6s, `statsGo`): overview, a page per game, records book, form. The record (`rec`,
+  key `felt.record.v1`, `v` 2) adds human shots, pots, fouls, breaks, dated bests and the form; a v1 record
+  migrates and is kept once in `felt.record.v1.bak`; each write keeps the previous in `felt.record.prev`, read
+  back when the main one is unreadable. Dates are the page's `today()`.
 
 - Settings (page section 6, after the help stack): a grouped list with a page per group (`PREF_PAGES`,
   `prefsPage(name)`, `showPrefs`), the How to play pattern. Stored as `felt.settings`, `sv` 3: `migrateSettings`

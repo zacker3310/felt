@@ -461,6 +461,23 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .chip-r { background: #9a1f26; }
 /* stats: four numbers, then a row per game */
 #statsSheet .sheet { max-width: 560px; }
+/* Stats and records (6s): the overview's numbers and table in the grouped list's cells; a page's
+   rows are a label and its number (the denominator in words), a best with its date under it */
+#statsSheet .kpis { margin: 8px 0 0; }
+#statsSheet .kpis div { background: var(--cell); border: 0; border-radius: 16px; box-shadow: inset 0 0 0 .5px var(--hair); }
+#statsSheet .kpis dt, #statsSheet .kpis dd small { color: var(--label-2); }
+.how .group.tbl { padding: 6px 14px 2px; overflow-x: auto; }
+.how .group.tbl .rec tr:first-child th { border-top: 0; }
+.how .stat { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 44px; padding: 11px 14px; font-size: 15px; line-height: 1.3; color: var(--label); }
+.how .stat > span { min-width: 0; }
+.how .stat small { display: block; font-size: 13px; color: var(--label-2); }
+.how .stat b { flex: none; max-width: 58%; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.how .stat b small { font-weight: 500; }
+.form { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+.form i { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; font: 700 13px/1 var(--font); font-style: normal; color: #0b0b0c; background: #8fd8b0; }
+.form i.l { background: #3a3a41; color: var(--label); box-shadow: inset 0 0 0 1px #6b6b74; }
+#statsPage { padding-bottom: max(28px, var(--sab)); }
+#statsList { padding-bottom: max(28px, var(--sab)); }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
 .kpis div { min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
 .kpis dt { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -480,29 +497,29 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    tutorial, or the lesson) pinned at the foot, clear of the home indicator. The back button pops
    to the list, and from the list goes home. The header stays pinned while the page scrolls under
    it. Full screen on a phone held upright, a card on anything wider. One accent from the cloth. ---- */
-#helpSheet, #prefsSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+#helpSheet, #prefsSheet, #statsSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
   --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
-[data-cloth="red"] :is(#helpSheet, #prefsSheet) { --accent: #ff8a7a; }
-[data-cloth="blue"] :is(#helpSheet, #prefsSheet) { --accent: #7cb6ff; }
-:is(#helpSheet, #prefsSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+[data-cloth="red"] :is(#helpSheet, #prefsSheet, #statsSheet) { --accent: #ff8a7a; }
+[data-cloth="blue"] :is(#helpSheet, #prefsSheet, #statsSheet) { --accent: #7cb6ff; }
+:is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
   padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 @media (max-width: 600px) {
-  #helpSheet, #prefsSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  :is(#helpSheet, #prefsSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  :is(#helpSheet, #prefsSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
+  #helpSheet, #prefsSheet, #statsSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  :is(#helpSheet, #prefsSheet, #statsSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
 }
 .howTop { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 18px var(--pr) 8px var(--pl); background: var(--page); }
 .howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px; background: linear-gradient(var(--page), rgba(11, 11, 12, 0)); pointer-events: none; }
-:is(#helpSheet, #prefsSheet) .shead { margin: 0; gap: 14px; }
-:is(#helpSheet, #prefsSheet) .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:is(#helpSheet, #prefsSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
-:is(#helpSheet, #prefsSheet) .back:hover { background: #26262a; }
+:is(#helpSheet, #prefsSheet, #statsSheet) .shead { margin: 0; gap: 14px; }
+:is(#helpSheet, #prefsSheet, #statsSheet) .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(#helpSheet, #prefsSheet, #statsSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+:is(#helpSheet, #prefsSheet, #statsSheet) .back:hover { background: #26262a; }
 .how .group { margin: 8px 0 0; padding: 0; list-style: none; overflow: hidden; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
 .howList { padding: 0 0 max(24px, var(--sab)); }
 .howList[hidden], .pan[hidden] { display: none; }
 /* on a full-screen phone a short page still puts its action at the foot of the screen */
-:is(#helpSheet, #prefsSheet) .sheet { display: flex; flex-direction: column; }
+:is(#helpSheet, #prefsSheet, #statsSheet) .sheet { display: flex; flex-direction: column; }
 .how .pan:not([hidden]) { flex: 1 0 auto; display: flex; flex-direction: column; }
 .how .pan .howAct { margin-top: auto; }
 /* the topics */
@@ -555,14 +572,14 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* push and pop: the page comes in from the right, the list back from the left */
 .how .push { animation: pushIn .4s cubic-bezier(.22, .9, .28, 1) both; }
 .how .pop { animation: popIn .4s cubic-bezier(.22, .9, .28, 1) both; }
-:is(#helpTitle, #prefsTitle).swap { animation: titleIn .32s ease-out both; }
+:is(#helpTitle, #prefsTitle, #statsTitle).swap { animation: titleIn .32s ease-out both; }
 @keyframes pushIn { from { transform: translateX(100%); } }
 @keyframes popIn { from { transform: translateX(-30%); opacity: .2; } }
 @keyframes titleIn { from { opacity: 0; transform: translateX(16px); } }
 /* a short screen (a phone on its side): a tighter header and foot, so more rules show */
 @media (max-height: 500px) {
   .howTop { padding-top: 12px; padding-bottom: 4px; }
-  :is(#helpSheet, #prefsSheet) .shead .title { font-size: 24px; }
+  :is(#helpSheet, #prefsSheet, #statsSheet) .shead .title { font-size: 24px; }
   .howAct { padding-top: 16px; padding-bottom: max(12px, var(--sab)); }
   .howAct button { min-height: 46px; font-size: 16px; }
   .how .rules li { padding-top: 10px; padding-bottom: 11px; }
@@ -575,7 +592,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (prefers-reduced-motion: reduce) {
   .overlay.show .sheet { animation: none; }
   .hero, .tile, .nav, .hero:active, .tile:active, .nav:active { transition: none; transform: none; }
-  .how .push, .how .pop, :is(#helpTitle, #prefsTitle).swap { animation: none; }
+  .how .push, .how .pop, :is(#helpTitle, #prefsTitle, #statsTitle).swap { animation: none; }
   .topic, .howAct button, .howAct button:active { transition: none; transform: none; }
   #menu.show:not([data-paused]) .newgame > * { animation: none; }
 }
@@ -606,11 +623,11 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 [data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #callBar, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
 [data-text="130"] .overlay .sheet, [data-text="130"] #banner, [data-text="130"] #callBar, [data-text="130"] #coach, [data-text="130"] #callout { zoom: 1.3; }
 /* the full-screen sheets (How to play, Settings) keep the screen's height under that zoom */
-[data-text="115"] :is(#helpSheet, #prefsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
-[data-text="130"] :is(#helpSheet, #prefsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
+[data-text="115"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
+[data-text="130"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
 @media (max-width: 600px) {
-  [data-text="115"] :is(#helpSheet, #prefsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
-  [data-text="130"] :is(#helpSheet, #prefsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
+  [data-text="115"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
+  [data-text="130"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
 }
 /* Controls: left-handed mirrors the strip (portrait) and puts the column left of the table (wide);
    the power bar at the edge is the last control of the strip, or the foot of the column */
@@ -824,6 +841,13 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .av { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--av, #3a3a41); color: #fff;
   font: 700 15px/1 var(--font); letter-spacing: .02em; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .22), inset 0 -8px 14px rgba(0, 0, 0, .16); }
 .av.boss { background: #141416; color: #f2c94c; box-shadow: inset 0 0 0 1.5px #f2c94c; }
+/* the profile frame (the career's ring slot, RINGS in 4l): a ring round the avatar, 3:1 or more on
+   the card, and a small star for one an achievement unlocked */
+.av.fr { position: relative; box-shadow: 0 0 0 2px var(--cell, #1c1c1f), 0 0 0 4.5px var(--fr), inset 0 -8px 14px rgba(0, 0, 0, .16); }
+.av .star { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; display: grid; place-items: center; border-radius: 50%; background: #141416; box-shadow: 0 0 0 1.5px var(--fr); }
+.av .star svg { width: 12px; height: 12px; fill: var(--fr); }
+/* the shop's swatch of each look: the cloth, the wood, the cue's parts, the chalk, a ball, the frame */
+.shopSw { flex: none; width: 32px; height: 32px; border-radius: 9px; background: #2a2a2e; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
 /* the career (6d): one sheet of push pages in How to play's manner (inset grouped lists of rows,
    a pinned header, the accent capsule for the page's action), full screen on a phone held
    upright and a card on anything wider. Every page is rebuilt from Career's reads. */
@@ -1044,6 +1068,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 /* settings, Gameplay: wrapping choices, and switch rows (in Settings' groups: see .how .tog) */
 .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
 .seg.wrap button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
+/* Settings > Graphics, the look (4l): the unlocked choices of each slot, as many to a row as fit */
+.seg.looks { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); }
+.seg.looks button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
+.seg.looks button:not([hidden]) { display: flex; align-items: center; justify-content: center; }
+.chip-x { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
 .seg button:disabled, .tog:disabled { opacity: .55; cursor: default; }
 .note.lock { color: #ffd58a; }
 .tog { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 0; background: transparent; text-align: left; color: var(--text); font-size: 14px; }
@@ -1343,9 +1372,13 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <section class="pan" id="ppGfx" aria-labelledby="prefsTitle" hidden>
       <h3 class="ghead" id="clLab">Cloth <span class="swatch" id="clothSwatch" aria-hidden="true"></span></h3>
       <div class="group" role="group" aria-labelledby="clLab">
-        <div class="prow"><div class="seg" role="group" aria-labelledby="clLab"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
+        <div class="prow"><div class="seg looks" role="group" aria-labelledby="clLab" id="clothSeg"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
       </div>
       <p class="gfoot">The cloth applies to every game (blue is carom's classic).</p>
+      <!-- the look (4l): a row per slot, built from LOOKS, showing what is unlocked -->
+      <h3 class="ghead" id="lookLab">Look</h3>
+      <div class="group" role="group" aria-labelledby="lookLab" id="lookRows"></div>
+      <p class="gfoot" id="lookNote"></p>
       <h3 class="ghead" id="camLab">Camera</h3>
       <div class="group" role="group" aria-labelledby="camLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
@@ -1409,16 +1442,30 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 </div>
 
 <div class="overlay" id="statsSheet" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
-  <div class="sheet">
+  <div class="sheet how" id="statsBody">
+    <div class="howTop">
     <div class="shead"><button class="back" id="statsBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><h2 class="title" id="statsTitle">Stats</h2></div></div>
-    <dl class="kpis" id="kpis"></dl>
-    <table class="rec" id="recTable"></table>
-    <h3 class="sect" id="careerStatLab">Career</h3>
-    <dl class="kpis" id="careerKpis" aria-labelledby="careerStatLab"></dl>
-    <p class="note">Against the CPU: wins and losses. A game counts when it finishes.</p>
-    <p class="note" id="snkStat"></p>
-    <p class="note" id="tutStat"></p>
+    </div>
+    <!-- Stats and records (6s): the overview, a row per game and the records book and form, each pushing its page -->
+    <div class="howList" id="statsList">
+      <dl class="kpis" id="kpis"></dl>
+      <h3 class="ghead" id="stKindLab">By game</h3>
+      <div class="group" role="group" aria-labelledby="stKindLab" id="statsKinds"></div>
+      <h3 class="ghead" id="stRecLab">Records</h3>
+      <div class="group" role="group" aria-labelledby="stRecLab">
+        <button class="topic" id="stBook"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M10 8h11a2 2 0 0 1 2 2v14H12a2 2 0 0 1-2-2z" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><path d="M13.5 13h6M13.5 16.5h6" stroke="#f2c94c" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="tt"><b>Records book</b><small id="stBookSub">Your bests, with their dates</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="stForm"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 21l5-6 4 3 7-8" fill="none" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="10" r="2" fill="#f2c94c"/></svg></span><span class="tt"><b>Recent form</b><small id="stFormSub">Your last games against the CPU</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+      </div>
+      <h3 class="ghead" id="stCpuLab">CPU results by level</h3>
+      <div class="group tbl" role="group" aria-labelledby="stCpuLab"><table class="rec" id="recTable"></table></div>
+      <p class="gfoot">Against the CPU: wins and losses. A game counts when it finishes.</p>
+      <h3 class="ghead" id="careerStatLab">Career</h3>
+      <dl class="kpis" id="careerKpis" aria-labelledby="careerStatLab"></dl>
+      <p class="gfoot" id="snkStat"></p>
+      <p class="gfoot" id="tutStat"></p>
+    </div>
+    <section class="pan" id="statsPage" aria-labelledby="statsTitle" hidden></section>
   </div>
 </div>
 
@@ -4861,16 +4908,30 @@ const Career = (() => {
   const BRANDS = 'Northline,Apex,Bluewater,Ironwood,Redline,Summit,Halcyon,Kestrel,Lumen,Meridian,Oakhart,Polaris'.split(',');
   const SPONSOR_CATS = ['Cues', 'Chalk', 'Apparel', 'Cloth', 'Travel', 'Gloves'];
   const AV_COLS = ['#1f7a55', '#2f6fb0', '#b03a2e', '#8a5a12', '#7b3fa0', '#375a7f', '#0f6e78', '#9c2f62', '#4d6b1f', '#a4501c', '#355c99', '#6b4a8a'];
-  /* the shop: cosmetics only. effect is 'none' for every item: no physics, no odds */
+  /* the shop: cosmetics only. effect is 'none' for every item: no physics, no odds. The page draws
+     each one (section 4, LOOKS: the id after its slot names the look) and the sim never reads them.
+     Slots: cue, cloth, chalk (the tip), rail (the wood), balls (the set), ring (the profile frame).
+     need: an achievement that unlocks the item (NEEDS), then it is bought at its price (0: claimed).
+     No real money, no random rewards: every item is a fixed price or a fixed achievement. */
   const SHOP = [
     ['cue-house', 'cue', 'House cue', 0], ['cue-maple', 'cue', 'Maple inlay cue', 300], ['cue-ebony', 'cue', 'Ebony and silver cue', 1200],
     ['cue-carbon', 'cue', 'Carbon weave cue', 2500], ['cue-gold', 'cue', 'Gold ring cue', 9000], ['cue-legacy', 'cue', 'Hall of Fame cue', 0, 'hof'],
+    ['cue-champion', 'cue', 'Champion cue', 0, 'title'], ['cue-centurion', 'cue', 'Centurion cue', 0, 'wins100'],
     ['cloth-green', 'cloth', 'Tournament green', 0], ['cloth-red', 'cloth', 'Club red', 150], ['cloth-blue', 'cloth', 'Pro blue', 150],
-    ['cloth-grey', 'cloth', 'Television grey', 600], ['cloth-midnight', 'cloth', 'Midnight', 1500],
+    ['cloth-grey', 'cloth', 'Television grey', 600], ['cloth-teal', 'cloth', 'Teal', 800], ['cloth-midnight', 'cloth', 'Midnight', 1500], ['cloth-plum', 'cloth', 'Plum', 0, 'drillGold'],
     ['chalk-blue', 'chalk', 'Blue chalk', 0], ['chalk-green', 'chalk', 'Green chalk', 50], ['chalk-red', 'chalk', 'Red chalk', 50],
-    ['ring-silver', 'ring', 'Silver avatar ring', 400], ['ring-gold', 'ring', 'Gold avatar ring', 2000],
+    ['rail-walnut', 'rail', 'Walnut rails', 0], ['rail-cherry', 'rail', 'Cherry rails', 400], ['rail-oak', 'rail', 'Light oak rails', 700], ['rail-ebony', 'rail', 'Ebony rails', 1800],
+    ['balls-classic', 'balls', 'Classic balls', 0], ['balls-pro', 'balls', 'Pro set, measles cue ball', 900], ['balls-vintage', 'balls', 'Vintage ivory set', 1400], ['balls-tv', 'balls', 'Television set', 2200],
+    ['ring-silver', 'ring', 'Silver avatar ring', 400], ['ring-gold', 'ring', 'Gold avatar ring', 2000], ['ring-champion', 'ring', 'Champion frame', 0, 'title'],
+    ['ring-centurion', 'ring', 'Centurion frame', 0, 'wins100'], ['ring-drill', 'ring', 'Drill gold frame', 0, 'drillGold'], ['ring-legacy', 'ring', 'Hall of Fame frame', 0, 'hof'],
   ].map(([id, slot, name, price, need]) => ({ id, slot, name, price, need: need || null, effect: 'none' }));
   const SHOP_BY = Object.fromEntries(SHOP.map(i => [i.id, i]));
+  const SHOP_SLOTS = ['cue', 'cloth', 'chalk', 'rail', 'balls', 'ring'];
+  /* what each slot wears with nothing equipped (a save from before rail and balls has neither) */
+  const DEFAULT_EQ = { cue: 'cue-house', cloth: 'cloth-green', chalk: 'chalk-blue', rail: 'rail-walnut', balls: 'balls-classic', ring: null };
+  /* the achievements an item can need, and their words. drillGold: gold mastery in any drill (the
+     hook a new drill gets for free: it only has to record mastery through practice()) */
+  const NEED_WORDS = { hof: 'Hall of Fame only', title: 'Win a title', wins100: 'Win 100 matches', drillGold: 'Gold mastery in a drill' };
   const DRILLS = [
     { id: 'long-pot', skill: 'aim', name: 'Long pots' }, { id: 'power-ladder', skill: 'power', name: 'Power ladder' },
     { id: 'break-box', skill: 'brk', name: 'Break box' }, { id: 'stop-shot', skill: 'pos', name: 'Stop, follow, draw' },
@@ -5989,7 +6050,7 @@ const Career = (() => {
       me: { tier: st0.tier, t0: st0.tier, rep: 0, money: st0.money, sk, mas: {}, card: 0, qual: {}, opt: { purity: profile.difficulty === 'hard' || profile.difficulty === 'pro' || profile.experienced, variance: true }, pd: 0, pdDay: -1, ret: 0, hof: 0, leg: 0, tl: [] },
       pop: { n: POP, m: {} }, ser: [], cal: [], es: {}, aw: [], awc: 0, rh: [], best: {},
       st: { all: blankStat(), d: {} }, ss: blankSeason(), h2h: {}, obj: [], off: [], spons: [], sph: [],
-      inv: { own: SHOP.filter(i => i.price === 0 && !i.need).map(i => i.id), eq: { cue: 'cue-house', cloth: 'cloth-green', chalk: 'chalk-blue', ring: null } },
+      inv: { own: SHOP.filter(i => i.price === 0 && !i.need).map(i => i.id), eq: Object.assign({}, DEFAULT_EQ) },
       led: [], tot: { start: st0.money }, arch: [], ch: {}, hof: [], rb: {}, news: [], nx: 0, legacy: null, recap: null,
     };
   }
@@ -6172,18 +6233,35 @@ const Career = (() => {
     return { ok: true };
   }
   function decline(offerId) { const no = live(); if (no) return no; const i = S.off.findIndex(o => o.id === offerId); if (i < 0) return { ok: false }; S.off.splice(i, 1); return { ok: true }; }
+  /* an achievement met (NEED_WORDS) */
+  function needMet(k) {
+    if (!k) return true;
+    if (k === 'hof') return !!S.me.hof;
+    if (k === 'title') return S.st.all.ti >= 1;
+    if (k === 'wins100') return S.st.all.w >= 100;
+    if (k === 'drillGold') return Object.values(S.me.mas || {}).some(m => m && m.lv >= 3);
+    return false;
+  }
+  /* owned: bought, or free to everyone (an older save's list may not name a newer free item) */
+  const owns = id => S.inv.own.includes(id) || (!!SHOP_BY[id] && SHOP_BY[id].price === 0 && !SHOP_BY[id].need);
+  /* what is worn per slot: the equipped item if it is still one this build knows and owns, else the default */
+  function equipped() {
+    const eq = S.inv.eq || {}, out = {};
+    for (const s of SHOP_SLOTS) out[s] = eq[s] && SHOP_BY[eq[s]] && SHOP_BY[eq[s]].slot === s && owns(eq[s]) ? eq[s] : DEFAULT_EQ[s];
+    return out;
+  }
   function buy(itemId) {
     const no = live(); if (no) return no;
     const it = SHOP_BY[itemId];
     if (!it) return { ok: false, why: 'no such item' };
-    if (S.inv.own.includes(itemId)) return { ok: false, why: 'owned' };
-    if (it.need === 'hof' && !S.me.hof) return { ok: false, why: 'Hall of Fame only' };
+    if (owns(itemId)) return { ok: false, why: 'owned' };
+    if (!needMet(it.need)) return { ok: false, why: NEED_WORDS[it.need] || 'locked' };
     if (S.me.money < it.price) return { ok: false, why: 'not enough credits' };
-    pay(-it.price, 'shop', it.name);
+    if (it.price) pay(-it.price, 'shop', it.name);
     S.inv.own.push(itemId);
     return { ok: true };
   }
-  function equip(itemId) { need(); const it = SHOP_BY[itemId]; if (!it || !S.inv.own.includes(itemId)) return { ok: false }; S.inv.eq[it.slot] = itemId; return { ok: true }; }
+  function equip(itemId) { need(); const it = SHOP_BY[itemId]; if (!it || !owns(itemId)) return { ok: false }; S.inv.eq[it.slot] = itemId; return { ok: true }; }
   /* a practice drill's score (0-100): mastery milestones (record only) and a little skill; three
      sessions a day, and practice does not move the clock */
   function practice(drillId, score) {
@@ -6249,7 +6327,7 @@ const Career = (() => {
   }
 
   return {
-    HUMAN, YEAR, POP, DISCS, GAMES, RULESETS, TIERS, CIRCUITS, CIRC_NAMES, FORMATS, EVENT_KINDS, ATTRS, ATTR_NAMES, SKILLS, SKILL_NAMES, SKILL_EFFECTS, STYLES, DIFFS, STARTS, ARCH, NAT: NAT.map(n => ({ id: n.id, name: n.name })), SHOP, DRILLS, K_INDEX, K_V1, K_V1_BAK, K_PRE, HOF_LEG,
+    HUMAN, YEAR, POP, DISCS, GAMES, RULESETS, TIERS, CIRCUITS, CIRC_NAMES, FORMATS, EVENT_KINDS, ATTRS, ATTR_NAMES, SKILLS, SKILL_NAMES, SKILL_EFFECTS, STYLES, DIFFS, STARTS, ARCH, NAT: NAT.map(n => ({ id: n.id, name: n.name })), SHOP, SHOP_SLOTS, NEED_WORDS, DEFAULT_EQ, DRILLS, K_INDEX, K_V1, K_V1_BAK, K_PRE, HOF_LEG,
     /* storage: the page passes localStorage; tests pass their own */
     useStore(st) { store = st || memStore(); return true; },
     setAutosave(on) { autosaveOn = !!on; },
@@ -6322,7 +6400,8 @@ const Career = (() => {
     sponsors() { need(); return { active: copy(S.spons).map(c => Object.assign(c, { obj: c.obj.map(o => Object.assign(o, { text: objText(o), progress: o.k === 'rank' ? rankOf(HUMAN, o.c) : objNow(o) - o.base })) })), offers: S.off.filter(o => o.type === 'sponsor').map(o => Object.assign(copy(o), { obj: o.obj.map(x => Object.assign({}, x, { text: objText(x) })) })), past: copy(S.sph) }; },
     offers() { need(); return copy(S.off).map(o => o.opp !== undefined ? Object.assign(o, { opponent: cardOf(o.opp).name }) : o); },
     accept, decline,
-    shop() { need(); return SHOP.map(i => Object.assign({}, i, { owned: S.inv.own.includes(i.id), equipped: S.inv.eq[i.slot] === i.id, locked: i.need === 'hof' && !S.me.hof })); },
+    shop() { need(); const eq = equipped(); return SHOP.map(i => Object.assign({}, i, { owned: owns(i.id), equipped: eq[i.slot] === i.id, locked: !needMet(i.need), needWords: i.need ? NEED_WORDS[i.need] : null })); },
+    equipped() { need(); return equipped(); },
     buy, equip, practice, assist, setOptions,
     ledger() { need(); return { money: S.me.money, totals: copy(S.tot), recent: copy(S.led) }; },
     news() { need(); return copy(S.news); },
@@ -6753,7 +6832,7 @@ function camView(z, x, y) {
 function camFit() { viewBase = view; view = camView(cam.z, cam.x, cam.y); placeReplay(); }
 /* the table image at a higher scale for the zoomed views (built in the menu or as a replay
    starts, never mid-shot), at most 12 M device px; falls back to the fitted image scaled up */
-const camSig = () => [viewBase.k, viewBase.ox, viewBase.oy, viewBase.portrait, dpr, RAIL, TL, TW, TABLE, POCKETS_STYLE, BUMPER_SHAPE, settings.cloth].join();
+const camSig = () => [viewBase.k, viewBase.ox, viewBase.oy, viewBase.portrait, dpr, RAIL, TL, TW, TABLE, POCKETS_STYLE, BUMPER_SHAPE, lookSig()].join();
 function camHiRes() {
   const sig = camSig();
   if (tableHi && tableHi.sig === sig) return;
@@ -6928,10 +7007,123 @@ const CLOTHS = {
   green: { base: '#1b5d47', cushion: '#1d6450', illegal: '#ffa597', ovMin: 0.6, bounce: '120,200,160', lamp: '255,248,220', call: '#ffe27a' },
   red: { base: '#9a1f26', cushion: '#a2242b', illegal: '#ffe27a', ovMin: 0.68, bounce: '236,122,118', lamp: '255,196,160', call: '#9ff0ff' },
   blue: { base: '#1d4f91', cushion: '#21579c', illegal: '#ffe27a', ovMin: 0.66, bounce: '120,160,230', lamp: '235,240,255', call: '#9ff0ff' },
+  /* the career shop's cloths (4l: Settings > Graphics once unlocked). Each keeps the same 3:1 for
+     every overlay on its brightest lit bed (cosmetics-check measures them as render-check does
+     the first three); rim: the bed is dark enough that the near-black balls take a light rim */
+  grey: { base: '#4a555d', cushion: '#535f68', illegal: '#ffe27a', ovMin: 0.78, bounce: '170,182,192', lamp: '250,248,240', call: '#9ff0ff' },
+  teal: { base: '#0e5a60', cushion: '#11646a', illegal: '#ffa597', ovMin: 0.64, bounce: '110,200,200', lamp: '240,255,250', call: '#ffe27a' },
+  midnight: { base: '#162039', cushion: '#1a2643', illegal: '#ffa597', ovMin: 0.5, bounce: '110,130,190', lamp: '225,232,255', call: '#ffe27a', rim: true },
+  plum: { base: '#4a1f4f', cushion: '#53245a', illegal: '#ffe27a', ovMin: 0.62, bounce: '190,120,200', lamp: '255,225,245', call: '#9ff0ff', rim: true },
 };
+const CLOTH_NAMES = { green: 'Green', red: 'Red', blue: 'Blue', grey: 'Grey', teal: 'Teal', midnight: 'Midnight', plum: 'Plum' };
 let CL = CLOTHS.green, CLOTH = CL.base, CUSHION = CL.cushion, ILLEGAL = CL.illegal;
-const clothOf = () => CLOTHS[settings && settings.cloth] || CLOTHS.green;
-function useCloth() { CL = clothOf(); CLOTH = CL.base; CUSHION = CL.cushion; ILLEGAL = CL.illegal; }
+const clothOf = () => CLOTHS[look().cloth] || CLOTHS.green;
+function useCloth() { CL = clothOf(); CLOTH = CL.base; CUSHION = CL.cushion; ILLEGAL = CL.illegal; useBalls(); lookKey = lookSig(); }
+/* ---- 4l. the look: what the table, the cue and the balls wear. Cosmetic only: nothing here is
+   read by the sim, and no size, friction, mass or any other number of the physics depends on it
+   (cosmetics-check plays one shot in every look and asserts byte-identical results). The look is
+   the settings' (Settings > Graphics: cloth, cue, chalk, rails, balls, from whatever is unlocked)
+   or, in a career match, the career's equipped items (lookCareer, set by 6d). A shop id names its
+   look by what follows its slot: 'cloth-grey' is CLOTHS.grey, 'cue-maple' CUES.maple. ---- */
+/* the rail's wood: the boards' ground colour and the grain's two ends */
+const RAILS = {
+  walnut: { name: 'Walnut', base: '#4f2714', dark: [44, 19, 9], lite: [140, 78, 40] },
+  cherry: { name: 'Cherry', base: '#6b2213', dark: [60, 14, 8], lite: [178, 70, 42] },
+  oak: { name: 'Light oak', base: '#8f6232', dark: [98, 62, 28], lite: [212, 166, 108] },
+  ebony: { name: 'Ebony', base: '#1d1613', dark: [9, 7, 6], lite: [78, 62, 52] },
+};
+/* the cues: shaft (a gradient), metal (the joint's collars and the rings), joint, forearm and its
+   inlaid points (null: none), the wrap and its pattern (linen, leather, diamond, stack, weave),
+   the butt sleeve, the sleeve's ring and the butt cap */
+const CUES = {
+  house: { name: 'House', shaft: ['#f0dcae', '#d7b07a'], metal: '#c9ccd2', joint: '#151515', fore: '#2b150b', pts: '#a3622f', wrap: '#1c1d21', pat: 'linen', sleeve: '#3c1b0d', ring: '#e7e2ef', cap: '#0c0c0c' },
+  maple: { name: 'Maple inlay', shaft: ['#f3e2b8', '#dcb983'], metal: '#d8c79a', joint: '#2a160b', fore: '#c99a5b', pts: '#2a160b', wrap: '#141414', pat: 'leather', sleeve: '#c99a5b', ring: '#2a160b', cap: '#141414' },
+  ebony: { name: 'Ebony and silver', shaft: ['#f0dcae', '#d7b07a'], metal: '#e3e6ea', joint: '#0d0d0f', fore: '#121012', pts: '#d8dbe0', wrap: '#2b2c31', pat: 'stack', sleeve: '#121012', ring: '#d8dbe0', cap: '#0a0a0a' },
+  carbon: { name: 'Carbon weave', shaft: ['#454950', '#26282c'], metal: '#8a9099', joint: '#111214', fore: '#202226', pts: null, wrap: '#2a2c31', pat: 'weave', sleeve: '#1a1b1e', ring: '#c8433b', cap: '#0c0c0c' },
+  gold: { name: 'Gold ring', shaft: ['#f0dcae', '#d7b07a'], metal: '#d4af37', joint: '#1a140a', fore: '#1b1610', pts: '#d4af37', wrap: '#3a2a12', pat: 'diamond', sleeve: '#1b1610', ring: '#d4af37', cap: '#0c0c0c' },
+  legacy: { name: 'Hall of Fame', shaft: ['#f3e2b8', '#dcb983'], metal: '#d4af37', joint: '#120a06', fore: '#5b0f1a', pts: '#f1ece0', wrap: '#101010', pat: 'diamond', sleeve: '#5b0f1a', ring: '#d4af37', cap: '#0c0c0c' },
+  champion: { name: 'Champion', shaft: ['#f0dcae', '#d7b07a'], metal: '#c9ccd2', joint: '#0b1430', fore: '#1d3a78', pts: '#e8eef8', wrap: '#0f1c3a', pat: 'stack', sleeve: '#1d3a78', ring: '#e8eef8', cap: '#0c0c0c' },
+  centurion: { name: 'Centurion', shaft: ['#f0dcae', '#d7b07a'], metal: '#d4af37', joint: '#06180f', fore: '#0f4a32', pts: '#d4af37', wrap: '#0b2a1d', pat: 'linen', sleeve: '#0f4a32', ring: '#d4af37', cap: '#0c0c0c' },
+};
+/* the chalk on the tip */
+const CHALKS = { blue: { name: 'Blue', tip: '#4f84bd' }, green: { name: 'Green', tip: '#3f9a5c' }, red: { name: 'Red', tip: '#c0443c' } };
+/* the ball sets (pool's 0-15; snooker, carom and bumper pool keep their match balls): the colours
+   1-8 (the stripes take theirs), the ivory of the cue ball, stripes and number circles, the number
+   circle's size (cos of its half angle: smaller is bigger) and the cue ball's spots: classic, one
+   red spot each end of an axis; pro, the measles ball (a spot at both ends of all three axes);
+   vintage, none. The number is always dark on ivory, so it reads on every set. */
+const BALLSETS = {
+  classic: { name: 'Classic', col: null, ivory: '#f7f4ea', circle: 0.866, cue: [[2, 0.975, '#b3302a']] },
+  pro: { name: 'Pro', col: null, ivory: '#f7f4ea', circle: 0.866, cue: [0, 1, 2].map(i => [i, 0.982, '#c4342c']) },
+  vintage: { name: 'Vintage', col: { 1: [222, 170, 62], 2: [44, 70, 140], 3: [172, 52, 40], 4: [92, 58, 116], 5: [212, 116, 52], 6: [40, 102, 70], 7: [116, 44, 34], 8: [30, 26, 24] },
+    ivory: '#ece2c6', circle: 0.866, cue: [] },
+  tv: { name: 'Television', col: { 1: [255, 204, 0], 2: [20, 84, 222], 3: [232, 36, 30], 4: [118, 52, 186], 5: [255, 120, 10], 6: [10, 150, 72], 7: [150, 24, 30], 8: [16, 16, 18] },
+    ivory: '#fbfaf4', circle: 0.8, cue: [0, 1, 2].map(i => [i, 0.986, '#1d4fb8']) },
+};
+/* the profile frames (the career's ring slot): a ring round the avatar on the hub's card, and a
+   small star for the ones an achievement unlocked. Each is 3:1 or more on the card. */
+const RINGS = {
+  silver: { name: 'Silver', col: '#c9ccd2' }, gold: { name: 'Gold', col: '#f2c94c' }, champion: { name: 'Champion', col: '#7cb6ff', star: true },
+  centurion: { name: 'Centurion', col: '#5fd68f', star: true }, drill: { name: 'Drill gold', col: '#f2c94c', star: true }, legacy: { name: 'Hall of Fame', col: '#ff9f8a', star: true },
+};
+const LOOKS = { cloth: CLOTHS, cue: CUES, chalk: CHALKS, rail: RAILS, balls: BALLSETS, ring: RINGS };
+const LOOK_DEFAULT = { cloth: 'green', cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', ring: null };
+/* every player has these without a career: the three cloths Settings always had, and the shop's free items */
+const LOOK_BASE = ['cloth-green', 'cloth-red', 'cloth-blue', 'cue-house', 'chalk-blue', 'rail-walnut', 'balls-classic'];
+/* unlocked anywhere: the base, and every item any career on this device has owned (LOOK_KEY,
+   added to as a career loads and buys; never taken away) */
+const LOOK_KEY = 'felt.looks.v1';
+function loadLookOwn() {
+  const own = new Set(LOOK_BASE);
+  try {
+    const o = JSON.parse(localStorage.getItem(LOOK_KEY) || 'null');
+    if (o && typeof o === 'object' && Array.isArray(o.own)) for (const id of o.own) if (typeof id === 'string' && lookOfId(id)) own.add(id);
+  } catch (e) { }
+  return own;
+}
+/* 'cloth-grey' -> ['cloth', 'grey'], or null for an id no look knows */
+function lookOfId(id) {
+  const i = id.indexOf('-'), slot = id.slice(0, i), key = id.slice(i + 1);
+  return i > 0 && LOOKS[slot] && Object.hasOwn(LOOKS[slot], key) ? [slot, key] : null;
+}
+let lookOwn = loadLookOwn();
+function noteLookOwn(ids) {
+  let more = false;
+  for (const id of ids) if (lookOfId(id) && !lookOwn.has(id)) { lookOwn.add(id); more = true; }
+  if (!more) return false;
+  try { localStorage.setItem(LOOK_KEY, JSON.stringify({ v: 1, own: [...lookOwn].filter(id => !LOOK_BASE.includes(id)) })); } catch (e) { }
+  return true;
+}
+const lookOwned = (slot, key) => lookOwn.has(slot + '-' + key);
+/* the career's look while one of its matches is on (6d sets it), else null */
+let lookCareer = () => null;
+/* the look now: the career's in a career match, else the settings', each slot falling back to the
+   default when it names nothing known or nothing unlocked */
+function look() {
+  const c = lookCareer();
+  if (c) return c;
+  const s = settings || LOOK_DEFAULT, out = {};
+  for (const slot of ['cloth', 'cue', 'chalk', 'rail', 'balls']) out[slot] = Object.hasOwn(LOOKS[slot], s[slot]) && lookOwned(slot, s[slot]) ? s[slot] : LOOK_DEFAULT[slot];
+  out.ring = null;
+  return out;
+}
+/* what the painted table image depends on (draw() repaints when it changes) */
+let lookKey = '';
+const lookSig = () => { const L = look(); return [L.cloth, L.rail, L.balls].join(); };
+const railLook = () => RAILS[look().rail] || RAILS.walnut;
+const cueLook = () => { const L = look(); return [CUES[L.cue] || CUES.house, (CHALKS[L.chalk] || CHALKS.blue).tip]; };
+/* pool's paint (4b's PAINT) for the ball set in use */
+let ballsNow = '';
+function useBalls() {
+  const id = look().balls;
+  if (id === ballsNow) return;
+  ballsNow = id;
+  const B = BALLSETS[id] || BALLSETS.classic, iv = B.ivory, col = n => rgb(B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n));
+  for (let n = 0; n <= 15; n++) {
+    PAINT[n] = n === 0 ? { base: iv, caps: B.cue.slice() }
+      : { base: col(n), caps: n > 8 ? [[0, 0.5, iv], [2, B.circle, iv]] : [[2, B.circle, iv]] };
+  }
+}
 const wa = a => `rgba(255,255,255,${Math.max(a, CL.ovMin)})`;
 const IVORY = '#f7f4ea';
 const rgb = c => `rgb(${c[0]},${c[1]},${c[2]})`;
@@ -7029,14 +7221,14 @@ function paintRails(g, co, L, px, rnd) {
     { q: [[-E, -E], [-E, TW + E], [-co, TW + co], [-co, -co]], along: 1, a: [-co, -RAIL], n: [-1, 0] },
     { q: [[TL + E, -E], [TL + E, TW + E], [TL + co, TW + co], [TL + co, -co]], along: 1, a: [TL + co, TL + RAIL], n: [1, 0] },
   ];
-  const DARK = [44, 19, 9], LITE = [140, 78, 40];
+  const RW = railLook(), DARK = RW.dark, LITE = RW.lite;
   for (const b of boards) {
     const at = (u, a) => b.along ? [a, u] : [u, a], len = (b.along ? TW : TL) + 2 * E, [a0, a1] = b.a, w = a1 - a0;
     const ws = Math.sign(w) * (RAIL - co);   /* the figure's scale: the rail's width */
     g.save();
     railOutline(g, co); g.clip();
     g.beginPath(); polyPath(g, b.q); g.clip();
-    g.fillStyle = '#4f2714'; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
+    g.fillStyle = RW.base; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
     /* broad figure first, then fine grain lines */
     const lines = Math.ceil(Math.abs(w) / (1.4 * px));
     for (let i = 0; i < lines + 6; i++) {
@@ -7531,7 +7723,7 @@ function octaSeam(g, co, px) {
    at the middle of each side and on each mitre, halfway across the wood. */
 function paintOctaRails(g, co, L, px, rnd) {
   const I = octagon(co), O = octagon(RAIL + 0.02), E = octagon(RAIL), w = RAIL - co;
-  const DARK = [44, 19, 9], LITE = [140, 78, 40];
+  const RW = railLook(), DARK = RW.dark, LITE = RW.lite;
   for (let i = 0; i < 8; i++) {
     const a = I[i], b = I[(i + 1) % 8], len = Math.hypot(b[0] - a[0], b[1] - a[1]);
     const ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, nx = -BED_LINES[i][0], ny = -BED_LINES[i][1];
@@ -7540,7 +7732,7 @@ function paintOctaRails(g, co, L, px, rnd) {
     g.beginPath(); polyPath(g, [O[i], O[(i + 1) % 8], b, a]); g.clip();
     /* the board's own frame: x along it from its inner corner, y out across the wood */
     g.transform(ux, uy, nx, ny, a[0], a[1]);
-    g.fillStyle = '#4f2714'; g.fillRect(-0.4, -0.01, len + 0.8, w + 0.05);
+    g.fillStyle = RW.base; g.fillRect(-0.4, -0.01, len + 0.8, w + 0.05);
     const lines = Math.ceil(w / (1.4 * px));
     for (let k = 0; k < lines + 6; k++) {
       const broad = k < 6, t = rnd(), base = broad ? w * rnd() : w * (k - 6 + rnd()) / lines;
@@ -7802,7 +7994,7 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
   /* the 8 is near black: over the dark tray, a drop or the floor a light rim keeps its outline
      (#c4c4c4: about 7:1 on the tray; render-check measures it). On the cloth it needs none: it
      is dark on a mid green, and in 8-ball the game ball's halo rings it. */
-  if (n === 8 && rim) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+  if ((n === 8 || (n === 62 && CL.rim)) && (rim || CL.rim)) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
   if (settings.marks) drawMark(g, n, X, Y, r);
   if (dark > 0) { g.fillStyle = `rgba(0,0,0,${dark})`; g.beginPath(); g.arc(X, Y, r + 0.5, 0, Math.PI * 2); g.fill(); }
   g.globalAlpha = 1;
@@ -8320,8 +8512,24 @@ function guideLines(c, ang) {
    inlaid points, a linen wrap and a butt sleeve. Lengths in metres from the tip back. */
 const CUE_LEN = 1.47;
 const cueR = x => 0.0064 + 0.0082 * x / CUE_LEN;
-const CUE_PARTS = [[0, 0.005, '#4f84bd'], [0.005, 0.027, '#f1ece0'], [0.74, 0.744, '#c9ccd2'], [0.744, 0.752, '#151515'], [0.752, 0.756, '#c9ccd2'],
-  [0.756, 1.0, '#2b150b'], [1.0, 1.006, '#c9ccd2'], [1.006, 1.262, '#1c1d21'], [1.262, 1.268, '#c9ccd2'], [1.268, 1.45, '#3c1b0d'], [1.33, 1.338, '#e7e2ef'], [1.45, CUE_LEN, '#0c0c0c']];
+/* the parts of a cue (CUES, 4l) from the tip back, the tip in its chalk */
+const cueParts = (C, tip) => [[0, 0.005, tip], [0.005, 0.027, '#f1ece0'], [0.74, 0.744, C.metal], [0.744, 0.752, C.joint], [0.752, 0.756, C.metal],
+  [0.756, 1.0, C.fore], [1.0, 1.006, C.metal], [1.006, 1.262, C.wrap], [1.262, 1.268, C.metal], [1.268, 1.45, C.sleeve], [1.33, 1.338, C.ring], [1.45, CUE_LEN, C.cap]];
+/* the wrap's pattern, between 1.006 and 1.262 m, in the cue's local frame (y across, +-cueR) */
+function cueWrap(pat) {
+  const a = 1.008, b = 1.26, R = cueR(1.26);
+  if (pat === 'linen') { ctx.fillStyle = 'rgba(255,255,255,0.07)'; for (let x = a; x < b; x += 0.0045) ctx.fillRect(x, -0.02, 0.0016, 0.04); return; }
+  if (pat === 'leather') { ctx.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = a; x < b; x += 0.021) ctx.fillRect(x, -0.02, 0.009, 0.04); return; }
+  if (pat === 'stack') { for (let x = a, i = 0; x < b; x += 0.011, i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.25)'; ctx.fillRect(x, -0.02, 0.011, 0.04); } return; }
+  if (pat === 'weave') { const q = 0.004; for (let x = a, i = 0; x < b; x += q, i++) for (let y = -R, j = 0; y < R; y += q, j++) { ctx.fillStyle = (i + j) % 2 ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.2)'; ctx.fillRect(x, y, q, q); } return; }
+  if (pat === 'diamond') {
+    ctx.strokeStyle = 'rgba(255,236,190,0.5)'; ctx.lineWidth = 0.0008;
+    ctx.save(); ctx.beginPath(); ctx.rect(a, -0.02, b - a, 0.04); ctx.clip();
+    ctx.beginPath();
+    for (let x = a - 2 * R; x < b; x += 0.012) { ctx.moveTo(x, -R); ctx.lineTo(x + 2 * R, R); ctx.moveTo(x + 2 * R, -R); ctx.lineTo(x, R); }
+    ctx.stroke(); ctx.restore();
+  }
+}
 function drawCue(c, ang, gap, alpha = 1) {
   const dx = Math.cos(ang), dy = Math.sin(ang), tx = c.x - dx * gap, ty = c.y - dy * gap, bx = tx - dx * CUE_LEN, by = ty - dy * CUE_LEN;
   const nx = -dy, ny = dx, sd = tdir(-LIGHT[0], -LIGHT[1]);
@@ -8347,17 +8555,18 @@ function drawCue(c, ang, gap, alpha = 1) {
   ctx.moveTo(0, -r0); ctx.lineTo(CUE_LEN - 0.004, -r1); ctx.quadraticCurveTo(CUE_LEN, -r1, CUE_LEN, 0); ctx.quadraticCurveTo(CUE_LEN, r1, CUE_LEN - 0.004, r1);
   ctx.lineTo(0, r0); ctx.quadraticCurveTo(-0.0012, 0, 0, -r0); ctx.closePath();
   ctx.clip();
-  const maple = ctx.createLinearGradient(0.027, 0, 0.74, 0);
-  maple.addColorStop(0, '#f0dcae'); maple.addColorStop(1, '#d7b07a');
+  const [CU, tip] = cueLook(), maple = ctx.createLinearGradient(0.027, 0, 0.74, 0);
+  maple.addColorStop(0, CU.shaft[0]); maple.addColorStop(1, CU.shaft[1]);
   ctx.fillStyle = maple; ctx.fillRect(0.02, -0.02, 0.73, 0.04);
-  for (const [a, b, col] of CUE_PARTS) { ctx.fillStyle = col; ctx.fillRect(a, -0.02, b - a, 0.04); }
-  /* forearm points, and the linen wrap's weave */
-  ctx.fillStyle = '#a3622f';
-  for (const s of [-1, 1]) {
-    ctx.beginPath(); ctx.moveTo(0.83, s * 0.45 * cueR(0.83)); ctx.lineTo(1.0, s * 0.1 * cueR(1)); ctx.lineTo(1.0, s * 0.95 * cueR(1)); ctx.closePath(); ctx.fill();
+  for (const [a, b, col] of cueParts(CU, tip)) { ctx.fillStyle = col; ctx.fillRect(a, -0.02, b - a, 0.04); }
+  /* forearm points, and the wrap's pattern */
+  if (CU.pts) {
+    ctx.fillStyle = CU.pts;
+    for (const s of [-1, 1]) {
+      ctx.beginPath(); ctx.moveTo(0.83, s * 0.45 * cueR(0.83)); ctx.lineTo(1.0, s * 0.1 * cueR(1)); ctx.lineTo(1.0, s * 0.95 * cueR(1)); ctx.closePath(); ctx.fill();
+    }
   }
-  ctx.fillStyle = 'rgba(255,255,255,0.07)';
-  for (let x = 1.008; x < 1.26; x += 0.0045) ctx.fillRect(x, -0.02, 0.0016, 0.04);
+  cueWrap(CU.pat);
   /* round: lit along the side toward the lamp, shaded on the other */
   const ly = sdir(Math.sin(ang), -Math.cos(ang)), s = ly[0] * LIGHT[0] + ly[1] * LIGHT[1] > 0 ? 1 : -1;
   ctx.fillStyle = 'rgba(255,255,255,0.16)'; band(s * 0.1, s * 0.75);
@@ -8397,7 +8606,7 @@ function draw(now) {
   prevState = state;
   if (!tab && game.shots === 0) trayList = [];
   const T = shownTab(), balls = T ? T.balls : game.balls, rb = BALL_R * view.k * dpr;
-  if (tableImg && CL !== clothOf()) { const keep = view; view = viewBase; tableImg = drawTableImage(); view = keep; }
+  if (tableImg && lookKey !== lookSig()) { const keep = view; view = viewBase; tableImg = drawTableImage(); view = keep; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   if (tableImg) ctx.drawImage(tableImg, 0, 0); else ctx.clearRect(0, 0, table.width, table.height);
@@ -8654,7 +8863,7 @@ const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: tru
 const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
 const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
   'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
-  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot'];
+  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls'];
 /* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
    2 and 2 to 3 renamed nothing: the new keys simply take their defaults in loadSettings. */
 /* (migrateSettings, section 6) */
@@ -10651,7 +10860,8 @@ function loadSettings() {
   const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'off', camV: 2, names: ['', ''], last: null,
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
-    hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false };
+    hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
+    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic' };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     let o = JSON.parse(raw || '{}') || {};
@@ -10680,7 +10890,9 @@ function loadSettings() {
     if (['7', '9'].includes(o.table)) s.table = o.table;
     if (['regulation', 'generous'].includes(o.pockets)) s.pockets = o.pockets;
     if (typeof o.autoAim === 'boolean') s.autoAim = o.autoAim;
-    if (['green', 'red', 'blue'].includes(o.cloth)) s.cloth = o.cloth;
+    if (typeof o.cloth === 'string' && Object.hasOwn(CLOTHS, o.cloth)) s.cloth = o.cloth;
+    /* the look (4l): any cue, chalk, rail or ball set the page knows (look() wears it once unlocked) */
+    for (const k of ['cue', 'chalk', 'rail', 'balls']) if (typeof o[k] === 'string' && Object.hasOwn(LOOKS[k], o[k])) s[k] = o[k];
     if (CAROM_RACES.includes(o.caromRace)) s.caromRace = o.caromRace;
     if ([1, 3].includes(o.caromCush)) s.caromCush = o.caromCush;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
@@ -10713,9 +10925,9 @@ function setSetting(k, v) {
      is paused there: setTable and setPockets never run mid-game, so they wait for the next start() */
   if ((k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') && state === 'menu' && !paused) previewGame(game.kind);
   syncMenu();
-  /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
-  if (k === 'cloth') layout();
-  if (k === 'cloth' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
+  /* the cloth, the rails and the balls are painted into the table image: repaint it */
+  if (k === 'cloth' || k === 'rail' || k === 'balls') layout();
+  if (k === 'cloth' || k === 'rail' || k === 'balls' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
   applyPrefs(k);
 }
 /* what the sv 3 settings do outside the game's own code: the root's data attributes (the controls'
@@ -10782,6 +10994,46 @@ for (const kind of Object.keys(RULE_KINDS)) {
   rulesRows.insertBefore(row, stmRow);
   SEGS.push(['rules' + kind, opts]);
 }
+/* Graphics' look (4l): the shop's cloths join the cloth row, and a row per slot (cue, chalk, rails,
+   balls) holds every look the page knows; syncMenu shows the ones unlocked (lookOwned) */
+const LOOK_ROWS = [['cue', 'Cue'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['balls', 'Balls']], LOOK_BTNS = [];
+{
+  const cloth = SEGS.find(x => x[0] === 'cloth')[1];
+  for (const key of Object.keys(CLOTHS)) {
+    let b = (cloth.find(o => o[1] === key) || [])[0];
+    if (!b) {
+      const i = document.createElement('i');
+      b = document.createElement('button'); b.id = 'cl' + key[0].toUpperCase() + key.slice(1); b.setAttribute('aria-pressed', 'false');
+      i.className = 'chip-x'; i.style.background = CLOTHS[key].base; i.setAttribute('aria-hidden', 'true');
+      b.append(i, CLOTH_NAMES[key]); clothSeg.appendChild(b);
+      cloth.push([b, key]);
+    }
+    LOOK_BTNS.push([b, 'cloth', key]);
+  }
+  for (const [slot, label] of LOOK_ROWS) {
+    const row = document.createElement('div'), lab = document.createElement('span'), seg = document.createElement('div'), opts = [];
+    row.className = 'prow'; lab.className = 'plab'; lab.id = 'lk' + slot + 'Lab'; lab.textContent = label;
+    seg.className = 'seg looks'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
+    for (const key of Object.keys(LOOKS[slot])) {
+      const b = document.createElement('button');
+      b.id = 'lk-' + slot + '-' + key; b.textContent = LOOKS[slot][key].name; b.setAttribute('aria-pressed', 'false');
+      seg.appendChild(b); opts.push([b, key]); LOOK_BTNS.push([b, slot, key]);
+    }
+    row.append(lab, seg); lookRows.appendChild(row);
+    SEGS.push([slot, opts]);
+  }
+}
+/* the look's row as Settings shows it: what is stored, or the default when that is not unlocked */
+const lookSetting = k => lookOwned(k, settings[k]) ? settings[k] : LOOK_DEFAULT[k];
+function syncLook() {
+  for (const [b, slot, key] of LOOK_BTNS) { b.hidden = !lookOwned(slot, key); b.setAttribute('aria-pressed', String(lookSetting(slot) === key)); }
+  const all = LOOK_BTNS.length, have = LOOK_BTNS.filter(([, slot, key]) => lookOwned(slot, key)).length;
+  const t = `${have} of ${all} looks unlocked. More cloths, cues, chalk, rails and ball sets come from the career shop (bought with career credits, some unlocked by achievements) and are yours here once owned. A career match shows the career's equipped items. A look never changes a shot.`;
+  if (lookNote.textContent !== t) lookNote.textContent = t;
+  const C = CLOTHS[lookSetting('cloth')] || CLOTHS.green;
+  clothSwatch.style.background = `radial-gradient(circle at 34% 50%, #f6f4ec 0 2.6px, transparent 3.2px), ${C.base}`;
+  clothSwatch.style.boxShadow = `inset 0 0 0 2.5px ${(RAILS[lookSetting('rail')] || RAILS.walnut).base}, inset 0 0 0 3.5px rgba(0, 0, 0, .35)`;
+}
 /* Gameplay's switches: settings.calls[key]; the first four are rules an event may lock */
 const TOGS = [[tgSafety, 'safety'], [tgEight, 'eight'], [tgObvious, 'obvious'], [tgChange, 'change'], [tgHighlight, 'highlight'], [tgConfirm, 'confirm'], [tgSound, 'sound'], [tgWarn, 'warn'], [tgHistory, 'history']];
 const LOCKABLE = ['calls.mode', 'calls.detail', 'safety', 'eight', 'obvious', 'change'];
@@ -10803,6 +11055,7 @@ function syncMenu() {
   }
   for (const [btn, k] of TOGS) { btn.setAttribute('aria-checked', String(!!settings.calls[k])); btn.disabled = locked && LOCKABLE.includes(k); }
   for (const [btn, k] of BOOL_TOGS) btn.setAttribute('aria-checked', String(!!settings[k]));
+  syncLook();
   /* an event's rules: its ruleset and stalemate too, not only the calls */
   for (const b of [...RULE_BTNS, psmOff, psmOn]) b.disabled = locked;
   for (const [el, out, k] of VOLS) { if (+el.value !== settings[k]) el.value = settings[k]; if (out.textContent !== settings[k] + '%') out.textContent = settings[k] + '%'; }
@@ -10811,7 +11064,7 @@ function syncMenu() {
   syncSetupRules();
   levelSeg.hidden = !settings.cpu;
   nameRow.hidden = settings.cpu;
-  document.documentElement.dataset.cloth = settings.cloth;
+  document.documentElement.dataset.cloth = look().cloth;
   menu.toggleAttribute('data-paused', !!paused);
   resumeBtn.hidden = !paused;
   concedeBtn.hidden = !(paused && game.kind === 'snooker' && !game.mode && !tutOn() && game.winner === null);
@@ -11027,7 +11280,7 @@ function paintScrim(x, W, H, mode, band = 0) {
 function paintRack(cv, kind, mode = 'fit', low = 0) {
   const w = cv.clientWidth, h = cv.clientHeight, d = pixelRatio();
   if (!w || !h) return;
-  const key = [kind, mode, low, w, h, d, settings.cloth, settings.table, settings.pockets, settings.bumperTable, settings.snookerTable].join();
+  const key = [kind, mode, low, w, h, d, lookSig(), settings.table, settings.pockets, settings.bumperTable, settings.snookerTable].join();
   if (cv.dataset.key === key) return;
   cv.dataset.key = key;
   cv.width = Math.round(w * d); cv.height = Math.round(h * d);
@@ -11074,33 +11327,74 @@ function caromArt(balls, wide) {
   for (const b of balls) if (at[b.n]) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; }
 }
 
-/* ---- the record: games played and won, kept when a game ends (finish -> recordGame). Per game
-   kind: played, two-player games, and wins and losses against each CPU opponent; the current and
-   best run of wins against the CPU. localStorage under REC_KEY, versioned; anything unreadable
-   starts from nothing. ---- */
-const REC_KEY = 'felt.record.v1', LEVELS = ['easy', 'medium', 'hard'];
-function freshRec() {
-  const k = () => ({ played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } } });
-  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), carom: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }), 10: k(), straight: k(), rotation: k() }, streak: 0, best: 0 };
+/* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
+   (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the
+   human shots (yours against the CPU, both players' in a two-player game): shots, legal pots (at
+   carom, points), fouls, breaks taken and breaks that went well (a ball down, no foul), the best
+   run (legal pots in one visit; carom's high run) and the longest pot (cm from where the ball lay
+   to its pocket), each best with its date; snooker's frames and highest break (and its date). Over
+   all kinds: the current and best run of wins against the CPU (the best's date) and the recent
+   form (the last FORM_MAX results against the CPU, with kind, level and date). Dates are the
+   page's (today(), section 5s); the sim never sees a clock.
+   Storage: localStorage REC_KEY (its name kept from v1), { v: 2, ... }. A v1 record is migrated as
+   it loads (every value it had is kept, the new ones start at nothing) and is copied once, as it
+   was, to REC_V1_BAK before the first v2 write. Each write first keeps the record it replaces in
+   REC_PREV, and a record that will not parse (or is not a record at all) is read from there; a
+   value that is not a count reads as zero, a date that is not a date as none. Nothing saved is
+   ever removed. ---- */
+const REC_KEY = 'felt.record.v1', REC_PREV = 'felt.record.prev', REC_V1_BAK = 'felt.record.v1.bak', REC_V = 2, FORM_MAX = 40, LEVELS = ['easy', 'medium', 'hard'];
+const REC_KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker'];
+function freshKind(kind) {
+  const k = { played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } }, sh: 0, pot: 0, fo: 0, br: 0, brOk: 0, run: [0, null], lp: [0, null] };
+  return kind === 'snooker' ? Object.assign(k, { frames: 0, high: 0, highD: null }) : k;
 }
-function loadRec() {
-  const r = freshRec(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
-  try {
-    const o = JSON.parse(localStorage.getItem(REC_KEY) || 'null');
-    if (o && o.v === 1 && o.kinds && typeof o.kinds === 'object') {
-      for (const kind of Object.keys(r.kinds)) {
-        const a = o.kinds[kind], b = r.kinds[kind];
-        if (!a || typeof a !== 'object') continue;
-        b.played = n(a.played); b.two = n(a.two);
-        for (const lv of LEVELS) if (a.cpu && a.cpu[lv]) { b.cpu[lv].w = n(a.cpu[lv].w); b.cpu[lv].l = n(a.cpu[lv].l); }
-        if (kind === 'snooker') { b.frames = n(a.frames); b.high = n(a.high); }
-      }
-      r.streak = n(o.streak); r.best = Math.max(n(o.best), r.streak);
-    }
-  } catch (e) { }
+function freshRec() { return { v: REC_V, kinds: Object.fromEntries(REC_KINDS.map(k => [k, freshKind(k)])), streak: 0, best: 0, bestD: null, form: [] }; }
+/* a stored record's shape (v1 or v2), or null; the values are cleaned by cleanRec */
+function readRec(raw) {
+  if (typeof raw !== 'string') return null;
+  const o = JSON.parse(raw);
+  return o && typeof o === 'object' && !Array.isArray(o) && (o.v === 1 || o.v === 2) && o.kinds && typeof o.kinds === 'object' && !Array.isArray(o.kinds) ? o : null;
+}
+function cleanRec(o) {
+  const r = freshRec(), n = v => Number.isInteger(v) && v >= 0 ? v : 0, day = v => typeof v === 'string' && DAY_RE.test(v) ? v : null;
+  const best = a => Array.isArray(a) && n(a[0]) ? [n(a[0]), day(a[1])] : [0, null];
+  if (!o) return r;
+  for (const kind of REC_KINDS) {
+    const a = Object.hasOwn(o.kinds, kind) ? o.kinds[kind] : null, b = r.kinds[kind];
+    if (!a || typeof a !== 'object') continue;
+    b.played = n(a.played); b.two = n(a.two);
+    for (const lv of LEVELS) if (a.cpu && typeof a.cpu === 'object' && a.cpu[lv] && typeof a.cpu[lv] === 'object') { b.cpu[lv].w = n(a.cpu[lv].w); b.cpu[lv].l = n(a.cpu[lv].l); }
+    for (const k of ['sh', 'pot', 'fo', 'br', 'brOk']) b[k] = n(a[k]);
+    b.brOk = Math.min(b.brOk, b.br);
+    b.run = best(a.run); b.lp = best(a.lp);
+    if (kind === 'snooker') { b.frames = n(a.frames); b.high = n(a.high); b.highD = b.high ? day(a.highD) : null; }
+  }
+  r.streak = n(o.streak); r.best = Math.max(n(o.best), r.streak); r.bestD = r.best ? day(o.bestD) : null;
+  if (Array.isArray(o.form)) r.form = o.form.filter(f => Array.isArray(f) && REC_KINDS.includes(f[0]) && (f[1] === 'W' || f[1] === 'L') && LEVELS.includes(f[2])).slice(-FORM_MAX).map(f => [f[0], f[1], f[2], day(f[3])]);
   return r;
 }
+function loadRec() {
+  let raw = null, o = null;
+  try { raw = localStorage.getItem(REC_KEY); } catch (e) { }
+  try { o = readRec(raw); } catch (e) { }
+  /* a record there but unreadable: the one kept before the last write */
+  if (!o && raw !== null) try { o = readRec(localStorage.getItem(REC_PREV)); } catch (e) { }
+  return cleanRec(o);
+}
+function saveRec() {
+  try {
+    const old = localStorage.getItem(REC_KEY);
+    let was = null;
+    try { was = readRec(old); } catch (e) { }
+    if (was && was.v === 1 && localStorage.getItem(REC_V1_BAK) === null) localStorage.setItem(REC_V1_BAK, old);
+    if (was) localStorage.setItem(REC_PREV, old);
+    localStorage.setItem(REC_KEY, JSON.stringify(rec));
+  } catch (e) { }
+}
 let rec = loadRec();
+/* a better best ([value, date]) */
+function recBest(slot, v) { if (v > slot[0]) { slot[0] = v; slot[1] = today(); return true; } return false; }
+function recForm(kind, won, level) { rec.form.push([kind, won ? 'W' : 'L', level, today()]); if (rec.form.length > FORM_MAX) rec.form.splice(0, rec.form.length - FORM_MAX); }
 function recordGame() {
   if (game.mode || game.winner === null || !rec.kinds[game.kind]) return;
   dropAbandon();
@@ -11108,9 +11402,29 @@ function recordGame() {
   r.played++;
   if (cpuMode) {
     const o = r.cpu[cpuLevel];
-    if (game.winner === 0) { o.w++; rec.streak++; rec.best = Math.max(rec.best, rec.streak); } else { o.l++; rec.streak = 0; }
+    if (game.winner === 0) { o.w++; rec.streak++; if (rec.streak > rec.best) { rec.best = rec.streak; rec.bestD = today(); } } else { o.l++; rec.streak = 0; }
+    recForm(game.kind, game.winner === 0, cpuLevel);
   } else r.two++;
-  try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+  saveRec();
+}
+/* settle() (noteShot): a human shot's numbers into the record. g0: the game before the shot, v:
+   its verdict, m: its moments (shotMoments), vis: the visit so far, r: the roll's result */
+function recordShot(g0, r, p, m, vis) {
+  if (g0.mode || tutOn() || solo || !rec.kinds[g0.kind] || (cpuMode && p !== 0)) return;
+  const k = rec.kinds[g0.kind], v = game.verdict || {};
+  k.sh++;
+  if (v.foul) k.fo++;
+  k.pot += g0.kind === 'carom' ? (m.keys.includes('point') ? 1 : 0) : m.legal;
+  if (g0.breakShot) { k.br++; if (!v.foul && (v.potted || []).some(x => x !== 0)) k.brOk++; }
+  recBest(k.run, g0.kind === 'carom' ? (game.high || [])[p] || 0 : vis.pots);
+  /* the longest pot: a legal pot's distance from where the ball lay to its pocket */
+  if (m.legal && POCKETS.length) {
+    for (const x of (v.potted || []).filter(x => x !== 0)) {
+      const b = g0.balls.find(q => q.n === x), q = POCKETS[(r.pocketOf || {})[x]];
+      if (b && q) recBest(k.lp, Math.round(100 * Math.hypot(b.x - q[0], b.y - q[1])));
+    }
+  }
+  saveRec();
 }
 /* audit F5: a game against the CPU left before it ends (Quit, Restart, another game, a solo
    session, or the page closed) counts as a loss once the player has taken a shot in it, so the
@@ -11123,7 +11437,8 @@ function countLoss(kind, level) {
   if (!Object.hasOwn(rec.kinds, kind) || !LEVELS.includes(level)) return false;
   const r = rec.kinds[kind];
   r.played++; r.cpu[level].l++; rec.streak = 0;
-  try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+  recForm(kind, false, level);
+  saveRec();
   return true;
 }
 function dropAbandon() { try { localStorage.removeItem(ABANDON_KEY); } catch (e) { } }
@@ -11148,9 +11463,100 @@ function recordFrame(v) {
   if (game.mode || !v || !v.frameOver) return;
   const r = rec.kinds.snooker;
   r.frames++;
-  r.high = Math.max(r.high, ...(cpuMode ? [game.high[0]] : game.high));
-  try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+  const hi = Math.max(...(cpuMode ? [game.high[0]] : game.high));
+  if (hi > r.high) { r.high = hi; r.highD = today(); }
+  saveRec();
 }
+/* ---- 6s. Stats and records: a navigation stack in How to play's manner. The overview (statsList:
+   the four numbers, a row per game, the records book and the recent form, the CPU results by
+   level, the career's numbers) and one page (statsPage) rebuilt for what is pushed: a game's
+   numbers, the records book or the form. Every rate shows its denominator ("7 of 9, 78%"). All of
+   it reads the record (rec, above); nothing here writes it. ---- */
+const STAT_BALL = { 8: ['ball b8', '8'], 9: ['ball b9', '9'], 10: ['ball b10', '10'], straight: ['ball b14', '14'], rotation: ['ball b15', '15'], bumper: ['ball bb', ''], carom: ['ball bc', ''], snooker: ['ball bsblk', ''] };
+const statName = kind => KINDS[kind].name;
+/* "7 of 9, 78%", or "none yet" with nothing to divide by */
+const ofWords = (n, d) => d ? `${n} of ${d}, ${Math.round(100 * n / d)}%` : 'none yet';
+const dateWords = d => d ? `${dayWords(d)} ${d.slice(0, 4)}` : '';
+const cpuOf = r => LEVELS.reduce((a, lv) => [a[0] + r.cpu[lv].w, a[1] + r.cpu[lv].w + r.cpu[lv].l], [0, 0]);
+let statsAt = null;
+function statEl(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = String(text); return e; }
+/* a row: the label (and a line under it) and the value (and a line under it) */
+function statRow(label, value, sub, vsub) {
+  const d = statEl('div', 'stat'), l = statEl('span', null, label), v = statEl('b', null, value);
+  if (sub) l.appendChild(statEl('small', null, sub));
+  if (vsub) v.appendChild(statEl('small', null, vsub));
+  d.append(l, v);
+  return d;
+}
+function statGroup(head, rows, foot) {
+  const out = [], g = statEl('div', 'group');
+  if (head) { const h = statEl('h3', 'ghead', head); h.id = 'stg' + (statGroup.n = (statGroup.n || 0) + 1); g.setAttribute('aria-labelledby', h.id); out.push(h); }
+  g.setAttribute('role', 'group'); g.append(...rows.filter(Boolean)); out.push(g);
+  if (foot) out.push(statEl('p', 'gfoot', foot));
+  return out;
+}
+const formEl = list => { const d = statEl('div', 'form'); d.setAttribute('role', 'img'); d.setAttribute('aria-label', list.length ? `Oldest to newest: ${list.map(f => f[1] === 'W' ? 'won' : 'lost').join(', ')}` : 'No games yet');
+  d.append(...list.map(f => { const i = statEl('i', f[1] === 'W' ? 'w' : 'l', f[1]); i.title = `${statName(f[0])} vs ${FOES[f[2]]}${f[3] ? ', ' + dateWords(f[3]) : ''}`; return i; })); return d; };
+/* a game's page */
+function statsKindPage(kind) {
+  const r = rec.kinds[kind], [w, n] = cpuOf(r), car = kind === 'carom', snk = kind === 'snooker', pots = !['carom', 'bumper'].includes(kind), out = [];
+  const form = rec.form.filter(f => f[0] === kind).slice(-10);
+  out.push(...statGroup('Games', [statRow('Played', String(r.played), r.two ? `${r.two} two-player` : 'Two-player and against the CPU'),
+    statRow('Wins against the CPU', ofWords(w, n)), snk ? statRow('Frames played', String(r.frames)) : null]));
+  out.push(...statGroup('Against the CPU', LEVELS.map(lv => { const o = r.cpu[lv]; return statRow(FOES[lv], `${o.w}-${o.l}`, { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[lv], o.w + o.l ? `won ${ofWords(o.w, o.w + o.l)}` : 'not played'); })));
+  out.push(...statGroup('Shots', [statRow(car ? 'Points' : 'Potting', car ? ofWords(r.pot, r.sh) : ofWords(Math.min(r.pot, r.sh), r.sh), car ? 'Shots that scored' : 'Legal balls down, per shot taken'),
+    !car ? statRow('Break success', ofWords(r.brOk, r.br), 'A ball down and no foul') : null,
+    statRow('Fouls', ofWords(r.fo, r.sh), 'Of your shots')], 'Human shots only: yours against the CPU, both players\' in a two-player game.'));
+  out.push(...statGroup('Bests', [statRow(car ? 'High run' : 'Best run', `${r.run[0]}${car ? ' point' : ' ball'}${r.run[0] === 1 ? '' : 's'}`, car ? 'Points in one inning' : 'Legal pots in one visit', dateWords(r.run[1])),
+    pots || kind === 'bumper' ? statRow('Longest pot', r.lp[0] ? `${r.lp[0]} cm` : 'none yet', 'From where the ball lay to its pocket', dateWords(r.lp[1])) : null,
+    snk ? statRow('Highest break', String(r.high), null, dateWords(r.highD)) : null]));
+  out.push(...statGroup('Recent form', [formEl(form)], form.length ? `The last ${form.length} against the CPU, oldest first: ${form.filter(f => f[1] === 'W').length} won.` : 'No games against the CPU yet.'));
+  return out;
+}
+/* the records book: every best there is, with its date */
+function bookOf() {
+  const out = [];
+  if (rec.best) out.push(['Longest win streak against the CPU', `${rec.best} game${rec.best === 1 ? '' : 's'}`, rec.bestD]);
+  for (const kind of REC_KINDS) {
+    const r = rec.kinds[kind], car = kind === 'carom';
+    if (r.run[0]) out.push([`${statName(kind)}: ${car ? 'high run' : 'best run'}`, `${r.run[0]} ${car ? 'point' : 'ball'}${r.run[0] === 1 ? '' : 's'}`, r.run[1]]);
+    if (r.lp[0]) out.push([`${statName(kind)}: longest pot`, `${r.lp[0]} cm`, r.lp[1]]);
+    if (kind === 'snooker' && r.high) out.push(['Snooker: highest break', String(r.high), r.highD]);
+  }
+  return out;
+}
+function statsBookPage() {
+  const b = bookOf();
+  if (!b.length) return [statEl('p', 'gfoot', 'No records yet. Runs, long pots, breaks and win streaks are kept here, each with its date.')];
+  return statGroup(null, b.map(([t, v, d]) => statRow(t, v, d ? dateWords(d) : 'Before records had dates')), 'A record is dated the day it was set, by this device\'s clock.');
+}
+function statsFormPage() {
+  const f = rec.form.slice(-20), out = [];
+  const last = rec.form.slice(-10), won = last.filter(x => x[1] === 'W').length;
+  out.push(...statGroup('Last 10', [formEl(last)], last.length ? `${ofWords(won, last.length)} won. Current run of wins: ${rec.streak}.` : 'No games against the CPU yet.'));
+  if (f.length) out.push(...statGroup('Games, newest first', f.slice().reverse().map(x => statRow(`${statName(x[0])} vs ${FOES[x[2]]}`, x[1] === 'W' ? 'Won' : 'Lost', x[3] ? dateWords(x[3]) : ''))));
+  return out;
+}
+const STAT_PAGES = { book: ['Records', statsBookPage], form: ['Recent form', statsFormPage] };
+/* push a page ('book', 'form', or a game kind), or pop to the overview (null) */
+function statsGo(page, anim) {
+  const was = statsAt;
+  statsAt = page || null;
+  statsList.hidden = !!statsAt; statsPage.hidden = !statsAt;
+  statsPage.classList.remove('push'); statsList.classList.remove('pop'); statsTitle.classList.remove('swap');
+  if (statsAt) {
+    const P = STAT_PAGES[statsAt], title = P ? P[0] : statName(statsAt);
+    statsTitle.textContent = title;
+    statsPage.dataset.page = statsAt;
+    statsPage.replaceChildren(...(P ? P[1]() : statsKindPage(statsAt)));
+  } else statsTitle.textContent = 'Stats';
+  statsBack.setAttribute('aria-label', statsAt ? 'Back to Stats' : 'Back');
+  statsBody.scrollTop = 0;
+  if (anim && statsAt !== was) { const pg = statsAt ? statsPage : statsList; void pg.offsetWidth; pg.classList.add(statsAt ? 'push' : 'pop'); statsTitle.classList.add('swap'); }
+  if (anim && byKeys) (statsAt ? statsBack : (document.getElementById('st-' + was) || (was === 'book' ? stBook : stForm))).focus({ preventScroll: true });
+}
+stBook.addEventListener('click', () => statsGo('book', true));
+stForm.addEventListener('click', () => statsGo('form', true));
 function showStats() {
   const kp = [['Win streak', rec.streak, 'vs CPU'], ['Best streak', rec.best, 'vs CPU'], ['Trick stars', starTotal(), `of ${TRICKS.length * 3}`], ['Daily streak', dailyStreak(), `best ${dailyRec.best}`]];
   kpis.replaceChildren(...kp.map(([t, v, s]) => {
@@ -11158,11 +11564,23 @@ function showStats() {
     dt.textContent = t; dd.textContent = String(v); sm.textContent = s; dd.appendChild(sm); d.append(dt, dd);
     return d;
   }));
+  /* a row per game: its ball, what has been played, the wins against the CPU */
+  statsKinds.replaceChildren(...REC_KINDS.map(kind => {
+    const r = rec.kinds[kind], [w, n] = cpuOf(r), b = statEl('button', 'topic'), tile = statEl('span', 'htile'), ball = statEl('span', STAT_BALL[kind][0], STAT_BALL[kind][1]), tt = statEl('span', 'tt');
+    b.id = 'st-' + kind; tile.setAttribute('aria-hidden', 'true'); tile.appendChild(ball);
+    tt.append(statEl('b', null, statName(kind)), statEl('small', null, r.played ? `${r.played} played, ${n ? `${w} won of ${n} vs CPU` : 'none vs CPU'}` : 'Not played yet'));
+    b.append(tile, tt); b.insertAdjacentHTML('beforeend', '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>');
+    b.addEventListener('click', () => statsGo(kind, true));
+    return b;
+  }));
+  const bk = bookOf().length, fl = rec.form.slice(-10);
+  stBookSub.textContent = bk ? `${bk} record${bk === 1 ? '' : 's'}, with their dates` : 'Your bests, with their dates';
+  stFormSub.textContent = fl.length ? `Last ${fl.length}: ${fl.map(f => f[1]).join(' ')}` : 'Your last games against the CPU';
   const cell = (tag, text, cls) => { const e = document.createElement(tag); e.textContent = text; if (cls) e.className = cls; return e; };
   const head = document.createElement('thead'), body = document.createElement('tbody'), hr = document.createElement('tr');
   hr.append(cell('th', 'Game'), cell('th', 'Played'), ...LEVELS.map(lv => cell('th', FOES[lv])), cell('th', '2P'));
   head.appendChild(hr);
-  for (const kind of ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker']) {
+  for (const kind of REC_KINDS) {
     const r = rec.kinds[kind], tr = document.createElement('tr');
     tr.append(cell('th', { bumper: 'Bumper', carom: 'Carom', straight: '14.1' }[kind] || KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
       ...LEVELS.map(lv => { const o = r.cpu[lv]; return cell('td', `${o.w}-${o.l}`, o.w + o.l ? '' : 'z'); }), cell('td', String(r.two), r.two ? '' : 'z'));
@@ -11174,8 +11592,10 @@ function showStats() {
   tutStat.textContent = `Tutorials: ${tutDoneCount()} of ${TUT_IDS.length} done.`;
   recTable.setAttribute('aria-label', 'Games by kind: played, wins and losses against Rookie, Regular and Hustler, and two-player games');
   careerStats();
+  statsGo(null);
   openSheet(statsSheet, statsBack);
 }
+Object.defineProperty(felt, 'statsPage', { get: () => statsAt });
 
 /* ---- how to play: a navigation stack. The list of topics (howList), and one page per topic
    (TABS: its row, its page), pushed from the right; the back button pops to the list, and from the
@@ -11225,7 +11645,7 @@ for (const [i, el] of [[0, name1], [1, name2]]) {
 statsBtn.addEventListener('click', () => showStats());
 for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => showPrefs());
 for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp());
-statsBack.addEventListener('click', () => backToMenu());
+statsBack.addEventListener('click', () => { if (statsAt) statsGo(null, true); else backToMenu(); });
 
 /* ---- Settings: the same navigation stack as How to play. The list of groups (prefsList), and a
    page per group (PREF_PAGES: its row, its page, its name), pushed from the right; Back pops to
@@ -11524,6 +11944,7 @@ function noteShot(g0, r, p) {
   stats.pots[p] += m.legal;
   vis.pots += m.legal;
   stats.best[p] = Math.max(stats.best[p], vis.pots);
+  recordShot(g0, r, p, m, vis);
   if (g0.breakShot) stats.brk = { p, down: (v.potted || []).filter(x => x !== 0).length, foul: v.foul || null };
   for (const k of m.keys) stats.notes[p][k] = (stats.notes[p][k] || 0) + 1;
   stats.visit = game.winner === null && game.turn === p && !v.foul ? vis : null;
@@ -12127,6 +12548,15 @@ const careerAt = () => { const i = LADDER.findIndex(([id]) => !careerRec.best[id
 /* career: { slot, nm (Career.nextMatch()), kind, units ('racks' | 'points'), need, score [you,
    them], rack, done, racks (each rack's numbers), shots (the player's), assist, seed, shot } */
 let career = null;
+/* the look in a career match (4l): the career's equipped items, read once per match (career.look) */
+function careerLookOf() {
+  const eq = Career.equipped(), out = Object.assign({}, LOOK_DEFAULT);
+  for (const slot of Object.keys(LOOKS)) { const L = eq[slot] && lookOfId(eq[slot]); if (L && L[0] === slot) out[slot] = L[1]; }
+  return out;
+}
+lookCareer = () => career ? (career.look || (career.look = Career.loaded && Career.id === career.slot ? careerLookOf() : null)) : null;
+/* every item the loaded career owns is unlocked for Settings' look too (never taken away) */
+function noteCareerLooks() { if (Career.loaded && noteLookOwn(Career.shop().filter(i => i.owned).map(i => i.id))) syncMenu(); }
 /* the career's ruleset ids onto the rules engine's (1e); the call requirement onto CALL_MODES */
 const CAREER_RULES = { '8-bar': '8-house', '8-league': '8-house', '8-wpa': '8-wpa', '9-bar': '9-house', '9-wpa': '9-wpa', '10-wpa': '10-wpa', '14.1-wpa': 'straight-wpa', 'rotation-61': 'rotation' };
 function careerRules(r) {
@@ -12429,6 +12859,7 @@ function cvRender(anim) {
   if (anim) { void cvBody.offsetWidth; cvBody.classList.add(anim); }
   if (anim) cvSheet.scrollTop = 0;
   careerBack.setAttribute('aria-label', cv.stack.length > 1 ? 'Back' : 'Back to home');
+  noteCareerLooks();
   syncCareerHome();
 }
 function setHead(kick, title) { careerKick.textContent = kick; careerTitle.textContent = title; }
@@ -12534,7 +12965,7 @@ PAGES.hub = () => {
   const card = cvEl('div', 'cvCard'), who = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
   card.id = 'cvMe';
   tt.append(cvEl('b', null, pr.name + (pr.nick ? ` "${pr.nick}"` : '')), cvEl('small', null, `${now.tierName}, tier ${now.tier}. ${natName(pr.nat)}, ${KINDS[pr.disc] ? KINDS[pr.disc].name : pr.disc}`));
-  who.append(avatarEl({ name: pr.name, avatar: pr.avatar }), tt);
+  who.append(framedAv(avatarEl({ name: pr.name, avatar: pr.avatar }), Career.equipped().ring), tt);
   const bar = cvEl('div', 'cvBar'), fill = cvEl('i');
   fill.style.width = (100 * Math.min(52, now.week) / 52) + '%';
   bar.appendChild(fill); bar.setAttribute('aria-hidden', 'true');
@@ -12772,14 +13203,37 @@ PAGES.sponsors = () => {
   if (sp.past.length) out.push(cvNoteEl(`${sp.past.length} past contract${sp.past.length === 1 ? '' : 's'}.`));
   return out;
 };
+/* the shop's swatch of an item's look */
+function shopSwatch(i) {
+  const e = cvEl('span', 'shopSw'), L = lookOfId(i.id);
+  e.setAttribute('aria-hidden', 'true');
+  if (!L) return e;
+  const [slot, key] = L, o = LOOKS[slot][key];
+  if (slot === 'cloth') e.style.background = `radial-gradient(circle at 36% 50%, #f6f4ec 0 3.5px, transparent 4px), ${o.base}`;
+  else if (slot === 'rail') e.style.background = `linear-gradient(135deg, rgb(${o.lite.join()}), ${o.base} 55%, rgb(${o.dark.join()}))`;
+  else if (slot === 'chalk') e.style.background = `radial-gradient(circle, ${o.tip} 0 8px, #2a2a2e 8.5px)`;
+  else if (slot === 'cue') e.style.background = `linear-gradient(180deg, transparent 0 40%, ${o.shaft[0]} 40% 60%, transparent 60%) 0 0 / 34% 100% no-repeat, linear-gradient(90deg, transparent 34%, ${o.metal} 34% 38%, ${o.fore} 38% 64%, ${o.wrap} 64% 84%, ${o.sleeve} 84%) 0 40% / 100% 20% no-repeat, #2a2a2e`;
+  else if (slot === 'balls') e.style.background = `radial-gradient(circle at 50% 50%, ${o.ivory} 0 4.5px, ${rgb((o.col || BALL_COLOR)[1])} 5px 11px, #2a2a2e 11.5px)`;
+  else if (slot === 'ring') e.style.background = `radial-gradient(circle, #3a3a41 0 9px, ${o.col} 9.5px 12px, #2a2a2e 12.5px)`;
+  return e;
+}
+/* the avatar in its profile frame, when one is worn */
+function framedAv(a, ringId) {
+  const L = ringId && lookOfId(ringId), R = L && RINGS[L[1]];
+  if (!R) return a;
+  a.classList.add('fr'); a.style.setProperty('--fr', R.col); a.dataset.frame = L[1];
+  if (R.star) { const st = cvEl('span', 'star'); st.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg>'; a.appendChild(st); }
+  return a;
+}
 PAGES.shop = () => {
   const items = Career.shop(), money = Career.now().money, out = [];
   setHead(`${crWords(money)} to spend`, 'Shop');
-  out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. Items are a record of the career for now; they do not change how the game looks yet.'));
-  for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['ring', 'Avatar rings']]) {
-    out.push(cvHeadEl(name), cvGroup(items.filter(i => i.slot === slot).map(i => cvRow({ id: 'shop-' + i.id, title: i.name, sub: i.equipped ? 'Equipped' : i.owned ? 'Owned' : i.locked ? 'Hall of Fame only' : i.price ? crWords(i.price) : 'Free',
+  out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. What you equip is what your career matches show: the cloth, the rails and the balls on the table, the cue and its chalk as you aim, and the frame round your picture on this page. Everything you own here can also be worn in any game from Settings, Graphics. Items cost career credits at a fixed price; the ones marked with an achievement are free once you reach it. There is no real money and nothing random.'));
+  for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['balls', 'Ball sets'], ['ring', 'Profile frames']]) {
+    out.push(cvHeadEl(name), cvGroup(items.filter(i => i.slot === slot).map(i => cvRow({ id: 'shop-' + i.id, title: i.name, lead: shopSwatch(i),
+      sub: i.equipped ? 'Equipped' : i.owned ? 'Owned' : i.locked ? i.needWords : i.need ? `Unlocked: ${i.price ? crWords(i.price) : 'free'}` : i.price ? crWords(i.price) : 'Free',
       end: i.equipped ? null : i.owned ? cvMiniBtn('Equip', () => { Career.equip(i.id); cvSave(); cvRender(); }, '', `Equip ${i.name}`)
-        : cvMiniBtn('Buy', i.locked || money < i.price ? null : () => { const r = Career.buy(i.id); cv.msg = r.ok ? `Bought: ${i.name}.` : `Not bought: ${r.why}.`; cvSave(); cvRender(); }, 'go', `Buy ${i.name}`) }))));
+        : cvMiniBtn(i.price ? 'Buy' : 'Claim', i.locked || money < i.price ? null : () => { const r = Career.buy(i.id); cv.msg = r.ok ? `${i.price ? 'Bought' : 'Claimed'}: ${i.name}.` : `Not bought: ${r.why}.`; cvSave(); cvRender(); }, 'go', `${i.price ? 'Buy' : 'Claim'} ${i.name}`) }))));
   }
   return out;
 };

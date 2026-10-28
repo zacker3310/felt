@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `23/23 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `24/24 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -115,6 +115,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   combos are called with their flags). The page takes it as `start(kind, { cpuProfile, hill })` (`o.level` may
   be left out). Think time (F8): `cpuThinkMs`, held in `think()` from the turn's start (`cpuReady`, `cpuT0`), a tap
   skips it (`cpuSkip`, `felt.cpuSkip()`), `felt.lastThink` records it. `ai2-check` pins it, `audit-check` A6.
+- More modes (page 6f, home's More modes row, `modesSheet` on the career's row builders): `start(kind, o)` with
+  `o.mode` 'tourney' | 'exhibit' | 'party'. Quick tournament: `Career.lib` brackets (`makeBracket`, `outcome`), the
+  player's matches raced on the table (`tourneyRackOver` from `finish()`), CPU-vs-CPU by `playModel` seeded by the
+  tournament's seed, shown as simulated; `felt.tourney.v1`, a match left mid-way is a forfeit (`t.live`). Exhibition:
+  both players CPU (`exhib`, `humanP`), `o.seed` is `cpuSeed`, the speed bar sets `felt.speed`. Party: 2 to 4 players
+  on a ring ruleset (`ring: true`, `rules.players`, `playersOf`/`nextOf` in sim 1e; `rulesetsFor` lists only
+  two-player sets), the handoff sheet when the turn passes. Pinned by `modes-check`.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

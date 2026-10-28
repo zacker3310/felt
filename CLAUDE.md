@@ -43,9 +43,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Practice and trick shots: `game.mode` (`'practice' | 'trick'`), sim 1e+ and 1h, page section 5s; contract in
   `.buildloop/spec/T2.3-solo.md`. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
 - Lesson and career: page section 6d (before boot). The lesson is a solo session (`solo.kind === 'lesson'`) that
-  only watches the ordinary controls; the career passes its terms to `start(kind, o)` and takes each rack's end
-  from `finish()` (`careerRackOver`). Stored as `felt.lesson.v1` and `felt.career.v1`; `tests/lib.cjs` marks
-  the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
+  only watches the ordinary controls. The career screens (`careerSheet`, a stack of push pages in `PAGES`, rebuilt
+  from `Career` reads by `cvRender`) sit over the engine below; the old 8-player ladder is gone, its record
+  (`felt.career.v1`) is read only and offered to `Career.migrate`. A match: `careerPlay()` passes the event's
+  rules (mapped by `careerRules`, locked), table and `Career.levelOf` level to `start(kind, o)`, takes each rack's
+  end from `finish()` (`careerRackOver`) and reports with `Career.reportMatch`. Leaving a match is a forfeit
+  (`careerAbandon`; `felt.career.live.v1` carries a closed page to the next boot); a CPU quick game left after
+  the player's first shot is a loss (`abandonCpuGame`, `felt.abandon.v1`): audit F5. Without simulation purity
+  `Career.assist()` caps the guide and auto aim and jitters the player's shot (`careerExec`); never the physics.
+  `tests/lib.cjs` marks the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
 - Tutorials: one per game (`TUTORIALS`, sim 1l; page 6d after the lesson), steps judged by the real `judge`
   (the game has no `game.mode`; `solo.kind === 'tutorial'`, `tutOn()`). Each plays on its own table and puts the
   geometry back exactly on the way home (`tutRestore`); settings are never touched. Show me plays `TUT_SOLS`
@@ -93,8 +99,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   population from the seed (only changed fields saved), calendar, brackets (single, double, round robin, groups,
   league, series, qualifier), rankings, sponsors, stats, seasons. Slots in `felt.careers.v1`, saves
   `felt.career.v2.<id>` (atomic: `.tmp`, `.bak`, checksum); `Career.migrate` turns `felt.career.v1` into a slot and
-  never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }` for the rules stream. The 6d
-  ladder still runs on v1. Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
+  never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }`; every discipline is
+  `live` (played on the table). The engine saves at boundaries; the screens save their own changes (`cvSave`). Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

@@ -144,7 +144,7 @@ const TOUR = async page => page.evaluate(async () => {
   for (const k of ['8', '9', 'bumper', 'carom', 'snooker']) { felt.start(k); felt.shoot(0.1, 0.5, 0); await idle(); felt.pause(); felt.resume(); felt.quitToHome(); }
   felt.practice('scatter', 3); felt.shoot(0, 0.4, 0); await idle(); felt.undo(); felt.quitToHome();
   felt.trick('long'); felt.shoot(0, 0.4, 0); await idle(); felt.quitToHome();
-  felt.daily(); felt.quitToHome(); felt.tutorial('9'); felt.quitToHome(); felt.career('pip'); felt.quitToHome();
+  felt.daily(); felt.quitToHome(); felt.tutorial('9'); felt.quitToHome(); felt.careerPlay(); felt.quitToHome();
   felt.speed = 1;
   return { polluted: ({}).polluted === 1, state: felt.state, settings: typeof felt.settings.names[0] === 'string' && felt.settings.names[0].length <= 12 };
 });

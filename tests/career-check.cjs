@@ -1,11 +1,17 @@
-/* career-check: the first-run lesson and the career ladder (section 6d), on a phone either way
-   up (440x956 and 956x440, dpr 3, real touch events with their own timestamps).
+/* career-check: the first-run lesson and the career (section 6d), on phones (440x956, 375x667
+   and 956x440, real touch events with their own timestamps).
    Lesson: a first run offers it once; Skip marks it seen; each step advances on its own action
    (a tap on the ball aims it, the wheel nudges it, a pull on the bar pots it), with a coach card
    kept off the cue ball and the controls; a miss puts the balls back; the finish sheet; the home
-   row goes once it is done; nothing but the bar shoots. Career: the ladder with locks; a race
-   with the score between racks and in the pause menu; a win unlocks the next player and
-   persists; a loss does not; bad storage reads as a fresh ladder; home still fits.
+   row goes once it is done; nothing but the bar shoots.
+   Career (the screens over Career, 1z): a first open, the new career form, the hub with every
+   page as a row, the calendar with fees and eligibility reasons, enter and withdraw, time moving
+   to a match, the match played on the real game with the event's locked rules and the
+   opponent's CPU level, the pause menu, between racks, the result reported, the bracket, every
+   other page (targets, contrast, nothing wider than the screen or cut off), practice, a reload,
+   forfeits (Forfeit match, and a match left by closing the page, counted once), a CPU game left
+   mid-rack counted as a loss (audit F5), delete with a confirmation, the old ladder record
+   carried over and never changed, damaged saves; home still fits.
    FELT_SHOTS=<dir> also saves screenshots of each screen there. */
 'use strict';
 const path = require('path');
@@ -150,131 +156,275 @@ async function pullBar(T, frac) {
     await T.browser.close();
   }
 
-  /* ---------- the career ---------- */
-  for (const vp of [{ width: 440, height: 956 }, { width: 956, height: 440 }]) {
-    const tag = `${vp.width}x${vp.height}`, sfx = vp.width < vp.height ? 'p' : 'l', P = sfx === 'p';
+  /* ---------- the career (Career, 1z): the screens, a match on the table, forfeits ---------- */
+  const fitOf = T => ev(T, () => {
+    const sh = cvSheet, out = [];
+    for (const e of sh.querySelectorAll('*')) {
+      if (!e.getClientRects().length) continue;
+      const r = e.getBoundingClientRect();
+      if (r.width && (r.left < -0.5 || r.right > innerWidth + 0.5)) out.push((e.id || e.className || e.tagName) + ':' + Math.round(r.left) + '-' + Math.round(r.right));
+    }
+    const cut = [...sh.querySelectorAll('b, small, .val, dd, dt, .title, .kicker')].filter(e => e.getClientRects().length && e.scrollWidth > e.clientWidth + 1).map(e => e.textContent.slice(0, 20));
+    return { wide: out.slice(0, 5), cut: cut.slice(0, 5), sw: sh.scrollWidth, cw: sh.clientWidth, scrolls: sh.scrollHeight <= sh.clientHeight || getComputedStyle(sh).overflowY === 'auto' };
+  });
+  const fine = f => !f.wide.length && !f.cut.length && f.sw <= f.cw + 1 && f.scrolls;
+  const still = T => T.page.waitForTimeout(450);   /* the push animation settles */
+  const a11y = async T => ({ small: await smallTargets(T.page), low: await lowContrast(T.page) });
+  for (const vp of [{ width: 440, height: 956 }, { width: 375, height: 667 }, { width: 956, height: 440 }]) {
+    const tag = `${vp.width}x${vp.height}`, sfx = vp.width === 440 ? 'p' : vp.width === 375 ? 's' : 'l', FULL = vp.width === 440;
     const T = await phone(vp);
     await T.page.waitForTimeout(250);
-    await T.shot('home-' + sfx);
-    const ros = await ev(T, () => felt.careerRoster());
-    check(`${tag}: eight players in three tiers (2 easy, 3 medium, 3 hard), races longer up the ladder, the last a boss, generous pockets only for the first`,
-      ros.length === 8 && ros.filter(c => c.level === 'easy').length === 2 && ros.filter(c => c.level === 'medium').length === 3 && ros.filter(c => c.level === 'hard').length === 3
-      && ros.every((c, i) => !i || c.race >= ros[i - 1].race) && ros[7].boss && ros[7].race === 3 && ros.filter(c => c.pockets === 'generous').map(c => c.id).join() === ros[0].id, JSON.stringify(ros));
     await T.page.click('#careerBtn');
-    await T.page.waitForTimeout(300);
-    const lad = await ev(T, () => [...document.querySelectorAll('.rung')].map(b => ({ id: b.dataset.id, st: b.dataset.state, dis: b.disabled, av: b.querySelector('.av').textContent, play: !!b.querySelector('.play') })));
-    check(`${tag}: the ladder: 8 rungs with avatars, the first to play, the other seven locked and disabled`,
-      lad.length === 8 && lad[0].st === 'current' && lad[0].play && !lad[0].dis && lad.slice(1).every(r => r.st === 'locked' && r.dis) && lad.every(r => r.av.length >= 1), JSON.stringify(lad));
-    check(`${tag}: the career sheet: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
-    await T.shot('career-' + sfx);
-    if (!P) {
-      check(`${tag}: a locked player cannot be started`, await ev(T, () => felt.career('baron') === false && felt.careerMatch === null));
-      await T.page.click('.rung[data-state="current"]');
-      await T.page.waitForTimeout(200);
+    await still(T);
+    const s0 = await ev(T, () => ({ page: felt.careerPage, rows: [...cvBody.querySelectorAll('.topic')].map(b => b.id), loaded: Career.loaded, migrate: !!document.getElementById('cvMigrate') }));
+    check(`${tag}: a first open: the careers page, New career, no carry-over offer without a ladder record`, s0.page === 'slots' && s0.rows.includes('cvNew') && !s0.loaded && !s0.migrate, JSON.stringify(s0));
+    await T.page.click('#cvNew');
+    await still(T);
+    const a0 = await a11y(T);
+    check(`${tag}: the new career form: targets 44 px, text 4.5:1, fits`, !a0.small.length && !a0.low.length && fine(await fitOf(T)), JSON.stringify(a0));
+    await T.shot('career-create-' + sfx);
+    await T.page.click('#cvCreate');
+    check(`${tag}: no name: the form stays and says so`, await ev(T, () => felt.careerPage === 'create' && /needs a name/.test(cvBody.textContent) && !Career.loaded));
+    await T.page.fill('#cvf-name', 'Sam Rivers');
+    await T.page.fill('#cvf-nick', 'Slim');
+    await T.page.selectOption('#cvf-nat', 'IE');
+    await T.page.selectOption('#cvf-disc', '9');
+    await T.page.click('#cvCreate');
+    await still(T);
+    const h0 = await ev(T, () => ({ page: felt.careerPage, p: Career.profile(), slots: Career.listSlots(), key: !!localStorage.getItem('felt.career.v2.' + Career.id), title: careerTitle.textContent, rows: [...cvBody.querySelectorAll('.topic')].map(b => b.id).filter(Boolean), me: !!document.getElementById('cvMe'), next: !!document.getElementById('cvNext') }));
+    check(`${tag}: create: the hub of the new career (saved in a slot), the profile as entered`,
+      h0.page === 'hub' && h0.p.name === 'Sam Rivers' && h0.p.nick === 'Slim' && h0.p.nat === 'IE' && h0.p.disc === '9' && h0.slots.length === 1 && h0.key && h0.title === 'Sam Rivers' && h0.me && h0.next, JSON.stringify(h0));
+    check(`${tag}: the hub: every page as a row (calendar, bracket, rankings, stats, rivals, sponsors, shop, practice, news, options, switch, retire)`,
+      ['cvCal', 'cvBracket', 'cvRank', 'cvStats', 'cvRivals', 'cvSpons', 'cvShop', 'cvPractice', 'cvNews', 'cvOpts', 'cvSwitch', 'cvRetire'].every(i => h0.rows.includes(i)), JSON.stringify(h0.rows));
+    const a1 = await a11y(T), f1 = await fitOf(T);
+    check(`${tag}: the hub: targets 44 px, text 4.5:1, nothing wider than the screen or cut off, the page scrolls`, !a1.small.length && !a1.low.length && fine(f1), JSON.stringify([a1, f1]));
+    await T.shot('career-hub-' + sfx);
+    /* the calendar: open events with fees, an ineligible one with its reasons */
+    await T.page.click('#cvCal');
+    await still(T);
+    const c0 = await ev(T, () => ({ page: felt.careerPage, rows: cvBody.querySelectorAll('.topic').length, bad: [...cvBody.querySelectorAll('.val.bad')].length, fee: [...cvBody.querySelectorAll('.val')].some(v => / cr$/.test(v.textContent)) }));
+    check(`${tag}: the calendar: events with their fees, the ineligible ones marked`, c0.page === 'calendar' && c0.rows > 3 && c0.bad > 0 && c0.fee, JSON.stringify(c0));
+    const a2 = await a11y(T);
+    check(`${tag}: the calendar: targets 44 px, text 4.5:1, fits`, !a2.small.length && !a2.low.length && fine(await fitOf(T)), JSON.stringify(a2));
+    await T.shot('career-calendar-' + sfx);
+    if (!FULL) { check(`${tag}: no page errors`, T.errors.length === 0, T.errors.join(' | ')); await T.browser.close(); continue; }
+    const ids = await ev(T, () => { const a = Career.availableEvents(); return { ok: a.filter(e => e.eligibility.ok && e.live && e.kind !== 'league').map(e => e.id), bad: a.find(e => !e.eligibility.ok).id }; });
+    await T.page.click('#ev-' + ids.bad.replace(/\./g, '-'));
+    await still(T);
+    const e1 = await ev(T, () => ({ page: felt.careerPage, enter: !!document.getElementById('cvEnter'), why: /Why you cannot enter/.test(cvBody.textContent), text: cvBody.textContent }));
+    check('an ineligible event: no Enter, the reasons listed (its tier)', e1.page === 'event' && !e1.enter && e1.why && /tier \d+ and (up|below)/i.test(e1.text), JSON.stringify(e1).slice(0, 300));
+    await T.page.click('#careerBack');
+    await still(T);
+    /* enter one, enter and withdraw another: the fee back, the travel kept */
+    const m0 = await ev(T, () => Career.now().money);
+    await T.page.click('#ev-' + ids.ok[0].replace(/\./g, '-'));
+    await still(T);
+    await T.shot('career-event-' + sfx);
+    await T.page.click('#cvEnter');
+    const e2 = await ev(T, id => ({ m: Career.now().money, ev: Career.event(id), msg: (document.getElementById('cvMsg') || {}).textContent, saved: Career.lib.unpack(localStorage.getItem('felt.career.v2.' + Career.id)).es[id] }), ids.ok[0]);
+    check('Enter: the fee and travel paid, the entry saved at once, the page says so', e2.m === m0 - e2.ev.fee - e2.ev.trav && e2.ev.entered && /^Entered/.test(e2.msg) && e2.saved && e2.saved.en === 1, JSON.stringify(e2).slice(0, 300));
+    const wd = await ev(T, id => { const before = Career.now().money, ev = Career.event(id); const en = Career.enter(id); const w = Career.withdraw(id); return { en: en.ok, w: w.ok, d: before - Career.now().money, trav: ev.trav, entered: Career.event(id).entered }; }, ids.ok.find(i => i !== ids.ok[0] && true));
+    check('withdraw before the deadline: the fee comes back, the travel does not', wd.en && wd.w && wd.d === wd.trav && !wd.entered, JSON.stringify(wd));
+    await ev(T, () => { felt.showCareer(); });
+    await still(T);
+    /* time: advance to the match */
+    let guard = 0;
+    while (!(await ev(T, () => !!Career.nextMatch())) && guard++ < 12) await ev(T, () => felt.careerAdvance('week'));
+    await still(T);
+    const n0 = await ev(T, () => { const n = Career.nextMatch(); return { n, play: !!document.getElementById('cvPlay'), card: cvNext.textContent }; });
+    check('advance: the next match card (opponent, rating and archetype, event, round, race, rules with the call mode, head to head) and Play',
+      n0.n && n0.play && n0.card.includes(n0.n.opponent.name) && n0.card.includes(n0.n.round) && n0.card.includes(n0.n.opponent.archName) && /First to \d+/.test(n0.card) && /call/.test(n0.card) && /Head to head/.test(n0.card), JSON.stringify(n0).slice(0, 400));
+    const a3 = await a11y(T);
+    check('the hub with a match due: targets 44 px, text 4.5:1, fits', !a3.small.length && !a3.low.length && fine(await fitOf(T)), JSON.stringify(a3));
+    await T.shot('career-hub-match-' + sfx);
+    /* play it: the event's rules (locked), the opponent's level, the race */
+    const set0 = await ev(T, () => JSON.stringify(felt.settings));
+    await T.page.click('#cvPlay');
+    await T.page.waitForTimeout(250);
+    const p0 = await ev(T, () => ({ m: felt.careerMatch, kind: felt.game.kind, rules: felt.game.rules, lv: felt.cpuLevel, cpu: felt.cpu, live: JSON.parse(localStorage.getItem('felt.career.live.v1') || 'null'), nm: Career.nextMatch() }));
+    check('Play: the real game on the event\'s terms: its game, its rules locked, the opponent\'s CPU level, the race; a live marker kept',
+      p0.m && p0.kind === p0.nm.rules.game && p0.rules.locked && p0.lv === p0.nm.level && p0.cpu && p0.m.need === p0.nm.race && p0.live && p0.live.event === p0.nm.event && p0.live.match === p0.nm.match, JSON.stringify(p0).slice(0, 400));
+    check('Play: the settings are not touched', await ev(T, () => JSON.stringify(felt.settings)) === set0);
+    await T.page.click('#menuBtn');
+    await T.page.waitForTimeout(200);
+    const q0 = await ev(T, () => ({ cn: !careerNow.hidden, name: cnName.textContent, restart: restartBtn.hidden && !restartBtn.getClientRects().length, exit: exitBtn.textContent.trim(), locked: lockNote ? !lockNote.hidden : null }));
+    check('pause in a career match: the opponent and score, no Restart, Quit reads Forfeit match', q0.cn && q0.name === p0.nm.opponent.name && q0.restart && q0.exit === 'Forfeit match', JSON.stringify(q0));
+    const a4 = await a11y(T);
+    check('the pause menu in a career match: targets 44 px, text 4.5:1', !a4.small.length && !a4.low.length, JSON.stringify(a4));
+    await T.shot('career-pause-' + sfx);
+    await T.page.click('#resumeBtn');
+    /* win it by racks: between racks, then the result, reported */
+    for (let i = 0; i < 30; i++) {
+      const s = await ev(T, () => ({ rack: rackSheet.classList.contains('show'), match: matchSheet.classList.contains('show') }));
+      if (s.match) break;
+      if (s.rack) {
+        if (i === 1) { const a = await a11y(T); check('between racks: targets 44 px, text 4.5:1', !a.small.length && !a.low.length, JSON.stringify(a)); await T.shot('career-rack-' + sfx); }
+        await T.page.click('#rackGo'); await T.page.waitForTimeout(80); continue;
+      }
       await ev(T, () => felt.forceWin(0));
-      await T.page.waitForTimeout(200);
-      await ev(T, () => felt.career('benny'));
-      await ev(T, () => felt.forceWin(0));
-      await T.page.click('#matchLadder');
-      await T.page.waitForTimeout(300);
-      await T.shot('career-progress-' + sfx);
-      await ev(T, () => felt.career('rosa'));
-      await ev(T, () => felt.forceWin(0));
-      await T.page.waitForTimeout(250);
-      check(`${tag}: between racks: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
-      await T.shot('between-racks-' + sfx);
-      await T.page.click('#rackGo');
-      await T.page.waitForTimeout(200);
-      await T.page.click('#menuBtn');
-      await T.page.waitForTimeout(250);
-      check(`${tag}: the pause menu in a career match: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
-      await T.shot('pause-career-' + sfx);
-      await T.page.click('#resumeBtn');
-      await ev(T, () => felt.forceWin(0));
-      await T.page.waitForTimeout(250);
-      await T.shot('match-won-' + sfx);
-      check(`${tag}: no page errors in the career`, T.errors.length === 0, T.errors.join(' | '));
-      await T.browser.close();
-      continue;
+      await T.page.waitForTimeout(60);
     }
-    /* Pip: one rack. Play, pause (the name, the line, the score), win */
-    await T.page.click('#rung-pip');
-    await T.page.waitForTimeout(250);
-    const m1 = await ev(T, () => ({ m: felt.careerMatch, st: felt.state, cpu: felt.cpu, lv: felt.cpuLevel, kind: felt.game.kind, pk: felt.pockets, table: felt.table }));
-    check('Pip: an 8-ball race to 1 against the easy CPU on the 7 ft table with generous pockets, your break',
-      m1.m && m1.m.id === 'pip' && m1.m.need === 1 && m1.st === 'aim' && m1.cpu && m1.lv === 'easy' && m1.kind === '8' && m1.pk === 'generous' && m1.table === '7', JSON.stringify(m1));
-    await T.page.click('#menuBtn');
-    const p1 = await ev(T, () => ({ shown: !careerNow.hidden && careerNow.getClientRects().length > 0, name: cnName.textContent, line: cnLine.textContent, score: cnScore.textContent, race: cnRace.textContent, kick: soloKind.textContent, card: p1name.textContent }));
-    check('pause in a career match: the player\'s name and line, the score, the race', p1.shown && p1.name === 'Pip Larkin' && p1.line === 'Just happy to be here' && p1.score === '0-0' && p1.race === 'Race to 1, rack 1' && /vs Pip Larkin/.test(p1.kick) && p1.card === 'Pip Larkin (CPU)', JSON.stringify(p1));
-    await T.page.click('#resumeBtn');
-    await ev(T, () => felt.forceWin(0));
-    await T.page.waitForTimeout(200);
-    const w1 = await ev(T, () => ({ shown: matchSheet.classList.contains('show'), over: over.classList.contains('show'), title: matchTitle.textContent, sub: matchSub.textContent, go: matchGo.textContent, at: felt.careerAt, rec: felt.careerRec, ls: JSON.parse(localStorage.getItem('felt.career.v1')) }));
-    check('beating Pip: the match sheet (not game over), "You beat Pip", Next match; Benny unlocked and stored',
-      w1.shown && !w1.over && w1.title === 'You beat Pip' && /Benny Okafor/.test(w1.sub) && w1.go === 'Next match' && w1.at === 1 && w1.rec.won === 1 && w1.ls.best.pip.join() === '1,0', JSON.stringify(w1));
+    const r0 = await ev(T, () => ({ res: felt.lastCareerResult, shown: matchSheet.classList.contains('show'), over: over.classList.contains('show'), title: matchTitle.textContent, st: Career.stats().all, live: localStorage.getItem('felt.career.live.v1'), m: felt.careerMatch }));
+    check('the match won: the result sheet (not game over), reported to the career (1 match, 1 won), the live marker gone',
+      r0.shown && !r0.over && r0.res.won && /^You beat/.test(r0.title) && r0.st.matches === 1 && r0.st.won === 1 && r0.live === null && r0.m.done, JSON.stringify(r0).slice(0, 400));
+    const a5 = await a11y(T);
+    check('the match result: targets 44 px, text 4.5:1', !a5.small.length && !a5.low.length, JSON.stringify(a5));
+    await T.shot('career-result-' + sfx);
+    await T.page.click('#matchLadder');
+    await still(T);
+    check('Career from the result: back to the hub', await ev(T, () => felt.careerPage === 'hub' && felt.careerMatch === null));
+    await ev(T, id => felt.careerGo('bracket', { id }), r0.res.event);
+    await still(T);
+    const b0 = await ev(T, () => ({ page: felt.careerPage, me: cvBody.querySelectorAll('.bm .me').length, bm: cvBody.querySelectorAll('.bm').length }));
+    check('the bracket: the draw, your matches marked', b0.page === 'bracket' && b0.me >= 1 && b0.bm > 2, JSON.stringify(b0));
+    const a6 = await a11y(T);
+    check('the bracket: targets 44 px, text 4.5:1, fits', !a6.small.length && !a6.low.length && fine(await fitOf(T)), JSON.stringify(a6));
+    await T.shot('career-bracket-' + sfx);
+    /* every other page renders, fits and reads */
+    const bad = [];
+    for (const p of ['rankings', 'stats', 'records', 'sponsors', 'shop', 'rivals', 'news', 'practice', 'options', 'slots']) {
+      await ev(T, p => { felt.showCareer(); felt.careerGo(p); }, p);
+      await still(T);
+      const a = await a11y(T), f = await fitOf(T), pg = await ev(T, () => felt.careerPage);
+      if (pg !== p || a.small.length || a.low.length || !fine(f)) bad.push({ p, pg, a, f });
+    }
+    check('rankings, stats, records, sponsors, shop, rivals, news, practice, options, slots: each renders, targets 44 px, text 4.5:1, fits', !bad.length, JSON.stringify(bad).slice(0, 600));
+    /* practice: a score recorded through Career.practice */
+    await ev(T, () => { felt.showCareer(); felt.careerGo('practice'); });
+    await T.page.fill('#drill-long-pot', '64');
+    await T.page.click('[aria-label="Record Long pots"]');
+    const pr = await ev(T, () => ({ m: Career.stats().mastery['long-pot'], msg: (document.getElementById('cvMsg') || {}).textContent }));
+    check('practice: a drill score recorded (best 64, bronze), the page says so', pr.m && pr.m.best === 64 && pr.m.lv === 1 && /recorded/.test(pr.msg), JSON.stringify(pr));
+    /* reload: the career persists */
     await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
-    await T.page.waitForTimeout(200);
-    const r1 = await ev(T, () => ({ at: felt.careerAt, sum: careerSum.textContent, hint: careerHint.textContent }));
-    check('the unlock persists across a reload: 1 of 8, next Benny', r1.at === 1 && r1.sum === '1 of 8' && r1.hint === 'Next: Benny Okafor', JSON.stringify(r1));
-    await T.page.click('#careerBtn');
-    const lad2 = await ev(T, () => [...document.querySelectorAll('.rung')].slice(0, 3).map(b => [b.dataset.state, b.querySelector('.st').textContent]));
-    check('the ladder after: Pip beaten with a tick and 1-0, Benny to play, Rosa locked', lad2[0].join() === 'beaten,1-0' && lad2[1][0] === 'current' && lad2[2][0] === 'locked', JSON.stringify(lad2));
-    /* Benny (one rack, by the Next match path), then Rosa: a race to 2 */
-    await T.page.click('#rung-benny');
-    await ev(T, () => felt.forceWin(0));
-    await T.page.waitForTimeout(150);
-    await T.page.click('#matchGo');
-    await T.page.waitForTimeout(250);
-    const m3 = await ev(T, () => ({ m: felt.careerMatch, lv: felt.cpuLevel, turn: felt.game.turn }));
-    check('Next match: Rosa, a race to 2 against the medium CPU, your break', m3.m.id === 'rosa' && m3.m.need === 2 && m3.lv === 'medium' && m3.turn === 0, JSON.stringify(m3));
-    await ev(T, () => felt.forceWin(0));
-    await T.page.waitForTimeout(200);
-    const i1 = await ev(T, () => ({ shown: rackSheet.classList.contains('show'), over: over.classList.contains('show'), title: rackTitle.textContent, sub: rackSub.textContent, board: rackBoard.getAttribute('aria-label'), at: felt.careerAt }));
-    check('between racks: "Rack 2. You lead 1-0.", the score board, nothing unlocked yet', i1.shown && !i1.over && i1.title === 'Rack 2' && /^You lead 1-0\. Rosa breaks\.$/.test(i1.sub) && /You 1, Rosa 0, race to 2/.test(i1.board) && i1.at === 2, JSON.stringify(i1));
-    check('between racks: targets 44 px, text 4.5:1', (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
-    await T.shot('between-racks-' + sfx);
-    await T.page.click('#rackGo');
-    await T.page.waitForTimeout(200);
-    const k2 = await ev(T, () => ({ turn: felt.game.turn, st: felt.state, m: felt.careerMatch }));
-    check('rack 2: the break alternates (Rosa breaks: the CPU is thinking)', k2.turn === 1 && ['thinking', 'stroke', 'rolling'].includes(k2.st) && k2.m.rack === 2 && k2.m.score.join() === '1,0', JSON.stringify(k2));
-    await T.page.click('#menuBtn');
-    const p2 = await ev(T, () => ({ score: cnScore.textContent, race: cnRace.textContent, name: cnName.textContent }));
-    check('pause in rack 2: 1-0, race to 2, rack 2', p2.score === '1-0' && p2.race === 'Race to 2, rack 2' && p2.name === 'Rosa Vance', JSON.stringify(p2));
-    check('the pause menu in a career match: targets 44 px, text 4.5:1', (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
-    await T.shot('pause-career-' + sfx);
-    await T.page.click('#resumeBtn');
-    /* lose the next two: the match is lost and nothing more unlocks */
-    await ev(T, () => felt.forceWin(1));
-    await T.page.waitForTimeout(150);
-    const i2 = await ev(T, () => rackSub.textContent);
-    check('1-1: "All square at 1-1."', /^All square at 1-1\./.test(i2), i2);
-    await T.page.click('#rackGo');
-    await ev(T, () => felt.forceWin(1));
-    await T.page.waitForTimeout(200);
-    const l3 = await ev(T, () => ({ shown: matchSheet.classList.contains('show'), title: matchTitle.textContent, go: matchGo.textContent, at: felt.careerAt, rec: felt.careerRec }));
-    check('losing the race 1-2: "Rosa takes it", Rematch; Gus stays locked, the loss counted', l3.shown && l3.title === 'Rosa takes it' && l3.go === 'Rematch' && l3.at === 2 && !l3.rec.best.rosa && l3.rec.played === 3 && l3.rec.won === 2, JSON.stringify(l3));
-    await T.shot('match-lost-' + sfx);
-    check('a locked player cannot be started', await ev(T, () => felt.career('gus') === false));
-    await T.page.click('#matchHome');
-    check('Home from the match: the career match is over', await ev(T, () => felt.state === 'menu' && felt.careerMatch === null && menu.classList.contains('show')));
-    /* stats: the career section */
+    await ev(T, () => felt.showCareer());
+    const rl = await ev(T, () => ({ page: felt.careerPage, st: Career.stats().all, name: Career.profile().name, sum: careerSum.textContent }));
+    check('reload: the career comes back (the hub, 1 match won, the drill)', rl.page === 'hub' && rl.st.won === 1 && rl.name === 'Sam Rivers' && /^Tier \d/.test(rl.sum), JSON.stringify(rl));
+    /* a forfeit by quitting mid-match (audit F5) */
+    const lost0 = rl.st.lost;
+    await ev(T, () => { if (!Career.nextMatch() && !Career.schedule().length) { const e = Career.availableEvents().find(x => x.eligibility.ok && x.live); if (e) Career.enter(e.id); } });
+    guard = 0;
+    while (!(await ev(T, () => !!Career.nextMatch())) && guard++ < 20) await ev(T, () => felt.careerAdvance('week'));
+    const f0 = await ev(T, () => { const n = Career.nextMatch(); return n && { ok: felt.careerPlay(), opp: n.opponent.id }; });
+    if (f0 && f0.ok) {
+      await T.page.waitForTimeout(150);
+      await T.page.click('#menuBtn');
+      await T.page.click('#exitBtn');
+      await T.page.waitForTimeout(150);
+      const f1x = await ev(T, opp => ({ st: Career.stats().all, h2h: Career.headToHead(opp), live: localStorage.getItem('felt.career.live.v1'), m: felt.careerMatch, state: felt.state }), f0.opp);
+      check('Forfeit match from the pause menu: counted as a loss (the record and the head to head), the marker gone', f1x.st.lost === lost0 + 1 && f1x.h2h && f1x.h2h.lost >= 1 && f1x.live === null && f1x.m === null && f1x.state === 'menu', JSON.stringify(f1x));
+      await ev(T, () => felt.showCareer());
+      check('the hub says the match was forfeited', await ev(T, () => /Forfeit/.test((document.getElementById('cvMsg') || {}).textContent || '')));
+    } else check('a second match to forfeit', false, JSON.stringify(f0));
+    /* a forfeit by closing the page mid-match (entered in a new event if out of the last) */
+    await ev(T, () => { if (!Career.nextMatch() && !Career.schedule().length) { const e = Career.availableEvents().find(x => x.eligibility.ok && x.live); if (e) Career.enter(e.id); } });
+    guard = 0;
+    while (!(await ev(T, () => !!Career.nextMatch())) && guard++ < 20) await ev(T, () => felt.careerAdvance('week'));
+    const g0 = await ev(T, () => ({ ok: felt.careerPlay(), lost: Career.stats().all.lost }));
+    if (g0.ok) {
+      await ev(T, () => felt.forceWin(1));   /* a rack down, then the page goes */
+      await T.page.waitForTimeout(100);
+      await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
+      const g1 = await ev(T, () => ({ lost: Career.loaded ? Career.stats().all.lost : null, live: localStorage.getItem('felt.career.live.v1') }));
+      check('a match left by closing the page: forfeited at the next boot, counted once', g1.lost === g0.lost + 1 && g1.live === null, JSON.stringify([g0, g1]));
+      await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
+      check('...and not again on the boot after', await ev(T, n => { felt.showCareer(); return Career.stats().all.lost === n; }, g0.lost + 1));
+    } else check('a third match to forfeit by closing the page', false, JSON.stringify(g0));
+    /* the stats sheet's career section reads the career */
+    await ev(T, () => felt.quitToHome());
     await T.page.click('#statsBtn');
     const sk = await ev(T, () => [...careerKpis.querySelectorAll('div')].map(d => d.textContent));
-    check('stats: a career section, progress 2 of 8, matches won 2 of 3', sk[0] === 'Progress2of 8' && sk[1] === 'Matches won2of 3' && sk.length === 4, JSON.stringify(sk));
+    check('stats: the career section shows the tier and matches won', /^Tier\d/.test(sk[0]) && /^Matches won1of 3/.test(sk[1]) && sk.length === 4, JSON.stringify(sk));
     await T.page.click('#statsBack');
-    /* the ordinary game is untouched: Play again and the setup still use the settings */
+    /* the ordinary game is untouched after a career match */
     await ev(T, () => { settings.cpu = false; felt.showSetup('8'); });
     await T.page.click('#breakBtn');
-    check('after a career match, an ordinary game plays on the settings (two players, no career)', await ev(T, () => !felt.cpu && felt.careerMatch === null && felt.state === 'aim'));
+    check('after a career match, an ordinary game plays on the settings (two players, no career)', await ev(T, () => !felt.cpu && felt.careerMatch === null && felt.state === 'aim' && !felt.game.rules.locked));
     await ev(T, () => felt.quitToHome());
-    /* bad storage: a fresh ladder */
+    /* a CPU game left mid-rack counts as a loss (audit F5); before the player shoots it does not */
+    const q1 = await ev(T, async () => {
+      const idle = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 10) : r(); w(); });
+      settings.cpu = true; settings.level = 'easy';
+      const l0 = felt.record.kinds['8'].cpu.easy.l, p0 = felt.record.kinds['8'].played;
+      felt.start('8'); felt.quitToHome();
+      const l1 = felt.record.kinds['8'].cpu.easy.l;
+      felt.speed = 40; felt.start('8'); await idle();
+      while (felt.game.turn !== 0 && felt.game.winner === null) { await new Promise(r => setTimeout(r, 30)); await idle(); }
+      felt.shoot(0.3, 0.6, 0); await idle();
+      felt.pause(); felt.quitToHome();
+      felt.speed = 1;
+      return { l0, l1, l2: felt.record.kinds['8'].cpu.easy.l, p2: felt.record.kinds['8'].played - p0, streak: felt.record.streak, mark: localStorage.getItem('felt.abandon.v1') };
+    });
+    check('a CPU game quit before the player\'s first shot: nothing counted; quit after it: a loss, the streak reset', q1.l1 === q1.l0 && q1.l2 === q1.l0 + 1 && q1.p2 === 1 && q1.streak === 0 && q1.mark === null, JSON.stringify(q1));
+    const q2 = await ev(T, async () => {
+      const idle = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 10) : r(); w(); });
+      felt.speed = 40; felt.start('9'); await idle();
+      while (felt.game.turn !== 0 && felt.game.winner === null) { await new Promise(r => setTimeout(r, 30)); await idle(); }
+      felt.shoot(0.3, 0.6, 0); await idle(); felt.speed = 1;
+      return { l: felt.record.kinds['9'].cpu.easy.l, mark: JSON.parse(localStorage.getItem('felt.abandon.v1') || 'null'), over: felt.game.winner !== null };
+    });
+    await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
+    const q3 = await ev(T, () => ({ l: felt.record.kinds['9'].cpu.easy.l, mark: localStorage.getItem('felt.abandon.v1') }));
+    check('a CPU game left by closing the page: a loss at the next boot', q2.over || (q2.mark && q2.mark.kind === '9' && q3.l === q2.l + 1 && q3.mark === null), JSON.stringify([q2, q3]));
+    /* switch career: delete with a confirmation */
+    await ev(T, () => { felt.showCareer(); felt.careerGo('slots'); });
+    await still(T);
+    const id0 = await ev(T, () => Career.id);
+    await T.page.click(`[aria-label="Delete Sam Rivers"]`);
+    await still(T);
+    check('Delete asks first', await ev(T, () => felt.careerPage === 'confirm' && !!document.getElementById('cvYes')));
+    await T.page.click('#cvNo');
+    check('Cancel keeps it', await ev(T, () => felt.careerPage === 'slots' && Career.listSlots().length === 1));
+    await T.page.click(`[aria-label="Delete Sam Rivers"]`);
+    await T.page.click('#cvYes');
+    check('Delete career removes the slot and its keys', await ev(T, id => felt.careerPage === 'slots' && Career.listSlots().length === 0 && localStorage.getItem('felt.career.v2.' + id) === null && !Career.loaded, id0));
+    check(`${tag}: no page errors in the career`, T.errors.length === 0, T.errors.join(' | '));
+    await T.browser.close();
+  }
+  /* the old ladder record: carried over by Career.migrate, never changed; damaged saves shown as such */
+  {
+    const raw = '{"v":1,"best":{"pip":[1,0],"benny":[1,0],"rosa":[2,1],"gus":[2,0],"mei":[2,1]},"won":5,"played":7,"racksW":9,"racksL":4}';
+    const T = await phone({ width: 375, height: 667 }, { init: `try { if (!localStorage.getItem('felt.career.v1')) localStorage.setItem('felt.career.v1', ${JSON.stringify(raw)}); } catch (e) { }` });
+    const l0 = await ev(T, () => ({ at: felt.careerAt, rec: felt.careerRec }));
+    check('the ladder record still reads (5 of 8 beaten, 5 of 7 won)', l0.at === 5 && l0.rec.won === 5 && l0.rec.played === 7, JSON.stringify(l0));
+    await T.page.click('#careerBtn');
+    await still(T);
+    const m0 = await ev(T, () => ({ page: felt.careerPage, offer: document.getElementById('cvMigrate') && document.getElementById('cvMigrate').textContent }));
+    check('a ladder record and no career: the offer to carry it over', m0.page === 'slots' && /5 of 8 players beaten, 5 of 7 matches won/.test(m0.offer || ''), JSON.stringify(m0));
+    await T.page.click('#cvMigrate');
+    await still(T);
+    await T.page.fill('#cvf-name', 'Old Hand');
+    await T.page.click('#cvCreate');
+    await still(T);
+    const m1 = await ev(T, () => ({ page: felt.careerPage, tier: Career.now().tier, legacy: Career.stats().legacy, v1: localStorage.getItem('felt.career.v1'), bak: localStorage.getItem('felt.career.v1.bak') }));
+    check('carry over: a new career at tier 2 with the ladder as its legacy; felt.career.v1 untouched (and backed up)', m1.page === 'hub' && m1.tier === 2 && m1.legacy && m1.legacy.beaten.length === 5 && m1.v1 === raw && m1.bak === raw, JSON.stringify(m1));
+    await ev(T, () => { felt.careerGo('slots'); });
+    check('carried over once: no second offer', await ev(T, () => !document.getElementById('cvMigrate')));
+    /* a damaged save: from the backup if it can, else marked and not loadable */
+    const d0 = await ev(T, () => {
+      const id = Career.id;
+      Career.save(); Career.save();
+      Career.close();
+      localStorage.setItem('felt.career.v2.' + id, 'F2|damaged');
+      felt.showCareer();
+      const rec = (document.getElementById('cvMsg') || {}).textContent;
+      Career.close();
+      localStorage.setItem('felt.career.v2.' + id, 'x'); localStorage.setItem('felt.career.v2.' + id + '.bak', 'y'); localStorage.removeItem('felt.career.v2.' + id + '.tmp');
+      felt.showCareer();
+      return { rec, page: felt.careerPage, slot: (document.getElementById('slot-' + id) || {}).textContent, load: [...document.querySelectorAll('#slot-' + id + ' .cvMini')].map(b => [b.textContent, b.disabled]) };
+    });
+    check('a damaged save opens from its backup and says so; one beyond its backup is marked damaged and cannot be loaded', /restored from its backup/.test(d0.rec || '') && d0.page === 'slots' && /Damaged: cannot be loaded/.test(d0.slot || '') && d0.load[0][1] === true && d0.load[1][1] === false, JSON.stringify(d0));
     for (const bad of ['{nope', '{"v":1,"best":{"rosa":[2,0],"baron":[9,9]},"won":-4,"played":"x"}', '{"v":2,"best":{"pip":[1,0]}}']) {
       await ev(T, b => localStorage.setItem('felt.career.v1', b), bad);
       await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
-      const f = await ev(T, () => ({ at: felt.careerAt, rec: felt.careerRec, sum: careerSum.textContent }));
-      check(`a bad career record (${bad.slice(0, 24)}) reads as a fresh ladder`, f.at === 0 && f.rec.won === 0 && f.rec.played === 0 && f.sum === '0 of 8', JSON.stringify(f));
+      const f = await ev(T, () => ({ at: felt.careerAt, rec: felt.careerRec }));
+      check(`a bad ladder record (${bad.slice(0, 24)}) reads as nothing beaten`, f.at === 0 && f.rec.won === 0 && f.rec.played === 0, JSON.stringify(f));
     }
-    check(`${tag}: no page errors in the career`, T.errors.length === 0, T.errors.join(' | '));
+    check('the rules a career event passes map onto the rules engine (8 bar: the 8 called; 14.1: its race; custom: strict)', await ev(T, () => {
+      const a = felt.careerRules({ game: '8', ruleset: '8-bar', call: { require: '8ball', detail: 'pocket' } }), b = felt.careerRules({ game: 'straight', ruleset: '14.1-wpa', call: { require: 'all', detail: 'rails' }, race: 75 }), c = felt.careerRules({ game: '9', ruleset: '9-wpa', call: { require: 'all', detail: 'strict' } });
+      return a.ruleset === '8-house' && a.call.mode === 'off' && a.call.eight && b.ruleset === 'straight-wpa' && b.race === 75 && b.call.mode === 'all' && c.call.detail === 'strict' && Career.DISCS.every(d => Career.GAMES[d].live);
+    }));
+    check('no page errors (ladder, carry over, damaged saves)', T.errors.length === 0, T.errors.join(' | '));
     await T.browser.close();
   }
 

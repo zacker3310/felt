@@ -401,7 +401,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #menu[data-paused] .sheet.home { max-width: 440px; padding: 22px 20px 20px; background: var(--panel); border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
 .pausePart > .kicker { margin-bottom: 10px; }
 #resumeBtn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
-#resumeBtn[hidden] { display: none; }
+#resumeBtn[hidden], .act[hidden] { display: none; }
 #resumeBtn svg { width: 20px; height: 20px; }
 .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .act { min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--line);
@@ -786,31 +786,112 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .av { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--av, #3a3a41); color: #fff;
   font: 700 15px/1 var(--font); letter-spacing: .02em; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .22), inset 0 -8px 14px rgba(0, 0, 0, .16); }
 .av.boss { background: #141416; color: #f2c94c; box-shadow: inset 0 0 0 1.5px #f2c94c; }
-/* the ladder: a tier title, then its players as an inset grouped list; the one to play is lit,
-   the ones still locked are quiet (but still 4.5:1) behind a lock */
-#careerSheet .sheet { max-width: 520px; }
-#careerSub { margin: -4px 0 0; }
-.ladder { display: grid; margin-top: 8px; }
-.tier { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 16px 4px 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
-.tier span { font-weight: 500; }
-.rungs { display: grid; overflow: hidden; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--line); }
-.rung { position: relative; min-width: 0; min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 8px 12px; border: 0; border-radius: 0; background: transparent; text-align: left; color: var(--text); }
-.rung + .rung::before { content: ""; position: absolute; top: 0; left: 64px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
-.rung:not(:disabled):hover { background: rgba(255, 255, 255, .04); }
-.rung:not(:disabled):active { background: rgba(255, 255, 255, .08); }
-.rung:disabled { cursor: default; }
-.rung .tt { flex: 1; display: grid; min-width: 0; }
-.rung b { font-size: 16px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rung small { font-size: 13px; line-height: 1.3; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rung .meta { font-size: 12px; }
-.rung .st { flex: none; display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-.rung .st svg { width: 18px; height: 18px; }
-.rung[data-state="beaten"] .st svg { color: #3ddc84; }
-.rung[data-state="current"] { background: rgba(242, 201, 76, .07); box-shadow: inset 3px 0 0 #f2c94c; }
-.rung .play { display: grid; place-items: center; min-height: 32px; padding: 0 14px; border-radius: 16px; background: var(--signal); color: #fff; font-size: 14px; font-weight: 700; }
-.rung[data-state="locked"] b { color: #a3a3aa; }
-.rung[data-state="locked"] small { color: #9a9aa2; }
-.rung[data-state="locked"] .av { background: #303036; color: #b4b4bc; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); }
+/* the career (6d): one sheet of push pages in How to play's manner (inset grouped lists of rows,
+   a pinned header, the accent capsule for the page's action), full screen on a phone held
+   upright and a card on anything wider. Every page is rebuilt from Career's reads. */
+#careerSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; --warn: #ff8a7a; }
+[data-cloth="red"] #careerSheet { --accent: #ff8a7a; }
+[data-cloth="blue"] #careerSheet { --accent: #7cb6ff; }
+#careerSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+  display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+@media (max-width: 600px) {
+  #careerSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  #careerSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  #careerSheet .howTop { padding-top: calc(var(--sat) + 14px); }
+}
+#careerSheet .shead { margin: 0; gap: 14px; }
+#careerSheet .shead .title { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
+#careerSheet .shead .kicker { color: var(--label-2); letter-spacing: .04em; overflow-wrap: anywhere; }
+#careerSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+.cvBody { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 0 max(24px, var(--sab)); min-width: 0; }
+.cvHead { margin: 22px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
+.cvHead:first-child { margin-top: 10px; }
+.cv .group { margin: 8px 0 0; }
+.cv .topic[disabled] { cursor: default; }
+.cv .topic[disabled]:hover, .cv .topic[disabled]:active, .cv div.topic:hover { background: transparent; }
+.cv .topic .val { flex: none; max-width: 46%; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.cv .topic .val.on { color: var(--accent); font-weight: 600; }
+.cv .topic .val.bad { color: var(--warn); }
+.cv .topic small { white-space: normal; overflow-wrap: anywhere; }
+.cv .topic.me { box-shadow: inset 3px 0 0 var(--accent); }
+.cv .topic .rk { flex: none; width: 34px; font-size: 15px; font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; }
+.cv .topic .av { width: 34px; height: 34px; font-size: 13px; }
+.cv .topic + .topic::before { left: 16px; }
+.cv .wk { flex: none; width: 34px; display: grid; justify-items: center; font-size: 11px; line-height: 1.1; color: var(--label-2); }
+.cv .wk b { font-size: 17px; font-weight: 700; color: var(--label); }
+/* a card: the player, the next match, a recap */
+.cvCard { margin: 8px 0 0; padding: 14px 16px; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.cvWho { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.cvWho .av { width: 46px; height: 46px; font-size: 16px; }
+.cvWho .tt { flex: 1; min-width: 0; }
+.cvWho b { display: block; font-size: 18px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.cvWho small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); overflow-wrap: anywhere; }
+.cvFacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
+.cvFacts div { min-width: 0; }
+.cvFacts dt { font-size: 12px; color: var(--label-2); overflow-wrap: anywhere; }
+.cvFacts dd { margin: 1px 0 0; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cvBar { height: 4px; margin: 12px 0 0; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.cvBar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.cvLines { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.4; color: var(--label-2); }
+.cvLines li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.cvLines li span:first-child { flex: none; }
+.cvLines li span:last-child { min-width: 0; color: var(--label); text-align: right; overflow-wrap: anywhere; }
+.cvVs { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--label-2); }
+.cvVs span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.cvVs .tag { flex: none; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: var(--label); font-size: 12px; }
+.cvNote { margin: 10px 16px 0; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+.cvNote.warn { color: var(--warn); }
+.cvMsg { margin: 10px 0 0; padding: 10px 14px; border-radius: 14px; background: #1f1f23; box-shadow: inset 3px 0 0 var(--accent); font-size: 14px; line-height: 1.4; color: var(--label); }
+/* actions: the capsule (the page's action), a quiet one, a pair */
+.cvAct { margin: 14px 0 0; display: grid; gap: 8px; }
+.cvAct.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.cvBtn { width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #07110b; font-size: 17px; font-weight: 600; }
+.cvBtn:hover { filter: brightness(1.06); }
+.cvBtn.alt { background: #2c2c30; color: var(--label); }
+.cvBtn.warn { background: #2c2c30; color: var(--warn); }
+.cvBtn:disabled { background: #2c2c30; color: var(--label-2); filter: none; cursor: default; }
+.cvMini { flex: none; min-width: 64px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: #2c2c30; color: var(--label); font-size: 15px; font-weight: 600; }
+.cvMini.go { background: var(--accent); color: #07110b; }
+.cvMini.warn { color: var(--warn); }
+.cvMini:disabled { background: #2c2c30; color: var(--label-2); cursor: default; }
+/* segments over the page colour */
+.cv .seg { margin: 8px 0 0; background: var(--cell); border-color: #2a2a2e; }
+.cv .seg button { color: var(--label-2); }
+.cv .seg button[aria-pressed="true"] { color: var(--label); }
+.cv .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cv .seg.wrap.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* the new career form */
+.cvForm { display: grid; overflow: hidden; margin: 8px 0 0; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.cvForm label { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 52px; padding: 4px 14px; font-size: 15px; color: var(--label); }
+.cvForm label + label::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.cvForm input, .cvForm select { width: 100%; min-width: 0; min-height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: #2a2a2e; color: var(--label); font: 16px var(--font); }
+.cvForm input::placeholder { color: rgba(235, 235, 245, .6); }
+.cvScore { width: 72px; min-height: 44px; padding: 0 8px; border: 0; border-radius: 10px; background: #2a2a2e; color: var(--label); font: 16px var(--font); text-align: center; }
+/* a switch row */
+.cvSw { position: relative; width: 100%; min-height: 56px; display: flex; align-items: center; gap: 14px; padding: 9px 14px; border: 0; background: transparent; text-align: left; color: var(--label); }
+.cvSw .tt { flex: 1; min-width: 0; }
+.cvSw b { display: block; font-size: 16px; font-weight: 500; }
+.cvSw small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); }
+.cvSw i { flex: none; position: relative; width: 50px; height: 30px; border-radius: 15px; background: #3a3a40; transition: background-color .15s; }
+.cvSw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.cvSw[aria-checked="true"] i { background: var(--accent); }
+.cvSw[aria-checked="true"] i::after { transform: translateX(20px); }
+.cvSw + .cvSw::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+/* a bracket's match: both names, the score between */
+.bm { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px; font-size: 14px; color: var(--label-2); }
+.bm + .bm::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.bm span { min-width: 0; overflow-wrap: anywhere; }
+.bm span:last-child { text-align: right; }
+.bm .w { color: var(--label); font-weight: 600; }
+.bm .me { color: var(--accent); }
+.bm b { font-variant-numeric: tabular-nums; color: var(--label); font-weight: 600; }
+/* a skill or a mastery as a bar */
+.cvMeter { flex: none; width: 34%; display: grid; gap: 4px; justify-items: end; font-size: 14px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.cvMeter i { display: block; width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; }
+.cvMeter i::after { content: ""; display: block; width: var(--v, 0%); height: 100%; background: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .cvSw i, .cvSw i::after { transition: none; } }
 /* the pause menu in a career match: who, their line, the score */
 #careerNow { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
 #careerNow[hidden] { display: none; }
@@ -1430,8 +1511,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <li><div><b>Stars</b><p>Three for a make on the first try, two within three tries, one for any make.</p></div></li>
         <li><div><b>Daily shot</b><p>One trick shot a day, the same for everyone. Your first try counts.</p></div></li>
         <li><div><b>Streak</b><p>Play on consecutive days and it grows. Miss a day and it starts again.</p></div></li>
-        <li><div><b>Career</b><p>Eight players, from the back room to the boss, each with a game and table of their own.</p></div></li>
-        <li><div><b>Matches</b><p>A race to a set number of racks, the break alternating. Win to unlock the next player.</p></div></li>
+        <li><div><b>Career</b><p>Your own player among 300 others: enter events from the calendar, climb twelve tiers, season after season.</p></div></li>
+        <li><div><b>Matches</b><p>Played on the table, on the event's own rules and race. Leaving one before its end forfeits it.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine print</h3>
       <ul class="fine">
@@ -1441,7 +1522,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   </div>
 </div>
 
-<!-- 6d: the first-run lesson offer, the lesson's finish, the career ladder, between racks, the match result -->
+<!-- 6d: the first-run lesson offer, the lesson's finish, the career, between racks, the match result -->
 <div class="overlay" id="lessonOffer" role="dialog" aria-modal="true" aria-labelledby="offerTitle">
   <div class="sheet offer">
     <span class="offerArt" aria-hidden="true"><span class="ball b1">1</span></span>
@@ -1481,11 +1562,12 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 </div>
 
 <div class="overlay" id="careerSheet" role="dialog" aria-modal="true" aria-labelledby="careerTitle">
-  <div class="sheet career">
+  <div class="sheet how cv" id="cvSheet">
+    <div class="howTop">
     <div class="shead"><button class="back" id="careerBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div class="htxt"><p class="kicker" id="careerKick">0 of 8 beaten</p><h2 class="title" id="careerTitle">Career</h2></div></div>
-    <p class="sub" id="careerSub">Beat each player in a race to move up the ladder.</p>
-    <div class="ladder" id="ladder"></div>
+      <div class="htxt"><p class="kicker" id="careerKick">Career</p><h2 class="title" id="careerTitle">Career</h2></div></div>
+    </div>
+    <div class="cvBody" id="cvBody"></div>
   </div>
 </div>
 
@@ -1495,7 +1577,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
     <h2 class="title" id="rackTitle">Rack 2</h2>
     <p class="sub" id="rackSub"></p>
     <div class="board" id="rackBoard"></div>
-    <div class="row"><button class="big" id="rackGo">Next rack</button><button class="ghost" id="rackQuit">Quit match</button></div>
+    <div class="row"><button class="big" id="rackGo">Next rack</button><button class="ghost" id="rackQuit">Forfeit match</button></div>
   </div>
 </div>
 
@@ -3894,13 +3976,14 @@ function buildCarom() {
 const C_CUE = [70, 71], C_RED = 72, CAROM_RACES = [5, 10, 15];
 /* The start: red on the foot spot, the opponent's cue ball on the head spot, the breaker's on
    the head string 6 in (15.24 cm) to one side (side: 1 or -1; the page alternates it game to
-   game, standing in for the lag winner's choice). opts: race (5, 10 or 15 points, else 10),
+   game, standing in for the lag winner's choice). opts: race (5, 10 or 15 points, else 10;
+   an event (o.event: a career match) sets any race from 1 to 60),
    cushions (1 for the easier one-cushion game, else 3), side. score, innings (turns at the table,
    the breaker's first counted at the start), run (points in the current turn) and high (the best
    run) per player. */
 function caromGame(o = {}) {
   if (TABLE !== 'carom') setTable('carom');
-  const side = o.side < 0 ? -1 : 1, race = CAROM_RACES.includes(+o.race) ? +o.race : 10, need = +o.cushions === 1 ? 1 : 3;
+  const side = o.side < 0 ? -1 : 1, race = CAROM_RACES.includes(+o.race) || (o.event && Number.isInteger(o.race) && o.race > 0 && o.race <= 60) ? +o.race : 10, need = +o.cushions === 1 ? 1 : 3;
   const balls = [newBall(C_CUE[0], HEAD_X, TW / 2 + side * 0.1524), newBall(C_CUE[1], HEAD_X, TW / 2), newBall(C_RED, FOOT[0], FOOT[1])];
   return { kind: 'carom', balls, turn: 0, groups: [null, null], open: false, breakShot: true, inHand: null, fouls: [0, 0], winner: null,
     shots: 0, dry: 0, verdict: null, striker: C_CUE[0], race, need, score: [0, 0], innings: [1, 0], run: 0, high: [0, 0] };
@@ -4320,10 +4403,11 @@ const Career = (() => {
   const HUMAN = -1, YEAR = 364, POP = 300, MAX_SLOTS = 6, VERSION = 2, HOF_LEG = 1500;
   const K_INDEX = 'felt.careers.v1', K_V1 = 'felt.career.v1', K_V1_BAK = 'felt.career.v1.bak', K_PRE = 'felt.career.v2.';
   const DISCS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
-  /* live: playable in today's game; the others wait for the rules stream */
+  /* live: playable in today's game (the rules engine plays all eight); a discipline that is not
+     is settled by simMatch, labelled as simulated on the page */
   const GAMES = {
-    8: { name: '8-ball', live: true }, 9: { name: '9-ball', live: true }, 10: { name: '10-ball', live: false },
-    straight: { name: 'Straight pool (14.1)', live: false }, rotation: { name: 'Rotation', live: false },
+    8: { name: '8-ball', live: true }, 9: { name: '9-ball', live: true }, 10: { name: '10-ball', live: true },
+    straight: { name: 'Straight pool (14.1)', live: true }, rotation: { name: 'Rotation', live: true },
     snooker: { name: 'Snooker', live: true }, carom: { name: 'Three-cushion', live: true }, bumper: { name: 'Bumper pool', live: true },
   };
   const SHORT = { 8: '8-Ball', 9: '9-Ball', 10: '10-Ball', straight: 'Straight Pool', rotation: 'Rotation', snooker: 'Snooker', carom: 'Three-Cushion', bumper: 'Bumper Pool' };
@@ -5512,9 +5596,10 @@ const Career = (() => {
     return { ok: false, why: sget(kMain(id)) === null ? 'missing' : 'corrupt' };
   }
   function listSlots() {
-    return readIndex().slots.map(x => {
+    const idx = readIndex();
+    return idx.slots.map(x => {
       const ok = !!unpack(sget(kMain(x.id)));
-      return Object.assign({}, x, { status: ok ? 'ok' : unpack(sget(kBak(x.id))) || unpack(sget(kTmp(x.id))) ? 'recoverable' : 'corrupt' });
+      return Object.assign({}, x, { status: ok ? 'ok' : unpack(sget(kBak(x.id))) || unpack(sget(kTmp(x.id))) ? 'recoverable' : 'corrupt', active: x.id === idx.active });
     });
   }
   function deleteSlot(id) {
@@ -5825,6 +5910,10 @@ const Career = (() => {
     /* the page at boot: localStorage, and a copy of the old ladder record before anything else */
     boot(st) { store = st || memStore(); const raw = sget(K_V1); if (raw !== null && sget(K_V1_BAK) === null) sset(K_V1_BAK, raw); return { v1: raw !== null, slots: readIndex().slots.length }; },
     create, load, save, autosave, listSlots, deleteSlot, migrate,
+    /* the index alone (cheap: no save is unpacked), and the old ladder record's state: there,
+       and whether a slot was already made from it */
+    index() { return copy(readIndex()); },
+    ladder() { const idx = readIndex(); return { present: sget(K_V1) !== null, migrated: !!idx.v1 && idx.slots.some(x => x.id === idx.v1), slots: idx.slots.length, full: idx.slots.length >= MAX_SLOTS }; },
     get loaded() { return !!S; }, get id() { return S ? S.id : null; },
     close() { S = null; resetCaches(); },
     profile() { need(); return copy(S.profile); }, editProfile,
@@ -7770,7 +7859,7 @@ function potOk(n, k) {
    of a complete preview (see shotPreview), so nothing in the guide blinks or grows. */
 let guideLegal = true;
 function guide(c, ang) {
-  const mode = solo && solo.guide ? solo.guide : settings.guide;   /* a tutorial shows the full guide (6d) */
+  const mode = solo && solo.guide ? solo.guide : careerGuide(settings.guide);   /* a tutorial shows the full guide; a career match may cap it (6d) */
   if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
   const h = aimTrace(c.x, c.y, dx, dy, [c.n], 6), gx = c.x + dx * h.t, gy = c.y + dy * h.t, P = shotPreview(ang, h, full);
@@ -8222,18 +8311,22 @@ let caromSide = -1;
 const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCush, side: caromSide = -caromSide });
 
 /* o: a career rack (6d) plays on its own terms instead of the settings: { level, table, pockets,
-   bumperTable, breaker (1: the CPU breaks) }; any other start ends the career match */
+   bumperTable, breaker (1: the CPU breaks), rules (the event's, locked), snooker ('compact' |
+   'full'), carom ({ race, cushions, side, event: true }) }; any other start ends the career
+   match, which counts as a forfeit (careerAbandon), and a CPU game left mid-rack counts as a loss
+   (abandonCpuGame, audit F5) */
 function start(kind, o = null) {
-  if (!o) career = null;
+  abandonCpuGame();
+  if (!o) careerAbandon();
   cpuMode = o ? true : settings.cpu; cpuLevel = o ? o.level : settings.level; solo = null;
   /* the table size and pockets take effect here, between games; the table is repainted only
      when either changed (its art reads the geometry globals) */
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
   setPockets(o ? o.pockets : settings.pockets);
-  if (kind === 'snooker') setTable('snooker', settings.snookerTable);
+  if (kind === 'snooker') setTable('snooker', o && o.snooker ? o.snooker : settings.snookerTable);
   /* a pocket game's rules: the event's when it passes them (locked), else the settings' (5c) */
-  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind, kind === 'carom' ? caromOpts() : { rules: rulesFor(kind, o) });
+  game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
   if (o && o.breaker === 1 && kind !== 'bumper' && kind !== 'carom') { game.turn = 1; game.breaker = 1; }
   resetCall(); cpuCall = null; optBox.hidden = true;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
@@ -8278,12 +8371,14 @@ function shoot() {
   if (state === 'aim') takeCall();   /* a shot not committed through the bar (the test hook) */
   stroke = null; pull = null;
   dropBall();
-  felt.lastShot = shotRecord({ angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() });
+  /* a career match without simulation purity: the skills' execution jitter (6d, careerExec) */
+  const ex = careerExec(aimAngle, power, cueSpin);
+  felt.lastShot = shotRecord({ angle: ex.angle, power: ex.power, spin: Object.assign({}, ex.spin), ball: cueN() });
   if (game.mode === 'practice' && solo) { pushUndo(); solo.tools = false; }   /* undo restores this layout */
   /* the daily shot's scored try counts as it is struck: quitting or restarting mid-roll used to
      leave the day unscored, so a bad first try could be thrown away and taken again (5s) */
   if (game.mode === 'trick' && solo && solo.daily) { const d = solo.daily, was = d.counted; if (!solo.demo) scoreDaily(false); d.live = !was && d.counted; }
-  tab = strike(newTable(game.balls, cueN()), aimAngle, power, cueSpin);
+  tab = strike(newTable(game.balls, cueN()), ex.angle, ex.power, ex.spin);
   simAcc = 0;
   state = 'rolling';
   say('');
@@ -8394,7 +8489,7 @@ function autoAim() {
   aimAnim = null; hint = null;
   if (state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6d) */
   /* a tutorial step (6d) points at its own ball whatever the setting says, or not at all */
-  const s = tutOn() ? tutHint() : settings.autoAim ? suggestAim(game) : null, t = s && game.balls.find(b => b.n === s.n);
+  const s = tutOn() ? tutHint() : settings.autoAim && careerAutoAim() ? suggestAim(game) : null, t = s && game.balls.find(b => b.n === s.n);
   if (!t) return;
   hint = { n: s.n, k: s.k };
   if (handAimed || s.still) return;
@@ -8447,6 +8542,7 @@ function settle() {
   tab = null;
   const v = game.verdict, who = game.turn;
   stats.shots[shooter]++;
+  if (shooter === 0) markBegun();
   if (v.foul) stats.fouls[shooter]++;
   stats.potted[shooter].push(...v.potted);
   noteShot(before, r, shooter);
@@ -9643,6 +9739,7 @@ function soloAim() {
 }
 /* a new solo session on the menu's table: like start(), with game made after the table is set */
 function beginSolo(make, s) {
+  abandonCpuGame(); careerAbandon();   /* a game left for a solo session: audit F5 (6d) */
   cpuMode = false;
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(settings.table);
@@ -10257,6 +10354,8 @@ function playSetup(kind) {
 /* Quit to home, from a game or a solo session: a fresh rack of the same game behind the menu */
 function quitToHome() {
   cancelGestures();
+  abandonCpuGame();
+  careerAbandon();   /* a career match left mid-way is a forfeit (6d, audit F5) */
   if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
@@ -10416,6 +10515,7 @@ function loadRec() {
 let rec = loadRec();
 function recordGame() {
   if (game.mode || game.winner === null || !rec.kinds[game.kind]) return;
+  dropAbandon();
   const r = rec.kinds[game.kind];
   r.played++;
   if (cpuMode) {
@@ -10423,6 +10523,36 @@ function recordGame() {
     if (game.winner === 0) { o.w++; rec.streak++; rec.best = Math.max(rec.best, rec.streak); } else { o.l++; rec.streak = 0; }
   } else r.two++;
   try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+}
+/* audit F5: a game against the CPU left before it ends (Quit, Restart, another game, a solo
+   session, or the page closed) counts as a loss once the player has taken a shot in it, so the
+   win streak and the record cannot be farmed by walking away from a losing rack. The player's
+   first shot leaves a marker (ABANDON_KEY) that the game's end removes; one still there at boot
+   is a game left by closing the page, and counts the same. */
+const ABANDON_KEY = 'felt.abandon.v1';
+const cpuGameLive = () => cpuMode && !solo && !game.mode && game.winner === null && !!stats && stats.shots[0] > 0 && (!!paused || (state !== 'menu' && state !== 'over'));
+function countLoss(kind, level) {
+  if (!Object.hasOwn(rec.kinds, kind) || !LEVELS.includes(level)) return false;
+  const r = rec.kinds[kind];
+  r.played++; r.cpu[level].l++; rec.streak = 0;
+  try { localStorage.setItem(REC_KEY, JSON.stringify(rec)); } catch (e) { }
+  return true;
+}
+function dropAbandon() { try { localStorage.removeItem(ABANDON_KEY); } catch (e) { } }
+/* settle(): the player's first shot of a CPU game marks it as begun */
+function markBegun() { if (cpuMode && !solo && !game.mode && stats.shots[0] === 1) try { localStorage.setItem(ABANDON_KEY, JSON.stringify({ kind: game.kind, level: cpuLevel })); } catch (e) { } }
+function abandonCpuGame() {
+  if (!cpuGameLive()) return false;
+  dropAbandon();
+  stats.shots[0] = 0;
+  return countLoss(game.kind, cpuLevel);
+}
+/* boot: a game left by closing the page */
+function abandonedAtBoot() {
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem(ABANDON_KEY) || 'null'); } catch (e) { }
+  dropAbandon();
+  return !!o && typeof o === 'object' && countLoss(String(o.kind), String(o.level));
 }
 /* snooker: every finished frame (the last of a match too) counts, and the highest break: yours
    against the CPU, either player's with two */
@@ -10510,7 +10640,7 @@ for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp(
 for (const b of [prefsBack, statsBack]) b.addEventListener('click', () => backToMenu());
 /* a More game's setup goes back to More games */
 setupBack.addEventListener('click', () => { if (MORE_KINDS.includes(setupKind) && !paused) { openSheet(moreSheet, play10); paintArt(); } else backToMenu(); });
-restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (career) careerRack(); else start(game.kind); });
+restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (!career) start(game.kind);   /* a career rack is never taken again (audit F5) */ });
 exitBtn.addEventListener('click', () => quitToHome());
 Object.assign(felt, { showSetup, showStats, showHelp, quitToHome, setupWords });
 /* the called shot and the rules (5c): set the player's call as taps would ({ ball, pocket, bank,
@@ -10931,7 +11061,6 @@ function lessonGame() {
 function lessonAim() { aimAngle = lessonPoints().line + (solo.step === 1 ? 0.6 : 0); keepAim(); }
 function startLesson() {
   lessonRec.seen = true; saveLesson();
-  career = null;
   beginSolo(lessonGame, { kind: 'lesson', step: 1, undo: [], a0: 0, wheel: false, again: false });
   lessonAim();
   coachShow();
@@ -11123,7 +11252,7 @@ const geoSigNow = () => [TABLE, POCKETS_STYLE, BUMPER_SHAPE, SNOOKER_SIZE, TL, T
 function startTutorial(id) {
   const t = tutById(id);
   if (!t) return false;
-  career = null;
+  abandonCpuGame(); careerAbandon();
   const keep = tutOn() ? solo.keep : { table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE, kind: game.kind };
   tutBegin(t, 0, t.ctx ? t.ctx() : {}, keep);
   return true;
@@ -11336,193 +11465,790 @@ Object.defineProperties(felt, {
   tut: { get: () => tutOn() ? { id: solo.id, step: solo.step, then: solo.then, again: solo.again, group: solo.ctx.group || null } : null },
 });
 
-/* ---- the career: eight CPU players on a ladder in three tiers, each on cpuSearch's level for
-   their tier (the CPU's only knob: its play stays the sim's, seeded and deterministic) with their
-   own game, table, pockets and race. A match is a race to `race` racks over the ordinary game:
-   finish() hands each rack to careerRackOver(), which either shows the score between racks and
-   starts the next (the break alternates; bumper pool's opening is the player's) or ends the
-   match. Winning it unlocks the next player. career: the match in play, { id, need, score
-   [you, them], rack, done }, or null (start() without terms and quitToHome end it).
-   careerRec persists under CAREER_KEY: { v: 1, best: { id: [won, lost] } (the best winning
-   score against each player beaten), won, played (matches), racksW, racksL }; anything
-   unreadable starts the ladder again. ---- */
+/* ---- the career: the screens over the career engine (Career, section 1z), and its matches on
+   the real game. The engine owns every rule of the career (calendar, entries, draws, rankings,
+   money, rivals, seasons, saves); this section only shows it and plays the player's matches.
+   One sheet (careerSheet) holds a stack of pages in How to play's manner: the careers (slots,
+   the carry-over of the old ladder record), the new career form, the hub (the player, the next
+   match, every other page as a row), the calendar and an event, the bracket and standings,
+   rankings, stats and records, sponsors and offers, the shop, rivals and a player, news,
+   practice, options, retirement. Every page is rebuilt from Career's reads on each change.
+   A match: careerPlay() takes Career.nextMatch() and starts its first rack with start(kind, o),
+   o carrying the event's rules (locked), the table, the opponent's level (Career.levelOf of its
+   knobs, the nearest CPU level) and who breaks. finish() hands each rack to careerRackOver(),
+   which counts it and either shows the score between racks or reports the match with
+   Career.reportMatch({ score, racks, shots }). Straight pool and three-cushion are one game to
+   the match's points. A match left before its end (Quit, Forfeit, another game, the page closed:
+   LIVE_KEY carries it to the next boot) is reported as a forfeit (audit F5). Progression never
+   touches the physics: without simulation purity the skills cap the guide and auto aim and add
+   the engine's execution jitter to the player's own shot (careerExec), all from Career.assist(). ---- */
+
+/* the old ladder's record (felt.career.v1), now read only: the carry-over offer and the stats.
+   Career.migrate copies it into a v2 slot and never changes it */
 const CAREER_KEY = 'felt.career.v1';
-const CAREER = [
-  { id: 'pip', name: 'Pip Larkin', first: 'Pip', line: 'Just happy to be here', tier: 0, kind: '8', table: '7', pockets: 'generous', race: 1, av: '#1f7a55' },
-  { id: 'benny', name: 'Benny Okafor', first: 'Benny', line: 'Never plays safe', tier: 0, kind: '9', table: '7', race: 1, av: '#2f6fb0' },
-  { id: 'rosa', name: 'Rosa Vance', first: 'Rosa', line: 'Lives on the rail', tier: 1, kind: '8', table: '7', race: 2, av: '#b03a2e' },
-  { id: 'gus', name: 'Gus Haldane', first: 'Gus', line: 'Talks the whole time', tier: 1, kind: 'bumper', table: '7', race: 2, av: '#8a5a12' },
-  { id: 'mei', name: 'Mei Tanaka', first: 'Mei', line: 'Patient. Very patient.', tier: 1, kind: '9', table: '9', race: 2, av: '#7b3fa0' },
-  { id: 'lefty', name: 'Lefty Doyle', first: 'Lefty', line: 'Plays left handed until you bet', tier: 2, kind: '8', table: '9', race: 2, av: '#375a7f' },
-  { id: 'carmen', name: 'Carmen Ruiz', first: 'Carmen', line: 'Chalks, stares, never misses twice', tier: 2, kind: '9', table: '9', race: 3, av: '#0f6e78' },
-  { id: 'baron', name: 'The Baron', first: 'The Baron', ini: 'B', line: 'Owns the hall. And the table.', tier: 2, kind: '8', table: '9', race: 3, boss: true },
-];
-const TIERS = [['Rookie tier', 'easy'], ['Regular tier', 'medium'], ['Hustler tier', 'hard']];
-const SVG_TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg>';
-const SVG_LOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>';
-let career = null, careerRec = loadCareer();
+const LADDER = [['pip', 1], ['benny', 1], ['rosa', 2], ['gus', 2], ['mei', 2], ['lefty', 2], ['carmen', 3], ['baron', 3]];
+const LIVE_KEY = 'felt.career.live.v1';
+let careerRec = loadCareer();
 function freshCareer() { return { v: 1, best: {}, won: 0, played: 0, racksW: 0, racksL: 0 }; }
 function loadCareer() {
   const r = freshCareer(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
   try {
     const o = JSON.parse(localStorage.getItem(CAREER_KEY) || 'null');
     if (o && o.v === 1 && typeof o === 'object') {
-      for (const c of CAREER) {
-        const b = o.best && o.best[c.id];
-        if (Array.isArray(b) && b[0] === c.race && Number.isInteger(b[1]) && b[1] >= 0 && b[1] < c.race) r.best[c.id] = [b[0], b[1]];
+      for (const [id, race] of LADDER) {
+        const b = o.best && o.best[id];
+        if (Array.isArray(b) && b[0] === race && Number.isInteger(b[1]) && b[1] >= 0 && b[1] < race) r.best[id] = [b[0], b[1]];
       }
       r.played = n(o.played); r.won = Math.min(n(o.won), r.played); r.racksW = n(o.racksW); r.racksL = n(o.racksL);
     }
   } catch (e) { }
   return r;
 }
-function saveCareer() { try { localStorage.setItem(CAREER_KEY, JSON.stringify(careerRec)); } catch (e) { } }
-/* how far up the ladder: the first player not yet beaten (CAREER.length once all are) */
-const careerAt = () => { const i = CAREER.findIndex(c => !careerRec.best[c.id]); return i < 0 ? CAREER.length : i; };
-const careerFoe = () => CAREER.find(c => c.id === career.id);
-const levelOf = c => TIERS[c.tier][1];
-const initials = c => c.ini || c.name.split(' ').map(w => w[0]).join('').slice(0, 2);
-const raceWords = n => n === 1 ? 'one rack' : `race to ${n}`;
-const careerWhere = c => c.kind === 'bumper' ? `Bumper pool, ${c.bumperTable === 'rect' ? 'rectangle' : 'octagon'}` : `${KINDS[c.kind].name}, ${c.table} ft${c.pockets === 'generous' ? ', generous' : ''}`;
-function avatarEl(c, cls = '') {
-  const a = document.createElement('span');
-  a.className = 'av' + (c.boss ? ' boss' : '') + cls;
-  a.setAttribute('aria-hidden', 'true');
-  if (c.av) a.style.setProperty('--av', c.av);
-  a.textContent = initials(c);
-  return a;
+const careerAt = () => { const i = LADDER.findIndex(([id]) => !careerRec.best[id]); return i < 0 ? LADDER.length : i; };
+
+/* ---- the match in play ---- */
+/* career: { slot, nm (Career.nextMatch()), kind, units ('racks' | 'points'), need, score [you,
+   them], rack, done, racks (each rack's numbers), shots (the player's), assist, seed, shot } */
+let career = null;
+/* the career's ruleset ids onto the rules engine's (1e); the call requirement onto CALL_MODES */
+const CAREER_RULES = { '8-bar': '8-house', '8-league': '8-house', '8-wpa': '8-wpa', '9-bar': '9-house', '9-wpa': '9-wpa', '10-wpa': '10-wpa', '14.1-wpa': 'straight-wpa', 'rotation-61': 'rotation' };
+function careerRules(r) {
+  const c = r.call || {}, call = c.require === '8ball' ? { mode: 'off', eight: true } : { mode: c.require === 'off' ? 'off' : c.require === 'all' ? 'all' : 'official', eight: false };
+  call.detail = CALL_DETAILS.includes(c.detail) ? c.detail : 'pocket';
+  return { ruleset: CAREER_RULES[r.ruleset], call, race: r.game === 'straight' ? r.race : undefined };
 }
-/* a match against player id (beaten or the next one; a locked player refuses) */
-function startCareer(id) {
-  const i = CAREER.findIndex(c => c.id === id);
-  if (i < 0 || i > careerAt()) return false;
-  career = { id, need: CAREER[i].race, score: [0, 0], rack: 1, done: false };
+const CALL_WORDS = { off: 'no calls', '8ball': 'call the 8', official: 'official calls', all: 'call every shot' };
+const DETAIL_WORDS = { ball: 'the ball', pocket: 'ball and pocket', rails: 'ball, pocket and rails', strict: 'strict' };
+const rulesWords = r => `${(Career.RULESETS[r.ruleset] || {}).label || KINDS[r.game].name}, ${CALL_WORDS[r.call.require] || 'official calls'}` + (r.call.require !== 'off' ? ` (${DETAIL_WORDS[r.call.detail] || 'ball and pocket'})` : '');
+const tableWords = r => r.game === 'snooker' ? (r.table === 'full' ? '12 ft table' : '10 ft table') : r.game === 'carom' ? '10 ft carom table' : r.game === 'bumper' ? 'Octagon bumper table' : `${r.table} ft table, ${r.pockets} pockets`;
+const unitWords = (kind, n) => kind === 'straight' || kind === 'carom' ? `${n} points` : kind === 'snooker' ? `${n} frame${n === 1 ? '' : 's'}` : `${n} rack${n === 1 ? '' : 's'}`;
+const rackWord = kind => kind === 'snooker' ? 'Frame' : kind === 'bumper' ? 'Game' : 'Rack';
+const careerFoe = () => { const o = career.nm.opponent; return { name: o.name, first: o.name.split(' ')[0], card: o }; };
+/* start(kind, o)'s terms for the rack in play */
+function careerTerms() {
+  const nm = career.nm, r = nm.rules, k = career.kind, breaker = k === 'bumper' || k === 'carom' ? 0 : (nm.breaker + career.rack - 1) % 2;
+  return { level: nm.level, table: k === 'carom' ? 'carom' : r.table === '9' ? '9' : '7', pockets: r.pockets === 'generous' ? 'generous' : 'regulation', bumperTable: 'octagon',
+    breaker, rules: careerRules(r), snooker: r.table === 'full' ? 'full' : 'compact', carom: { race: nm.race, cushions: 3, side: 1, event: true } };
+}
+const dropLive = () => { try { localStorage.removeItem(LIVE_KEY); } catch (e) { } };
+/* the player's next match, on the table; false when there is none or it cannot be played here */
+function careerPlay() {
+  if (!Career.loaded) return false;
+  const nm = Career.nextMatch();
+  if (!nm || !Career.GAMES[nm.rules.game].live || !KINDS[nm.rules.game]) return false;
+  const kind = nm.rules.game;
+  career = { slot: Career.id, nm, kind, units: kind === 'straight' || kind === 'carom' ? 'points' : 'racks', need: nm.race, score: [0, 0], rack: 1, done: false, racks: [],
+    shots: { att: 0, pot: 0, calls: 0, callsOk: 0, safe: 0, safeOk: 0, fouls: 0, scratches: 0 }, assist: Career.assist(), seed: Career.lib.seedOf(Career.id, nm.event, nm.match, 'exec'), shot: 0 };
+  /* from here, leaving the match is a forfeit, even by closing the page: the save is brought to
+     this day first (time moved since the last boundary save), so the next boot finds the match */
+  Career.save();
+  try { localStorage.setItem(LIVE_KEY, JSON.stringify({ slot: Career.id, event: nm.event, match: nm.match })); } catch (e) { }
   careerRack();
   return true;
 }
-/* the current rack of the match, from the break */
 function careerRack() {
-  const c = careerFoe();
   career.done = false;
-  start(c.kind, { level: levelOf(c), table: c.table, pockets: c.pockets || 'regulation', bumperTable: c.bumperTable || 'octagon', breaker: c.kind === 'bumper' ? 0 : (career.rack - 1) % 2 });
+  start(career.kind, careerTerms());
 }
 /* finish() of a career rack: true when it showed the career's own sheet instead of game over */
 function careerRackOver() {
   if (!career || career.done || game.mode || game.winner === null) return false;
-  const w = game.winner, c = careerFoe();
-  career.score[w]++;
-  if (w === 0) careerRec.racksW++; else careerRec.racksL++;
-  if (career.score[w] >= career.need) {
-    career.done = true;
-    careerRec.played++;
-    if (w === 0) {
-      careerRec.won++;
-      const b = careerRec.best[c.id];
-      if (!b || career.score[1] < b[1]) careerRec.best[c.id] = career.score.slice();
-    }
-    saveCareer();
-    showMatch(w);
-  } else {
-    saveCareer();
-    career.rack++;
-    showRack();
+  const c = career, w = game.winner, sh = c.shots, nt = stats.notes[0] || {};
+  sh.att += stats.shots[0]; sh.pot += Math.min(stats.pots[0], stats.shots[0]); sh.fouls += stats.fouls[0];
+  const calls = (game.calls || []).filter(x => x.p === 0 && x.ball !== null && x.ball !== undefined);
+  sh.calls += calls.length; sh.callsOk += calls.filter(x => x.made).length;
+  if (c.units === 'points') {
+    const pts = p => Math.max(0, Math.min(c.need - 1, game.score ? game.score[p] | 0 : 0));
+    careerReport(w === 0 ? [c.need, pts(1)] : [pts(0), c.need]);
+    return true;
   }
+  const broke = careerTerms().breaker === 0 && c.kind !== 'bumper';
+  c.racks.push({ won: w === 0, broke, legal: broke && !(stats.brk && stats.brk.foul), bnr: w === 0 && broke && !!nt.breakRun, runout: w === 0 && !!(nt.runOut || nt.breakRun) });
+  c.score[w]++;
+  if (c.score[w] >= c.need) careerReport(c.score.slice());
+  else { c.rack++; showRack(); }
   return true;
 }
-function boardOf(box) {
-  const c = careerFoe(), side = (who, n) => {
+function careerReport(score) {
+  const c = career;
+  c.done = true;
+  const res = Career.reportMatch({ event: c.nm.event, match: c.nm.match, score, racks: c.units === 'racks' ? c.racks : undefined, shots: c.shots });
+  dropLive();
+  restartBtn.hidden = false;
+  if (!res.ok) { cv.msg = `The match could not be recorded: ${res.why}.`; quitToHome(); showCareer(); return; }
+  c.score = score;
+  showMatch(res, c.nm, { need: c.need, kind: c.kind });
+}
+/* a match left before its end: the forfeit, reported at once */
+function careerAbandon() {
+  if (!career) return;
+  const c = career;
+  career = null;
+  restartBtn.hidden = false;
+  if (!c.done) careerForfeit(c.slot, c.nm.event, c.nm.match, c.nm.opponent.name);
+}
+function careerForfeit(slot, event, match, name) {
+  if (Career.id !== slot && !Career.load(slot).ok) { dropLive(); return false; }
+  const r = Career.reportMatch({ forfeit: true, event, match });
+  dropLive();
+  if (r.ok) cv.msg = `Forfeit: the match against ${name} was left before its end, and counts as a loss.`;
+  return !!r.ok;
+}
+/* boot: a match left by closing the page is forfeited (only if it is still the one due) */
+function careerLeftover() {
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null'); } catch (e) { }
+  if (!o || typeof o !== 'object') { dropLive(); return false; }
+  if (typeof o.slot !== 'string' || typeof o.event !== 'string' || !Number.isInteger(o.match) || (Career.id !== o.slot && !Career.load(o.slot).ok)) { dropLive(); return false; }
+  const nm = Career.nextMatch();
+  if (!nm || nm.event !== o.event || nm.match !== o.match) { dropLive(); return false; }
+  return careerForfeit(o.slot, o.event, o.match, nm.opponent.name);
+}
+/* the skills in live play (Career.assist): nothing with simulation purity. Otherwise the guide is
+   capped (none, short, full) and auto aim needs its skill, and the player's shot takes the
+   engine's execution jitter (aim, power or the break's power, tip offset; more on the hill),
+   seeded by the match and the shot so a replay of the record is the same shot */
+const GUIDE_ORDER = ['off', 'short', 'full'];
+const careerAssist = () => career && !career.done && !game.mode && career.assist && !career.assist.purity ? career.assist : null;
+function careerGuide(mode) {
+  const a = careerAssist();
+  if (!a || !a.guide) return mode;
+  const cap = a.guide === 'none' ? 'off' : a.guide === 'long' ? 'full' : 'short', i = GUIDE_ORDER.indexOf(mode);
+  return i < 0 ? mode : GUIDE_ORDER[Math.min(i, GUIDE_ORDER.indexOf(cap))];
+}
+const careerAutoAim = () => { const a = careerAssist(); return !a || a.autoAim !== false; };
+function careerExec(angle, pw, spin) {
+  const a = careerAssist();
+  if (!a || !human() || !(a.aimNoise || a.powerNoise || a.breakNoise || a.spinNoise)) return { angle, power: pw, spin };
+  const r = rng((career.seed + Math.imul(++career.shot, 0x9e3779b1)) >>> 0), g = () => { const u = Math.max(1e-9, r()), v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const hill = career.units === 'racks' && Math.max(...career.score) === career.need - 1 ? a.hillNoise : 1;
+  let x = spin.x + g() * a.spinNoise * hill, y = spin.y + g() * a.spinNoise * hill;
+  const L = Math.hypot(x, y);
+  if (L > 1) { x /= L; y /= L; }
+  return { angle: angle + g() * a.aimNoise * hill, power: clamp(pw * (1 + g() * (game.breakShot ? a.breakNoise : a.powerNoise) * hill), 0, 1), spin: { x, y } };
+}
+
+/* ---- between racks and the match result ---- */
+function avatarEl(card, cls = '') {
+  const a = document.createElement('span');
+  a.className = 'av' + cls;
+  a.setAttribute('aria-hidden', 'true');
+  const av = card && card.avatar;
+  const nm = String((card && card.name) || '?'), pal = ['#1f7a55', '#2f6fb0', '#b03a2e', '#8a5a12', '#7b3fa0', '#375a7f'];
+  a.style.setProperty('--av', av && av.col ? av.col : pal[[...nm].reduce((h, c) => h + c.charCodeAt(0), 0) % pal.length]);
+  a.textContent = av && av.ini ? av.ini : String((card && card.name) || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  return a;
+}
+function boardOf(box, score, need, them) {
+  const side = (who, n) => {
     const d = document.createElement('div'), s = document.createElement('small'), b = document.createElement('b'), p = document.createElement('span');
     d.className = 'side'; s.textContent = who; b.textContent = String(n); p.className = 'pips';
-    for (let i = 0; i < career.need; i++) { const e = document.createElement('i'); if (i < n) e.className = 'on'; p.appendChild(e); }
+    if (need <= 15) for (let i = 0; i < need; i++) { const e = document.createElement('i'); if (i < n) e.className = 'on'; p.appendChild(e); }
     d.append(s, b, p);
     return d;
   };
   const vs = document.createElement('span');
   vs.className = 'vs'; vs.textContent = 'vs';
-  box.replaceChildren(side('You', career.score[0]), vs, side(c.first, career.score[1]));
-  box.setAttribute('aria-label', `You ${career.score[0]}, ${c.first} ${career.score[1]}, race to ${career.need}`);
+  box.replaceChildren(side('You', score[0]), vs, side(them, score[1]));
+  box.setAttribute('aria-label', `You ${score[0]}, ${them} ${score[1]}, race to ${need}`);
 }
-const leadWords = (c, a, b) => a > b ? `You lead ${a}-${b}.` : b > a ? `${c.first} leads ${b}-${a}.` : `All square at ${a}-${b}.`;
+const leadWords = (first, a, b) => a > b ? `You lead ${a}-${b}.` : b > a ? `${first} leads ${b}-${a}.` : `All square at ${a}-${b}.`;
 function showRack() {
-  const c = careerFoe(), [a, b] = career.score, theirs = c.kind !== 'bumper' && (career.rack - 1) % 2 === 1;
-  rackKick.textContent = `${c.name}, race to ${career.need}`;
-  rackTitle.textContent = `Rack ${career.rack}`;
-  rackSub.textContent = `${leadWords(c, a, b)} ${c.kind === 'bumper' ? 'You open.' : theirs ? `${c.first} breaks.` : 'Your break.'}`;
-  boardOf(rackBoard);
+  const f = careerFoe(), [a, b] = career.score, theirs = careerTerms().breaker === 1;
+  rackKick.textContent = `${career.nm.eventName}, race to ${career.need}`;
+  rackTitle.textContent = `${rackWord(career.kind)} ${career.rack}`;
+  rackSub.textContent = `${leadWords(f.first, a, b)} ${career.kind === 'bumper' ? 'You open.' : theirs ? `${f.first} breaks.` : 'Your break.'}`;
+  boardOf(rackBoard, career.score, career.need, f.first);
   menu.classList.remove('show'); over.classList.remove('show');
   banner.classList.remove('show');   /* a rack's last banner does not linger over the sheet */
   rackSheet.classList.add('show');
-  say(`Rack ${career.rack}. ${rackSub.textContent}`);
+  say(`${rackTitle.textContent}. ${rackSub.textContent}`);
   if (byKeys) rackGo.focus({ preventScroll: true });
 }
-function showMatch(w) {
-  const c = careerFoe(), i = CAREER.indexOf(c), next = CAREER[i + 1], [a, b] = career.score, won = w === 0;
-  matchSheet.dataset.won = String(won);
-  matchKick.textContent = `Career, ${c.name}, race to ${career.need}`;
-  matchTitle.textContent = won ? (c.boss ? 'Career complete' : `You beat ${c.first}`) : `${c.first} takes it`;
-  matchSub.textContent = won ? (c.boss ? `${a}-${b}. The hall is yours.` : `${a}-${b}. Next up: ${next.name}, ${next.line.toLowerCase()}.`)
-    : `${b}-${a} to ${c.first}. Win a ${raceWords(c.race)} to move on.`;
-  matchGo.textContent = won && !c.boss ? 'Next match' : won ? 'Play again' : 'Rematch';
-  matchGo.dataset.id = won && !c.boss ? next.id : c.id;
-  boardOf(matchBoard);
+const placeWords = p => p === 1 ? 'champion' : p === 2 ? 'runner-up' : `${p}${p % 10 === 1 && p % 100 !== 11 ? 'st' : p % 10 === 2 && p % 100 !== 12 ? 'nd' : p % 10 === 3 && p % 100 !== 13 ? 'rd' : 'th'}`;
+/* the result of a match played or simulated: res from Career.reportMatch, nm the match it was */
+function showMatch(res, nm, o = {}) {
+  const first = nm.opponent.name.split(' ')[0], [a, b] = res.score;
+  closeSheets();
+  matchSheet.dataset.won = String(res.won);
+  matchKick.textContent = `${nm.eventName}, ${nm.round}` + (o.sim ? ', simulated' : '');
+  matchTitle.textContent = res.won ? `You beat ${first}` : `${first} takes it`;
+  const ev = res.eventDone && res.place ? `${nm.eventName} is over: you finish ${placeWords(res.place)}.`
+    : res.next ? `Next: ${res.next.round} against ${res.next.opponent.name}.` : 'Advance time to follow the event: places and prize money come at its end.';
+  matchSub.textContent = `${res.won ? a + '-' + b : b + '-' + a}${o.sim ? ', settled by the match model' : ''}. ${ev}`;
+  matchGo.hidden = !res.next;
+  matchGo.textContent = res.next && !Career.GAMES[res.next.rules.game].live ? 'Simulate next' : 'Next match';
+  boardOf(matchBoard, [a, b], o.need || nm.race, first);
   menu.classList.remove('show'); over.classList.remove('show');
-  banner.classList.remove('show');   /* a rack's last banner does not linger over the sheet */
+  banner.classList.remove('show');
   matchSheet.classList.add('show');
+  felt.lastCareerResult = { won: res.won, score: res.score.slice(), place: res.place, eventDone: res.eventDone, sim: !!o.sim, event: nm.event, match: nm.match };
   say(`${matchTitle.textContent}. ${matchSub.textContent}`);
-  if (byKeys) matchGo.focus({ preventScroll: true });
+  if (byKeys) (res.next ? matchGo : matchLadder).focus({ preventScroll: true });
 }
-/* the career sheet: a tier title, then its players; the one to play lit with Play, those beaten
-   with a tick and their best score (they can be played again), the rest locked */
-function showCareer() {
-  const at = careerAt();
-  careerKick.textContent = at >= CAREER.length ? 'All 8 beaten' : `${at} of ${CAREER.length} beaten`;
-  careerSub.textContent = at >= CAREER.length ? 'Every player beaten. Play any of them again.' : 'Win each match to unlock the next player. Every match is a race: the first to the set number of racks.';
-  const out = [];
-  TIERS.forEach(([title, level], t) => {
-    const h = document.createElement('p'), list = document.createElement('div');
-    h.className = 'tier'; h.innerHTML = `${title}<span>CPU ${level}</span>`;
-    list.className = 'rungs'; list.setAttribute('role', 'group'); list.setAttribute('aria-label', title);
-    for (const c of CAREER.filter(o => o.tier === t)) {
-      const i = CAREER.indexOf(c), best = careerRec.best[c.id], st = best ? 'beaten' : i === at ? 'current' : 'locked';
-      const b = document.createElement('button'), tt = document.createElement('span'), nm = document.createElement('b'), ln = document.createElement('small'), mt = document.createElement('small'), acc = document.createElement('span');
-      b.className = 'rung'; b.id = 'rung-' + c.id; b.dataset.state = st; b.dataset.id = c.id; b.disabled = st === 'locked';
-      tt.className = 'tt'; nm.textContent = c.name; ln.textContent = c.line; mt.className = 'meta'; mt.textContent = `${careerWhere(c)}, ${raceWords(c.race)}`;
-      tt.append(nm, ln, mt);
-      acc.className = 'st';
-      if (st === 'beaten') acc.innerHTML = `${SVG_TICK}<span>${best[0]}-${best[1]}</span>`;
-      else if (st === 'current') acc.innerHTML = '<span class="play">Play</span>';
-      else acc.innerHTML = SVG_LOCK;
-      b.append(avatarEl(c), tt, acc);
-      b.setAttribute('aria-label', `${c.name}: ${c.line}. ${mt.textContent}. ` + (st === 'beaten' ? `Beaten ${best[0]}-${best[1]}, play again.` : st === 'current' ? 'Play.' : 'Locked: beat the player before.'));
-      b.addEventListener('click', () => { audioOn(); startCareer(c.id); });
-      list.appendChild(b);
-    }
-    out.push(h, list);
-  });
-  ladder.replaceChildren(...out);
-  openSheet(careerSheet, careerBack);
-  const cur = document.querySelector('.rung[data-state="current"]');
-  if (cur) careerSheet.scrollTop = Math.max(0, cur.offsetTop - careerSheet.clientHeight / 2 + cur.offsetHeight);
-  if (byKeys && cur) cur.focus({ preventScroll: true });
+/* the pause menu in a career match: the opponent, the event and round, the score; no Restart
+   (a rack is not taken again) and Quit says what it does */
+function hudCareerMenu() {
+  const on = !!career && !career.done && !!paused && !game.mode;
+  careerNow.hidden = !on;
+  restartBtn.hidden = on;
+  const ex = exitBtn.lastChild, word = on ? 'Forfeit match' : 'Quit to home';
+  if (ex && ex.nodeType === 3 && ex.textContent !== word) ex.textContent = word;
+  if (!on) return;
+  const f = careerFoe(), key = [career.nm.event, career.nm.match, ...career.score, career.rack].join();
+  if (careerNow.dataset.key === key) return;
+  careerNow.dataset.key = key;
+  const av = f.card.avatar || {};
+  cnAv.className = 'av';
+  cnAv.style.setProperty('--av', av.col || '');
+  cnAv.textContent = av.ini || f.first[0];
+  cnName.textContent = f.name;
+  cnLine.textContent = `${career.nm.eventName}, ${career.nm.round}`;
+  cnScore.textContent = career.units === 'points' ? `${game.score ? game.score[0] : 0}-${game.score ? game.score[1] : 0}` : `${career.score[0]}-${career.score[1]}`;
+  cnRace.textContent = career.units === 'points' ? `First to ${career.need} points` : `Race to ${career.need}, ${rackWord(career.kind).toLowerCase()} ${career.rack}`;
+  careerNow.setAttribute('aria-label', `${f.name}, ${cnLine.textContent}. You ${career.score[0]}, ${f.first} ${career.score[1]}. ${cnRace.textContent}.`);
 }
-/* the home row: how far up the ladder, and who is next */
-function syncCareerHome() {
-  const at = careerAt(), done = at >= CAREER.length, sum = `${at} of ${CAREER.length}`;
-  if (careerSum.textContent !== sum) careerSum.textContent = sum;
-  careerHint.textContent = done ? 'Every player beaten' : `Next: ${CAREER[at].name}`;
-  const from = Math.max(0, Math.min(at, CAREER.length - 3)), key = String(at);
-  if (careerAvs.dataset.key !== key) {
-    careerAvs.dataset.key = key;
-    careerAvs.replaceChildren(...CAREER.slice(from, from + 3).map(c => avatarEl(c, CAREER.indexOf(c) === at ? ' now' : '')));
+
+/* ---- the screens ---- */
+const cv = { stack: [], msg: '', form: null, cal: 'open', circ: 'local', rkBy: 'circuit', confirm: null };
+const CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg>';
+const wkOf = d => Math.floor((d % Career.YEAR) / 7) + 1;
+const natName = id => (Career.NAT.find(n => n.id === id) || { name: id }).name;
+const crWords = n => `${Math.round(n).toLocaleString('en-US')} cr`;
+const pctWords = p => p.d ? `${p.n} of ${p.d}, ${p.pct}%` : 'none yet';
+function cvEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = String(text);
+  return e;
+}
+/* a row: a button when it goes somewhere (with a chevron), else a plain line. o: { title, sub,
+   val, valCls, lead, end, onClick, disabled, me, wrap, id, label } */
+function cvRow(o) {
+  const b = cvEl(o.onClick ? 'button' : 'div', 'topic' + (o.me ? ' me' : ''));
+  if (o.id) b.id = o.id;
+  if (o.lead) b.appendChild(o.lead);
+  const tt = cvEl('span', 'tt');
+  tt.appendChild(cvEl('b', null, o.title));
+  if (o.sub) tt.appendChild(cvEl('small', o.wrap ? 'wrap' : null, o.sub));
+  b.appendChild(tt);
+  if (o.val !== undefined && o.val !== null && o.val !== '') b.appendChild(cvEl('span', 'val' + (o.valCls ? ' ' + o.valCls : ''), o.val));
+  if (o.end) b.append(...[].concat(o.end));
+  if (o.onClick) {
+    if (o.disabled) b.disabled = true; else b.addEventListener('click', o.onClick);
+    if (!o.disabled) b.insertAdjacentHTML('beforeend', CHEV);
   }
-  careerFill.style.width = (100 * at / CAREER.length) + '%';
-  careerBtn.setAttribute('aria-label', `Career: ${at} of ${CAREER.length} players beaten. ` + (done ? 'Every player beaten.' : `Next: ${CAREER[at].name}.`));
+  if (o.label) b.setAttribute('aria-label', o.label);
+  return b;
+}
+function cvGroup(...rows) { const g = cvEl('div', 'group'); g.setAttribute('role', 'group'); g.append(...rows.flat().filter(Boolean)); return g; }
+const cvHeadEl = t => cvEl('h3', 'cvHead', t);
+const cvNoteEl = (t, warn) => cvEl('p', 'cvNote' + (warn ? ' warn' : ''), t);
+function cvButton(text, fn, cls, id) { const b = cvEl('button', 'cvBtn' + (cls ? ' ' + cls : ''), text); if (id) b.id = id; b.addEventListener('click', fn); return b; }
+function cvMiniBtn(text, fn, cls, label) { const b = cvEl('button', 'cvMini' + (cls ? ' ' + cls : ''), text); if (fn) b.addEventListener('click', e => { e.stopPropagation(); fn(); }); else b.disabled = true; if (label) b.setAttribute('aria-label', label); return b; }
+function cvActs(...bs) { const d = cvEl('div', 'cvAct' + (bs.filter(Boolean).length === 2 ? ' two' : '')); d.append(...bs.filter(Boolean)); return d; }
+function cvLinesEl(pairs) { const u = cvEl('ul', 'cvLines'); for (const [k, v] of pairs) { if (v === null || v === undefined || v === '') continue; const li = cvEl('li'); li.append(cvEl('span', null, k), cvEl('span', null, v)); u.appendChild(li); } return u; }
+function cvFactsEl(pairs) { const d = cvEl('dl', 'cvFacts'); for (const [k, v] of pairs) { const x = cvEl('div'); x.append(cvEl('dt', null, k), cvEl('dd', null, v)); d.appendChild(x); } return d; }
+function cvSeg(opts, val, set, cls) {
+  const s = cvEl('div', 'seg' + (cls ? ' ' + cls : ''));
+  s.setAttribute('role', 'group');
+  for (const [v, label] of opts) {
+    const b = cvEl('button', null, label);
+    b.setAttribute('aria-pressed', String(v === val));
+    b.addEventListener('click', () => { for (const x of s.children) x.setAttribute('aria-pressed', String(x === b)); set(v); });
+    s.appendChild(b);
+  }
+  return s;
+}
+function cvSwitch(title, sub, on, set, id) {
+  const b = cvEl('button', 'cvSw');
+  if (id) b.id = id;
+  b.setAttribute('role', 'switch');
+  b.setAttribute('aria-checked', String(!!on));
+  const tt = cvEl('span', 'tt');
+  tt.append(cvEl('b', null, title), cvEl('small', null, sub));
+  b.append(tt, cvEl('i'));
+  b.setAttribute('aria-label', title);
+  b.addEventListener('click', () => set(b.getAttribute('aria-checked') !== 'true'));
+  return b;
+}
+const cvMsgEl = () => { const m = cvEl('p', 'cvMsg', cv.msg); m.id = 'cvMsg'; m.setAttribute('role', 'status'); return m; };
+const cvTop = () => cv.stack[cv.stack.length - 1] || { p: 'slots' };
+/* the engine's mutations save themselves at matches, events and seasons; the screens' own
+   (entries, offers, the shop, practice, options) are saved here */
+const cvSave = () => { if (Career.loaded) Career.autosave('ui'); };
+function cvGo(p, args) { cv.stack.push(Object.assign({ p }, args || {})); cvRender('push'); }
+function cvBack() {
+  if (cv.stack.length > 1) { cv.stack.pop(); cvRender('pop'); return; }
+  cv.msg = '';
+  backToMenu();
+}
+/* the career sheet: the hub of the active career, else the careers */
+function showCareer(page, args) {
+  careerLeftover();
+  if (!Career.loaded) { const idx = Career.index(), a = idx.slots.find(x => x.id === idx.active); if (a) cvLoad(a.id, true); }
+  cv.stack = [{ p: Career.loaded ? 'hub' : 'slots' }];
+  if (page && page !== cv.stack[0].p) cv.stack.push(Object.assign({ p: page }, args || {}));
+  openSheet(careerSheet, careerBack);
+  cvRender();
+}
+function cvLoad(id, quiet) {
+  const r = Career.load(id);
+  if (!r.ok) { cv.msg = r.why === 'missing' ? 'That career has no save left.' : 'That save is damaged beyond its backup and cannot be loaded. You can delete it.'; return false; }
+  cv.msg = r.recovered ? `The save was damaged: restored from its ${r.recovered === 'bak' ? 'backup' : 'temporary copy'}.` : quiet ? cv.msg : '';
+  return true;
+}
+const PAGES = {};
+function cvRender(anim) {
+  const t = cvTop(), pg = PAGES[t.p] || PAGES.slots;
+  if (t.p !== 'slots' && t.p !== 'create' && t.p !== 'confirm' && !Career.loaded) { cv.stack = [{ p: 'slots' }]; return cvRender(); }
+  const out = pg(t);
+  if (cv.msg && t.p !== 'confirm') out.unshift(cvMsgEl());
+  cv.msg = '';
+  cvBody.replaceChildren(...out);
+  cvBody.dataset.page = t.p;
+  cvBody.classList.remove('push', 'pop');
+  if (anim) { void cvBody.offsetWidth; cvBody.classList.add(anim); }
+  if (anim) cvSheet.scrollTop = 0;
+  careerBack.setAttribute('aria-label', cv.stack.length > 1 ? 'Back' : 'Back to home');
+  syncCareerHome();
+}
+function setHead(kick, title) { careerKick.textContent = kick; careerTitle.textContent = title; }
+
+/* the careers: the carry-over of the ladder record, the slots, a new career */
+PAGES.slots = () => {
+  const L = Career.ladder(), slots = Career.listSlots(), out = [];
+  setHead('Career', 'Your careers');
+  if (L.present && !L.migrated) {
+    const at = careerAt();
+    out.push(cvHeadEl('Your ladder record'), cvGroup(cvRow({ id: 'cvMigrate', title: 'Carry it into a new career', wrap: true, disabled: L.full,
+      sub: L.full ? 'Six careers already: delete one first.' : `${at} of 8 players beaten, ${careerRec.won} of ${careerRec.played} matches won. It becomes your new player's start; the old record stays as it is.`,
+      onClick: () => cvForm(true) })));
+  }
+  out.push(cvHeadEl(slots.length ? `Careers, ${slots.length} of 6` : 'No career yet'));
+  if (slots.length) out.push(cvGroup(slots.map(sl => {
+    const bad = sl.status === 'corrupt', cur = Career.loaded && Career.id === sl.id;
+    const sub = bad ? 'Damaged: cannot be loaded' : (sl.status === 'recoverable' ? 'Damaged: opens from its backup. ' : '') + (sl.retired ? (sl.hof ? 'Retired, Hall of Fame' : 'Retired') : `${sl.tierName}, season ${sl.season}, week ${sl.week}`);
+    return cvRow({ id: 'slot-' + sl.id, title: sl.name + (sl.nick ? ` "${sl.nick}"` : ''), sub, wrap: true, me: cur, lead: avatarEl({ name: sl.name }),
+      end: [cvMiniBtn(cur ? 'Open' : 'Load', bad ? null : () => { if (cvLoad(sl.id)) { cv.stack = [{ p: 'hub' }]; cvRender('push'); } else cvRender(); }, bad ? '' : 'go', `Open ${sl.name}`),
+        cvMiniBtn('Delete', () => cvGo('confirm', { kick: 'Delete career', title: `Delete ${sl.name}?`, text: 'Its save and its backup are removed from this device. This cannot be undone.', yes: 'Delete career',
+          act: () => { Career.deleteSlot(sl.id); cv.msg = `${sl.name} deleted.`; cv.stack = [{ p: 'slots' }]; cvRender('pop'); } }), 'warn', `Delete ${sl.name}`)] });
+  })));
+  out.push(cvGroup(cvRow({ id: 'cvNew', title: 'New career', sub: L.full ? 'Six careers already: delete one first' : 'Create your player and start out', disabled: L.full, onClick: () => cvForm(false) })));
+  out.push(cvNoteEl('A career saves itself after every match, event and season, and keeps the last good save as a backup. Up to six careers.'));
+  return out;
+};
+function cvForm(migrate) {
+  cv.form = { migrate, name: '', nick: '', nat: 'US', town: '', hand: 'right', disc: '8', style: 'allround', difficulty: 'medium', start: 'amateur', age: 20 };
+  cvGo('create');
+}
+function cvField(label, input) { const l = cvEl('label'); l.append(cvEl('span', null, label), input); return l; }
+function cvInput(key, o = {}) {
+  const i = cvEl('input');
+  i.id = 'cvf-' + key; i.type = o.type || 'text'; i.value = cv.form[key];
+  if (o.max) i.maxLength = o.max;
+  if (o.ph) i.placeholder = o.ph;
+  if (o.type === 'number') { i.min = o.min; i.max = o.maxv; i.inputMode = 'numeric'; }
+  i.autocomplete = 'off'; i.spellcheck = false;
+  i.addEventListener('input', () => { cv.form[key] = o.type === 'number' ? Math.round(+i.value) : i.value; });
+  return i;
+}
+function cvSelect(key, opts) {
+  const s = cvEl('select');
+  s.id = 'cvf-' + key;
+  for (const [v, t] of opts) { const op = cvEl('option', null, t); op.value = v; s.appendChild(op); }
+  s.value = cv.form[key];
+  s.addEventListener('change', () => { cv.form[key] = s.value; });
+  return s;
+}
+PAGES.create = () => {
+  const f = cv.form || (cvForm(false), cv.form);
+  setHead(f.migrate ? 'Carry over' : 'New career', 'Your player');
+  const out = [cvHeadEl('Profile'), (() => { const d = cvEl('div', 'cvForm'); d.append(
+    cvField('Name', cvInput('name', { max: 24, ph: 'Your name' })), cvField('Nickname', cvInput('nick', { max: 20, ph: 'Optional' })),
+    cvField('Nationality', cvSelect('nat', Career.NAT.map(n => [n.id, n.name]))), cvField('Hometown', cvInput('town', { max: 24, ph: 'A city' })),
+    cvField('Age', cvInput('age', { type: 'number', min: 14, maxv: 70 })), cvField('Best game', cvSelect('disc', Career.DISCS.map(d => [d, Career.GAMES[d].name]))),
+    cvField('Style', cvSelect('style', Object.keys(Career.STYLES).map(k => [k, Career.STYLES[k].name])))); return d; })()];
+  out.push(cvHeadEl('Plays'), cvSeg([['right', 'Right handed'], ['left', 'Left handed']], f.hand, v => { f.hand = v; }));
+  out.push(cvHeadEl('Difficulty'), cvSeg([['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['pro', 'Pro']], f.difficulty, v => { f.difficulty = v; }));
+  out.push(cvNoteEl('Hard and Pro turn on simulation purity: your skills are a record only and never touch your shots. On Easy and Medium they cap the guide and auto aim and add a little execution jitter, shown under Options.'));
+  if (!f.migrate) out.push(cvHeadEl('Start as'), cvSeg([['novice', 'Novice'], ['amateur', 'Amateur'], ['skilled', 'Skilled'], ['pro', 'Pro']], f.start, v => { f.start = v; }));
+  else out.push(cvNoteEl('Your start comes from the ladder: tier 2 at five players beaten, tier 3 at all eight, with reputation and credits for each.'));
+  out.push(cvActs(cvButton(f.migrate ? 'Carry over and start' : 'Start career', () => {
+    if (!String(f.name).trim()) { cv.msg = 'Your player needs a name.'; cvRender(); const n = document.getElementById('cvf-name'); if (n) n.focus(); return; }
+    const p = { name: f.name, nick: f.nick, nat: f.nat, town: f.town, hand: f.hand, disc: f.disc, style: f.style, difficulty: f.difficulty, start: f.start, age: Number.isInteger(f.age) ? f.age : 20 };
+    const r = f.migrate ? Career.migrate(p) : Career.create(p);
+    if (!r.ok) { cv.msg = r.why === 'slots' ? 'Six careers already: delete one first.' : 'The career could not be started.'; cvRender(); return; }
+    if (f.migrate && !Career.loaded) Career.load(r.id);
+    cv.form = null;
+    cv.msg = f.migrate ? 'Your ladder record came with you. The old record is kept as it was.' : `Welcome to the circuit, ${Career.profile().name}.`;
+    cv.stack = [{ p: 'hub' }];
+    cvRender('push');
+  }, '', 'cvCreate')));
+  return out;
+};
+PAGES.confirm = t => {
+  setHead(t.kick, t.title);
+  return [cvNoteEl(t.text), cvActs(cvButton(t.yes, () => t.act(), 'warn', 'cvYes'), cvButton('Cancel', () => cvBack(), 'alt', 'cvNo'))];
+};
+function cvAdvance(to) {
+  const r = Career.advance(to);
+  cvSave();   /* the engine saves at boundaries; a week with none is saved here */
+  if (!r.ok) { cv.msg = r.why === 'retired' ? 'This career is over.' : 'Time could not move.'; cvRender(); return r; }
+  const fresh = Career.news().filter(n => n[0] > r.from).map(n => n[1]).slice(-3);
+  const said = r.stopped === 'match' && r.match ? `Match day: ${r.match.round} of ${r.match.eventName}, against ${r.match.opponent.name}.` : `Season ${r.season}, week ${r.week}.`;
+  cv.msg = [said, ...fresh].join(' ');
+  cvRender();
+  return r;
+}
+function cvSim() {
+  const nm = Career.nextMatch();
+  if (!nm) return;
+  const res = Career.simMatch();
+  if (!res.ok) { cv.msg = `The match could not be settled: ${res.why}.`; cvRender(); return; }
+  showMatch(res, nm, { sim: true, need: nm.race });
+}
+
+/* the hub */
+PAGES.hub = () => {
+  const now = Career.now(), pr = Career.profile(), me = Career.me(), st = Career.stats(), out = [];
+  setHead(`Season ${now.season}, week ${now.week}`, pr.name);
+  const card = cvEl('div', 'cvCard'), who = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
+  card.id = 'cvMe';
+  tt.append(cvEl('b', null, pr.name + (pr.nick ? ` "${pr.nick}"` : '')), cvEl('small', null, `${now.tierName}, tier ${now.tier}. ${natName(pr.nat)}, ${KINDS[pr.disc] ? KINDS[pr.disc].name : pr.disc}`));
+  who.append(avatarEl({ name: pr.name, avatar: pr.avatar }), tt);
+  const bar = cvEl('div', 'cvBar'), fill = cvEl('i');
+  fill.style.width = (100 * Math.min(52, now.week) / 52) + '%';
+  bar.appendChild(fill); bar.setAttribute('aria-hidden', 'true');
+  card.append(who, cvFactsEl([['Credits', crWords(now.money)], ['Reputation', now.rep], ['Titles', st.all.titles]]), bar);
+  out.push(card);
+  if (now.retired) {
+    out.push(cvHeadEl('Retired'), cvGroup(cvRow({ title: 'Career recap', sub: now.hof ? 'Hall of Fame' : 'Your career in numbers', onClick: () => cvGo('recap') }),
+      cvRow({ title: 'Stats and records', onClick: () => cvGo('stats') }), cvRow({ title: 'News', onClick: () => cvGo('news') }), cvRow({ title: 'Switch career', onClick: () => cvGo('slots') })));
+    out.push(cvNoteEl('A retired career is read only. Start a new one from Switch career.'));
+    return out;
+  }
+  const nm = Career.nextMatch(), sched = Career.schedule();
+  out.push(cvHeadEl(nm ? 'Next match' : 'This week'));
+  const m = cvEl('div', 'cvCard');
+  m.id = 'cvNext';
+  if (nm) {
+    const o = nm.opponent, vs = cvEl('div', 'cvVs'), w = cvEl('div', 'cvWho'), t2 = cvEl('span', 'tt'), live = Career.GAMES[nm.rules.game].live;
+    vs.append(cvEl('span', null, nm.eventName), cvEl('span', 'tag', nm.round));
+    t2.append(cvEl('b', null, o.name + (o.nick ? ` "${o.nick}"` : '')), cvEl('small', null, `${natName(o.nat)}, ${o.archName}, rating ${o.rating}`));
+    w.append(avatarEl(o), t2);
+    m.append(vs, w, cvLinesEl([['Game', `${Career.GAMES[nm.rules.game].name}, ${tableWords(nm.rules)}`], ['Rules', rulesWords(nm.rules)], ['Race', `First to ${unitWords(nm.rules.game, nm.race)}`],
+      ['Break', nm.rules.game === 'bumper' || nm.rules.game === 'carom' ? 'You open' : nm.breaker === 0 ? 'You break first' : `${o.name.split(' ')[0]} breaks first`],
+      ['Opponent', `Tier ${o.tier}, plays as the ${nm.level} CPU`], ['Head to head', `${nm.h2h[0]}-${nm.h2h[1]}`], ['Format', nm.rules.custom || null]]));
+    m.append(cvActs(live ? cvButton('Play match', () => { audioOn(); careerPlay(); }, '', 'cvPlay') : cvButton('Simulate match', cvSim, '', 'cvSim')));
+    if (!live) m.append(cvNoteEl(`${Career.GAMES[nm.rules.game].name} cannot be played on this table yet: the match is settled by the match model from both players' skills, and shown as simulated.`));
+    m.append(cvActs(cvButton('Forfeit this match', () => cvGo('confirm', { kick: 'Forfeit', title: 'Forfeit the match?', text: `${o.name} goes through and the match counts as a loss.`, yes: 'Forfeit',
+      act: () => { careerForfeit(Career.id, nm.event, nm.match, o.name); cv.stack = [{ p: 'hub' }]; cvRender('pop'); } }), 'warn', 'cvForfeit')));
+  } else {
+    const nx = sched.find(e => e.status === 'entered');
+    const live = sched.find(e => e.status === 'live');
+    m.append(cvEl('p', 'sub', live ? `${live.name} is under way: your next match comes as the draw reaches it.` : nx ? `Next: ${nx.name}, week ${nx.week}.` : 'You have not entered an event. Pick one from the calendar.'));
+    m.append(cvActs(cvButton('Advance a week', () => cvAdvance('week'), '', 'cvWeek'), nx || live ? cvButton('To my next match', () => cvAdvance(live ? 'week' : 'event'), 'alt', 'cvToEvent') : cvButton('Calendar', () => cvGo('calendar'), 'alt', 'cvCalBtn')));
+  }
+  out.push(m);
+  const open = Career.availableEvents().filter(e => e.eligibility.ok).length, cur = sched.find(e => e.status === 'live') || sched[0];
+  const rk = Career.rankings(Career.CIRCUITS[Career.TIERS[now.tier].circ], { top: 400 }).find(x => x.human), offers = Career.offers().length, pd = Career.calendar().practiceToday;
+  out.push(cvHeadEl('Season'), cvGroup(
+    cvRow({ id: 'cvCal', title: 'Calendar', sub: `${open} event${open === 1 ? '' : 's'} open to you, ${sched.length} entered`, onClick: () => cvGo('calendar') }),
+    cvRow({ id: 'cvBracket', title: 'Bracket and standings', sub: cur ? cur.name : 'No event entered', onClick: () => cvGo('bracket', cur ? { id: cur.id } : {}) }),
+    cvRow({ id: 'cvRank', title: 'Rankings', sub: rk ? `${Career.CIRC_NAMES[Career.TIERS[now.tier].circ]}: number ${rk.rank}, ${rk.pts} points` : 'Unranked so far', onClick: () => cvGo('rankings') })));
+  out.push(cvHeadEl('You'), cvGroup(
+    cvRow({ id: 'cvStats', title: 'Stats and records', sub: `${st.all.won} won of ${st.all.matches}`, onClick: () => cvGo('stats') }),
+    cvRow({ id: 'cvRivals', title: 'Rivals', sub: 'Head to head', onClick: () => cvGo('rivals') }),
+    cvRow({ id: 'cvSpons', title: 'Sponsors and offers', sub: `${Career.sponsors().active.filter(c => !c.end).length} contract(s)`, val: offers ? `${offers} new` : '', valCls: offers ? 'on' : '', onClick: () => cvGo('sponsors') }),
+    cvRow({ id: 'cvShop', title: 'Shop', sub: 'Cosmetics only', val: crWords(now.money), onClick: () => cvGo('shop') }),
+    cvRow({ id: 'cvPractice', title: 'Practice drills', sub: `${pd} of 3 sessions today`, onClick: () => cvGo('practice') }),
+    cvRow({ id: 'cvNews', title: 'News', sub: (Career.news().slice(-1)[0] || [0, 'Nothing yet'])[1], onClick: () => cvGo('news') })));
+  out.push(cvHeadEl('Career'), cvGroup(
+    cvRow({ id: 'cvOpts', title: 'Options', sub: me.opt.purity ? 'Simulation purity on' : 'Skills shape your play', onClick: () => cvGo('options') }),
+    cvRow({ id: 'cvSwitch', title: 'Switch career', sub: 'Your careers, a new one', onClick: () => cvGo('slots') }),
+    cvRow({ id: 'cvRetire', title: 'Retire', sub: 'End this career, see the recap', onClick: () => cvGo('confirm', { kick: 'Retire', title: 'Retire now?', text: 'Entries not yet drawn are refunded, matches due are forfeited, and the career becomes read only.', yes: 'Retire',
+      act: () => { Career.retire(); cv.stack = [{ p: 'hub' }, { p: 'recap' }]; cvRender('push'); } }) })));
+  return out;
+};
+
+/* the calendar and an event */
+PAGES.calendar = () => {
+  const c = Career.calendar(), out = [];
+  setHead(`Season ${c.season}, week ${c.week}`, 'Calendar');
+  out.push(cvSeg([['open', 'Open to you'], ['entered', 'Entered'], ['all', 'All']], cv.cal, v => { cv.cal = v; cvRender(); }));
+  const avail = cv.cal === 'open' ? Career.availableEvents() : null;
+  const list = cv.cal === 'open' ? avail : cv.cal === 'entered' ? Career.schedule() : c.events.filter(e => e.status !== 'cancelled');
+  if (!list.length) out.push(cvNoteEl(cv.cal === 'entered' ? 'Nothing entered. Events open to you are under Open to you.' : 'No events left this season. Advance to the next season from the hub.'));
+  const rows = list.map(e => {
+    const el = e.eligibility, wk = cvEl('span', 'wk');
+    wk.append(cvEl('span', null, 'Wk'), cvEl('b', null, e.week));
+    const val = e.status === 'entered' ? 'Entered' : e.status === 'live' ? 'Under way' : e.status === 'done' ? 'Over' : e.status === 'closed' ? 'Closed' : el ? (el.ok ? crWords(e.cost) : 'Not eligible') : crWords(e.fee + e.trav);
+    return cvRow({ id: 'ev-' + e.id.replace(/\./g, '-'), lead: wk, title: e.name, wrap: true, sub: `${e.game}, ${e.kindName}, tier ${e.tier}` + (el && !el.ok ? `. ${el.why[0][0].toUpperCase()}${el.why[0].slice(1)}` : ''),
+      val, valCls: e.entered ? 'on' : el && !el.ok ? 'bad' : '', onClick: () => cvGo('event', { id: e.id }) });
+  });
+  out.push(cvGroup(rows));
+  out.push(cvNoteEl('Entry fees come back if you withdraw before the deadline; travel does not. Weeks 51 and 52 are the off-season.'));
+  return out;
+};
+PAGES.event = t => {
+  const e = Career.event(t.id), out = [];
+  if (!e) { setHead('Event', 'Not found'); return [cvNoteEl('This event is no longer on the calendar.')]; }
+  const el = Career.eligibility(t.id);
+  setHead(`${e.kindName}, tier ${e.tier}`, e.name);
+  const card = cvEl('div', 'cvCard');
+  card.append(cvLinesEl([['Where', `${e.venue}, ${e.city}`], ['When', wkOf(e.start) === wkOf(e.end) ? `Week ${wkOf(e.start)}` : `Weeks ${wkOf(e.start)} to ${wkOf(e.end)}`], ['Entries close', `Week ${wkOf(e.dl)}`],
+    ['Format', `${e.fmtName}, ${e.size} players`], ['Game', `${e.game}, ${tableWords(e.rules)}`], ['Rules', rulesWords(e.rules)], ['Race', `First to ${unitWords(e.disc, e.race)}`],
+    ['Custom', e.rules.custom || null], ['Entry', `${crWords(e.fee)} fee, ${crWords(e.trav)} travel`], ['Purse', crWords(e.purse)], ['Ranking points', e.pts ? `${e.pts} to the winner, ${e.circuit}` : 'None'],
+    ['Last champion', e.champion ? `${e.champion.name} (season ${e.champion.season})${e.defending ? ', you defend' : ''}` : null], ['Status', { open: 'Open for entries', closed: 'Entries closed', entered: 'Entered', live: 'Under way', done: 'Over', cancelled: 'Cancelled' }[e.status]]]));
+  out.push(card);
+  if (!e.live) out.push(cvNoteEl(`${e.game} matches cannot be played on this table yet: yours are settled by the match model, and shown as simulated.`));
+  if (e.status === 'open' && !e.entered) {
+    if (el.ok) out.push(cvActs(cvButton(`Enter, ${crWords(e.fee + e.trav)}`, () => {
+      const r = Career.enter(t.id);
+      cv.msg = r.ok ? `Entered ${e.name}: ${crWords(r.cost)} paid.` : `Not entered: ${r.why.join(', ')}.`;
+      cvSave(); cvRender();
+    }, '', 'cvEnter')));
+    else out.push(cvHeadEl('Why you cannot enter'), cvGroup(el.why.map(w => cvRow({ title: w[0].toUpperCase() + w.slice(1) }))));
+  }
+  if (e.entered && e.status === 'entered') out.push(cvActs(cvButton('Withdraw', () => {
+    const r = Career.withdraw(t.id);
+    cv.msg = r.ok ? `Withdrawn: the ${crWords(e.fee)} fee is back, the travel is not.` : `Cannot withdraw: ${r.why}.`;
+    cvSave(); cvRender();
+  }, 'warn', 'cvWithdraw')), cvNoteEl('Before the deadline the fee comes back; the travel does not.'));
+  if (e.status === 'live' || e.status === 'done') out.push(cvActs(cvButton('Bracket and standings', () => cvGo('bracket', { id: t.id }), 'alt', 'cvSeeBracket')));
+  return out;
+};
+
+/* the bracket and standings: a picker of the season's events the player is in, then one */
+PAGES.bracket = t => {
+  const out = [];
+  if (!t.id) {
+    setHead('This season', 'Brackets');
+    const evs = Career.calendar().events.filter(e => e.entered || e.status === 'live' || e.status === 'done').filter(e => e.entered).reverse();
+    if (!evs.length) return [cvNoteEl('Enter an event from the calendar; its draw shows here when it starts.')];
+    out.push(cvGroup(evs.map(e => cvRow({ title: e.name, sub: `Week ${e.week}, ${e.fmtName}`, val: { live: 'Under way', done: 'Over', entered: 'Not drawn' }[e.status] || '', onClick: () => cvGo('bracket', { id: e.id }) }))));
+    return out;
+  }
+  const b = Career.bracket(t.id);
+  if (!b) { setHead('Bracket', 'Not found'); return [cvNoteEl('This event is no longer on the calendar.')]; }
+  setHead(b.event.fmtName, b.event.name);
+  if (!b.drawn) return [cvNoteEl(`The draw is made when the event starts, in week ${b.event.week}.`)];
+  const nameOfId = id => { const f = b.field.find(x => x.id === id); return f ? f.name : 'To come'; };
+  const bm = m => {
+    const d = cvEl('div', 'bm'), side = id => cvEl('span', (m.w !== null && m.w === id ? 'w' : '') + (id === Career.HUMAN ? ' me' : ''), id === null || id === undefined ? 'To come' : nameOfId(id));
+    d.append(side(m.a), cvEl('b', null, m.s ? `${m.s[0]}-${m.s[1]}` : `wk ${wkOf(m.day)}`), side(m.b));
+    return d;
+  };
+  if (b.placings) {
+    const me = b.placings.find(p => p[0] === Career.HUMAN);
+    out.push(cvHeadEl('Final placings'), cvGroup(b.placings.slice(0, 8).map(p => cvRow({ lead: cvEl('span', 'rk', p[1]), title: nameOfId(p[0]), me: p[0] === Career.HUMAN })),
+      me && me[1] > 8 ? cvRow({ lead: cvEl('span', 'rk', me[1]), title: nameOfId(me[0]), me: true }) : null));
+  }
+  const tables = Career.standings(t.id);
+  if (tables) for (const g of tables) out.push(cvHeadEl(g.group ? `Group ${g.group}` : 'Standings'), cvGroup(g.rows.map((r, i) => cvRow({ lead: cvEl('span', 'rk', i + 1), title: nameOfId(r.id !== undefined ? r.id : r[0]), me: (r.id !== undefined ? r.id : r[0]) === Career.HUMAN,
+    val: r.w !== undefined ? `${r.w}-${r.l}` : '' }))));
+  const mine = b.matches.filter(m => m.a === Career.HUMAN || m.b === Career.HUMAN);
+  if (mine.length) { out.push(cvHeadEl('Your matches')); const g = cvGroup(); g.append(...mine.map(bm)); out.push(g); }
+  const rounds = [];
+  for (const m of b.matches) { let r = rounds.find(x => x.name === m.round); if (!r) rounds.push(r = { name: m.round, ms: [] }); r.ms.push(m); }
+  for (const r of rounds) { out.push(cvHeadEl(r.name)); const g = cvGroup(); g.append(...r.ms.map(bm)); out.push(g); }
+  return out;
+};
+
+/* rankings: a circuit's 52 weeks, the season, or the player's discipline */
+PAGES.rankings = () => {
+  const out = [], pr = Career.profile();
+  setHead('Rankings', cv.rkBy === 'circuit' ? Career.CIRC_NAMES[Career.CIRCUITS.indexOf(cv.circ)] : cv.rkBy === 'season' ? 'This season' : Career.GAMES[pr.disc].name);
+  out.push(cvSeg([['circuit', 'Circuit'], ['season', 'Season'], ['disc', 'Your game']], cv.rkBy, v => { cv.rkBy = v; cvRender(); }));
+  if (cv.rkBy === 'circuit') out.push(cvSeg(Career.CIRCUITS.map((c, i) => [c, ['Local', 'Region', 'Nation', 'Pro', 'World'][i]]), cv.circ, v => { cv.circ = v; cvRender(); }, 'wrap'));
+  const key = cv.rkBy === 'circuit' ? cv.circ : cv.rkBy === 'season' ? 'season' : pr.disc, all = Career.rankings(key, { top: 400 }), me = all.find(x => x.human);
+  const shown = all.slice(0, 30);
+  if (me && me.rank > 30) shown.push(me);
+  if (!shown.length) out.push(cvNoteEl('No points yet on this list.'));
+  else out.push(cvGroup(shown.map(x => cvRow({ lead: cvEl('span', 'rk', x.rank), title: x.name, sub: `${natName(x.nat)}, tier ${x.tier}` + (x.move ? `, ${x.move > 0 ? 'up' : 'down'} ${Math.abs(x.move)}` : ''), val: `${x.pts} pts`, me: x.human }))));
+  const def = Career.toDefend(4), dk = Object.keys(def);
+  out.push(cvNoteEl((me ? `You: number ${me.rank} of ${all.length}. ` : 'You are not on this list yet. ') + (dk.length ? `Points leaving the 52-week window in the next 4 weeks: ${dk.map(k => `${def[k]} (${k})`).join(', ')}.` : 'Circuit points count for 52 weeks; local points for the season.')));
+  return out;
+};
+
+/* stats, records, the recap */
+PAGES.stats = () => {
+  const s = Career.stats(), a = s.all, out = [];
+  setHead('Career', 'Stats');
+  const c1 = cvEl('div', 'cvCard');
+  c1.append(cvFactsEl([['Matches', a.matches], ['Won', a.won], ['Win rate', a.winPct.d ? a.winPct.pct + '%' : '-']]), cvFactsEl([['Titles', a.titles], ['Finals', a.finals], ['Prize money', crWords(a.prize)]]));
+  out.push(c1, cvHeadEl('Play'), cvGroup(
+    cvRow({ title: 'Racks won', val: pctWords(a.racks.pct) }), cvRow({ title: 'Legal breaks', val: pctWords(a.legalBreak) }), cvRow({ title: 'Break and run', val: pctWords(a.breakAndRun) }),
+    cvRow({ title: 'Run outs', val: pctWords(a.runout) }), cvRow({ title: 'Shot accuracy', sub: 'Balls potted of shots taken', val: pctWords(a.shotAccuracy) }),
+    cvRow({ title: 'Called shots made', val: pctWords(a.calledShot) }), cvRow({ title: 'Safeties that worked', sub: 'Counted in simulated matches', val: pctWords(a.safety) }),
+    cvRow({ title: 'Fouls', val: `${a.fouls}, ${a.foulsPerRack.d ? (a.fouls / a.foulsPerRack.d).toFixed(2) + ' a rack' : 'no racks yet'}` }),
+    cvRow({ title: 'Streak', val: a.streak > 0 ? `Won ${a.streak}` : a.streak < 0 ? `Lost ${-a.streak}` : 'None' }), cvRow({ title: 'Best winning run', val: a.bestStreak })));
+  const by = Object.keys(s.byDisc);
+  if (by.length) out.push(cvHeadEl('By game'), cvGroup(by.map(d => { const x = s.byDisc[d]; return cvRow({ title: Career.GAMES[d].name, sub: `${x.titles} title${x.titles === 1 ? '' : 's'}, ${pctWords(x.racks.pct)} racks`, val: `${x.won}-${x.lost}` }); })));
+  out.push(cvHeadEl('Skills'), cvGroup(Career.SKILLS.map(k => { const v = Math.round(s.skills[k]), m = cvEl('span', 'cvMeter'), i = cvEl('i'); i.style.setProperty('--v', v + '%'); m.append(cvEl('span', null, v), i); return cvRow({ title: Career.SKILL_NAMES[k], end: m }); })));
+  out.push(cvNoteEl(Career.me().opt.purity ? 'Simulation purity is on: skills are a record of your play and decide only the matches the model settles.' : 'Skills grow from matches and drills. Under Options: what they change in your own play.'));
+  if (s.legacy) out.push(cvHeadEl('Ladder record'), cvGroup(cvRow({ title: 'Carried over', sub: `${s.legacy.beaten.length} of 8 beaten, ${s.legacy.won} of ${s.legacy.played} matches won`, val: s.legacy.played ? `${s.legacy.winPct.pct}%` : '' })));
+  out.push(cvGroup(cvRow({ id: 'cvRecords', title: 'Records and Hall of Fame', onClick: () => cvGo('records') })));
+  return out;
+};
+PAGES.records = () => {
+  const r = Career.records(), p = r.personal, out = [];
+  setHead('Career', 'Records');
+  const nm = id => id === Career.HUMAN ? 'You' : (Career.player(id) || { name: 'A player' }).name;
+  out.push(cvHeadEl('Personal bests'), cvGroup(
+    cvRow({ title: 'Longest winning run', val: p.streak ? `${p.streak[0]} (season ${p.streak[1]})` : 'None yet' }),
+    cvRow({ title: 'Biggest upset', sub: p.upset ? `${nm(p.upset[1])}, ${p.upset[3]}` : '', val: p.upset ? `${p.upset[0]} rating points` : 'None yet' }),
+    cvRow({ title: 'Longest match', sub: p.longest ? `${nm(p.longest[1])}, ${p.longest[3]}` : '', val: p.longest ? `${p.longest[0]} racks` : 'None yet' }),
+    p.ladder ? cvRow({ title: 'Ladder', val: `${p.ladder[0]} of ${p.ladder[1]} beaten` }) : null));
+  out.push(cvHeadEl('Your titles'), r.titles.length ? cvGroup(r.titles.slice().reverse().map(t => cvRow({ title: t.name, sub: `Season ${t.season}, tier ${t.tier}` }))) : cvNoteEl('No titles yet.'));
+  if (r.seasons.length) out.push(cvHeadEl('Seasons'), cvGroup(r.seasons.slice().reverse().map(x => cvRow({ title: `Season ${x.s}`, sub: `${x.w}-${x.l}, ${x.ti} title${x.ti === 1 ? '' : 's'}, ${crWords(x.prize)}`, val: x.t1 > x.t0 ? 'Promoted' : x.t1 < x.t0 ? 'Relegated' : `Tier ${x.t1}` }))));
+  out.push(cvHeadEl('Hall of Fame'), r.hallOfFame.length ? cvGroup(r.hallOfFame.map(h => cvRow({ title: h.name, sub: `Inducted season ${h.season}`, val: `${h.legacy} legacy`, me: h.id === Career.HUMAN }))) : cvNoteEl(`Nobody yet: a legacy of ${Career.HOF_LEG} gets you in. Titles weigh their tier squared by their prestige.`));
+  if (r.titleLeaders.length) out.push(cvHeadEl('Most titles'), cvGroup(r.titleLeaders.map(x => cvRow({ title: x.name, val: x.titles, me: x.id === Career.HUMAN }))));
+  return out;
+};
+PAGES.recap = () => {
+  const r = Career.recap(), out = [];
+  setHead('Retired', r ? r.name : 'Recap');
+  if (!r) return [cvNoteEl('This career has not ended.')];
+  const c = cvEl('div', 'cvCard');
+  c.append(cvFactsEl([['Seasons', r.seasons], ['Matches', `${r.won}-${r.lost}`], ['Titles', r.titles.length]]), cvFactsEl([['Peak tier', r.peakTier], ['Prize money', crWords(r.prize)], ['Legacy', r.legacy]]));
+  out.push(c);
+  if (r.hallOfFame) out.push(cvNoteEl('Inducted into the Hall of Fame.'));
+  out.push(cvHeadEl('Titles'), r.titles.length ? cvGroup(r.titles.map(t => cvRow({ title: t.name, sub: `Season ${t.season}, tier ${t.tier}` }))) : cvNoteEl('No titles.'));
+  const br = Object.keys(r.bestRanks);
+  if (br.length) out.push(cvHeadEl('Best rankings'), cvGroup(br.map(k => cvRow({ title: k[0].toUpperCase() + k.slice(1), val: `number ${r.bestRanks[k]}` }))));
+  out.push(cvActs(cvButton('Your careers', () => { cv.stack = [{ p: 'slots' }]; cvRender('pop'); }, 'alt', 'cvToSlots')));
+  return out;
+};
+
+/* sponsors and offers, the shop, rivals and a player, news, practice, options */
+PAGES.sponsors = () => {
+  const sp = Career.sponsors(), offs = Career.offers(), out = [], wk = Career.now().day;
+  setHead('Career', 'Sponsors');
+  const act = sp.active.filter(c => !c.end);
+  out.push(cvHeadEl('Contracts'));
+  if (!act.length) out.push(cvNoteEl('No sponsor yet. Offers come with results and reputation; two contracts at once, one per category.'));
+  for (const c of act) {
+    const card = cvEl('div', 'cvCard');
+    card.append(cvEl('div', 'cvVs'), cvLinesEl([['Brand', `${c.brand} (${c.cat})`], ['Retainer', `${crWords(c.ret)} a week`], ['Weeks left', Math.max(0, Math.ceil((c.to - wk) / 7))], ['Bonus', `${crWords(c.bonus)} for every objective`],
+      ...c.obj.map(o => [o.done ? 'Done' : 'Objective', `${o.text}${o.done ? '' : o.k === 'rank' ? (o.progress ? `, now number ${o.progress}` : ', unranked now') : `, ${o.progress} so far`}`])]));
+    card.firstChild.append(cvEl('span', null, c.brand), cvEl('span', 'tag', c.cat));
+    out.push(card);
+  }
+  out.push(cvHeadEl('Offers'));
+  if (!offs.length) out.push(cvNoteEl('No offers right now. They expire after a few weeks.'));
+  for (const o of offs) {
+    const card = cvEl('div', 'cvCard'), vs = cvEl('div', 'cvVs');
+    if (o.type === 'sponsor') {
+      vs.append(cvEl('span', null, o.brand), cvEl('span', 'tag', `${o.cat}, ${o.weeks} weeks`));
+      card.append(vs, cvLinesEl([['Retainer', `${crWords(o.ret)} a week`], ['Bonus', crWords(o.bonus)], ...o.obj.map(x => ['Objective', x.text]), ['Offer ends', `Week ${wkOf(o.exp)}`]]));
+    } else {
+      vs.append(cvEl('span', null, o.type === 'challenge' ? `Challenge from ${o.opponent}` : `Exhibition with ${o.opponent}`), cvEl('span', 'tag', `Week ${wkOf(o.start)}`));
+      card.append(vs, cvLinesEl([['Game', Career.GAMES[o.disc].name], ['Race', `First to ${unitWords(o.disc, o.race)}`], ['Purse', crWords(o.purse)], ['Offer ends', `Week ${wkOf(o.exp)}`]]));
+    }
+    card.append(cvActs(cvButton('Accept', () => { const r = Career.accept(o.id); cv.msg = r.ok ? 'Accepted.' : `Not accepted: ${r.why}.`; cvSave(); cvRender(); }, '', 'acc-' + o.id),
+      cvButton('Decline', () => { Career.decline(o.id); cv.msg = 'Declined.'; cvSave(); cvRender(); }, 'alt', 'dec-' + o.id)));
+    out.push(card);
+  }
+  if (sp.past.length) out.push(cvNoteEl(`${sp.past.length} past contract${sp.past.length === 1 ? '' : 's'}.`));
+  return out;
+};
+PAGES.shop = () => {
+  const items = Career.shop(), money = Career.now().money, out = [];
+  setHead(`${crWords(money)} to spend`, 'Shop');
+  out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. Equipped items show on your career profile.'));
+  for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['ring', 'Avatar rings']]) {
+    out.push(cvHeadEl(name), cvGroup(items.filter(i => i.slot === slot).map(i => cvRow({ id: 'shop-' + i.id, title: i.name, sub: i.equipped ? 'Equipped' : i.owned ? 'Owned' : i.locked ? 'Hall of Fame only' : i.price ? crWords(i.price) : 'Free',
+      end: i.equipped ? null : i.owned ? cvMiniBtn('Equip', () => { Career.equip(i.id); cvSave(); cvRender(); }, '', `Equip ${i.name}`)
+        : cvMiniBtn('Buy', i.locked || money < i.price ? null : () => { const r = Career.buy(i.id); cv.msg = r.ok ? `Bought: ${i.name}.` : `Not bought: ${r.why}.`; cvSave(); cvRender(); }, 'go', `Buy ${i.name}`) }))));
+  }
+  return out;
+};
+PAGES.rivals = () => {
+  const rv = Career.rivals(), obj = Career.objectives().filter(o => !o.done), out = [];
+  setHead('Career', 'Rivals');
+  if (obj.length) out.push(cvHeadEl('Rivalry objectives'), cvGroup(obj.map(o => cvRow({ title: o.text, val: crWords(o.pay) }))));
+  out.push(cvHeadEl('Rivals'));
+  if (!rv.length) out.push(cvNoteEl('Rivals come from meeting the same players again: finals, upsets and close matches count most.'));
+  else out.push(cvGroup(rv.map(r => cvRow({ title: r.name, sub: `Won ${r.won}, lost ${r.lost}` + (r.finalsWon + r.finalsLost ? `, finals ${r.finalsWon}-${r.finalsLost}` : '') + (r.close ? `, ${r.close} at the hill` : ''),
+    val: r.streak > 0 ? `W${r.streak}` : r.streak < 0 ? `L${-r.streak}` : '', onClick: () => cvGo('player', { id: r.id }) }))));
+  return out;
+};
+PAGES.player = t => {
+  const p = Career.player(t.id), out = [];
+  if (!p) { setHead('Player', 'Not found'); return [cvNoteEl('No such player.')]; }
+  setHead(p.archName || 'Player', p.name);
+  const c = cvEl('div', 'cvCard'), w = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
+  tt.append(cvEl('b', null, p.name + (p.nick ? ` "${p.nick}"` : '')), cvEl('small', null, `${natName(p.nat)}, ${p.town}, age ${p.age}`));
+  w.append(avatarEl(p), tt);
+  c.append(w, cvFactsEl([['Rating', p.rating], ['Tier', p.tier], ['Titles', p.titles]]), cvLinesEl([['Plays', `${Career.GAMES[p.disc].name}, ${p.hand} handed`], ['As a CPU', p.ai ? p.ai.level : '-'], ['Record', `${p.w}-${p.l}`]]));
+  out.push(c);
+  const h = Career.headToHead(t.id);
+  if (h) out.push(cvHeadEl('Head to head'), cvGroup(cvRow({ title: 'Matches', val: `${h.won}-${h.lost}` }), cvRow({ title: 'Finals', val: `${h.finalsWon}-${h.finalsLost}` }), cvRow({ title: 'Upsets', sub: 'You beat a stronger player / a weaker one beat you', val: `${h.upsets} / ${h.upsetBy}` })));
+  out.push(cvHeadEl('Attributes'), cvGroup(Career.ATTRS.map(k => { const v = p.attrs[k], m = cvEl('span', 'cvMeter'), i = cvEl('i'); i.style.setProperty('--v', v + '%'); m.append(cvEl('span', null, v), i); return cvRow({ title: Career.ATTR_NAMES[k], end: m }); })));
+  return out;
+};
+PAGES.news = () => {
+  setHead('Career', 'News');
+  const n = Career.news().slice().reverse();
+  if (!n.length) return [cvNoteEl('Nothing yet.')];
+  return [cvGroup(n.map(([d, text]) => cvRow({ title: text, wrap: true, sub: `Season ${Math.floor(d / Career.YEAR) + 1}, week ${wkOf(d)}` })))];
+};
+PAGES.practice = () => {
+  const s = Career.stats(), done = Career.calendar().practiceToday, out = [];
+  setHead(`${done} of 3 sessions today`, 'Practice');
+  out.push(cvNoteEl('Play a drill in Practice from the home screen, then record your score out of 100 here. Three sessions a day; practice never moves the clock. Mastery is a record; skills grow a little.'));
+  out.push(cvGroup(Career.DRILLS.map(d => {
+    const m = s.mastery[d.id] || { best: 0, n: 0, lv: 0 }, i = cvEl('input', 'cvScore');
+    i.type = 'number'; i.min = 0; i.max = 100; i.inputMode = 'numeric'; i.placeholder = '0-100'; i.id = 'drill-' + d.id; i.setAttribute('aria-label', `${d.name} score`);
+    const rec = cvMiniBtn('Record', done >= 3 ? null : () => {
+      const v = Math.round(+i.value);
+      if (!(v >= 0 && v <= 100) || i.value === '') { cv.msg = 'A score from 0 to 100.'; cvRender(); return; }
+      const r = Career.practice(d.id, v);
+      cv.msg = r.ok ? `${d.name}: ${v} recorded${r.milestone ? `, ${r.milestone} mastery` : ''}.` : `Not recorded: ${r.why}.`;
+      cvSave(); cvRender();
+    }, 'go', `Record ${d.name}`);
+    return cvRow({ title: d.name, sub: `${Career.SKILL_NAMES[d.skill]}. Best ${m.best}` + (m.lv ? `, ${['bronze', 'silver', 'gold'][m.lv - 1]}` : ''), end: [i, rec] });
+  })));
+  return out;
+};
+PAGES.options = () => {
+  const me = Career.me(), a = Career.assist(), pr = Career.profile(), out = [];
+  setHead(`Difficulty: ${pr.difficulty}`, 'Options');
+  const g = cvGroup(cvSwitch('Simulation purity', 'Skills are a record only: your shots are exactly yours', me.opt.purity, v => { Career.setOptions({ purity: v }); cvSave(); cvRender(); }, 'cvPurity'),
+    cvSwitch('Execution variance', 'Without purity: a little jitter on your shots from your skills', me.opt.variance, v => { Career.setOptions({ variance: v }); cvSave(); cvRender(); }, 'cvVariance'));
+  out.push(cvHeadEl('Play'), g);
+  out.push(cvHeadEl('What your skills change now'));
+  if (a.purity) out.push(cvNoteEl('Nothing: the physics, the guide and auto aim are as in any game, from your settings.'));
+  else out.push(cvGroup(cvRow({ title: 'Guide', sub: 'Capped by position play', val: { none: 'Off', short: 'Short', long: 'Full' }[a.guide] }), cvRow({ title: 'Auto aim', sub: 'Needs tactics 40', val: a.autoAim ? 'Allowed' : 'Off' }),
+    cvRow({ title: 'Aim jitter', val: `${(a.aimNoise * 180 / Math.PI).toFixed(2)} deg` }), cvRow({ title: 'Power jitter', val: `${(a.powerNoise * 100).toFixed(1)}%` }),
+    cvRow({ title: 'Break power jitter', val: `${(a.breakNoise * 100).toFixed(1)}%` }), cvRow({ title: 'Tip jitter', val: `${(a.spinNoise * 100).toFixed(1)}%` }), cvRow({ title: 'On the hill', sub: 'Jitter multiplier, from pressure', val: `x${a.hillNoise}` })));
+  out.push(cvNoteEl('The bank guide and the safety hint the engine allows are not drawn on this table yet. Nothing here ever changes the physics or the CPU.'));
+  return out;
+};
+
+/* the home row: the active career's tier and season, or an invitation */
+function syncCareerHome() {
+  let idx;
+  try { idx = Career.index(); } catch (e) { idx = { slots: [] }; }
+  const r = idx.slots.find(x => x.id === idx.active), key = r ? [r.id, r.seq, r.week].join() : 'none';
+  if (careerBtn.dataset.key !== key) {
+    careerBtn.dataset.key = key;
+    careerSum.textContent = r ? (r.retired ? 'Retired' : `Tier ${r.tier}`) : 'New';
+    careerHint.textContent = r ? `${r.name}, season ${r.season}` : 'Your player, 300 rivals';
+    careerAvs.replaceChildren(avatarEl({ name: r ? r.name : 'You', avatar: r && Career.loaded && Career.id === r.id ? Career.profile().avatar : null }, ' now'));
+    careerFill.style.width = (r ? 100 * Math.min(52, r.week) / 52 : 0) + '%';
+    careerBtn.setAttribute('aria-label', r ? `Career: ${r.name}, ${r.tierName}, season ${r.season}, week ${r.week}.` : 'Career: start a career.');
+  }
   lessonBtn.hidden = lessonRec.done;
 }
 /* the stats sheet's career numbers (showStats) */
 function careerStats() {
-  const at = careerAt(), racks = careerRec.racksW + careerRec.racksL;
-  const kp = [['Progress', at, `of ${CAREER.length}`], ['Matches won', careerRec.won, `of ${careerRec.played}`], ['Racks won', careerRec.racksW, `of ${racks}`], ['Next up', at >= CAREER.length ? 'Done' : CAREER[at].first, '']];
+  if (!Career.loaded) { const idx = Career.index(), a = idx.slots.find(x => x.id === idx.active); if (a) Career.load(a.id); }
+  let kp;
+  if (Career.loaded) { const n = Career.now(), a = Career.stats().all; kp = [['Tier', n.tier, n.tierName], ['Matches won', a.won, `of ${a.matches}`], ['Titles', a.titles, ''], ['Credits', n.money, '']]; }
+  else kp = [['Career', 'None', 'yet'], ['Ladder', careerAt(), 'of 8'], ['Matches won', careerRec.won, `of ${careerRec.played}`], ['Racks won', careerRec.racksW, `of ${careerRec.racksW + careerRec.racksL}`]];
   careerKpis.replaceChildren(...kp.map(([t, v, s]) => {
     const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd');
     dt.textContent = t; dd.textContent = String(v);
@@ -11531,44 +12257,34 @@ function careerStats() {
     return d;
   }));
 }
-/* the pause menu in a career match: the player, their line, the score and the race */
-function hudCareerMenu() {
-  const on = !!career && !!paused && !game.mode;
-  careerNow.hidden = !on;
-  if (!on) return;
-  const c = careerFoe(), key = [c.id, ...career.score, career.rack].join();
-  if (careerNow.dataset.key === key) return;
-  careerNow.dataset.key = key;
-  cnAv.className = 'av' + (c.boss ? ' boss' : '');
-  cnAv.style.setProperty('--av', c.av || '');
-  cnAv.textContent = initials(c);
-  cnName.textContent = c.name;
-  cnLine.textContent = c.line;
-  cnScore.textContent = `${career.score[0]}-${career.score[1]}`;
-  cnRace.textContent = `Race to ${career.need}, rack ${career.rack}`;
-  careerNow.setAttribute('aria-label', `${c.name}, ${c.line}. You ${career.score[0]}, ${c.first} ${career.score[1]}. Race to ${career.need}, rack ${career.rack}.`);
-}
 careerBtn.addEventListener('click', () => { audioOn(); showCareer(); });
-careerBack.addEventListener('click', () => backToMenu());
+careerBack.addEventListener('click', () => cvBack());
 rackGo.addEventListener('click', () => { audioOn(); if (career) careerRack(); });
-rackQuit.addEventListener('click', () => quitToHome());
-matchGo.addEventListener('click', () => { audioOn(); startCareer(matchGo.dataset.id); });
+rackQuit.addEventListener('click', () => { quitToHome(); showCareer(); });
+matchGo.addEventListener('click', () => {
+  audioOn();
+  const nm = Career.loaded ? Career.nextMatch() : null;
+  if (nm && Career.GAMES[nm.rules.game].live) { matchSheet.classList.remove('show'); careerPlay(); } else if (nm) { quitToHome(); cvSim(); } else { quitToHome(); showCareer(); }
+});
 matchLadder.addEventListener('click', () => { quitToHome(); showCareer(); });
 matchHome.addEventListener('click', () => quitToHome());
-Object.assign(felt, { lesson: startLesson, skipLesson, career: startCareer, showCareer, careerRoster: () => CAREER.map(c => ({ id: c.id, name: c.name, line: c.line, level: levelOf(c), kind: c.kind, table: c.table, pockets: c.pockets || 'regulation', race: c.race, boss: !!c.boss })) });
+Object.assign(felt, { lesson: startLesson, skipLesson, showCareer, careerPlay, careerRules, careerSim: cvSim, careerAdvance: cvAdvance, careerGo: (p, a) => cvGo(p, a), careerBack: cvBack, lastCareerResult: null });
 Object.defineProperties(felt, {
   lessonRec: { get: () => Object.assign({}, lessonRec) },
   lessonStep: { get: () => lessonOn() ? solo.step : null },
   lessonLine: { get: () => lessonPoints().line },
   careerRec: { get: () => JSON.parse(JSON.stringify(careerRec)) },
-  careerMatch: { get: () => career ? JSON.parse(JSON.stringify(career)) : null },
   careerAt: { get: () => careerAt() },
+  careerMatch: { get: () => career ? { event: career.nm.event, match: career.nm.match, kind: career.kind, need: career.need, score: career.score.slice(), rack: career.rack, done: career.done, level: career.nm.level, units: career.units } : null },
+  careerPage: { get: () => careerSheet.classList.contains('show') ? cvTop().p : null },
 });
 
 /* ============ 7. BOOT ============ */
 /* the career engine (1z) keeps its slots in localStorage; booting it copies the old ladder's
    record (felt.career.v1, still the 6d ladder's) to felt.career.v1.bak before anything else */
 try { Career.boot(localStorage); } catch (e) { Career.boot(null); }
+/* audit F5: a CPU game or a career match left by closing the page counts as lost (6d, 6) */
+try { abandonedAtBoot(); careerLeftover(); } catch (e) { }
 muted = !settings.sound;
 /* a resize or a rotation drops any gesture in flight: its screen axes are stale */
 const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); };

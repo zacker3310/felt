@@ -77,6 +77,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
+  After a foul the player fouled chooses through `game.option` (`snkFoul`/`snkMiss`/`snkFree`, `chooseSnooker`,
+  `cpuSnookerOption`): play it, play again, a free ball (`game.free`; snookered is pure geometry, `snkSnookered`), or
+  after a miss the put-back from `game.prev`; three misses lose the frame (`game.missRun`). Cite WPBSA rule numbers.
   `tests/snooker-check.cjs` pins it.
 - Three-cushion carom: `setTable('carom')` (sim 1k), 61.5 mm balls on its own cloth and rubber. No pockets:
   `POCKETS`, `POCKET_AIM`, `MOUTHS` are empty, so never assume six. Balls 70 (white), 71 (yellow), 72 (red);

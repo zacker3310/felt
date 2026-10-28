@@ -1108,6 +1108,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #snkBar .k { color: var(--muted); font-weight: 500; }
 #snkBar .dot { width: 10px; height: 10px; }
 #snkBar .warn { color: var(--illegal); }
+#snkBar .free { color: #8fd8b0; letter-spacing: .04em; }
 #concedeBtn { grid-column: 1 / -1; }
 #concedeBtn[hidden] { display: none; }
 .bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
@@ -1186,6 +1187,10 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #optBtns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
 #optBtns button { min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel-2); font-size: 14px; font-weight: 600; }
 #optBtns button:first-child { background: var(--cream); border-color: var(--cream); color: #141414; }
+/* snooker's free ball: the colours to nominate, the box at the table's foot so they stay in sight */
+#optBox.pick { top: auto; bottom: 10px; transform: translateX(-50%); }
+#optBtns button.col, #optBtns button.col:first-child { display: inline-flex; align-items: center; gap: 8px; min-width: 44px; padding: 0 14px 0 10px; background: var(--panel-2); border-color: var(--line); color: inherit; }
+#optBtns button.col .dot { width: 18px; height: 18px; }
 #callHist { margin: 6px 2px 0; font-size: 13px; color: var(--muted); }
 #callHist[hidden] { display: none; }
 @keyframes nudge { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
@@ -1735,7 +1740,9 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
           <span class="sr">Yellow 2, green 3, brown 4, blue 5, pink 6, black 7.</span></div></li>
         <li><div><b>Break</b><p>Place the cue ball anywhere in the D, the half circle on the baulk line. Hit a red first.</p></div></li>
         <li><div><b>Fouls</b><p>Missing every ball, hitting or potting a ball you are not on, or going in-off. Your opponent scores 4 to 7.</p></div></li>
-        <li><div><b>After a foul</b><p>They play from where the cue ball stopped, or from the D after an in-off.</p></div></li>
+        <li><div><b>After a foul</b><p>The other player chooses: play from where the balls lie (from the D after an in-off), or make the offender play again from there.</p></div></li>
+        <li><div><b>Free ball</b><p>Snookered after a foul? Nominate any colour as the ball on. It counts as a red, or as the colour you are on, and it comes back on its spot.</p></div></li>
+        <li><div><b>Foul and a miss</b><p>Miss the ball on when you could have hit it, and they may have the balls put back for you to play again. Three such misses with a ball on in full view lose the frame.</p></div></li>
         <li><div><b>Win the frame</b><p>Most points wins. You can concede from the pause menu.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine print</h3>
@@ -1745,7 +1752,9 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li>The usual break clips the end red of the back row and brings the cue ball back to baulk.</li>
         <li>The bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed.</li>
         <li>Choose one frame or best of three, and the 10 ft or 12 ft table, when you start.</li>
-        <li>Not in felt yet: the free ball and the miss rule.</li>
+        <li>The referee in felt is a fixed rule: a miss is called when the ball on could be struck on both edges, or hit full ball, unless only the black is left or the striker needs snookers. The second miss in a row brings a warning.</li>
+        <li>A free ball may not be used to snooker the opponent on every ball on, unless only the pink and black remain.</li>
+        <li>Balls never leave the table's plane in felt, so the jump shot foul cannot happen.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the snooker tutorial</span></button></div>
     </section>
@@ -3007,6 +3016,7 @@ const RULE_MODULES = {
    ('rebreak') or, in 8-ball, re-rack and break yourself ('break'). 'eightBreak': the breaker spots
    the 8 and carries on, or re-racks and breaks again. */
 function chooseOption(g, choice) {
+  if (g.kind === 'snooker') return chooseSnooker(g, choice);
   const o = g.option;
   if (!o || !o.choices.includes(choice)) return null;
   let n = copyGame(g);
@@ -3771,6 +3781,7 @@ function cpuIntent(r) {
 function cpuOption(g, level = 'medium') {
   const o = g.option;
   if (!o) return null;
+  if (g.kind === 'snooker') return cpuSnookerOption(g, level);
   if (o.kind === 'eightBreak') return 'spot';
   const L = cpuProfile(level), q = cpuChance(Object.assign({}, g, { option: null, turn: o.who }), o.who, L);
   return q >= L.take ? 'take' : o.kind === 'badBreak' ? 'rebreak' : 'pass';
@@ -4412,13 +4423,18 @@ function snookerRack() {
 function snookerGame(frames = 1, first = 0, won = [0, 0], high = [0, 0]) {
   if (TABLE !== 'snooker') setTable('snooker');
   return { kind: 'snooker', balls: snookerRack(), turn: first, groups: [null, null], open: false, breakShot: true, inHand: 'D', fouls: [0, 0], winner: null,
-    shots: 0, dry: 0, verdict: null, on: 'red', score: [0, 0], brk: 0, high: high.slice(), frames: frames === 3 ? 3 : 1, won: won.slice(), frame: won[0] + won[1] + 1, breaker: first, reblack: false };
+    shots: 0, dry: 0, verdict: null, on: 'red', score: [0, 0], brk: 0, high: high.slice(), frames: frames === 3 ? 3 : 1, won: won.slice(), frame: won[0] + won[1] + 1, breaker: first, reblack: false,
+    option: null, free: null, prev: null, missRun: null, replaced: false };
 }
-/* the balls on: the reds; after a red any colour; then the colours in order */
+/* the balls on: the reds; after a red any colour; then the colours in order. A free ball
+   (g.free, the colour nominated: WPBSA Section 3 Rule 12) is on too: with the reds as a red, in
+   the colours instead of the colour on (it must be hit first; the colour on may still be potted
+   after it) */
 function snookerOn(g) {
-  const on = onTable(g);
-  if (g.on === 'red') return on.filter(isRed);
+  const on = onTable(g), f = g.free && on.includes(g.free) ? g.free : null;
+  if (g.on === 'red') return on.filter(n => isRed(n) || n === f);
   if (g.on === 'colour') return on.filter(n => snkValue(n) > 1);
+  if (f) return [f];
   return on.includes(g.on) ? [g.on] : [];
 }
 /* a colour back on the table: on its own spot; if that is taken (a ball would touch it), the
@@ -4443,7 +4459,89 @@ function snookerLeft(g) {
 }
 /* player p needs snookers: further behind than the points left on the table */
 const snookersNeeded = (g, p) => g.score[1 - p] - g.score[p] > snookerLeft(g);
-/* The rules (How to play says the same):
+/* ---- the referee's eye: snookered, angled, a clear ball. Pure geometry on the balls at rest,
+   no simulation, so judge stays cheap and exact.
+   WPBSA Section 2, "Snookered": the cue ball is snookered when a direct stroke in a straight line
+   to every ball on is wholly or partially obstructed by a ball or balls not on; if one or more
+   balls on can be struck at both extreme edges free of obstruction by any ball not on, it is not
+   snookered. In hand, it is snookered only when that holds from every position in the D.
+   "Angled" (the same section): the corner of a cushion (here any cushion nose or rounded jaw) is
+   in the way; the rules treat it as snookered after a foul, and so does snkClear. Balls on never
+   obstruct: a red in front of another red is itself a red to hit. ---- */
+/* the cue ball's centre can travel from a to b in a straight line touching no ball outside
+   `pass` (the balls on), no cushion and no jaw. A ball within two radii of the line's end (the
+   contact) obstructs too: the cue ball would meet it at the same moment. */
+function snkClear(balls, ax, ay, bx, by, pass) {
+  const ex = bx - ax, ey = by - ay, L = Math.hypot(ex, ey), ux = ex / (L || 1), uy = ey / (L || 1), R2 = 2 * BALL_R - 1e-9;
+  for (const o of balls) {
+    if (!o.on || o.n === 0 || pass.has(o.n)) continue;
+    const s = (o.x - ax) * ux + (o.y - ay) * uy;
+    if (s <= 0) continue;
+    const t = Math.min(s, L);
+    if (Math.hypot(o.x - ax - ux * t, o.y - ay - uy * t) < R2) return false;
+  }
+  const rim = BALL_R - 5e-4;   /* a cue ball frozen to a cushion may still run along it */
+  for (const c of CUSH) if (segSeg(ax, ay, bx, by, c[0], c[1], c[2], c[3]) < rim) return false;
+  for (const q of JAW_ARCS) if (segGap(ax, ay, bx, by, q[0], q[1]) < q[2] + rim) return false;
+  return true;
+}
+/* the least distance between the segments a-b and c-d (0 when they cross) */
+function segSeg(ax, ay, bx, by, cx, cy, dx, dy) {
+  const side = (px, py, qx, qy, rx, ry) => Math.sign((qx - px) * (ry - py) - (qy - py) * (rx - px));
+  const s1 = side(ax, ay, bx, by, cx, cy), s2 = side(ax, ay, bx, by, dx, dy), s3 = side(cx, cy, dx, dy, ax, ay), s4 = side(cx, cy, dx, dy, bx, by);
+  if (s1 * s2 < 0 && s3 * s4 < 0) return 0;
+  return Math.min(segGap(ax, ay, bx, by, cx, cy), segGap(ax, ay, bx, by, dx, dy), segGap(cx, cy, dx, dy, ax, ay), segGap(cx, cy, dx, dy, bx, by));
+}
+/* from (x, y), ball t can be struck at both extreme edges: the two lines on which the cue ball
+   just grazes it, each clear up to the contact. A cue ball touching t is never snookered on it. */
+function snkEdges(balls, x, y, t, pass) {
+  const d = Math.hypot(t.x - x, t.y - y), R2 = 2 * BALL_R;
+  if (d <= R2 + 1e-6) return true;
+  const a = Math.atan2(t.y - y, t.x - x), w = Math.asin(R2 / d), L = Math.sqrt(d * d - R2 * R2);
+  return [-1, 1].every(s => snkClear(balls, x, y, x + L * Math.cos(a + s * w), y + L * Math.sin(a + s * w), pass));
+}
+/* from (x, y), ball t can be hit full ball: the straight line to the contact, centre on centre, clear */
+function snkFull(balls, x, y, t, pass) {
+  const d = Math.hypot(t.x - x, t.y - y), R2 = 2 * BALL_R;
+  if (d <= R2 + 1e-6) return true;
+  const k = (d - R2) / d;
+  return snkClear(balls, x, y, x + (t.x - x) * k, y + (t.y - y) * k, pass);
+}
+/* where the player to shoot may play from: the cue ball where it lies, or with it in hand a fixed
+   fan of positions over the D (its centre, then rings at a quarter, a half, three quarters and
+   the edge, nine angles each on the baulk side), those a ball may stand on */
+function snkFrom(g) {
+  const c = g.balls.find(b => b.n === 0);
+  if (!g.inHand && c && c.on) return [[c.x, c.y]];
+  const out = [[HEAD_X, TW / 2]];
+  for (const r of [0.25, 0.5, 0.75, 0.98]) for (let i = 0; i <= 8; i++) {
+    const a = Math.PI / 2 + i * Math.PI / 8;
+    out.push([HEAD_X + r * D_R * Math.cos(a), TW / 2 + r * D_R * Math.sin(a)]);
+  }
+  const h = Object.assign({}, g, { inHand: 'D' });
+  return out.filter(p => canPlace(h, p[0], p[1]));
+}
+/* the player to shoot in g is snookered (or angled) on every ball on (Section 2, above) */
+function snkSnookered(g) {
+  const on = snookerOn(g), pass = new Set(on), ts = on.map(n => g.balls.find(b => b.n === n));
+  if (!ts.length) return false;
+  const from = snkFrom(g);
+  return from.length > 0 && from.every(([x, y]) => !ts.some(t => snkEdges(g.balls, x, y, t, pass)));
+}
+/* the player to shoot in g has a clear path in a straight line to hit a ball on full ball (the
+   three-miss test of Section 3 Rule 14) */
+function snkFullBall(g) {
+  const on = snookerOn(g), pass = new Set(on), ts = on.map(n => g.balls.find(b => b.n === n));
+  return snkFrom(g).some(([x, y]) => ts.some(t => snkFull(g.balls, x, y, t, pass)));
+}
+/* the colours that may be nominated as a free ball: every colour on the table that is not on
+   (with reds on the table that is every colour; in the colours, every other colour) */
+function snkFreeBalls(g) {
+  const on = onTable(g);
+  return S_COLS.filter(c => on.includes(c) && c !== g.on && g.on !== 'colour');
+}
+/* The rules (How to play says the same). Section and rule numbers are the WPBSA's Official Rules
+   of the Games of Snooker and English Billiards (Section 2 the definitions, Section 3 the game).
    1. The player is on a red while reds are on the table; after potting one, on a colour (the
       first colour the cue ball hits is the one nominated), then on a red again. With the reds
       gone, the colours in order: yellow, green, brown, blue, pink, black.
@@ -4455,37 +4553,79 @@ const snookersNeeded = (g, p) => g.score[1 - p] - g.score[p] > snookerLeft(g);
       scores the value of the ball on or of the highest ball involved, at least 4 and at most 7.
       Colours potted on a foul come back; reds stay down. The turn passes; the next player
       plays from where the cue ball lies, or in hand in the D after an in-off.
-   5. The frame ends with the last ball down, or with the first score or foul when only the black
+   5. After any foul the next player chooses (game.option, kind 'snkFoul', 'snkMiss' or
+      'snkFree', for the player fouled; chooseSnooker): 'play' from where the balls lie, or 'again',
+      the offender plays again from there (Section 3 Rule 13, Play Again; the offender, snookered,
+      may then take the free ball). Snookered (or angled) on every ball on after a foul (snkSnookered),
+      also 'free': a free ball (Section 3 Rule 12): any colour not on is nominated as the ball on
+      (game.free). It counts as a red with the reds on the table, else as the colour on, which it
+      replaces as the ball to hit first; potted, it scores the value of the ball on and is re-spotted.
+      With reds on, a free ball and reds potted together all score (a point each); in the colours,
+      a free ball and the colour on potted together score the colour on once, and that one stays
+      down. A foul with it is judged at the value of the ball on. It is a foul to leave the
+      opponent snookered on every ball on by the free ball, unless only the pink and black remain.
+   6. Foul and a miss (Section 3 Rule 14): the striker must endeavour to hit the ball on. felt's
+      referee is a fixed rule, not a judgement: failing to hit a ball on first (nothing hit, or a
+      ball not on) is a miss when the striker was not snookered (or could still hit a ball on full
+      ball), unless only the black was left or the striker needed snookers before the stroke or
+      does after its penalty. A miss adds 'replace' to the choices: the balls go back exactly as
+      they were before the stroke (game.prev, kept in the game so judge stays pure) and the
+      offender plays again from there. Three misses in a row from the put-back position, each with
+      a clear path to hit a ball on full ball (snkFullBall), lose the frame (game.missRun counts
+      them; the second carries the referee's warning, verdict.warn). A choice other than the
+      put-back ends the run.
+   7. The frame ends with the last ball down, or with the first score or foul when only the black
       is left. Level then: the black is re-spotted and the player who did not end it plays it
       from the D; the next score or foul wins. A frame can be conceded (concedeSnooker).
-   6. A match is one frame or the best of three; the players take turns to break.
-   Not implemented (yet): the free ball, the miss rule, a fouled player putting the fouler back
-   in. The verdict: foul, pen (its points), pts (scored), keep, nom (the colour nominated), win,
+   8. A match is one frame or the best of three; the players take turns to break.
+   Jumped balls: the jump shot foul (Section 2, Jump Shot; Section 3 Rule 10, Fouls) cannot
+   happen in felt. The table is flat and two-dimensional: no ball leaves the bed's plane, so no
+   ball can jump another; a ball that escapes the table (the escape fail-safe in stepTable) is
+   judged as a ball off the table.
+   The verdict: foul, pen (its points), pts (scored), keep, nom (the colour nominated), win,
    why, potted (balls that stayed down), back (colours re-spotted), scratch, brk (the break so far),
    ended (the break this shot ended, 0 when it goes on), frameOver ({ winner, score, frame, won,
-   conceded } when a frame ended), reblack. A finished frame of an unfinished match comes back as
-   the next frame's new game, carrying that verdict. */
+   conceded, forfeit } when a frame ended), reblack, miss, misses (the run of misses with a full
+   ball on), warn, freeBall (the free ball this stroke was played on), option (the kind of choice
+   now pending). A finished frame of an unfinished match comes back as the next frame's new game,
+   carrying that verdict. */
 function judgeSnooker(g, r) {
   const n = copyGame(g), me = g.turn, op = 1 - me, pk = r.pocketOf || {};
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
+  Object.assign(n, { option: null, free: null, prev: null, replaced: false });
   const pot = r.potted.filter(x => x !== 0), scratch = r.potted.includes(0), first = r.first, targets = snookerOn(g);
+  const F = g.free && targets.includes(g.free) ? g.free : null;
   const nom = g.on === 'colour' && first !== null && targets.includes(first) ? first : null;
   const onVal = g.on === 'red' ? 1 : g.on === 'colour' ? snkValue(nom) : snkValue(g.on);
-  const fair = x => g.on === 'red' ? isRed(x) : g.on === 'colour' ? x === nom : x === g.on;
+  const fair = x => x === F || (g.on === 'red' ? isRed(x) : g.on === 'colour' ? x === nom : x === g.on);
+  const val = x => x === F ? onVal : snkValue(x);
+  const colsBefore = S_COLS.filter(c => g.balls.some(b => b.n === c && b.on)), redsBefore = g.balls.some(b => b.on && isRed(b.n));
   let foul = null, worth = onVal;
-  const blame = (why, x) => { foul = foul || why; if (x !== undefined) worth = Math.max(worth, snkValue(x)); };
+  const blame = (why, x) => { foul = foul || why; if (x !== undefined) worth = Math.max(worth, val(x)); };
+  const hitOn = first !== null && targets.includes(first);
   if (first === null) blame('missed every ball');
-  else if (!targets.includes(first)) blame(`hit the ${snkName(first)} first`, first);
+  else if (!hitOn) blame(`hit the ${snkName(first)} first`, first);
   for (const x of pot) {
     if (!(pk[x] >= 0)) blame(`the ${snkName(x)} left the table`, x);
     else if (!fair(x)) blame(`potted the ${snkName(x)}`, x);
   }
   if (scratch) blame('in-off');
+  /* Section 3 Rule 12: the free ball may not be left snookering the opponent on every ball on
+     (unless only the pink and black remain). Nothing potted, so the next player is on what g was. */
+  const pinkBlack = !redsBefore && colsBefore.join() === '61,62';
+  if (!foul && F && !pot.length && !pinkBlack) {
+    const next = Object.assign({}, n, { turn: op, on: g.on, free: null, inHand: null });
+    const without = Object.assign({}, next, { balls: next.balls.map(b => b.n === F ? Object.assign({}, b, { on: false }) : b) });
+    if (snkSnookered(next) && !snkSnookered(without)) blame('snookered behind the free ball');
+  }
+  /* reds (and a free ball with them) a point each; a colour, or in the colours a free ball and
+     the colour on together, the value of the ball on once */
   const pen = foul ? clamp(worth, 4, 7) : 0, pts = foul ? 0 : g.on === 'red' ? pot.length : pot.length ? onVal : 0;
   if (foul) n.score[op] += pen; else n.score[me] += pts;
-  /* the colours that come back, the highest first (it has the first claim on a spot) */
-  const back = pot.filter(x => !isRed(x) && (foul || g.on === 'colour')).sort((a, b) => b - a);
+  /* the colours that come back, the highest first (it has the first claim on a spot); a free
+     ball always comes back */
+  const back = pot.filter(x => !isRed(x) && (foul || g.on === 'colour' || x === F)).sort((a, b) => b - a);
   for (const x of back) snookerSpot(n.balls, x);
   const up = x => n.balls.some(b => b.n === x && b.on), reds = n.balls.some(b => b.on && isRed(b.n)), cols = S_COLS.filter(up);
   const keep = !foul && pts > 0;
@@ -4497,14 +4637,29 @@ function judgeSnooker(g, r) {
   n.breakShot = false;
   n.dry = pot.length ? 0 : (g.dry || 0) + 1;
   n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
+  /* Section 3 Rule 14: a miss, and its count toward the three that lose the frame */
+  const blackOnly = !redsBefore && colsBefore.length === 1 && colsBefore[0] === S_BLACK;
+  const missable = !!foul && !hitOn && !blackOnly && !snookersNeeded(g, me) && !snookersNeeded(n, me);
+  const full = missable && snkFullBall(g), miss = missable && (full || !snkSnookered(g));
+  const misses = miss && full ? (g.replaced && g.missRun && g.missRun.p === me ? g.missRun.n : 0) + 1 : 0;
+  n.missRun = misses ? { p: me, n: misses } : null;
   const v = n.verdict = { foul, pen, pts, keep, nom, win: null, why: '', potted: pot.filter(x => !up(x)), back, scratch, grouped: false, twoFouls: false,
-    brk: n.brk, ended: keep ? 0 : g.brk + pts, frameOver: null, reblack: false };
+    brk: n.brk, ended: keep ? 0 : g.brk + pts, frameOver: null, reblack: false, miss, misses, warn: misses === 2, freeBall: F, option: null };
+  if (misses >= 3) return snookerEnd(n, v, me, op, 'misses');
   if (!cols.length || (g.on === S_BLACK && (foul || pts > 0))) return snookerEnd(n, v, me, null);
+  if (foul) {
+    const free = snkSnookered(Object.assign({}, n, { turn: op }));
+    n.option = { kind: miss ? 'snkMiss' : free ? 'snkFree' : 'snkFoul', who: op, choices: ['play'].concat(miss ? ['replace'] : [], ['again'], free ? ['free'] : []), free, miss };
+    if (miss) n.prev = { balls: copyGame(g.balls), on: g.on, free: F, inHand: g.inHand || null };
+    v.option = n.option.kind;
+  }
   return n;
 }
 /* the end of a frame. ender: who potted or fouled last; winner: the frame's winner when it is
-   decided otherwise (a concession), else the score decides, and a tie re-spots the black */
-function snookerEnd(n, v, ender, winner) {
+   decided otherwise (a concession, or with how 'misses' three misses, Section 3 Rule 14), else
+   the score decides, and a tie re-spots the black */
+function snookerEnd(n, v, ender, winner, how) {
+  Object.assign(n, { option: null, prev: null, free: null, missRun: null, replaced: false });
   if (winner === null && n.score[0] === n.score[1]) {
     n.balls.find(o => o.n === 0).on = false;
     snookerSpot(n.balls, S_BLACK);
@@ -4514,15 +4669,42 @@ function snookerEnd(n, v, ender, winner) {
   }
   const w = winner !== null ? winner : n.score[0] > n.score[1] ? 0 : 1;
   n.won[w]++;
-  v.frameOver = { winner: w, score: n.score.slice(), frame: n.frame, won: n.won.slice(), conceded: winner !== null };
+  v.frameOver = { winner: w, score: n.score.slice(), frame: n.frame, won: n.won.slice(), conceded: winner !== null && !how, forfeit: how ? 'three misses' : null };
   if (n.won[w] * 2 > n.frames) {
     Object.assign(n, { winner: w, turn: w, inHand: null, on: null, brk: 0 });
-    v.win = w; v.why = winner !== null ? 'conceded' : 'the frame';
+    v.win = w; v.why = winner === null ? 'the frame' : how ? 'three misses' : 'conceded';
     return n;
   }
   const nx = snookerGame(n.frames, 1 - n.breaker, n.won, n.high);
   nx.verdict = v;
   return nx;
+}
+/* a choice after a snooker foul made (chooseOption hands it here): a new game, g untouched, or
+   null when the choice is not on offer. 'play': the player fouled plays from where the balls lie;
+   'free:N': the same with colour N nominated as the free ball (snkFreeBalls); 'again': the
+   offender plays again from there, with a free ball of their own when snookered (an option for
+   them, 'snkFree'); 'replace': the balls exactly as they were before the miss (game.prev, the
+   ball on and any free ball with them) and the offender plays again. */
+function chooseSnooker(g, choice) {
+  const o = g.option, [c, arg] = String(choice).split(':');
+  if (!o || !o.choices.includes(c)) return null;
+  const who = o.who, off = 1 - who;
+  if (c === 'free' && !snkFreeBalls(g).includes(+arg)) return null;
+  if (c === 'replace' && !g.prev) return null;
+  const n = copyGame(g);
+  Object.assign(n, { option: null, prev: null, free: null, replaced: false, call: null });
+  if (c !== 'replace') n.missRun = null;
+  if (c === 'play') n.turn = who;
+  else if (c === 'free') { n.turn = who; n.free = +arg; }
+  else if (c === 'again') {
+    n.turn = off;
+    if (o.free && snkSnookered(n)) n.option = { kind: 'snkFree', who: off, choices: ['play', 'free'], free: true, miss: false };
+  } else {
+    const p = g.prev;
+    Object.assign(n, { balls: copyGame(p.balls), on: p.on, free: p.free, inHand: p.inHand, turn: off, brk: 0, replaced: true });
+  }
+  n.verdict = Object.assign({}, g.verdict || {}, { chose: c, chooser: who, nominated: n.free, option: n.option ? n.option.kind : null });
+  return n;
 }
 /* player p concedes the frame (in a game of snooker not yet won): the next game, g untouched */
 function concedeSnooker(g, p) {
@@ -4588,6 +4770,25 @@ function cpuSnookerValue(g, j, L) {
   else if (j.turn === me) s = 300 + 25 * v.pts + (L.position ? 250 * (L.posW === undefined ? 1 : L.posW) * cpuChance(j, me, L) : 0);
   else s = (L.position ? -250 * cpuChance(j, j.turn, L) : 0) + snkLeave(j);
   return s - cpuDryCost(g, j, s);
+}
+/* the CPU's answer to a choice after a snooker foul (Section 3 Rules 12 to 14). Snookered: a free
+   ball, nominating the colour that gives it the best pot (cpuChance with that colour on), the
+   nearer on a tie. After a miss: play on when the table offers it a fair pot (its profile's
+   take), else put the balls back (the offender pays again for another miss, and three lose the
+   frame). Otherwise it plays on; it never sends the offender back to the table as the balls lie. */
+function cpuSnookerOption(g, level) {
+  const o = g.option, L = cpuProfile(level), who = o.who, base = Object.assign({}, g, { option: null, turn: who, free: null });
+  if (o.choices.includes('free')) {
+    const c = g.balls.find(b => b.n === 0), far = n => { const b = g.balls.find(x => x.n === n); return c && c.on && !g.inHand ? Math.hypot(b.x - c.x, b.y - c.y) : 0; };
+    let best = null, bq = -Infinity;
+    for (const f of snkFreeBalls(base)) {
+      const q = cpuChance(Object.assign({}, base, { free: f }), who, L) - far(f) * 1e-3;
+      if (q > bq) { bq = q; best = f; }
+    }
+    if (best !== null) return 'free:' + best;
+  }
+  if (o.choices.includes('replace') && cpuChance(base, who, L) < L.take) return 'replace';
+  return 'play';
 }
 
 /* ---- 1k. three-cushion carom ---- */
@@ -9428,7 +9629,7 @@ function start(kind, o = null) {
   /* a pocket game's rules: the event's when it passes them (locked), else the settings' (5c) */
   game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
   if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
-  resetCall(); cpuCall = null; optBox.hidden = true;
+  resetCall(); cpuCall = null; optBox.hidden = true; freePick = false;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
@@ -9663,7 +9864,7 @@ function settle() {
   const ballOn = ['9', '10', 'rotation'].includes(game.kind) && legalTargets(game).length ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
-  if (game.kind === 'snooker') { snookerWords(v, shooter, who); hud(); return; }
+  if (game.kind === 'snooker') { snookerWords(v, shooter, game.turn, chose); hud(); return; }
   if (game.kind === 'carom') { caromWords(v, shooter, who); hud(); return; }
   /* the call, the points, a re-rack and a choice made or pending: their own banner first */
   const extra = callWords(v, shooter, chose);
@@ -9856,7 +10057,7 @@ function drawCall(now) {
 /* the next turn, or the choice before it: the CPU answers a choice at once (and the turn goes on
    from what it chose), a player gets the option box. Returns the CPU's choice, if it made one. */
 function nextTurn() {
-  resetCall(); cpuCall = null; optBox.hidden = true;
+  resetCall(); cpuCall = null; optBox.hidden = true; freePick = false;
   let chose = null;
   while (game.option && !humanP(game.option.who)) {
     const o = game.option, c = cpuOption(game, exhib ? exhib.prof[o.who] : cpuProf);
@@ -9876,33 +10077,62 @@ const OPT_WORDS = {
   uncalled: { head: 'A ball dropped on a missed call', sub: 'Shoot from here, or hand it back.', take: 'Shoot it', pass: 'Hand it back' },
   badBreak: { head: 'Illegal break', sub: 'Take the table as it lies, or have the balls racked again.', take: 'Take the table', rebreak: 'They break again', break: 'Re-rack, I break' },
   eightBreak: { head: 'The 8 on the break', sub: 'Spot it and carry on, or re-rack and break again.', spot: 'Spot the 8', rerack: 'Re-rack' },
+  /* snooker's choices after a foul (sim 1j, chooseSnooker; WPBSA Section 3 Rules 12 to 14) */
+  snkFoul: { head: 'Foul', sub: 'Play from where the balls lie, or make them play again.', play: 'Play it', again: 'Make them play again from here' },
+  snkMiss: { head: 'Foul and a miss', sub: 'Play from here, or have the balls put back for them to play again.', play: 'Play it', replace: 'Put it back and they play again',
+    again: 'Make them play again from here', free: 'Free ball: nominate' },
+  snkFree: { head: 'Free ball', sub: 'Snookered after a foul: nominate any colour as the ball on, or play on.', play: 'Play it', again: 'Make them play again from here', free: 'Free ball: nominate' },
 };
-const optionSay = () => game.option ? `${nameOf(game.option.who)}: ${OPT_WORDS[game.option.kind].head}. ${OPT_WORDS[game.option.kind].sub}` : '';
+/* the words for a choice: snooker's miss with a free ball says both */
+const optWords = o => o.kind === 'snkMiss' && o.free ? Object.assign({}, OPT_WORDS.snkMiss, { head: 'Foul and a miss: free ball', sub: 'You are snookered: nominate a free ball, play on, or have the balls put back.' }) : OPT_WORDS[o.kind];
+const optLabel = (o, c) => /^free:/.test(c) ? `Free ball: the ${snkName(+c.slice(5))}` : optWords(o)[c];
+const optionSay = () => game.option ? `${nameOf(game.option.who)}: ${optWords(game.option).head}. ${optWords(game.option).sub}` : '';
+/* snooker's free ball: after "Free ball: nominate" the box lists the colours that may be
+   nominated (a tap on one of them on the table does the same) and moves to the table's foot so the
+   colours stay in sight; Back returns to the choices */
+let freePick = false;
+const cap1 = t => t[0].toUpperCase() + t.slice(1);
 function showOption() {
-  const o = game.option, w = OPT_WORDS[o.kind];
-  optHead.textContent = (cpuMode && !exhib ? '' : nameOf(o.who) + ': ') + w.head;
-  optSub.textContent = w.sub;
-  optBtns.replaceChildren(...o.choices.map(c => {
+  const o = game.option, w = optWords(o), pick = freePick && o.choices.includes('free');
+  optBox.classList.toggle('pick', pick);
+  optHead.textContent = (cpuMode && !exhib ? '' : nameOf(o.who) + ': ') + (pick ? 'Nominate a free ball' : w.head);
+  const v = game.verdict, why = game.kind === 'snooker' && v && v.foul && !v.chose ? `${cap1(v.foul)}: ${ptsWord(v.pen)} to ${cpuMode && o.who === 0 ? 'you' : nameOf(o.who)}.${v.warn ? ' A third miss loses the frame.' : ''} ` : '';
+  optSub.textContent = pick ? `Tap a colour. It plays as ${game.on === 'red' ? 'a red' : `the ${snkName(game.on)}`}.` : why + w.sub;
+  const list = pick ? snkFreeBalls(game).map(n => 'free:' + n).concat(['back']) : o.choices;
+  optBtns.replaceChildren(...list.map(c => {
     const b = document.createElement('button');
-    b.textContent = w[c]; b.dataset.choice = c;
-    b.addEventListener('click', () => choose(c));
+    b.dataset.choice = c;
+    if (/^free:/.test(c)) { const n = +c.slice(5); b.append(dotEl(n), cap1(snkName(n))); b.className = 'col'; b.setAttribute('aria-label', optLabel(o, c)); }
+    else b.textContent = c === 'back' ? 'Back' : w[c];
+    b.addEventListener('click', () => c === 'free' ? pickFree(true) : c === 'back' ? pickFree(false) : choose(c));
     return b;
   }));
   optBox.hidden = false;
-  if (byKeys) optBtns.firstChild.focus({ preventScroll: true });
+  if (byKeys || pick) optBtns.firstChild.focus({ preventScroll: true });
 }
-/* the player's answer to the option box */
+function pickFree(on) {
+  if (state !== 'choose' || !game.option || !game.option.choices.includes('free')) return false;
+  freePick = !!on;
+  showOption();
+  say(on ? `Free ball: tap a colour to nominate it. ${snkFreeBalls(game).map(n => cap1(snkName(n))).join(', ')}.` : optionSay());
+  hud();
+  return true;
+}
+/* the player's answer to the option box: a choice on offer, or for a free ball 'free:N' */
 function choose(c) {
-  if (state !== 'choose' || !game.option || !game.option.choices.includes(c)) return false;
+  const base = String(c).split(':')[0];
+  if (state !== 'choose' || !game.option || !game.option.choices.includes(base)) return false;
+  if (c === 'free') return pickFree(true);
+  const o = game.option, next = chooseOption(game, c);
+  if (!next) return false;
   audioOn();
-  const o = game.option;
-  game = chooseOption(game, c);
-  optBox.hidden = true;
-  nextTurn();
+  game = next;
+  freePick = false; optBox.hidden = true;
+  const chose = nextTurn();
   partyHandoff(o.who);   /* a party: the device goes on when the choice hands the turn over (6f) */
-  const t = OPT_WORDS[o.kind][c];
-  flash('turn', t, turnOf(game.turn), 1000);
-  say(`${t}. ${turnOf(game.turn)}.`);
+  const t = optLabel(o, c), then = chose ? `${nameOf(chose.o.who)}: ${optLabel(chose.o, chose.c)}` : state === 'choose' ? optionSay() : turnOf(game.turn);
+  flash('turn', t, chose ? then : turnOf(game.turn), 1000);
+  say(`${t}. ${then}.`);
   hud();
   return true;
 }
@@ -9919,7 +10149,7 @@ function callWords(v, shooter, chose) {
   if (v.scored && (game.kind === 'straight' || game.kind === 'rotation')) parts.push(`${v.scored > 0 ? '+' : ''}${v.scored} for ${nameOf(shooter)}`);
   if (v.threeFouls) parts.push('Three fouls: 15 more off');
   if (v.rerack) parts.push({ stalemate: 'Stalemate: the balls are racked again', fourteen: 'Fourteen down: re-rack', fifteen: 'All fifteen down: re-rack', fouls: 'Break a new rack' }[v.rerack]);
-  if (chose) parts.push(`${nameOf(chose.o.who)}: ${OPT_WORDS[chose.o.kind][chose.c].toLowerCase()}`);
+  if (chose) parts.push(`${nameOf(chose.o.who)}: ${optLabel(chose.o, chose.c).toLowerCase()}`);
   return parts.join('. ');
 }
 /* the pause menu's declaration history (settings.calls.history): made of called, the last few */
@@ -9953,15 +10183,16 @@ function bumperWords(v, shooter, who) {
   } else say(`${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again: ${left(who)} left.`);
 }
 /* ---- 5k. snooker's words, frames and concession ---- */
-const onWords = g => g.on === 'red' ? 'a red' : g.on === 'colour' ? 'a colour' : g.on ? `the ${snkName(g.on)}` : 'nothing';
+const onWords = g => g.free ? `the free ${snkName(g.free)}${g.on === 'red' ? ' or a red' : ''}` : g.on === 'red' ? 'a red' : g.on === 'colour' ? 'a colour' : g.on ? `the ${snkName(g.on)}` : 'nothing';
 const ptsWord = n => `${n} point${n === 1 ? '' : 's'}`;
 const dWords = p => cpuMode ? `Ball in hand in the D for ${p === 0 ? 'you' : 'the CPU'}` : `${nameOf(p)}: ball in hand in the D`;
 /* a frame's winner in a banner: "You win the frame", "Player 2 wins the frame" */
 const frameHead = w => cpuMode ? (w === 0 ? 'You win the frame' : 'The CPU wins the frame') : `${nameOf(w)} wins the frame`;
-function snookerWords(v, shooter, who) {
+/* who: the player to shoot now; chose: the CPU's answer to a choice after the foul (nextTurn) */
+function snookerWords(v, shooter, who, chose) {
   const fo = v.frameOver;
   if (fo) {
-    const s = fo.score, line = fo.conceded ? 'Conceded' : `${Math.max(s[0], s[1])}-${Math.min(s[0], s[1])}`;
+    const s = fo.score, line = fo.forfeit ? 'Three misses' : fo.conceded ? 'Conceded' : `${Math.max(s[0], s[1])}-${Math.min(s[0], s[1])}`;
     const brk = cpuMode ? (who === 0 ? 'You break' : 'The CPU breaks') : `${nameOf(who)} breaks`;
     flash('turn', frameHead(fo.winner), `${line}, frames ${fo.won[0]}-${fo.won[1]}\n${brk} frame ${game.frame}`, 2600);
     say(`${frameHead(fo.winner)}, ${line}. Frames ${fo.won[0]}-${fo.won[1]}. ${brk} frame ${game.frame}.`);
@@ -9971,8 +10202,12 @@ function snookerWords(v, shooter, who) {
     say(`Level at ${game.score[0]}: the black is re-spotted. ${dWords(who)}.`);
     sfx('turn', 1);
   } else if (v.foul) {
-    flash('foul', `Foul: ${v.foul}`, `${ptsWord(v.pen)} to ${nameOf(1 - shooter)}` + (game.inHand ? '\n' + dWords(who) : ''), 1700);
-    say(`Foul: ${v.foul}. ${ptsWord(v.pen)} to ${nameOf(1 - shooter)}. ${turnOf(who)}, on ${onWords(game)}.`);
+    /* a choice pending for a player: the option box says it all (showOption), the line too */
+    const head = v.miss ? 'Foul and a miss' : `Foul: ${v.foul}`, warn = v.warn ? 'A third miss loses the frame' : '';
+    if (state === 'choose') { say(`${head}${v.miss ? `: ${v.foul}` : ''}. ${ptsWord(v.pen)} to ${nameOf(1 - shooter)}. ${warn ? warn + '. ' : ''}${optionSay()}`); sfx('foul', 1); return; }
+    const then = chose ? `${nameOf(chose.o.who)}: ${optLabel(chose.o, chose.c)}` : '';
+    flash('foul', head, [`${ptsWord(v.pen)} to ${nameOf(1 - shooter)}`, warn, then, game.inHand ? dWords(who) : ''].filter(Boolean).join('\n'), then || warn ? 2400 : 1700);
+    say(`${head}${v.miss ? `: ${v.foul}` : ''}. ${ptsWord(v.pen)} to ${nameOf(1 - shooter)}. ${warn ? warn + '. ' : ''}${then ? then + '. ' : ''}${turnOf(who)}, on ${onWords(game)}.`);
     sfx('foul', 1);
   } else if (who === shooter) say(`${nameOf(who)}: ${ptsWord(v.pts)}, break ${v.brk}. On ${onWords(game)}.`);
   else {
@@ -10513,6 +10748,12 @@ table.addEventListener('pointerdown', e => {
   }
   /* F8: a tap during the CPU's turn hurries it (the wait and the cue's swing; never the search) */
   if (state === 'thinking' && !human() && !rp) cpuSkip = true;
+  /* snooker's free ball (5c): a tap on a colour that may be nominated nominates it; never a shot */
+  if (state === 'choose' && freePick && !rp && e.button <= 0) {
+    const o = objectAt(e.clientX, e.clientY);
+    if (o && snkFreeBalls(game).includes(o.n)) choose('free:' + o.n);
+    return;
+  }
   if (gest || wheelDrag || !human() || e.button > 0 || state !== 'aim') return;
   finishAutoAim();
   const mouse = e.pointerType === 'mouse';
@@ -11986,7 +12227,7 @@ function quitToHome() {
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; cpuReady = null; aimAnim = null;
   game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9', '10', 'straight', 'rotation'].includes(game.kind) ? game.kind : '8'));
-  resetCall(); optBox.hidden = true;
+  resetCall(); optBox.hidden = true; freePick = false;
   tutKeptKind = null;
   closeSolo();
   showMenu();
@@ -12613,7 +12854,7 @@ function hud() {
    and the points left, and a warning when the player to shoot needs snookers. The chips carry
    the scores. Hidden for every other game and on the home screen. ---- */
 /* the dots for what the player to shoot is on: a red, every colour on the table, or the one colour */
-const onDots = g => g.on === 'red' ? [41] : g.on === 'colour' ? S_COLS.filter(c => g.balls.some(b => b.n === c && b.on)) : g.on ? [g.on] : [];
+const onDots = g => g.free ? (g.on === 'red' ? [41, g.free] : [g.free]) : g.on === 'red' ? [41] : g.on === 'colour' ? S_COLS.filter(c => g.balls.some(b => b.n === c && b.on)) : g.on ? [g.on] : [];
 function hudSnooker() {
   const show = game.kind === 'snooker' && game.winner === null && !(state === 'menu' && !paused);
   if (snkBar.hidden !== !show) snkBar.hidden = !show;
@@ -12622,18 +12863,21 @@ function hudSnooker() {
   const R = camRect(), st = stage.getBoundingClientRect(), top = (R.top + RAIL * viewBase.k / 2 - st.top).toFixed(1) + 'px';
   if (snkBar.style.top !== top) snkBar.style.top = top;
   const p = game.turn, need = snookersNeeded(game, p), dots = game.on === 'colour' ? [] : onDots(game);
-  const on = game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? snkName(game.on)[0].toUpperCase() + snkName(game.on).slice(1) : '';
+  const cap = n => snkName(n)[0].toUpperCase() + snkName(n).slice(1);
+  const on = game.free ? (game.on === 'red' ? 'Red or ' : '') + cap(game.free) : game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? cap(game.on) : '';
   const parts = [['Break', String(game.brk)], ['On', on, dots], [snookerLeft(game) + ' left', '']];
   if (game.frames > 1) parts.unshift(['Frame ' + game.frame, `${game.won[0]}-${game.won[1]}`]);
-  if (need) parts.push(['', 'Snookers needed', null, true]);
+  /* a free ball nominated, or offered in the choice after a foul (WPBSA Section 3 Rule 12) */
+  if (game.free || (game.option && game.option.free)) parts.push(['', 'FREE BALL', null, false, 'free']);
+  else if (need) parts.push(['', 'Snookers needed', null, true]);
   const key = JSON.stringify(parts);
   if (snkBar.dataset.key === key) return;
   snkBar.dataset.key = key;
-  snkBar.replaceChildren(...parts.map(([k, val, ds, warn]) => {
+  snkBar.replaceChildren(...parts.map(([k, val, ds, warn, cls]) => {
     const sp = document.createElement('span');
     if (k) { const e = document.createElement('i'); e.className = 'k'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
     for (const n of ds || []) sp.appendChild(dotEl(n));
-    if (val) { const e = document.createElement('b'); e.textContent = val; if (warn) e.className = 'warn'; sp.appendChild(e); }
+    if (val) { const e = document.createElement('b'); e.textContent = val; if (warn || cls) e.className = warn ? 'warn' : cls; sp.appendChild(e); }
     return sp;
   }));
 }
@@ -12714,6 +12958,7 @@ function overLine(g) {
   if (g.kind === 'snooker') {
     const fo = v.frameOver || { score: g.score, conceded: false }, s = fo.score, won = g.won;
     if (fo.conceded) return `${who(l)} conceded${g.frames > 1 ? `: ${won[w]}-${won[l]} in frames` : ''}.`;
+    if (fo.forfeit) return `${who(l)} missed three times with a ball on in full view${g.frames > 1 ? `: ${won[w]}-${won[l]} in frames` : ''}.`;
     return g.frames > 1 ? `${who(w)} won the match ${won[w]}-${won[l]} in frames.` : `${who(w)} won the frame ${s[w]}-${s[l]}.`;
   }
   if (/three fouls/.test(why)) return `${who(l)} fouled three times in a row.`;

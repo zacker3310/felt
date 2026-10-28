@@ -5,9 +5,13 @@
    takes it, and every acceptance window is narrower), a 400-shot fuzz, the rules (red then colour,
    re-spotting and the occupied-spot order, the colours in order, foul values, in-off and the D,
    the break, the frame's end, the re-spotted black, a concession, a best of three, the points left
-   and snookers needed) and the CPU (hard pots more than easy). Page: the home tile, the setup
+   and snookers needed), what follows a foul (4b: snookered and angled by geometry, the free ball
+   offered, nominated, scored and re-spotted, its snooker foul; foul and a miss, the put-back byte for
+   byte, the three-miss forfeit; the CPU's answers) and the CPU (hard pots more than easy). Page: the home tile, the setup
    sheet, the game (in hand in the D, the scoreboard, the live roll byte for byte equal to
-   simulateShot, nothing but the bar shoots), the pause menu's Concede and the How to play tab. */
+   simulateShot, nothing but the bar shoots), the choices after a foul by real taps at 440x956 and
+   375x667 (Play it; Free ball: nominate, then a tap on a colour; Put it back), the pause menu's
+   Concede and the How to play tab. */
 'use strict';
 const { check, done, open, settled, smallTargets, lowContrast } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
@@ -20,6 +24,14 @@ const res = (g, o = {}) => {
   return { balls: g.balls.map(b => Object.assign({}, b, { on: b.on && !pot.includes(b.n) })), cue: 0, first: o.first === undefined ? null : o.first, potted: pot.slice(),
     pocketOf: Object.fromEntries(pot.map(n => [n, 0])), crossed: true };
 };
+/* a real tap on the centre of the element sel, if it is shown */
+const tapEl = async (page, sel) => {
+  const r = await page.evaluate(s => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }, sel);
+  if (r) await page.touchscreen.tap(r[0], r[1]);
+  return !!r;
+};
+/* FELT_SHOTS=<dir>: keep screenshots of the snooker option prompt there */
+const SHOTS = process.env.FELT_SHOTS || '';
 const play = t => { const k = {}; while (S.stepTable(t)) { for (const h of t.hits) k[h[0]] = 1; t.hits.length = 0; } return k; };
 
 /* 1. the tables */
@@ -191,6 +203,117 @@ S.setTable('snooker', 'compact');
   check('snookers needed: behind by more than is left', S.snookersNeeded(Object.assign(S.copyGame(blk), { score: [30, 38], turn: 0 }), 0) && !S.snookersNeeded(Object.assign(S.copyGame(blk), { score: [31, 38], turn: 0 }), 0));
 }
 
+/* 4b. after a foul (WPBSA Section 3 Rules 12 to 14): the free ball, foul and a miss, the put-back,
+   three misses. Built positions on the compact table: one red at (2.0, 0.5), the cue ball at (1.0,
+   0.5), and colours in between; the offender is player 0 unless said. */
+S.setTable('snooker', 'compact');
+const lone = (turn = 0) => {
+  const g = Object.assign(S.newGame('snooker'), { breakShot: false, inHand: null, turn });
+  for (const b of g.balls) if (S.isRed(b.n) && b.n !== 41) b.on = false;
+  Object.assign(ball(g, 0), { x: 1.0, y: 0.5 });
+  Object.assign(ball(g, 41), { x: 2.0, y: 0.5 });
+  return g;
+};
+const at = (g, n, x, y) => { Object.assign(ball(g, n), { x, y, on: true }); return g; };
+/* a wall of three colours across the line: snookered, no full ball */
+const wall = (turn = 0) => at(at(at(lone(turn), 60, 1.3, 0.5), 59, 1.3, 0.5 - 0.0535), 61, 1.3, 0.5 + 0.0535);
+const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well off the line */
+{
+  check('snookered: a wall of colours across every line to the only red; the same red in plain view is not; a ball touching the cue ball never is',
+    S.snkSnookered(wall()) && !S.snkFullBall(wall()) && !S.snkSnookered(clearPos()) && S.snkFullBall(clearPos())
+    && !S.snkSnookered(at(lone(), 41, 1.0 + 2 * S.BALL_R + 1e-7, 0.5)));
+  const part = at(lone(), 60, 1.5, 0.575);   /* the blue across one edge line, clear of the full-ball line */
+  check('snookered means both extreme edges (Section 2): one edge blocked is snookered, though the full-ball line is clear', S.snkSnookered(part) && S.snkFullBall(part));
+  const redWall = at(at(lone(), 42, 1.5, 0.5), 43, 1.5, 0.45);
+  check('balls on never snooker: reds across the line leave the player on a red unsnookered', !S.snkSnookered(redWall));
+  const hand = Object.assign(at(at(lone(), 60, 0.8, 0.74), 59, 0.8, 0.6), { inHand: 'D' });
+  check('in hand in the D: snookered only if every position in the D is', !S.snkSnookered(hand) && S.snkFrom(hand).length > 20);
+  /* a corner of cushion in the way: the cue ball tight in the middle pocket's jaws, the red behind the jaw point */
+  const ang = at(at(lone(), 0, S.TL / 2 - 0.07, S.BALL_R + 0.002), 41, S.TL / 2 + 0.3, 0.02 + S.BALL_R);
+  check('angled (a cushion\'s corner in the way) counts as snookered', S.snkSnookered(ang), JSON.stringify(ball(ang, 0)));
+
+  /* the free ball */
+  const w = wall(), wf = S.judge(w, res(w, {})), o = wf.option;
+  check('a foul leaving the next player snookered: free ball offered (play it, make them play again, free ball); no miss when the striker was snookered with no full ball',
+    wf.verdict.foul === 'missed every ball' && !wf.verdict.miss && o && o.kind === 'snkFree' && o.who === 1 && o.choices.join() === 'play,again,free' && o.free && wf.turn === 1 && wf.score.join() === '0,4', JSON.stringify(o));
+  const c = clearPos(), cf = S.judge(c, res(c, { first: 60 }));
+  check('a foul with the next player not snookered: no free ball; a miss (the striker had the red in plain view): play it, put it back, make them play again',
+    cf.option.kind === 'snkMiss' && cf.option.choices.join() === 'play,replace,again' && !cf.option.free && cf.verdict.miss && cf.verdict.misses === 1 && !!cf.prev, JSON.stringify(cf.option));
+  check('free balls: every colour on the table while reds remain, never a red', JSON.stringify(S.snkFreeBalls(wf)) === JSON.stringify(S.S_COLS) && S.chooseOption(wf, 'free:41') === null && S.chooseOption(wf, 'free') === null && S.chooseOption(cf, 'free:60') === null);
+  const f = S.chooseOption(wf, 'free:62');
+  check('nominating the black as a free ball: player 2 to shoot, on a red or the black', f.free === 62 && f.turn === 1 && f.option === null && JSON.stringify(S.legalTargets(f)) === '[41,62]' && wf.option && wf.free === null);
+  const fp = S.judge(f, res(f, { first: 62, potted: [62] }));
+  check('the free ball potted scores as a red (1), comes back to its spot, and the player is on a colour', !fp.verdict.foul && fp.score.join() === '0,5' && fp.on === 'colour' && ball(fp, 62).on && ball(fp, 62).x === S.SPOTS[62][0]
+    && fp.verdict.back.join() === '62' && fp.turn === 1 && fp.free === null && fp.verdict.freeBall === 62);
+  const fr = S.judge(f, res(f, { first: 62, potted: [62, 41] }));
+  check('a free ball and a red potted together score a point each', !fr.verdict.foul && fr.score[1] === 4 + 2 && !ball(fr, 41).on && ball(fr, 62).on);
+  const fh = S.judge(f, res(f, { first: 41 }));
+  check('with a free ball the red may still be hit first (no foul)', !fh.verdict.foul);
+  const fo = S.judge(f, res(f, { first: 60 }));
+  check('hitting another colour first is a foul, worth that colour or more', fo.verdict.foul && fo.verdict.pen === 5);
+  /* in the colours: on the yellow, the pink nominated */
+  const cols = Object.assign(lone(1), { on: 57 });
+  ball(cols, 41).on = false;
+  at(at(cols, 60, 1.3, 0.5), 59, 1.3, 0.5 - 0.0535); at(cols, 61, 1.3, 0.5 + 0.0535); at(cols, 57, 2.0, 0.5);
+  const cw = S.judge(cols, res(cols, {}));
+  check('in the colours, snookered on the yellow after a foul: free ball, any colour but the yellow', cw.option && cw.option.free && JSON.stringify(S.snkFreeBalls(cw)) === '[58,59,60,61,62]', JSON.stringify(cw.option));
+  const cp = S.chooseOption(cw, 'free:61');
+  check('the pink as a free ball is the ball on instead of the yellow (the yellow first is a foul)', JSON.stringify(S.legalTargets(cp)) === '[61]' && S.judge(cp, res(cp, { first: 57 })).verdict.foul);
+  const c1 = S.judge(cp, res(cp, { first: 61, potted: [61] })), c2 = S.judge(cp, res(cp, { first: 61, potted: [61, 57] }));
+  check('in the colours the free ball potted scores the yellow\'s 2 and is re-spotted, the yellow still on; with the yellow too, 2 once and the yellow stays down',
+    c1.score[0] - cw.score[0] === 2 && ball(c1, 61).on && c1.on === 57 && c2.score[0] - cw.score[0] === 2 && !ball(c2, 57).on && ball(c2, 61).on && c2.on === 58, JSON.stringify([c1.score, c2.score, c2.on]));
+  /* the free ball may not be left snookering the opponent: the cue ball behind the nominated blue */
+  const sn = Object.assign(at(lone(0), 60, 1.6, 0.5), { free: 60 });
+  const snr = res(sn, { first: 60 });
+  Object.assign(snr.balls.find(b => b.n === 0), { x: 1.3, y: 0.5 });
+  const sj = S.judge(sn, snr);
+  check('a free ball left snookering the opponent on every red is a foul (Section 3 Rule 12)', sj.verdict.foul === 'snookered behind the free ball' && sj.verdict.pen === 4 && sj.option && sj.option.free, JSON.stringify(sj.verdict.foul));
+  const pb = Object.assign(lone(0), { on: 61, free: 62 });
+  ball(pb, 41).on = false;
+  for (const n of [57, 58, 59, 60]) ball(pb, n).on = false;
+  at(at(pb, 62, 1.6, 0.5), 61, 2.0, 0.5);
+  const pbr = res(pb, { first: 62 });
+  Object.assign(pbr.balls.find(b => b.n === 0), { x: 1.3, y: 0.5 });
+  check('...except when only the pink and black remain', !S.judge(pb, pbr).verdict.foul);
+  check('again: the offender plays again from there, and being snookered may take the free ball', (a => a.turn === 0 && a.option && a.option.kind === 'snkFree' && a.option.who === 0 && a.option.choices.join() === 'play,free')(S.chooseOption(wf, 'again')));
+  check('play it: the player fouled plays on from where the balls lie, no free ball', (p => p.turn === 1 && !p.option && p.free === null && JSON.stringify(p.balls) === JSON.stringify(wf.balls))(S.chooseOption(wf, 'play')));
+
+  /* foul and a miss, the put-back */
+  const g0 = clearPos(0), shot = S.simulateShot(g0.balls, { angle: -Math.PI / 2, power: 0.12, spin: { x: 0, y: 0 } }), m1 = S.judge(g0, shot);
+  const snap = JSON.stringify(g0.balls);
+  check('a real stroke that misses everything with the red in view: foul and a miss', shot.first === null && m1.verdict.miss && m1.verdict.misses === 1 && !m1.verdict.warn && JSON.stringify(m1.balls) !== snap);
+  const back = S.chooseOption(m1, 'replace');
+  check('put it back: every ball exactly where it was before the stroke (byte for byte), the offender to play again on the same ball, the penalty kept',
+    JSON.stringify(back.balls) === snap && back.turn === 0 && back.on === g0.on && back.inHand === null && back.score.join() === '0,4' && back.replaced && back.prev === null && back.option === null);
+  check('judge and chooseOption leave the games they are given untouched', JSON.stringify(g0.balls) === snap && JSON.stringify(m1.balls) !== snap && m1.option.kind === 'snkMiss');
+  const m2 = S.judge(back, S.simulateShot(back.balls, { angle: -Math.PI / 2, power: 0.12, spin: { x: 0, y: 0 } }));
+  check('the second miss from the put-back position: the referee\'s warning', m2.verdict.misses === 2 && m2.verdict.warn && m2.winner === null && m2.option);
+  const m3 = S.judge(S.chooseOption(m2, 'replace'), shot);
+  check('the third miss with a full ball in view loses the frame (Section 3 Rule 14)', m3.winner === 1 && m3.verdict.misses === 3 && m3.verdict.why === 'three misses' && m3.verdict.frameOver.forfeit === 'three misses' && !m3.verdict.frameOver.conceded);
+  const played = Object.assign(S.chooseOption(m2, 'play'), { turn: 0, balls: S.copyGame(g0.balls) }), reset = S.judge(played, res(played, {}));
+  check('the count starts again once the balls are not put back', reset.verdict.misses === 1 && !played.replaced && played.missRun === null);
+  const inHand = Object.assign(clearPos(0), { inHand: 'D' });
+  at(inHand, 0, S.HEAD_X - 0.1, S.TW / 2);
+  const ih = S.judge(inHand, res(inHand, {})), ihb = S.chooseOption(ih, 'replace');
+  check('a miss from hand: put back, the cue ball in hand in the D again where it was placed', ihb.inHand === 'D' && JSON.stringify(ihb.balls) === JSON.stringify(inHand.balls));
+  const blk = Object.assign(lone(0), { on: 62 });
+  ball(blk, 41).on = false;
+  for (const n of [57, 58, 59, 60, 61]) ball(blk, n).on = false;
+  check('no miss with only the black left (the foul ends the frame)', !S.judge(blk, res(blk, {})).verdict.miss);
+  check('no miss when the striker needs snookers', !S.judge(Object.assign(clearPos(0), { score: [0, 90] }), res(clearPos(0), {})).verdict.miss);
+  check('a miss on the red with nothing in the way is a miss; hitting the red and going in-off is a foul but no miss',
+    S.judge(clearPos(0), res(clearPos(0), {})).verdict.miss && !S.judge(clearPos(0), res(clearPos(0), { first: 41, potted: [0] })).verdict.miss);
+
+  /* the CPU's answer */
+  const cpuFree = S.cpuOption(wf, 'medium');
+  check('CPU: snookered after a foul, it takes a free ball and nominates a colour', /^free:(5[7-9]|6[0-2])$/.test(cpuFree) && S.chooseOption(wf, cpuFree).free === +cpuFree.slice(5), cpuFree);
+  check('CPU: after a miss leaving it no pot (the lone red mid-table), it has the balls put back', S.cpuOption(cf, 'medium') === 'replace');
+  const easy = S.copyGame(cf);
+  at(easy, 41, S.TL - 0.15, S.TW - 0.15); at(easy, 0, S.TL - 0.45, S.TW - 0.45);
+  check('CPU: after a miss leaving it an easy pot, it plays on', S.cpuOption(easy, 'medium') === 'play');
+  check('CPU: every answer it gives is a choice on offer', [wf, cf, easy, S.chooseOption(wf, 'again')].every(x => S.chooseOption(x, S.cpuOption(x, 'hard')) !== null));
+}
+
 /* 5. the CPU: over seeded positions with reds scattered, hard pots more than easy, and the break is legal */
 {
   S.setTable('snooker', 'compact');
@@ -252,8 +375,15 @@ S.setTable('snooker', 'compact');
   await settled(page);
   const live = await page.evaluate(() => JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])));
   check('the live break matches simulateShot exactly', live === exp);
-  const after = await page.evaluate(() => ({ shots: felt.game.shots, turn: felt.game.turn, chip: pchip0.textContent + '|' + pchip1.textContent, msg: msg.textContent, s: felt.state }));
-  check('the shot is judged: the chips carry the scores, the status line says what is on', after.shots === 1 && /\d/.test(after.chip) && /on /.test(after.msg) && ['aim', 'over'].includes(after.s), JSON.stringify(after));
+  const after = await page.evaluate(() => ({ shots: felt.game.shots, turn: felt.game.turn, chip: pchip0.textContent + '|' + pchip1.textContent, msg: msg.textContent, s: felt.state,
+    v: felt.game.verdict && felt.game.verdict.foul, choices: [...optBtns.querySelectorAll('button')].map(b => b.dataset.choice).join(), box: !optBox.hidden }));
+  check('the shot is judged: the chips carry the scores, the status line says what is on, or (a foul) the choice the rules give is up',
+    after.shots === 1 && /\d/.test(after.chip) && (after.s === 'choose' ? after.v && after.box && /^play,/.test(after.choices) && /Foul/.test(after.msg) : /on /.test(after.msg) && ['aim', 'over'].includes(after.s)), JSON.stringify(after));
+  if (after.s === 'choose') {
+    await tapEl(page, '#optBtns button[data-choice="play"]');
+    await page.waitForTimeout(200);
+    check('a real tap on Play it: the player fouled plays on from where the balls lie', await page.evaluate(t => felt.state === 'aim' && felt.game.turn === t && !felt.game.option && optBox.hidden, after.turn));
+  }
   /* the replay rebuilds the shot on the same snooker table (its size and ball): the same roll */
   const rp0 = await page.evaluate(() => ({ ok: felt.replay(), rec: felt.lastShot && [felt.lastShot.kind, felt.lastShot.snookerSize, felt.lastShot.ballR] }));
   await page.waitForFunction(() => !felt.replaying, null, { timeout: 30000 }).catch(() => {});
@@ -285,6 +415,73 @@ S.setTable('snooker', 'compact');
     over.s === 'over' && over.w !== null && /conceded/.test(over.why) && /^Snooker/.test(over.kind) && /High break/.test(over.rows) && over.rec.frames >= 1, JSON.stringify({ over, who }));
   await page.evaluate(() => { state = 'menu'; showMenu(); showStats(); });
   check('stats: a snooker row and the frames and highest break', await page.evaluate(() => /Snooker/.test(recTable.textContent) && /1 frame played, highest break \d+/.test(snkStat.textContent)));
+  /* the choices after a foul, by real taps, at 440x956 and 375x667: a free ball nominated by a tap
+     on a colour, and a miss put back exactly */
+  const setPos = (blue) => page.evaluate(blue => {
+    const g = copyGame(felt.game), B = n => g.balls.find(b => b.n === n), put = (n, x, y) => Object.assign(B(n), { x, y, on: true });
+    Object.assign(g, { breakShot: false, inHand: null, turn: 0, option: null, free: null });
+    for (const b of g.balls) if (isRed(b.n) && b.n !== 41) b.on = false;
+    put(0, 1.0, 0.5); put(41, 2.0, 0.5);
+    if (blue) put(60, 1.5, 0.62);
+    else { put(60, 1.3, 0.5); put(59, 1.3, 0.5 - 0.0535); put(61, 1.3, 0.5 + 0.0535); }
+    game = g; hint = null; hud();
+    return JSON.stringify(g.balls);
+  }, blue);
+  const boxIn = () => page.evaluate(() => { const r = optBox.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && !optBox.hidden; });
+  for (const [vw, vh] of [[440, 956], [375, 667]]) {
+    const T = `${vw}x${vh}: `;
+    await page.setViewportSize({ width: vw, height: vh });
+    await page.evaluate(() => { felt.start('snooker'); felt.speed = 40; });
+    await page.waitForTimeout(300);
+    await setPos(false);
+    await page.evaluate(() => felt.shoot(-Math.PI / 2, 0.03, 0));
+    await settled(page);
+    const ch = await page.evaluate(() => ({ s: felt.state, o: felt.game.option, btns: [...optBtns.querySelectorAll('button')].map(b => [b.dataset.choice, b.textContent]), head: optHead.textContent, bar: snkBar.textContent, shots: felt.game.shots }));
+    check(T + 'snookered after a foul: the option box offers Play it, Make them play again from here, Free ball: nominate; the scoreboard says FREE BALL',
+      ch.s === 'choose' && ch.o.kind === 'snkFree' && ch.btns.map(b => b[0]).join() === 'play,again,free' && ch.btns.map(b => b[1]).join('|') === 'Play it|Make them play again from here|Free ball: nominate'
+      && /Free ball/.test(ch.head) && /FREE BALL/.test(ch.bar), JSON.stringify(ch));
+    check(T + 'the option box: inside the screen, targets 44 px, text 4.5:1', await boxIn() && !(await smallTargets(page)).length && !(await lowContrast(page)).length, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/free-offer-${vw}x${vh}.png` });
+    await tapEl(page, '#optBtns button[data-choice="free"]');
+    await page.waitForTimeout(150);
+    const pk = await page.evaluate(() => ({ pick: optBox.classList.contains('pick'), btns: [...optBtns.querySelectorAll('button')].map(b => b.dataset.choice), s: felt.state }));
+    check(T + 'Free ball: nominate lists the colours to tap (and Back), the box at the table\'s foot', pk.s === 'choose' && pk.pick && pk.btns.join() === 'free:57,free:58,free:59,free:60,free:61,free:62,back', JSON.stringify(pk));
+    check(T + 'the colour list: inside the screen, targets 44 px, text 4.5:1', await boxIn() && !(await smallTargets(page)).length && !(await lowContrast(page)).length, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/free-pick-${vw}x${vh}.png` });
+    await tapEl(page, '#optBtns button[data-choice="back"]');
+    await page.waitForTimeout(100);
+    const backOk = await page.evaluate(() => !optBox.classList.contains('pick') && optBtns.querySelectorAll('button').length === 3);
+    await tapEl(page, '#optBtns button[data-choice="free"]');
+    await page.waitForTimeout(100);
+    /* a tap on a colour on the table, one the box does not cover */
+    const target = await page.evaluate(() => {
+      const r = optBox.getBoundingClientRect(), st = stage.getBoundingClientRect();
+      for (const n of snkFreeBalls(felt.game)) {
+        const b = felt.game.balls.find(o => o.n === n), s = felt.toScreen(b.x, b.y);
+        if (s[0] > st.left + 10 && s[0] < st.right - 10 && s[1] > st.top + 10 && s[1] < st.bottom - 10 && !(s[0] > r.left - 20 && s[0] < r.right + 20 && s[1] > r.top - 20 && s[1] < r.bottom + 20)) return { n, s };
+      }
+      return null;
+    });
+    if (target) await page.touchscreen.tap(target.s[0], target.s[1]);
+    await page.waitForTimeout(200);
+    const nm = await page.evaluate(() => ({ s: felt.state, free: felt.game.free, turn: felt.game.turn, shots: felt.game.shots, bar: snkBar.textContent, box: optBox.hidden, targets: legalTargets(felt.game) }));
+    check(T + 'Back returns to the choices; a tap on a colour on the table nominates it: player 2 to shoot on a red or that colour, FREE BALL on the scoreboard, nothing shot',
+      backOk && target && nm.s === 'aim' && nm.free === target.n && nm.turn === 1 && nm.shots === ch.shots && nm.box && /FREE BALL/.test(nm.bar) && nm.targets.includes(target.n) && nm.targets.includes(41), JSON.stringify({ target, nm }));
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/free-on-${vw}x${vh}.png` });
+    /* foul and a miss, put back */
+    const before = await setPos(true);
+    await page.evaluate(() => felt.shoot(-Math.PI / 2, 0.12, 0));
+    await settled(page);
+    const mi = await page.evaluate(() => ({ s: felt.state, o: felt.game.option, btns: [...optBtns.querySelectorAll('button')].map(b => b.textContent), head: optHead.textContent, moved: JSON.stringify(felt.game.balls) }));
+    check(T + 'a miss with the red in view: Foul and a miss, with Put it back and they play again',
+      mi.s === 'choose' && mi.o.kind === 'snkMiss' && /Foul and a miss/.test(mi.head) && mi.btns.join('|') === 'Play it|Put it back and they play again|Make them play again from here' && mi.moved !== before, JSON.stringify(mi));
+    check(T + 'the miss prompt: inside the screen, targets 44 px, text 4.5:1', await boxIn() && !(await smallTargets(page)).length && !(await lowContrast(page)).length);
+    if (SHOTS) await page.screenshot({ path: `${SHOTS}/miss-${vw}x${vh}.png` });
+    await tapEl(page, '#optBtns button[data-choice="replace"]');
+    await page.waitForTimeout(200);
+    const pb = await page.evaluate(() => ({ s: felt.state, turn: felt.game.turn, balls: JSON.stringify(felt.game.balls), box: optBox.hidden }));
+    check(T + 'a real tap on Put it back: the balls exactly as before the stroke (byte for byte), the offender to play again', pb.s === 'aim' && pb.turn === 0 && pb.balls === before && pb.box, JSON.stringify({ s: pb.s, turn: pb.turn, same: pb.balls === before }));
+  }
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
   done();

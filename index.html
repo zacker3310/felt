@@ -10239,6 +10239,9 @@ function showMenu() {
   menu.classList.add('show');
   menu.scrollTop = 0;
   syncMenu();
+  /* an odd count of pause actions (Restart hidden in a career match) lets the last one take the row */
+  const acts = [...pauseActs.children].filter(b => !b.hidden);
+  acts.forEach((b, i) => { b.style.gridColumn = acts.length % 2 && i === acts.length - 1 ? '1 / -1' : ''; });
   paintArt();
   if (byKeys) (paused ? resumeBtn : againBtn).focus({ preventScroll: true });
 }
@@ -12157,7 +12160,7 @@ PAGES.sponsors = () => {
 PAGES.shop = () => {
   const items = Career.shop(), money = Career.now().money, out = [];
   setHead(`${crWords(money)} to spend`, 'Shop');
-  out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. Equipped items show on your career profile.'));
+  out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. Items are a record of the career for now; they do not change how the game looks yet.'));
   for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['ring', 'Avatar rings']]) {
     out.push(cvHeadEl(name), cvGroup(items.filter(i => i.slot === slot).map(i => cvRow({ id: 'shop-' + i.id, title: i.name, sub: i.equipped ? 'Equipped' : i.owned ? 'Owned' : i.locked ? 'Hall of Fame only' : i.price ? crWords(i.price) : 'Free',
       end: i.equipped ? null : i.owned ? cvMiniBtn('Equip', () => { Career.equip(i.id); cvSave(); cvRender(); }, '', `Equip ${i.name}`)

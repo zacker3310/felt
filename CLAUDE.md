@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `22/22 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `23/23 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -52,6 +52,12 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   the player's first shot is a loss (`abandonCpuGame`, `felt.abandon.v1`): audit F5. Without simulation purity
   `Career.assist()` caps the guide and auto aim and jitters the player's shot (`careerExec`); never the physics.
   `tests/lib.cjs` marks the lesson seen unless a suite opens with `firstRun: true`. Pinned by `career-check`.
+- Drills: measured practice. `DRILL_LIB` (sim 1m) is the library, each drill a ladder of fixed layouts (table fractions,
+  no randomness) scored 0-100 per shot from `resultOf` (`drillJudge`), the drill's score their mean (`drillTotal`), medals by
+  `tiers` (`drillTier`). Page 5d: a solo session (`solo.kind === 'drill'`, `game.mode 'drill'`) on the ordinary turn; the
+  list and pages live in Practice (`#drillSheet`), records in `felt.drills.v1` (corrupt fields dropped on load). Drill ids are
+  the career's `DRILLS` ids: the hub's Practice rows launch the drill and the score goes to `Career.practice`. Good runs come
+  from `node tools/drill-solver.cjs` (`tests/drill-solutions.json`, 7r). Pinned by `drills-check`.
 - Tutorials: one per game (`TUTORIALS`, sim 1l; page 6d after the lesson), steps judged by the real `judge`
   (the game has no `game.mode`; `solo.kind === 'tutorial'`, `tutOn()`). Each plays on its own table and puts the
   geometry back exactly on the way home (`tutRestore`); settings are never touched. Show me plays `TUT_SOLS`

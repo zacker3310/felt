@@ -137,8 +137,8 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('menu: the games, then the solo list under them (Practice, Trick shots, Daily shot, one row each), every row 44 px or more',
     sz[0][0] > sz[3][0] + sz[3][1] && sz[0][0] < sz[1][0] && sz[1][0] < sz[2][0] && sz.every(s => s[1] >= 44), JSON.stringify(sz));
   await page.tap('#pracBtn');
-  const pick = await page.evaluate(() => ({ shown: prac.classList.contains('show'), n: prac.querySelectorAll('.pick .game').length }));
-  check('Practice opens its picker: 8-ball rack, 9-ball rack, free table, empty table', pick.shown && pick.n === 4, JSON.stringify(pick));
+  const pick = await page.evaluate(() => ({ shown: prac.classList.contains('show'), ids: [...prac.querySelectorAll('.pick .game')].map(b => b.id).join() }));
+  check('Practice opens its picker: the drills, 8-ball rack, 9-ball rack, free table, empty table', pick.shown && pick.ids === 'drillBtn,prac8,prac9,pracScatter,pracEmpty', JSON.stringify(pick));
   check('practice picker: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.tap('#prac9');
   await page.waitForTimeout(150);

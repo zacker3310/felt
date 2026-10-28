@@ -1,6 +1,6 @@
 # felt
 
-8-ball and 9-ball pool in one HTML file. Two players on one device, or you against a CPU at
+8-ball, 9-ball, 10-ball, straight pool, rotation, bumper pool, three-cushion and snooker in one HTML file. Two players on one device, or you against a CPU at
 three levels. No libraries, no network, works offline.
 Play at **https://zacker3310.github.io/felt/**.
 
@@ -45,6 +45,31 @@ offline. Or open `index.html` in any browser (or `npm run serve`, http://localho
 - **9-ball:** first touch the lowest ball, then pot or hit a rail. A legal 9 wins, on any shot.
   Three fouls in a row lose.
 - Ball in hand behind the head string (after a break scratch) must play out of the kitchen.
+- **Rulesets:** each game plays one ruleset from a registry, chosen in its setup: felt's house
+  rules (above) or WPA. WPA 8-ball calls every shot that is not obvious (the 8 always with its
+  pocket), needs four balls to the cushions on a break that pots nothing (else the incoming player
+  takes the table or has it re-racked), and lets the breaker spot or re-rack an 8 on the break.
+  WPA 9-ball adds the push-out after the break (the opponent may hand it back). A house stalemate
+  rule re-racks after six dry innings in a row (8 and 9-ball, off by default).
+- **10-ball (WPA):** lowest ball first, call every shot, obvious or not (a house option calls
+  the obvious ones for you). A legal break pots a ball or drives four to the cushions. The 10 wins
+  only when called; on the break or early it is spotted. Push-out after the break. A ball down on
+  a missed call: the opponent shoots or hands it back. Three fouls lose.
+- **Straight pool (14.1 continuous, WPA):** any ball, called with its pocket, a point each (balls
+  that drop with it count too). The break calls a ball or drives two balls and the cue ball to the
+  cushions (else -2 and the opponent's choice). With one ball left the other 14 are re-racked; the
+  break ball and cue ball stay unless in the rack (then the head spot, or ball in hand behind the
+  line). Fouls -1; three in a row -15 more and a new break. Race to 25, 50, 100 or 150; the best run
+  is kept.
+- **Rotation (61):** lowest ball first; every ball potted on a legal shot scores its number. 61
+  wins. Fouls: no score, the balls spotted, ball in hand.
+- **Called shots:** Settings, Gameplay: Off, 8-ball only, Official rules (each ruleset's own),
+  All shots, or Career rules; the call names the ball, ball and pocket, or (custom) the shot type
+  too. Tap a ball, then a pocket; an obvious shot is called from the aim where the rules allow it
+  ("Calling: 6 in top left corner, tap to change"); the Safety chip declares a safety. The power
+  bar says Call your shot and will not arm while a needed call is missing. A missed call is not a
+  foul: the turn ends (14.1 spots what dropped; 10-ball gives the opponent the choice). A career
+  event or tournament plays its own locked rules, whatever the settings say.
 
 ## Physics
 

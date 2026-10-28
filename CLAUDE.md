@@ -8,7 +8,7 @@
 
 ## What this is
 
-felt: 8-ball and 9-ball pool in one offline `index.html` (2D canvas, no libraries, no network).
+felt: 8-ball, 9-ball, 10-ball, straight pool, rotation, bumper pool, carom and snooker in one offline `index.html` (2D canvas, no libraries, no network).
 Two players on one device or against a CPU. The physics is puttX's hand-rolled, fixed-step,
 deterministic sim, extended with ball-ball contact, pockets and follow/draw. `SPEC.md` is the
 design, `TASKS.md` the queue, `.buildloop/` the artifact chain.
@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `17/17 suites, N/N checks  ok` (about 6 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `19/19 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -74,6 +74,20 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Shot moments: `shotMoments` (sim 1i) is the one classifier. The callout (page 6c), the game-over chips and
   the replay's gold offer (`notableOf`, run on the record's game `rec.g`) all read it; the callout names the
   moment, so the gold pill only says Replay. `moments-check` pins it.
+- Rules engine (sim 1e): `RULESETS` is the registry (id, game, name, description, source, rule options; documented
+  above it). A game carries `game.rules` (`makeRules(kind, { ruleset, call, options, race, locked })`); `judge` hands
+  each shot to its game's module in `RULE_MODULES` (`judge8`, `judgeLowest` for 9 and 10, `judgeStraight` for 14.1,
+  `judgeRotation`, then bumper, snooker, carom), and the pocket games share `poolFoul`, `callResult`, `breakLegal`
+  and `poolEnd`: add a rule there or as an option, never a copy in one module. Kinds: '8', '9', '10', 'straight',
+  'rotation' (`POCKET_KINDS`), 'bumper', 'snooker', 'carom'. The default rulesets ('8-house', '9-house') are the
+  old felt rules exactly; WPA variants and 10-ball, 14.1 and rotation are opt-in. Pinned by `rules2-check`.
+- Called shots: `game.call` (`{ ball, pocket, safety, push, bank, kick, combo, auto }`) is a pure input judge reads;
+  `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
+  (`game.option`: push-out, uncalled ball, illegal break, 8 on the break) are answered by `chooseOption(g, c)`
+  (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the pill, the
+  Safety and Push out chips, `obviousCall`), and the bar does not arm without a needed call. Settings `calls`
+  (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
+  `called-check` pins the page side, `tests/sim.cjs` NAMES has the engine's exports.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

@@ -11665,7 +11665,7 @@ function recordGame() {
 /* settle() (noteShot): a human shot's numbers into the record. g0: the game before the shot, v:
    its verdict, m: its moments (shotMoments), vis: the visit so far, r: the roll's result */
 function recordShot(g0, r, p, m, vis) {
-  if (g0.mode || tutOn() || solo || !rec.kinds[g0.kind] || (cpuMode && p !== 0)) return;
+  if (g0.mode || exhib || tutOn() || solo || !rec.kinds[g0.kind] || (cpuMode && p !== 0)) return;   /* an exhibition is nobody's shot */
   const k = rec.kinds[g0.kind], v = game.verdict || {};
   k.sh++;
   if (v.foul) k.fo++;

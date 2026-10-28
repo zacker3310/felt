@@ -149,6 +149,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #potDots .dot { width: 18px; height: 18px; }
 #menuMsg { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
 #menuMsg:empty { display: none; }
+#partyLine { margin: 8px 2px 0; font-size: 13px; color: var(--muted); }
+#partyLine[hidden] { display: none; }
 
 /* ---- banners: a turn or a foul, shown over the table for a moment ---- */
 /* flash() places it over the part of the table away from the cue ball (or the kitchen) */
@@ -675,6 +677,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #over .stats tbody th { width: 30%; font-weight: 400; color: var(--label-2); white-space: nowrap; }
 #over .stats td { width: 35%; font-weight: 600; }
 #over .stats td.note { font-size: 13px; font-weight: 500; }
+/* a party of three or four (6f): a narrow column each */
+#over .stats[data-many] th, #over .stats[data-many] td { padding-left: 6px; padding-right: 6px; }
+#over .stats[data-many] tbody th { width: 28%; padding-left: 12px; }
+#over .stats[data-many] td { width: auto; }
+#over .stats[data-many] thead th.win::before { margin-right: 3px; }
 #over .stats td.note .it { white-space: nowrap; }
 #over[data-mood="quiet"] #overText { font-weight: 600; }
 #over .stats .dots { display: flex; flex-wrap: wrap; gap: 3px; }
@@ -827,22 +834,22 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 /* the career (6d): one sheet of push pages in How to play's manner (inset grouped lists of rows,
    a pinned header, the accent capsule for the page's action), full screen on a phone held
    upright and a card on anything wider. Every page is rebuilt from Career's reads. */
-#careerSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+:is(#careerSheet, #modesSheet) { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
   --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; --warn: #ff8a7a; }
-[data-cloth="red"] #careerSheet { --accent: #ff8a7a; }
-[data-cloth="blue"] #careerSheet { --accent: #7cb6ff; }
-#careerSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+[data-cloth="red"] :is(#careerSheet, #modesSheet) { --accent: #ff8a7a; }
+[data-cloth="blue"] :is(#careerSheet, #modesSheet) { --accent: #7cb6ff; }
+:is(#careerSheet, #modesSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
   display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 @media (max-width: 600px) {
-  #careerSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  #careerSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  #careerSheet .howTop { padding-top: calc(var(--sat) + 14px); }
+  :is(#careerSheet, #modesSheet) { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  :is(#careerSheet, #modesSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  :is(#careerSheet, #modesSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
 }
-#careerSheet .shead { margin: 0; gap: 14px; }
-#careerSheet .shead .title { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
-#careerSheet .shead .kicker { color: var(--label-2); letter-spacing: .04em; overflow-wrap: anywhere; }
-#careerSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+:is(#careerSheet, #modesSheet) .shead { margin: 0; gap: 14px; }
+:is(#careerSheet, #modesSheet) .shead .title { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
+:is(#careerSheet, #modesSheet) .shead .kicker { color: var(--label-2); letter-spacing: .04em; overflow-wrap: anywhere; }
+:is(#careerSheet, #modesSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
 .cvBody { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 0 max(24px, var(--sab)); min-width: 0; }
 .cvHead { margin: 22px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
 .cvHead:first-child { margin-top: 10px; }
@@ -1088,6 +1095,46 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #callPill.nudge { animation: nudge .25s 2; }
 #powerBar.nocall #powerLab { color: #ffd58a; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { #callPill.nudge { animation: none; } }
+/* ---- More modes (6f): the home's second slim row, the modes sheet (the career's navigation
+   stack and its rows, cells and capsule), the exhibition's speed bar over the table, and the
+   party's handoff between players ---- */
+/* More games and More modes share the games grid's slim fourth row; narrow, each drops its
+   subtitle and chevron, More games' balls a size down */
+.mrow { grid-column: 1 / -1; display: flex; gap: 12px; min-width: 0; container-type: inline-size; }
+.mrow .more { flex: 1 1 auto; min-width: 0; }
+.mrow #playMore { flex-grow: 1.5; }
+.more b { flex: none; }
+@container (max-width: 600px) {
+  .mrow .more small { display: none; }
+}
+@container (max-width: 420px) {
+  .mrow .more { gap: 8px; padding: 6px 10px 6px 12px; }
+  .mrow .more small, .mrow .more .chev { display: none; }
+  .mrow .more .tt { padding-left: 4px; }
+  .mrow .more b { font-size: 15px; }
+  .mrow .more .ball { width: 22px; height: 22px; font-size: 8px; margin-right: -7px; }
+  .mrow .more .mic { width: 24px; }
+}
+.more .mic { flex: none; width: 32px; height: 26px; display: grid; place-items: center; color: var(--accent); }
+.more .mic svg { width: 22px; height: 22px; }
+.bm b small { display: block; font-size: 11px; font-weight: 500; color: var(--label-2); text-align: center; }
+.bm b { text-align: center; }
+.mdForm { margin: 8px 0 0; }
+.cv .seg.wrap.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#exBar { position: absolute; z-index: 2; left: 50%; bottom: 6px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; padding: 4px; border-radius: 26px;
+  background: rgba(22, 22, 24, .94); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+#exBar[hidden] { display: none; }
+#exBar button { min-width: 48px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 22px; background: transparent; color: var(--text); font-size: 14px; font-weight: 600; }
+#exBar button[aria-pressed="true"] { background: var(--cream); color: #141414; }
+#exBar .exLab { padding: 0 6px 0 10px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+[data-layout="wide"] #exBar { left: 27%; }
+#handoff .sheet { max-width: 440px; }
+#handoff .title { overflow-wrap: anywhere; }
+.hoBoard { display: grid; gap: 0; margin: 14px 0 0; padding: 0; list-style: none; border-radius: 14px; overflow: hidden; background: var(--panel-2); border: 1px solid var(--line); }
+.hoBoard li { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 6px 14px; font-size: 15px; }
+.hoBoard li + li { border-top: 1px solid var(--line); }
+.hoBoard li b { font-variant-numeric: tabular-nums; }
+.hoBoard li.up { box-shadow: inset 3px 0 0 var(--cream); font-weight: 700; }
 </style>
 </head>
 <body>
@@ -1103,6 +1150,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <button class="cflag" id="safetyBtn" aria-pressed="false">Safety</button><button class="cflag" id="pushBtn" aria-pressed="false" hidden>Push out</button>
     </div>
     <!-- a choice the rules give a player: take the table or hand it back, re-rack, spot the 8 -->
+    <!-- an AI exhibition (6f): pause and the speed, over the table's foot -->
+    <div id="exBar" role="group" aria-label="Exhibition" hidden><span class="exLab" id="exLab">Exhibition</span><button id="exPause" aria-label="Pause the exhibition">Pause</button><button id="exS1" aria-pressed="true">1x</button><button id="exS2" aria-pressed="false">2x</button><button id="exS4" aria-pressed="false">4x</button></div>
     <div id="optBox" role="group" aria-labelledby="optHead" hidden><b id="optHead"></b><span id="optSub"></span><span id="optBtns"></span></div>
     <div id="tools" role="group" aria-label="Practice tools" hidden>
       <button class="tool" id="handBtn" aria-pressed="false">Ball in hand</button>
@@ -1150,6 +1199,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
           <div class="pc" id="p1"><span class="turn" aria-hidden="true"></span><span class="name" id="p1name">Player 2</span><span class="line"><span class="meta" id="p1meta"></span><span class="dots" id="p1dots"></span></span></div>
         </div>
         <div id="potRow"><span class="label">Potted</span><span id="potDots"></span></div>
+        <p id="partyLine" hidden></p>
         <p id="menuMsg"></p>
         <p id="callHist" hidden></p>
       </section>
@@ -1186,7 +1236,10 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-cushion</b><small>No pockets, three rails</small></span></button>
         <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
         <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
+        <div class="mrow">
         <button class="more" id="playMore" aria-haspopup="dialog"><span class="mballs" aria-hidden="true"><span class="ball b10">10</span><span class="ball b14">14</span><span class="ball b15">15</span></span><span class="tt"><b>More games</b><small>10-ball, straight pool, rotation</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="more" id="playModes" aria-haspopup="dialog"><span class="mic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.5a3 3 0 0 0 3 4M16.5 6h3a3 3 0 0 1-3 4M12 13.5V17M8.5 20h7M9.5 17h5v3h-5z"/></svg></span><span class="tt"><b>More modes</b><small>Tournament, exhibition, party</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        </div>
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
@@ -1708,6 +1761,28 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <div class="htxt"><p class="kicker" id="careerKick">Career</p><h2 class="title" id="careerTitle">Career</h2></div></div>
     </div>
     <div class="cvBody" id="cvBody"></div>
+  </div>
+</div>
+
+<!-- More modes (6f): the quick tournament, the AI exhibition and the party, a navigation stack -->
+<div class="overlay" id="modesSheet" role="dialog" aria-modal="true" aria-labelledby="modesTitle">
+  <div class="sheet how cv" id="mdSheet">
+    <div class="howTop">
+    <div class="shead"><button class="back" id="modesBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="htxt"><p class="kicker" id="modesKick">Modes</p><h2 class="title" id="modesTitle">More modes</h2></div></div>
+    </div>
+    <div class="cvBody" id="mdBody"></div>
+  </div>
+</div>
+
+<!-- a party (6f): the device goes to the next player -->
+<div class="overlay lite" id="handoff" role="dialog" aria-modal="true" aria-labelledby="hoTitle">
+  <div class="sheet">
+    <p class="kicker" id="hoKick">Pass the device</p>
+    <h2 class="title" id="hoTitle">Pass to Player 2</h2>
+    <p class="sub" id="hoSub"></p>
+    <ul class="hoBoard" id="hoBoard" aria-label="Scores"></ul>
+    <button class="big cta" id="hoGo">Ready</button>
   </div>
 </div>
 
@@ -2324,10 +2399,19 @@ function simulateShot(balls, shot) {
      foulHand    a foul's ball in hand: 'table', or 'position' (the cue ball stays where it is;
                  a scratch gives ball in hand behind the head string)
      score       points: null, 'count' (a point a ball, 14.1) or 'numbers' (each ball its number)
-     race        points to win, for a game with a score */
+     race        points to win, for a game with a score
+     players     the players at the table, 2 to 4 (only a ring ruleset takes more than 2)
+   A ring ruleset (ring: true) is played by 2 to 4 players in turn on one device: the turn
+   passes to the next player round the table ((turn + 1) mod players), and a choice the rules
+   hand back goes to the player before. Only games whose rules make sense with more than two
+   have one: 9-ball (the ball on is the lowest for whoever is at the table, the 9 wins), rotation
+   (each player's own points) and straight pool's "Around the table" points race. 8-ball (two
+   groups), bumper pool, snooker and carom are two-player games and have none. The ring sets
+   leave out what assumes one opponent: no push-out, no three-foul loss. rulesetsFor(kind) lists
+   the two-player sets; ringRulesets() the ring ones. */
 const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation'];
 const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
-  pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0 };
+  pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2 };
 const RULESETS = {
   '8-house': { game: '8', name: '8-ball, felt rules', source: 'felt house rule', breakAny: true,
     description: 'Hit one of your group first, pot it to carry on. No calls unless your settings ask for them. An 8 on the break is spotted and the breaker carries on.' },
@@ -2351,10 +2435,18 @@ const RULESETS = {
   bumper: { game: 'bumper', name: 'Bumper pool', source: 'felt house rule', description: 'Five balls each round the posts to the far cup; the marked ball first.' },
   carom: { game: 'carom', name: 'Three-cushion', source: 'UMB rules, simplified', description: 'Your cue ball meets both others, with three cushions before the second. A point each.' },
   snooker: { game: 'snooker', name: 'Snooker', source: 'WPBSA rules, simplified', description: 'A red, then a colour, until the reds are gone; then the colours in order.' },
+  '9-ring': { game: '9', ring: true, name: '9-ball ring', source: 'ring game, felt house rule', gameBallBreak: 'win',
+    description: 'Two to four players in turn. Lowest ball first; a foul gives the next player ball in hand. Whoever pots the 9 legally wins the rack.' },
+  'rotation-ring': { game: 'rotation', ring: true, name: 'Rotation ring', source: 'American rotation, ring game, felt house rule', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
+    description: 'Two to four players in turn. Lowest ball first; balls potted on a legal shot score their numbers. The race wins, or the most points when the table is clear.' },
+  'straight-ring': { game: 'straight', ring: true, name: 'Around the table', source: 'straight pool, ring game, felt house rule', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option',
+    threeFoul: 'minus15', missed: 'spot', safetyPots: 'spot', foulHand: 'position', score: 'count', race: 25,
+    description: 'Straight pool for two to four in turn: any ball, called, a point each, fourteen down and the rack again. A foul costs a point. First to the race wins.' },
 };
 for (const [id, r] of Object.entries(RULESETS)) Object.assign(r, Object.assign({}, RULE_BASE, r), { id });
 const DEFAULT_RULESET = { 8: '8-house', 9: '9-house', 10: '10-wpa', straight: 'straight-wpa', rotation: 'rotation', bumper: 'bumper', carom: 'carom', snooker: 'snooker' };
-const rulesetsFor = kind => Object.values(RULESETS).filter(r => r.game === kind);
+const rulesetsFor = kind => Object.values(RULESETS).filter(r => r.game === kind && !r.ring);
+const ringRulesets = () => Object.values(RULESETS).filter(r => r.ring);
 /* the called-shot configuration: mode (who must call: 'off', 'eight' (8-ball games, by the
    official rules), 'official' (what the ruleset says), 'all' (every shot of every pocket game but
    the break) or 'career' (the event's own; the official rules outside one)), detail (what a call
@@ -2384,9 +2476,14 @@ function makeRules(kind, o) {
   const R = Object.assign({}, RULESETS[id], { call: makeCall(o.call), locked: !!o.locked, made: true });
   if (o.options && typeof o.options === 'object') for (const k of RULE_KEYS) if (o.options[k] !== undefined) R[k] = o.options[k];
   if (R.score && Number.isFinite(o.race) && o.race > 0) R.race = Math.round(o.race);
+  /* players: 2, or up to 4 on a ring ruleset */
+  R.players = R.ring && Number.isInteger(R.players) ? clamp(R.players, 2, 4) : 2;
   return R;
 }
 const rulesOf = g => g.rules || makeRules(g.kind);
+/* the players at the table (2 to 4), and who comes after p round it */
+const playersOf = g => g.rules && g.rules.players > 2 ? g.rules.players : 2;
+const nextOf = (g, p) => (p + 1) % playersOf(g);
 const gameBallOf = g => g.kind === '8' ? 8 : g.kind === '9' ? 9 : g.kind === '10' ? 10 : null;
 /* who must call this game's shots: 'none', 'game' (only a shot at the game ball) or 'all' */
 function callScope(g) {
@@ -2454,9 +2551,10 @@ function newGame(kind, opts) {
   if (kind === 'carom') return caromGame(opts);
   if (TABLE === 'bumper' || TABLE === 'snooker' || TABLE === 'carom') setTable(POOL_TABLE);
   const R = makeRules(kind, opts && opts.rules);
-  const g = { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null,
+  const np = R.players, zeros = () => Array(np).fill(0);
+  const g = { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: zeros(), winner: null, shots: 0, dry: 0, verdict: null,
     rules: R, call: null, option: null, pushAvail: false, breaker: 0, calls: [] };
-  if (R.score) Object.assign(g, { score: [0, 0], race: R.race, high: [0, 0], run: 0 });
+  if (R.score) Object.assign(g, { score: zeros(), race: R.race, high: zeros(), run: 0 });
   return g;
 }
 /* which balls the cue ball may touch first */
@@ -2545,7 +2643,7 @@ function poolBase(g, r) {
   n.shots++;
   const pot = r.potted.filter(x => x !== 0), push = !!(g.call && g.call.push && g.pushAvail && !g.breakShot);
   const need = push ? null : callNeed(g);
-  return { R, n, me, op: 1 - me, pot, push, need, scratch: r.potted.includes(0), foul: poolFoul(g, r, R, legalTargets(g), push), call: callResult(g, r, need) };
+  return { R, n, me, op: nextOf(g, me), pot, push, need, scratch: r.potted.includes(0), foul: poolFoul(g, r, R, legalTargets(g), push), call: callResult(g, r, need) };
 }
 /* the balls racked again for the same game, the score, the race, the best runs and the call
    history kept: breaker breaks */
@@ -2638,14 +2736,17 @@ function judgeLowest(g, r) {
 }
 /* ---- rotation (61): the lowest ball first; every ball down on a legal shot scores its number ---- */
 function judgeRotation(g, r) {
-  const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b, foul = b.foul;
+  const b = poolBase(g, r), { R, n, me, pot, need, call } = b, foul = b.foul;
   const ok = !foul && (!need || call.made) && !call.safety;
   let scored = 0, win = null, why = '';
   if (ok) scored = pot.reduce((s, x) => s + x, 0);
   else spotAll(n.balls, pot);   /* a foul, a safety or a missed call: what went down comes back */
   n.score[me] += scored;
   if (n.score[me] >= n.race) { win = me; why = `${n.race} points`; }
-  else if (!onTable(n).length) { win = n.score[me] >= n.score[op] ? me : op; why = `${n.race} points`; }   /* 60-60: the last ball takes it */
+  else if (!onTable(n).length) {   /* the table clear: the most points (60-60: the last ball takes it) */
+    const top = Math.max(...n.score);
+    win = n.score[me] >= top ? me : n.score.indexOf(top); why = `${n.race} points`;
+  }
   return poolEnd(g, b, { keep: ok && pot.length > 0, win, why, scored });
 }
 /* ---- straight pool (14.1 continuous) ---- */
@@ -2717,7 +2818,7 @@ function chooseOption(g, choice) {
   if (!o || !o.choices.includes(choice)) return null;
   let n = copyGame(g);
   n.option = null; n.call = null;
-  const who = o.who, other = 1 - who;
+  const who = o.who, other = (who + playersOf(g) - 1) % playersOf(g);   /* the player who handed it over */
   if (choice === 'take' || choice === 'pass') {
     n.turn = choice === 'take' ? who : other;
     if (o.kind === 'badBreak') n.pushAvail = !!rulesOf(g).pushOut;
@@ -6333,7 +6434,7 @@ const Career = (() => {
     snapshot() { need(); return JSON.stringify(S); },
     digest() { need(); return hashStr(JSON.stringify(S)).toString(36); },
     /* pure pieces, for tests and previews */
-    lib: { hashStr, seedOf, seedOrder, makeBracket, runBracket, placings, standings, playModel, genPlayer, payouts, ptsShare, pack, unpack, validate, cleanProfile, callFor, rulesFor: (s, race) => rulesFor(s, race), points: (k, gw) => points(k, gw), state: () => S },
+    lib: { hashStr, seedOf, seedOrder, makeBracket, runBracket, placings, standings, playModel, genPlayer, ctxOf, outcome, complete, roundName, payouts, ptsShare, pack, unpack, validate, cleanProfile, callFor, rulesFor: (s, race) => rulesFor(s, race), points: (k, gw) => points(k, gw), state: () => S },
   };
 })();
 // #endregion career
@@ -8668,6 +8769,13 @@ let pull = null, placeAt = null, stroke = null, cpuIt = null, cpuPlan = null, cp
    visible think time: the search's answer waits in cpuReady until cpuT0 + cpuThinkMs (a tap on
    the table, cpuSkip, cuts the wait and the cue's swing short) */
 let cpuProf = cpuProfile('medium'), cpuReady = null, cpuT0 = 0, cpuSkip = false;
+/* the More modes (6f): exhib, an AI exhibition (both players CPU: { names, prof: each player's
+   cpuProfile, seed }); party, a hot-seat game for 2 to 4 ({ names, n, wins }); tmatch, the
+   player's quick-tournament match in play; modeOpts, the start(kind, o) terms a Rematch or
+   Restart of an exhibition or a party plays again */
+let exhib = null, party = null, tmatch = null, modeOpts = null;
+/* a solo session, a tutorial or home after game over: no mode goes on (a tournament match left is a forfeit) */
+const modesEnd = () => { tourneyAbandon(); exhib = null; party = null; modeOpts = null; };
 let gest = null, paused = null, stats = newStats();
 /* fineAim: the fine-aim wheel is held (the canvas shows a loupe). aimAnim: the auto-aim swing. */
 let fineAim = false, aimAnim = null, wheelRoll = 0;
@@ -8710,16 +8818,19 @@ const felt = window.felt = {
    the shooter's own cue ball (game.striker) */
 const cueN = () => game.kind === 'bumper' || game.kind === 'carom' ? game.striker : 0;
 const cueBall = () => game.balls.find(b => b.n === cueN());
-const human = () => !(cpuMode && game.turn === 1);
-/* two players go by the names given at setup (settings.names), else Player 1 and Player 2 */
-const nameOf = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : (settings.names[p] || `Player ${p + 1}`);
+/* who shoots for player p: a person, or the CPU (player 1 against the CPU; both in an exhibition) */
+const humanP = p => !exhib && !(cpuMode && p === 1);
+const human = () => humanP(game.turn);
+/* two players go by the names given at setup (settings.names), else Player 1 and Player 2; an
+   exhibition's and a party's players by their own (6f) */
+const nameOf = p => party ? party.names[p] : exhib ? exhib.names[p] : cpuMode ? (p === 0 ? 'You' : 'CPU') : (settings.names[p] || `Player ${p + 1}`);
 const turnOf = p => game.mode || tutOn() ? 'Your shot' : cpuMode ? (p === 0 ? 'Your turn' : 'CPU to shoot') : `${nameOf(p)} to shoot`;
 /* full power is this long a pull, in CSS px: a thumb's reach on a phone, more with a mouse */
 const pullFull = () => clamp(0.42 * Math.min(innerWidth, innerHeight), 150, 300);
 /* a game's numbers. pots: legal pots; best: the most legal pots in one visit; notes: each player's
    shot moments by key (shotMoments), counted; brk: the break ({ p, down, foul }); visit: the visit
    in progress ({ p, pots, fromBreak }) or null; last: the moments of the latest shot */
-function newStats() { return { shots: [0, 0], fouls: [0, 0], potted: [[], []], pots: [0, 0], best: [0, 0], notes: [{}, {}], brk: null, visit: null, last: [], lastP: null }; }
+function newStats(n = 2) { const z = f => Array.from({ length: n }, f); return { shots: z(() => 0), fouls: z(() => 0), potted: z(() => []), pots: z(() => 0), best: z(() => 0), notes: z(() => ({})), brk: null, visit: null, last: [], lastP: null }; }
 /* carom: the breaker's cue ball goes left or right of the head spot, alternately game to game */
 let caromSide = -1;
 const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCush, side: caromSide = -caromSide });
@@ -8730,11 +8841,21 @@ const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCus
    left out), hill (either player is one rack from the match: the profile's hill noise), snooker ('compact' |
    'full'), carom ({ race, cushions, side, event: true }) }; any other start ends the career
    match, which counts as a forfeit (careerAbandon), and a CPU game left mid-rack counts as a loss
-   (abandonCpuGame, audit F5) */
+   (abandonCpuGame, audit F5). o.mode: one of the More modes (6f): 'tourney' (a quick
+   tournament's rack, played as a career rack is), 'exhibit' (CPU against CPU: o.players, two
+   { level, arch, name }, and o.seed, the CPU's seed, so a seed plays the same rack) or 'party'
+   (2 to 4 people in turn: o.names, the rules a ring ruleset's). Any other start ends a tournament
+   match, which counts as a forfeit (tourneyAbandon). */
 function start(kind, o = null) {
   abandonCpuGame();
-  if (!o) careerAbandon();
-  cpuMode = o ? true : settings.cpu; solo = null;
+  const mode = o && o.mode || null;
+  if (!o || mode) careerAbandon();
+  if (mode !== 'tourney') tourneyAbandon();
+  exhib = mode === 'exhibit' ? { names: o.players.map(x => x.name), prof: o.players.map(x => cpuProfile({ level: x.level, arch: x.arch })), seed: o.seed >>> 0 } : null;
+  party = mode === 'party' ? { names: o.names.slice(), n: o.names.length, wins: (o.wins || o.names.map(() => 0)).slice() } : null;
+  modeOpts = mode === 'exhibit' || mode === 'party' ? o : null;
+  if (exhib) cpuSeed = exhib.seed;
+  cpuMode = o ? !exhib && !party : settings.cpu; solo = null;
   cpuProf = cpuProfile(o && o.cpuProfile ? o.cpuProfile : o ? o.level : settings.level, { hill: !!(o && o.hill) });
   cpuLevel = o ? o.level || cpuProf.level : settings.level;
   /* the table size and pockets take effect here, between games; the table is repainted only
@@ -8745,12 +8866,12 @@ function start(kind, o = null) {
   if (kind === 'snooker') setTable('snooker', o && o.snooker ? o.snooker : settings.snookerTable);
   /* a pocket game's rules: the event's when it passes them (locked), else the settings' (5c) */
   game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
-  if (o && o.breaker === 1 && kind !== 'bumper' && kind !== 'carom') { game.turn = 1; game.breaker = 1; }
+  if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
   resetCall(); cpuCall = null; optBox.hidden = true;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
-  pull = null; stroke = null; paused = null; stats = newStats(); aimAnim = null;
+  pull = null; stroke = null; paused = null; stats = newStats(playersOf(game)); aimAnim = null;
   cancelGestures(); aimLock = null;
   hideOverlays();
   aimAngle = 0; handAimed = false; hint = null; placeAt = null; placeBack = null; move = null; picked = false;
@@ -8762,8 +8883,9 @@ function start(kind, o = null) {
   say(!human() ? turnOf(1) + '.' : kind === 'carom' ? aimHint() : handHint());
   if (kind === 'bumper') flash('turn', 'Opening shots', `${cpuMode ? 'You shoot' : 'Red shoots'} the marked ball at the far cup`, 1600);
   else if (kind === 'carom') flash('turn', cpuMode ? 'You break' : `${nameOf(0)} breaks`, `Hit the red first. ${game.need === 1 ? 'One cushion' : 'Three cushions'}, ${game.race} points`, 1600);
-  else flash('turn', !human() ? `${career ? careerFoe().first : 'The CPU'} breaks` : cpuMode ? 'You break' : 'Player 1 breaks', kind === 'snooker' ? 'Ball in hand in the D' : 'Ball in hand behind the line', 1400);
+  else flash('turn', !human() ? `${career ? careerFoe().first : tmatch ? tmatch.foe.first : exhib ? nameOf(game.turn) : 'The CPU'} breaks` : cpuMode ? 'You break' : `${party ? nameOf(game.turn) : 'Player 1'} breaks`, kind === 'snooker' ? 'Ball in hand in the D' : 'Ball in hand behind the line', 1400);
   hud();
+  modesStarted();   /* an exhibition's speed bar, a party's first handoff (6f) */
 }
 /* commit a shot: the cue strokes forward for STROKE_MS, then frame() calls shoot() */
 function commit(p) {
@@ -8939,7 +9061,9 @@ function finish() {
   state = 'over'; stroke = null; pull = null; gest = null; paused = null;
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
-  if (!careerRackOver()) showOver();   /* a career rack: between racks, or the match result (6d) */
+  if (party && game.winner !== null && !game.mode) party.wins[game.winner]++;   /* a party's racks won (6f) */
+  /* a career rack: between racks, or the match result (6d); a tournament rack likewise (6f) */
+  if (!careerRackOver() && !tourneyRackOver()) showOver();
   /* the win sting for a player's win; the CPU's is quiet (audit F14), as the sheet's mood is */
   sfx(cpuMode && game.winner === 1 ? 'lose' : 'win', 1);
   hud();
@@ -9173,8 +9297,8 @@ function drawCall(now) {
 function nextTurn() {
   resetCall(); cpuCall = null; optBox.hidden = true;
   let chose = null;
-  while (game.option && !(cpuMode ? game.option.who === 0 : true)) {
-    const o = game.option, c = cpuOption(game, cpuProf);
+  while (game.option && !humanP(game.option.who)) {
+    const o = game.option, c = cpuOption(game, exhib ? exhib.prof[o.who] : cpuProf);
     chose = { o, c };
     game = chooseOption(game, c);
   }
@@ -9195,7 +9319,7 @@ const OPT_WORDS = {
 const optionSay = () => game.option ? `${nameOf(game.option.who)}: ${OPT_WORDS[game.option.kind].head}. ${OPT_WORDS[game.option.kind].sub}` : '';
 function showOption() {
   const o = game.option, w = OPT_WORDS[o.kind];
-  optHead.textContent = (cpuMode ? '' : nameOf(o.who) + ': ') + w.head;
+  optHead.textContent = (cpuMode && !exhib ? '' : nameOf(o.who) + ': ') + w.head;
   optSub.textContent = w.sub;
   optBtns.replaceChildren(...o.choices.map(c => {
     const b = document.createElement('button');
@@ -9214,6 +9338,7 @@ function choose(c) {
   game = chooseOption(game, c);
   optBox.hidden = true;
   nextTurn();
+  partyHandoff(o.who);   /* a party: the device goes on when the choice hands the turn over (6f) */
   const t = OPT_WORDS[o.kind][c];
   flash('turn', t, turnOf(game.turn), 1000);
   say(`${t}. ${turnOf(game.turn)}.`);
@@ -9410,7 +9535,7 @@ function frameBody(now) {
     for (const h of tab.hits) sfx(h[0], h[1]);
     tab.hits.length = 0;
     tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
-    if (!live) { const res = resultOf(tab); settle(); offerReplay(res); }
+    if (!live) { const res = resultOf(tab), was = game.turn; settle(); offerReplay(res); partyHandoff(was); }
   } else if (state === 'thinking') think(now);
   stepAutoAim(now);
   stepPlaceBack(now);
@@ -9420,6 +9545,7 @@ function frameBody(now) {
 }
 /* the CPU's turn begins: its search starts, one slice a frame (think) */
 function cpuBegin() {
+  if (exhib) cpuProf = exhib.prof[game.turn];   /* an exhibition: each player plays their own personality */
   state = 'thinking'; cpuPlan = null; cpuReady = null; cpuSkip = false; cpuT0 = performance.now();
   felt.lastCpu = { seed: cpuSeed, level: cpuLevel, profile: cpuProf };
   cpuIt = cpuSearch(game, cpuSeed++, cpuProf);
@@ -10241,6 +10367,7 @@ function soloAim() {
 /* a new solo session on the menu's table: like start(), with game made after the table is set */
 function beginSolo(make, s) {
   abandonCpuGame(); careerAbandon();   /* a game left for a solo session: audit F5 (6d) */
+  modesEnd();
   cpuMode = false;
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(settings.table);
@@ -10391,7 +10518,7 @@ function showTrickRes(c, j) {
   trickRes.classList.add('show');
   if (byKeys) (j.ok ? trickNext : trickRetry).focus({ preventScroll: true });
 }
-function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet, tutDone, tutOffer]) o.classList.remove('show'); }
+function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet, tutDone, tutOffer, handoff]) o.classList.remove('show'); }
 function showPractice() {
   closeSolo(); menu.classList.remove('show');
   prac.classList.add('show');
@@ -10854,7 +10981,7 @@ const MORE_KINDS = ['10', 'straight', 'rotation'];
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
 let setupKind = '8';
-const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet];
+const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet, modesSheet];
 function openSheet(el, focus) {
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
@@ -10944,6 +11071,7 @@ function quitToHome() {
   cancelGestures();
   abandonCpuGame();
   careerAbandon();   /* a career match left mid-way is a forfeit (6d, audit F5) */
+  modesEnd();        /* so is a tournament match (6f); no mode goes on */
   if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; cpuReady = null; aimAnim = null;
@@ -11102,7 +11230,7 @@ function loadRec() {
 }
 let rec = loadRec();
 function recordGame() {
-  if (game.mode || game.winner === null || !rec.kinds[game.kind]) return;
+  if (game.mode || exhib || game.winner === null || !rec.kinds[game.kind]) return;   /* an exhibition is nobody's game */
   dropAbandon();
   const r = rec.kinds[game.kind];
   r.played++;
@@ -11257,7 +11385,8 @@ Object.defineProperty(felt, 'prefsPage', { get: () => prefsAt });
 Object.defineProperty(felt, 'audio', { get: () => (ac && bus ? { master: +bus.gain.value.toFixed(4), fx: +fxBus.gain.value.toFixed(4), state: ac.state } : null) });
 /* a More game's setup goes back to More games */
 setupBack.addEventListener('click', () => { if (MORE_KINDS.includes(setupKind) && !paused) { openSheet(moreSheet, play10); paintArt(); } else backToMenu(); });
-restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (!career) start(game.kind);   /* a career rack is never taken again (audit F5) */ });
+/* a career or tournament rack is never taken again (audit F5); an exhibition or a party plays on its own terms again */
+restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (modeOpts) start(game.kind, modeOpts); else if (!career && !tmatch) start(game.kind); });
 exitBtn.addEventListener('click', () => quitToHome());
 Object.assign(felt, { showSetup, showStats, showHelp, quitToHome, setupWords });
 /* the called shot and the rules (5c): set the player's call as taps would ({ ball, pocket, bank,
@@ -11327,11 +11456,11 @@ function cardOf(p) {
 }
 /* the turn chip: the active player's short name and what they are on: a ball of their group (on
    an open table one of each), the 8 once the group is gone, or in 9-ball the ball on */
-const shortName = p => cpuMode ? (p === 0 ? 'You' : 'CPU') : settings.names[p] ? settings.names[p].slice(0, 3) : `P${p + 1}`;
+const shortName = p => party || exhib ? nameOf(p).slice(0, 3) : cpuMode ? (p === 0 ? 'You' : 'CPU') : settings.names[p] ? settings.names[p].slice(0, 3) : `P${p + 1}`;
 /* the pause menu's card: the CPU goes by its opponent's name there */
 const cardName = p => cpuMode && p === 1 ? `${foeName()} (CPU)` : nameOf(p);
 /* the CPU opponent by name: a career player (6d), else the level's name */
-const foeName = () => career ? careerFoe().name : FOES[cpuLevel];
+const foeName = () => career ? careerFoe().name : tmatch ? tmatch.foe.name : FOES[cpuLevel];
 function chipOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
   if (game.kind === 'snooker') return { balls: [], num: String(game.score[p]) };
@@ -11348,8 +11477,8 @@ function chipOf(p) {
 function hudChip() {
   if (hudSolo()) return;
   turnChip.hidden = game.winner !== null;
-  for (const p of [0, 1]) {
-    const el = document.getElementById('pchip' + p), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
+  for (const i of [0, 1]) {
+    const p = seatOf(i), el = document.getElementById('pchip' + i), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
     if (name.textContent !== nm) name.textContent = nm;
     const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '');
     if (box.dataset.key !== key) {
@@ -11375,10 +11504,11 @@ function hudMenu() {
   if (!paused) return;
   hudCareerMenu();
   hudCallHist();
-  const kick = `Paused, ${KINDS[game.kind].name}` + (cpuMode ? ` vs ${foeName()}` : '');
+  hudModesMenu();   /* a tournament match's card, an exhibition's or a party's line (6f) */
+  const kick = `Paused, ${party ? rulesOf(game).name : KINDS[game.kind].name}` + (cpuMode ? ` vs ${foeName()}` : exhib ? ', exhibition' : party ? `, ${party.n} players` : '');
   if (soloKind.textContent !== kick) soloKind.textContent = kick;
   const potted = [];
-  for (const n of [...stats.potted[0], ...stats.potted[1]]) if (n > 0 && !potted.includes(n)) potted.push(n);
+  for (const n of stats.potted.flat()) if (n > 0 && !potted.includes(n)) potted.push(n);
   for (const b of game.balls) if (!b.on && b.n > 0 && !potted.includes(b.n)) potted.push(b.n);
   fillDots(potDots, potted);
   if (!potted.length) potDots.textContent = 'none yet';
@@ -11388,18 +11518,19 @@ function hudMenu() {
 function hud() {
   hudChip();
   hudMenu();
-  for (const p of [0, 1]) {
-    const card = document.getElementById('p' + p), meta = document.getElementById('p' + p + 'meta'), c = cardOf(p);
+  for (const i of [0, 1]) {
+    const p = seatOf(i), card = document.getElementById('p' + i), meta = document.getElementById('p' + i + 'meta'), c = cardOf(p);
     card.classList.toggle('on', (state !== 'menu' || !!paused) && game.turn === p && game.winner === null);
-    document.getElementById('p' + p + 'name').textContent = cardName(p);
-    const think = (paused ? paused.state : state) === 'thinking' && cpuMode && p === 1 && !cpuPlan;
+    document.getElementById('p' + i + 'name').textContent = cardName(p);
+    const think = (paused ? paused.state : state) === 'thinking' && !humanP(p) && p === game.turn && !cpuPlan;
     meta.textContent = think ? 'thinking' : c.meta;
     meta.classList.toggle('thinking', think);
     meta.classList.toggle('warn', !think && !!c.warn);
-    fillDots(document.getElementById('p' + p + 'dots'), c.dots);
+    fillDots(document.getElementById('p' + i + 'dots'), c.dots);
   }
   hudControls();
   hudSnooker();
+  hudModes();
 }
 /* ---- 6b. snooker's scoreboard: a slim bar on the top rail with the break, the ball on (its dot)
    and the points left, and a warning when the player to shoot needs snookers. The chips carry
@@ -11572,8 +11703,8 @@ function overBallOf(w) {
 }
 function showOver() {
   const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind === 'carom' ? (game.need === 1 ? 'One-cushion' : 'Three-cushion') : game.kind + '-ball';
-  const n = stats.shots[0] + stats.shots[1];
-  overKind.textContent = `${kind}${cpuMode ? ` vs ${FOES[cpuLevel]}` : ''}, ${n} shot${n === 1 ? '' : 's'}`;
+  const n = stats.shots.reduce((a, b) => a + b, 0), P = stats.shots.map((_, p) => p);
+  overKind.textContent = `${party ? rulesOf(game).name : kind}${cpuMode ? ` vs ${FOES[cpuLevel]}` : exhib ? ', exhibition' : ''}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
   overWhy.textContent = overLine(game);
   over.dataset.mood = cpuMode && w === 1 ? 'quiet' : 'win';
@@ -11606,7 +11737,7 @@ function showOver() {
     return s;
   };
   const head = document.createElement('thead'), body = document.createElement('tbody');
-  head.appendChild(row('', [0, 1].map(p => nameOf(p)), true));
+  head.appendChild(row('', P.map(p => nameOf(p)), true));
   /* snooker: the frame's score and the highest breaks (and the frames, in a match) in place of the
      potted balls and the best run; carom: points, innings (turns at the table), the average per
      inning and the best run */
@@ -11615,11 +11746,13 @@ function showOver() {
   if (g.kind === 'carom') body.append(row('Points', g.score.map(String)), row('Innings', g.innings.map(String)), row('Average', [avg(0), avg(1)]), row('High run', g.high.map(String)));
   else {
     const lead = g.kind === 'snooker' ? [row('Score', sc.map(String)), row('High break', g.high.map(String)), ...(g.frames > 1 ? [row('Frames', g.won.map(String))] : [])]
-      : [row('Potted', [dots(0), dots(1)]), row('Best run', stats.best.map(String))];
-    body.append(...lead, row('Accuracy', [0, 1].map(acc)), row('Fouls', stats.fouls.map(String)), row('Shots of note', [noteCell(0), noteCell(1)]));
-    body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
+      : [...(party && g.score ? [row('Points', g.score.map(String))] : []), ...(party && party.n > 2 ? [] : [row('Potted', P.map(dots))]), row('Best run', stats.best.map(String))];
+    /* a party of three or four: no shots of note, so the columns fit a phone */
+    body.append(...lead, ...(party ? [row('Racks won', party.wins.map(String))] : []), row('Accuracy', P.map(acc)), row('Fouls', stats.fouls.map(String)), ...(P.length > 2 ? [] : [row('Shots of note', P.map(noteCell))]));
+    if (P.length <= 2) body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
   }
   overStats.replaceChildren(head, body);
+  overStats.toggleAttribute('data-many', P.length > 2);
   menu.classList.remove('show');
   over.classList.add('show');
   if (byKeys) rematch.focus({ preventScroll: true });
@@ -11631,8 +11764,8 @@ Object.defineProperty(felt, 'haptics', { get: () => ({ count: hapCount, armed: h
 Object.assign(felt, { showCallout });
 menuBtn.addEventListener('click', () => { audioOn(); pause(); });
 resumeBtn.addEventListener('click', () => resume());
-rematch.addEventListener('click', () => { audioOn(); start(game.kind); });
-overMenu.addEventListener('click', () => { state = 'menu'; showMenu(); hud(); });
+rematch.addEventListener('click', () => { audioOn(); if (modeOpts) start(game.kind, modesAgain()); else start(game.kind); });
+overMenu.addEventListener('click', () => { modesEnd(); state = 'menu'; showMenu(); hud(); });
 
 /* ============ 6d. LESSON AND CAREER ============ */
 /* ---- the lesson, "Learn to play": three short steps on one fixed layout, the 1 straight in to
@@ -11876,6 +12009,7 @@ function startTutorial(id) {
 }
 /* step i of tutorial t on its own table: the layout, a fresh turn, the coach */
 function tutBegin(t, i, ctx, keep) {
+  modesEnd();
   cpuMode = false;
   const was = geoSigNow();
   setTable(...t.table);
@@ -12877,8 +13011,8 @@ function careerStats() {
 }
 careerBtn.addEventListener('click', () => { audioOn(); showCareer(); });
 careerBack.addEventListener('click', () => cvBack());
-rackGo.addEventListener('click', () => { audioOn(); if (career) careerRack(); });
-rackQuit.addEventListener('click', () => { quitToHome(); showCareer(); });
+rackGo.addEventListener('click', () => { audioOn(); if (career) careerRack(); else if (tmatch) tourneyRack(); });
+rackQuit.addEventListener('click', () => { const t = !!tmatch; quitToHome(); if (t) showModes('tour'); else showCareer(); });
 matchGo.addEventListener('click', () => {
   audioOn();
   const nm = Career.loaded ? Career.nextMatch() : null;
@@ -12897,12 +13031,485 @@ Object.defineProperties(felt, {
   careerPage: { get: () => careerSheet.classList.contains('show') ? cvTop().p : null },
 });
 
+/* ============ 6f. MORE MODES: the quick tournament, the AI exhibition, the party ============
+   Three ways to play past the home's games, on one navigation stack (modesSheet, built with the
+   career's rows, cells and capsule: cvRow, cvGroup, cvSeg, cvButton). Each plays the real game
+   through start(kind, o), with its own o.mode:
+   - Quick tournament ('tourney'): a bracket of 4, 8 or 16, single or double elimination (the
+     career engine's makeBracket and outcome, Career.lib), the player and CPU opponents, each a
+     name from the career's tables (genPlayer) and a personality (cpuProfile({ level, arch })).
+     The player's matches are raced rack by rack on the table, as a career match is (finish()
+     hands each rack to tourneyRackOver). Every other match is settled by the career's match
+     model (playModel) from each side's attributes (tAttrs: the level's base, moved by the
+     archetype), seeded by the tournament's seed and the match, so a seed always gives the same
+     results; those matches are labelled simulated. Saved as felt.tourney.v1 (TOURNEY_KEY) at
+     every change. A match left before its end (Quit, Forfeit, another game, the page closed:
+     t.live carries it to the next boot) is reported as a forfeit, as in the career (audit F5).
+   - AI exhibition ('exhibit'): two CPU players on any table, each searching with their own
+     personality, through the same search, physics and rules as any CPU turn. The bar under the
+     table pauses and sets felt.speed (1x, 2x, 4x); the replay pill works as ever. o.seed is the
+     CPU's seed, so one seed plays one rack, shot for shot.
+   - Party ('party'): 2 to 4 people in turn on one device, on a ring ruleset (sim 1e: 9-ball
+     ring, rotation ring, Around the table). The device is handed over (the handoff sheet) each
+     time the turn goes to another player; racks won are kept across the party's racks. Games
+     whose rules have no third player (8-ball, snooker, bumper pool, carom) are not offered. ---- */
+const TOURNEY_KEY = 'felt.tourney.v1';
+const T_KINDS = ['8', '9', '10'], T_SIZES = [4, 8, 16], T_RACES = [1, 2, 3, 5], T_FMTS = ['single', 'double'], T_FIELDS = ['mixed', 'easy', 'medium', 'hard'];
+const T_BASE = { easy: 40, medium: 58, hard: 76 };
+const ARCH_WORDS = { allround: 'All-round', potter: 'Potter', shotmaker: 'Shotmaker', defender: 'Defender', positional: 'Positional', breaker: 'Breaker', banker: 'Banker', grinder: 'Grinder', clutch: 'Clutch' };
+const LEVEL_WORDS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+let tour = null, exSpeed = false, hoCount = 0;
+/* an AI entrant's attributes for the match model: its level's base, moved by its archetype (the
+   career's ARCH deltas), so the model and the live CPU agree on who is the stronger */
+function tAttrs(level, arch) {
+  const d = (Career.ARCH.find(x => x.id === arch) || { d: {} }).d, b = T_BASE[level] || T_BASE.medium, at = {};
+  for (const k of Career.ATTRS) at[k] = clamp(Math.round((k === 'agg' ? 50 : b) + (d[k] || 0)), 5, 99);
+  return at;
+}
+const tTpl = t => Career.lib.makeBracket(t.fmt, t.size);
+const tCtx = t => Career.lib.ctxOf(tTpl(t), t.f, t.res);
+/* the player's (entrant 0) match ready to play, or null */
+function tMine(t, c = tCtx(t)) {
+  for (let m = 0; m < c.T.M.length; m++) {
+    if (t.res[m] !== null) continue;
+    const o = Career.lib.outcome(c, m);
+    if (o.st === 'ready' && (o.a === 0 || o.b === 0)) return m;
+  }
+  return null;
+}
+/* a CPU match settled by the model: [a's racks, b's racks] */
+function tModel(t, a, b, m) {
+  const L = Career.lib, side = id => ({ at: tAttrs(t.field[id].level, t.field[id].arch), pref: t.kind });
+  return L.playModel(side(a), side(b), t.kind, t.race, L.seedOf(t.seed, 'm', m), false).s;
+}
+/* settle every CPU match that can be played before the player's next one (all of them once the
+   player is out), then mark the end and the places */
+function tSettle(t) {
+  const L = Career.lib, T = tTpl(t);
+  for (let guard = 0; guard < 400; guard++) {
+    const c = L.ctxOf(T, t.f, t.res), mine = tMine(t, c), lim = mine === null ? Infinity : T.M[mine].dep;
+    let m = -1, o = null;
+    for (let i = 0; i < T.M.length && m < 0; i++) {
+      if (t.res[i] !== null || T.M[i].dep > lim) continue;
+      const x = L.outcome(c, i);
+      if (x.st === 'ready' && x.a !== 0 && x.b !== 0) { m = i; o = x; }
+    }
+    if (m < 0) break;
+    t.res[m] = tModel(t, o.a, o.b, m); t.sim[m] = true;
+  }
+  const c = L.ctxOf(T, t.f, t.res);
+  t.done = L.complete(c);
+  t.places = t.done ? L.placings(T, t.f, t.res) : null;
+  return t;
+}
+/* a new tournament: o = { kind, ruleset, size, fmt, race, field ('mixed' or a level), seed } */
+function tourneyNew(o) {
+  const L = Career.lib, seed = (o.seed >>> 0) || 1, kind = T_KINDS.includes(o.kind) ? o.kind : '9';
+  const size = T_SIZES.includes(o.size) ? o.size : 8, fmt = T_FMTS.includes(o.fmt) ? o.fmt : 'single', race = T_RACES.includes(o.race) ? o.race : 3;
+  const ruleset = rulesetsFor(kind).some(r => r.id === o.ruleset) ? o.ruleset : DEFAULT_RULESET[kind], str = T_FIELDS.includes(o.field) ? o.field : 'mixed';
+  const names = new Set(['You']), field = [{ name: 'You', first: 'You', me: true }];
+  for (let i = 1; i < size; i++) {
+    const g = L.genPlayer(seed, i, names), u = rng(L.seedOf(seed, 'lv', i))();
+    field.push({ name: g.name, first: g.first, arch: CPU_ARCH[g.arch] ? g.arch : 'allround', level: str !== 'mixed' ? str : u < 0.3 ? 'easy' : u < 0.7 ? 'medium' : 'hard', av: g.avatar });
+  }
+  /* the draw: every entrant's seed, the player's too, from the tournament's seed */
+  const f = field.map((_, i) => i), r = rng(L.seedOf(seed, 'draw'));
+  for (let i = f.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [f[i], f[j]] = [f[j], f[i]]; }
+  const n = tTpl({ fmt, size }).M.length;
+  return tSettle({ v: 1, seed, kind, ruleset, fmt, size, race, str, field, f, res: Array(n).fill(null), sim: Array(n).fill(false), ff: Array(n).fill(false), live: null, done: false, places: null, msg: '' });
+}
+function tSave() { try { if (tour) localStorage.setItem(TOURNEY_KEY, JSON.stringify(tour)); else localStorage.removeItem(TOURNEY_KEY); } catch (e) { } }
+/* the stored tournament, or null when there is none or it does not read as one */
+function tLoad() {
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem(TOURNEY_KEY) || 'null'); } catch (e) { return null; }
+  if (!o || typeof o !== 'object' || o.v !== 1 || !T_KINDS.includes(o.kind) || !T_SIZES.includes(o.size) || !T_FMTS.includes(o.fmt) || !T_RACES.includes(o.race)) return null;
+  const n = tTpl(o).M.length, int = x => Number.isInteger(x) && x >= 0;
+  if (!Number.isInteger(o.seed) || !Array.isArray(o.field) || o.field.length !== o.size || !Array.isArray(o.f) || o.f.length !== o.size || o.f.slice().sort((a, b) => a - b).some((x, i) => x !== i)) return null;
+  if (![o.res, o.sim, o.ff].every(a => Array.isArray(a) && a.length === n)) return null;
+  if (!o.res.every(x => x === null || (Array.isArray(x) && x.length === 2 && x.every(int) && x[0] !== x[1]))) return null;
+  if (!o.field.every((p, i) => p && typeof p.name === 'string' && typeof p.first === 'string' && (i === 0 || (CPU_ARCH[p.arch] && LEVELS.includes(p.level))))) return null;
+  if (o.live !== null && !(Number.isInteger(o.live) && o.live >= 0 && o.live < n)) return null;
+  if (!rulesetsFor(o.kind).some(r => r.id === o.ruleset)) return null;
+  o.msg = typeof o.msg === 'string' ? o.msg : '';
+  return tSettle(o);
+}
+/* the player's match m reported: mine and theirs in racks, oriented onto the bracket's sides */
+function tReport(m, mine, theirs, forfeit) {
+  const o = Career.lib.outcome(tCtx(tour), m);
+  tour.res[m] = o.a === 0 ? [mine, theirs] : [theirs, mine];
+  tour.ff[m] = !!forfeit; tour.live = null;
+  tSettle(tour);
+  tSave();
+}
+/* a round's name: the career's (Final, Semi-final, Losers bracket, Grand final ...), the
+   winners' side of a double elimination named as such */
+function tRound(t, m) {
+  const T = tTpl(t), x = T.M[m], n = Career.lib.roundName({ fmt: t.fmt }, T, m);
+  return x.br === 'U' ? `Winners bracket, ${n[0].toLowerCase() + n.slice(1)}` : n;
+}
+const tFoeOf = (t, m) => { const o = Career.lib.outcome(tCtx(t), m); return t.field[o.a === 0 ? o.b : o.a]; };
+const tPlace = t => t.places ? (t.places.find(x => x[0] === 0) || [0, t.size])[1] : null;
+const tChamp = t => t.places ? t.field[t.places[0][0]] : null;
+/* the player's next match on the table: its first rack */
+function tourneyPlay() {
+  if (!tour || tour.done) return false;
+  const m = tMine(tour);
+  if (m === null) return false;
+  tmatch = { m, foe: tFoeOf(tour, m), score: [0, 0], rack: 1, need: tour.race, done: false, round: tRound(tour, m), lag: rng(Career.lib.seedOf(tour.seed, 'lag', m))() < 0.5 ? 0 : 1 };
+  /* from here, leaving the match is a forfeit, even by closing the page */
+  tour.live = m; tour.msg = ''; tSave();
+  tourneyRack();
+  return true;
+}
+/* start(kind, o)'s terms for the rack in play: the tournament's rules (locked), the opponent's
+   personality, who breaks (the lag's winner, then alternate breaks) */
+function tourneyTerms() {
+  const t = tmatch;
+  return { mode: 'tourney', level: t.foe.level, cpuProfile: { level: t.foe.level, arch: t.foe.arch }, hill: t.score.some(x => x === t.need - 1), table: settings.table, pockets: settings.pockets,
+    bumperTable: settings.bumperTable, breaker: (t.lag + t.rack - 1) % 2, rules: { ruleset: tour.ruleset, call: settings.calls } };
+}
+function tourneyRack() { start(tour.kind, tourneyTerms()); }
+/* finish() of a tournament rack: true when it took the rack (between racks, or the match over) */
+function tourneyRackOver() {
+  if (!tmatch || tmatch.done || game.mode || game.winner === null) return false;
+  const t = tmatch, w = game.winner;
+  t.score[w]++;
+  if (t.score[w] < t.need) { t.rack++; showTourneyRack(); return true; }
+  t.done = true;
+  tReport(t.m, t.score[0], t.score[1], false);
+  tour.msg = t.score[0] > t.score[1] ? `You beat ${t.foe.name} ${t.score[0]}-${t.score[1]}.` : `${t.foe.name} beat you ${t.score[1]}-${t.score[0]}.`;
+  tSave();
+  tmatch = null;
+  restartBtn.hidden = false;
+  quitToHome();
+  showModes('tour');
+  return true;
+}
+/* a match left before its end: a forfeit, the racks won so far against the race */
+function tourneyAbandon() {
+  if (!tmatch) return;
+  const t = tmatch;
+  tmatch = null;
+  restartBtn.hidden = false;
+  if (t.done || !tour || tour.live !== t.m) return;
+  tReport(t.m, Math.min(t.score[0], t.need - 1), t.need, true);
+  tour.msg = `Forfeit: the match against ${t.foe.name} was left before its end, and counts as a loss.`;
+  tSave();
+}
+/* boot: the stored tournament; a match left by closing the page is forfeited */
+function tourneyLeftover() {
+  tour = tLoad();
+  if (!tour || tour.live === null) return false;
+  const m = tour.live, o = Career.lib.outcome(tCtx(tour), m);
+  if (o.st !== 'ready' || (o.a !== 0 && o.b !== 0)) { tour.live = null; tSave(); return false; }
+  const foe = tFoeOf(tour, m);
+  tReport(m, 0, tour.race, true);
+  tour.msg = `Forfeit: the match against ${foe.name} was left before its end, and counts as a loss.`;
+  tSave();
+  return true;
+}
+function showTourneyRack() {
+  const t = tmatch, theirs = tourneyTerms().breaker === 1;
+  rackKick.textContent = `Quick tournament, ${t.round}, race to ${t.need}`;
+  rackTitle.textContent = `Rack ${t.rack}`;
+  rackSub.textContent = `${leadWords(t.foe.first, t.score[0], t.score[1])} ${theirs ? `${t.foe.first} breaks.` : 'Your break.'}`;
+  boardOf(rackBoard, t.score, t.need, t.foe.first);
+  menu.classList.remove('show'); over.classList.remove('show');
+  banner.classList.remove('show');
+  rackSheet.classList.add('show');
+  say(`${rackTitle.textContent}. ${rackSub.textContent}`);
+  if (byKeys) rackGo.focus({ preventScroll: true });
+}
+/* the pause menu in a tournament match: the opponent, the round, the score; no Restart, and
+   Quit says it forfeits. An exhibition and a party only name themselves (hudMenu's kicker). */
+function hudModesMenu() {
+  /* a party: everyone's score in a line (the cards show the player to shoot and the next) */
+  const pl = !party || !paused || game.mode ? '' : (game.score ? 'Points: ' : 'Racks won: ') + party.names.map((nm, i) => `${nm} ${game.score ? game.score[i] : party.wins[i]}`).join(', ') + (game.score ? `; race to ${game.race}` : '');
+  partyLine.hidden = !pl;
+  if (partyLine.textContent !== pl) partyLine.textContent = pl;
+  if (!tmatch || tmatch.done || !paused || game.mode) return;
+  const t = tmatch, f = t.foe, av = f.av || {};
+  careerNow.hidden = false;
+  restartBtn.hidden = true;
+  const ex = exitBtn.lastChild;
+  if (ex && ex.nodeType === 3 && ex.textContent !== 'Forfeit match') ex.textContent = 'Forfeit match';
+  careerNow.dataset.key = 'tourney';
+  cnAv.className = 'av';
+  cnAv.style.setProperty('--av', av.col || '');
+  cnAv.textContent = av.ini || f.first[0];
+  cnName.textContent = f.name;
+  cnLine.textContent = `Quick tournament, ${t.round}`;
+  cnScore.textContent = `${t.score[0]}-${t.score[1]}`;
+  cnRace.textContent = `Race to ${t.need}, rack ${t.rack}`;
+  careerNow.setAttribute('aria-label', `${f.name}, ${cnLine.textContent}. You ${t.score[0]}, ${f.first} ${t.score[1]}. ${cnRace.textContent}.`);
+}
+
+/* ---- the AI exhibition ---- */
+const EX_KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
+const EX_WORDS = { 8: '8-ball', 9: '9-ball', 10: '10-ball', straight: '14.1', rotation: 'Rotation', snooker: 'Snooker', carom: 'Carom', bumper: 'Bumper' };
+/* the table terms every mode passes start(): the settings' table, pockets and sizes */
+const tableTerms = kind => ({ table: settings.table, pockets: settings.pockets, bumperTable: settings.bumperTable, snooker: settings.snookerTable, carom: kind === 'carom' ? caromOpts() : undefined });
+/* o: { kind, a, b: { level, arch }, seed }: start(kind, terms) plays it */
+function exhibitionTerms(o) {
+  const seed = (o.seed >>> 0) || 1, names = new Set(), kind = EX_KINDS.includes(o.kind) ? o.kind : '9';
+  const players = [o.a || {}, o.b || {}].map((x, i) => ({ level: LEVELS.includes(x.level) ? x.level : 'medium', arch: CPU_ARCH[x.arch] ? x.arch : 'allround', name: Career.lib.genPlayer(seed, i + 1, names).name }));
+  return Object.assign({ mode: 'exhibit', kind, players, seed }, tableTerms(kind));
+}
+function exhibition(o) { audioOn(); const t = exhibitionTerms(o); start(t.kind, t); return true; }
+const EX_SPEEDS = [[exS1, 1], [exS2, 2], [exS4, 4]];
+for (const [b, v] of EX_SPEEDS) b.addEventListener('click', () => { felt.speed = v; exSpeed = true; hudModes(); });
+exPause.addEventListener('click', () => { audioOn(); pause(); });
+
+/* ---- the party ---- */
+const PARTY_RACES = [15, 25, 50];
+/* o: { ruleset (a ring ruleset), names (2 to 4), race (Around the table's points) } */
+function partyTerms(o) {
+  const R = RULESETS[o.ruleset] && RULESETS[o.ruleset].ring ? RULESETS[o.ruleset] : RULESETS['9-ring'], kind = R.game;
+  const names = (o.names || []).slice(0, 4).map((x, i) => cleanName(String(x || '')) || `Player ${i + 1}`);
+  while (names.length < 2) names.push(`Player ${names.length + 1}`);
+  return Object.assign({ mode: 'party', kind, names, breaker: 0, rack: 0, rules: { ruleset: R.id, call: settings.calls, options: { players: names.length }, race: kind === 'straight' && PARTY_RACES.includes(o.race) ? o.race : undefined } }, tableTerms(kind));
+}
+function partyStart(o) { audioOn(); const t = partyTerms(o); start(t.kind, t); return true; }
+/* Rematch: the next rack of a party (its wins kept, the break passed round), or a new exhibition rack */
+function modesAgain() {
+  const o = Object.assign({}, modeOpts);
+  if (party) { o.wins = party.wins.slice(); o.rack = (o.rack || 0) + 1; o.breaker = o.rack % party.n; }
+  if (exhib) o.seed = (o.seed + 1) >>> 0;
+  return o;
+}
+/* the handoff: whose turn it is, what they are on, everyone's score, and Ready */
+function partyScore(p) {
+  if (game.score) return `${game.score[p]} of ${game.race}`;
+  return `${party.wins[p]} rack${party.wins[p] === 1 ? '' : 's'}`;
+}
+function showHandoff(p, first) {
+  const v = game.verdict, on = legalTargets(game), R = rulesOf(game), prev = (p + party.n - 1) % party.n;
+  hoKick.textContent = first ? `${R.name}, ${party.n} players` : 'Pass the device';
+  hoTitle.textContent = first ? `${nameOf(p)} breaks` : `Pass to ${nameOf(p)}`;
+  const why = !first && v && v.foul ? `${nameOf(prev)} fouled: ${v.foul}. ` : '';
+  const what = game.option ? 'A choice to make. ' : game.inHand ? 'Ball in hand. ' : '';
+  const ball = ['9', 'rotation'].includes(game.kind) && on.length ? `Ball on: the ${on[0]}.` : callScope(game) !== 'none' && !game.breakShot ? 'Call your shot.' : '';
+  hoSub.textContent = (why + what + ball).trim();
+  hoBoard.replaceChildren(...party.names.map((nm, i) => {
+    const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('b');
+    a.textContent = nm + (i === p ? ' (to shoot)' : ''); b.textContent = partyScore(i);
+    if (i === p) li.className = 'up';
+    li.append(a, b);
+    return li;
+  }));
+  hoGo.textContent = `${nameOf(p)}: ready`;
+  handoff.dataset.who = String(p);
+  handoff.classList.add('show');
+  hoCount++;
+  say(`${hoTitle.textContent}. ${hoSub.textContent}`);
+  if (byKeys) hoGo.focus({ preventScroll: true });
+}
+/* after a shot (frame) or a choice (choose): the device goes on when the turn left `was` */
+function partyHandoff(was) {
+  if (!party || game.mode || game.winner !== null || state === 'over' || state === 'menu') return;
+  const to = state === 'choose' && game.option ? game.option.who : game.turn;
+  if (to !== was) showHandoff(to);
+}
+hoGo.addEventListener('click', () => { handoff.classList.remove('show'); say(aimHint()); });
+
+/* the start of any game: the speed bar's speed goes with the exhibition it was set for; a party
+   opens with the breaker's handoff */
+function modesStarted() {
+  if (!exhib && exSpeed) { felt.speed = 1; exSpeed = false; }
+  if (party) showHandoff(game.turn, true);
+  hudModes();
+}
+/* the turn chips and cards: a party of three or four shows the player to shoot, then the next */
+const seatOf = i => party && party.n > 2 ? (game.turn + i) % party.n : i;
+function hudModes() {
+  const on = !!exhib && !paused && state !== 'menu' && state !== 'over';
+  if (exBar.hidden === on) exBar.hidden = !on;
+  if (!on) return;
+  for (const [b, v] of EX_SPEEDS) b.setAttribute('aria-pressed', String(felt.speed === v));
+  const t = nameOf(game.turn);
+  if (exLab.textContent !== t) exLab.textContent = t;
+}
+
+/* ---- the screens: a stack of pages over modesSheet, each rebuilt on every change ---- */
+const md = { stack: [], end: false,
+  tf: { kind: '9', ruleset: '9-house', size: 8, fmt: 'single', race: 3, field: 'mixed' },
+  ex: { kind: '9', a: { level: 'medium', arch: 'potter' }, b: { level: 'medium', arch: 'defender' } },
+  pt: { ruleset: '9-ring', n: 3, names: ['', '', '', ''], race: 25 } };
+const MD_PAGES = {};
+function showModes(page) {
+  md.stack = [{ p: 'root' }];
+  if (page && page !== 'root') md.stack.push({ p: page });
+  md.end = false;
+  openSheet(modesSheet, modesBack);
+  mdRender();
+}
+function mdGo(p) { md.stack.push({ p }); md.end = false; mdRender('push'); }
+function mdBack() { if (md.stack.length > 1) { md.stack.pop(); md.end = false; mdRender('pop'); } else backToMenu(); }
+function mdRender(anim) {
+  const t = md.stack[md.stack.length - 1] || { p: 'root' };
+  mdBody.replaceChildren(...(MD_PAGES[t.p] || MD_PAGES.root)().filter(Boolean));
+  mdBody.dataset.page = md.stack[md.stack.length - 1].p;
+  mdBody.classList.remove('push', 'pop');
+  if (anim) { void mdBody.offsetWidth; mdBody.classList.add(anim); mdSheet.scrollTop = 0; }
+  modesBack.setAttribute('aria-label', md.stack.length > 1 ? 'Back' : 'Back to home');
+  if (anim && byKeys) modesBack.focus({ preventScroll: true });
+}
+const mdHead = (k, t) => { modesKick.textContent = k; modesTitle.textContent = t; };
+const MD_ICONS = {
+  tour: '<path d="M10.5 6h11v6a5.5 5.5 0 0 1-11 0z" fill="#f2c94c"/><path d="M10.5 8H7.5a3.2 3.2 0 0 0 3.4 4.4M21.5 8h3a3.2 3.2 0 0 1-3.4 4.4" fill="none" stroke="#f2c94c" stroke-width="1.6"/><path d="M14.5 17.5h3v4h-3zM12 22.5h8v2.5h-8z" fill="#f2c94c"/>',
+  ex: '<circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21.5" cy="11.5" r="5" fill="#f2be28"/><path d="M14.5 16.5l3.4-3.4" stroke="#f6f4ec" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1.6 2.6"/>',
+  party: '<circle cx="11" cy="12" r="3.4" fill="#f6f4ec"/><circle cx="21" cy="12" r="3.4" fill="#f6f4ec"/><path d="M5 24c.6-4 3-6 6-6s5.4 2 6 6M15 24c.6-4 3-6 6-6s5.4 2 6 6" fill="none" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round"/>',
+};
+function mdIcon(k) { const s = cvEl('span', 'htile'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = `<svg viewBox="0 0 32 32">${MD_ICONS[k]}</svg>`; return s; }
+const ruleWord = r => { const w = r.name.split(', ')[1] || r.name; return w.startsWith('felt') ? w : w[0].toUpperCase() + w.slice(1); };
+function tStatus(t) {
+  if (t.done) { const c = tChamp(t); return tPlace(t) === 1 ? 'Over: you are the champion' : `Over: ${c.name} won, you finished ${placeWords(tPlace(t))}`; }
+  const m = tMine(t);
+  return m === null ? `${KINDS[t.kind].name}, under way` : `${KINDS[t.kind].name}: ${tRound(t, m)} against ${tFoeOf(t, m).name}`;
+}
+MD_PAGES.root = () => {
+  mdHead('Modes', 'More modes');
+  return [
+    cvHeadEl('Play'),
+    cvGroup(
+      cvRow({ id: 'mdTour', lead: mdIcon('tour'), title: 'Quick tournament', sub: tour ? tStatus(tour) : 'A bracket of 4, 8 or 16 against CPU players', onClick: () => mdGo(tour ? 'tour' : 'tsetup') }),
+      cvRow({ id: 'mdEx', lead: mdIcon('ex'), title: 'AI exhibition', sub: 'Watch two CPU players on any table', onClick: () => mdGo('exsetup') }),
+      cvRow({ id: 'mdParty', lead: mdIcon('party'), title: 'Party', sub: 'Two to four players in turn on one device', onClick: () => mdGo('psetup') })),
+    cvNoteEl('Every mode plays the real game, offline: the same physics, rules and CPU as any other table.'),
+  ];
+};
+MD_PAGES.tsetup = () => {
+  const f = md.tf, sets = rulesetsFor(f.kind);
+  if (!sets.some(r => r.id === f.ruleset)) f.ruleset = DEFAULT_RULESET[f.kind];
+  const R = RULESETS[f.ruleset];
+  mdHead('Quick tournament', 'New tournament');
+  return [
+    cvHeadEl('Game'), cvSeg(T_KINDS.map(k => [k, KINDS[k].name]), f.kind, v => { f.kind = v; f.ruleset = DEFAULT_RULESET[v]; mdRender(); }),
+    cvHeadEl('Rules'), cvSeg(sets.map(r => [r.id, ruleWord(r)]), f.ruleset, v => { f.ruleset = v; mdRender(); }, 'wrap two'), cvNoteEl(`${R.name} (${R.source}). ${R.description}`),
+    cvHeadEl('Players'), cvSeg(T_SIZES.map(n => [n, String(n)]), f.size, v => { f.size = v; }),
+    cvHeadEl('Format'), cvSeg([['single', 'Single elimination'], ['double', 'Double elimination']], f.fmt, v => { f.fmt = v; }, 'wrap two'),
+    cvHeadEl('Race to'), cvSeg(T_RACES.map(n => [n, String(n)]), f.race, v => { f.race = v; }),
+    cvHeadEl('Opponents'), cvSeg(T_FIELDS.map(x => [x, x === 'mixed' ? 'Mixed' : LEVEL_WORDS[x]]), f.field, v => { f.field = v; }),
+    cvNoteEl('Your matches are played on the table. Every other match is settled by the career\'s match model from the players\' strengths, and shown as simulated.'),
+    tour && !tour.done ? cvNoteEl('Starting a new tournament ends the one under way.', true) : null,
+    cvActs(cvButton('Start tournament', () => tourneyCreate(Object.assign({}, md.tf, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdStartT')),
+  ];
+};
+/* a new tournament from the setup (or the test hook), saved, its bracket on show */
+function tourneyCreate(o) {
+  tourneyAbandon();
+  tour = tourneyNew(o);
+  tSave();
+  md.stack = [{ p: 'root' }, { p: 'tour' }];
+  if (modesSheet.classList.contains('show')) mdRender('push');
+  return JSON.parse(JSON.stringify(tour));
+}
+function tMatchRow(t, c, m) {
+  const o = Career.lib.outcome(c, m), d = cvEl('div', 'bm');
+  const side = id => cvEl('span', (o.st === 'done' && o.w === id ? 'w' : '') + (id === 0 ? ' me' : ''), id === null ? 'Bye' : id === undefined ? 'To come' : t.field[id].name);
+  const mid = cvEl('b', null, o.st === 'done' ? `${o.s[0]}-${o.s[1]}` : o.st === 'bye' ? 'bye' : 'vs');
+  if (o.st === 'done' && (t.sim[m] || t.ff[m])) mid.appendChild(cvEl('small', null, t.ff[m] ? 'forfeit' : 'simulated'));
+  d.append(side(o.a), mid, side(o.b));
+  d.dataset.m = String(m); d.dataset.st = o.st;
+  if (t.sim[m]) d.dataset.sim = '1';
+  return d;
+}
+MD_PAGES.tour = () => {
+  const t = tour;
+  if (!t) { md.stack = [{ p: 'root' }, { p: 'tsetup' }]; return MD_PAGES.tsetup(); }
+  const L = Career.lib, T = tTpl(t), c = tCtx(t), out = [];
+  mdHead(`${KINDS[t.kind].name}, ${t.size} players, race to ${t.race}`, 'Quick tournament');
+  if (t.msg) { const p = cvEl('p', 'cvMsg', t.msg); p.id = 'mdMsg'; p.setAttribute('role', 'status'); out.push(p); }
+  if (t.done) {
+    /* the winner's screen */
+    const pl = tPlace(t), ch = tChamp(t), card = cvEl('div', 'cvCard'), who = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
+    card.id = 'mdWinner';
+    tt.append(cvEl('b', null, pl === 1 ? 'You are the champion' : `${ch.name} wins it`), cvEl('small', null, pl === 1 ? `${KINDS[t.kind].name}, ${t.size} players: the title is yours.` : `You finished ${placeWords(pl)} of ${t.size}.`));
+    who.append(avatarEl(pl === 1 ? { name: 'You' } : { name: ch.name, avatar: ch.av }), tt);
+    card.appendChild(who);
+    out.push(cvHeadEl('Tournament over'), card, cvHeadEl('Final places'),
+      cvGroup(t.places.slice(0, 8).map(p => cvRow({ lead: cvEl('span', 'rk', p[1]), title: t.field[p[0]].name, me: p[0] === 0 })), pl > 8 ? cvRow({ lead: cvEl('span', 'rk', pl), title: 'You', me: true }) : null),
+      cvActs(cvButton('New tournament', () => mdGo('tsetup'), '', 'mdNewT'), cvButton('Home', () => backToMenu(), 'alt')));
+  } else {
+    const m = tMine(t, c);
+    if (m !== null) {
+      const foe = tFoeOf(t, m), card = cvEl('div', 'cvCard'), vs = cvEl('div', 'cvVs'), who = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
+      vs.append(cvEl('span', null, tRound(t, m)), cvEl('span', 'tag', `Race to ${t.race}`));
+      tt.append(cvEl('b', null, foe.name), cvEl('small', null, `${ARCH_WORDS[foe.arch]}, ${LEVEL_WORDS[foe.level].toLowerCase()} CPU`));
+      who.append(avatarEl({ name: foe.name, avatar: foe.av }), tt);
+      card.append(vs, who);
+      out.push(cvHeadEl('Your next match'), card, cvActs(cvButton('Play match', () => { audioOn(); tourneyPlay(); }, '', 'mdPlay')));
+    } else out.push(cvNoteEl('Your next opponent is not known yet.'));
+  }
+  /* the bracket, round by round in play order; a reset or a leg not needed is left out */
+  const rounds = [];
+  T.M.forEach((x, m) => {
+    if (L.outcome(c, m).st === 'skip') return;
+    const name = tRound(t, m), r = rounds.find(y => y.name === name);
+    if (r) r.ms.push(m); else rounds.push({ name, ms: [m] });
+  });
+  for (const r of rounds) { const g = cvGroup(); g.append(...r.ms.map(m => tMatchRow(t, c, m))); out.push(cvHeadEl(r.name), g); }
+  if (!t.done) out.push(cvActs(cvButton(md.end ? 'Tap again to end it' : 'End tournament', () => {
+    if (!md.end) { md.end = true; mdRender(); return; }
+    tour = null; tSave(); md.stack = [{ p: 'root' }]; mdRender('pop');
+  }, 'warn', 'mdEndT')));
+  if (t.msg) { t.msg = ''; tSave(); }   /* said once */
+  return out;
+};
+MD_PAGES.exsetup = () => {
+  const e = md.ex, arch = Object.keys(CPU_ARCH);
+  mdHead('AI exhibition', 'Watch the CPU');
+  const side = (k, label) => [cvHeadEl(label), cvSeg(LEVELS.map(l => [l, LEVEL_WORDS[l]]), e[k].level, v => { e[k].level = v; }),
+    cvSeg(arch.map(a => [a, ARCH_WORDS[a]]), e[k].arch, v => { e[k].arch = v; }, 'wrap')];
+  return [
+    cvHeadEl('Table'), cvSeg(EX_KINDS.map(k => [k, EX_WORDS[k]]), e.kind, v => { e.kind = v; }, 'wrap four'),
+    ...side('a', 'Player 1'), ...side('b', 'Player 2'),
+    cvNoteEl('Both players are the CPU, each with the style you pick, through the same physics and rules as any game. The bar under the table pauses and sets the speed: 1x, 2x or 4x. Tap Replay after a shot to see it again.'),
+    cvActs(cvButton('Watch', () => exhibition(Object.assign({}, e, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdWatch')),
+  ];
+};
+MD_PAGES.psetup = () => {
+  const q = md.pt, R = RULESETS[q.ruleset], form = cvEl('div', 'cvForm mdForm');
+  mdHead('Party', 'Party');
+  for (let i = 0; i < q.n; i++) {
+    const inp = cvEl('input');
+    inp.id = 'mdName' + i; inp.type = 'text'; inp.maxLength = 12; inp.value = q.names[i]; inp.placeholder = `Player ${i + 1}`;
+    inp.autocomplete = 'off'; inp.spellcheck = false; inp.setAttribute('autocapitalize', 'words');
+    inp.addEventListener('input', () => { q.names[i] = cleanName(inp.value); });
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') inp.blur(); });
+    form.appendChild(cvField(`${i + 1}${['st', 'nd', 'rd', 'th'][i]} to shoot`, inp));
+  }
+  return [
+    cvHeadEl('Game'), cvSeg(ringRulesets().map(r => [r.id, r.name]), q.ruleset, v => { q.ruleset = v; mdRender(); }, 'wrap'), cvNoteEl(R.description),
+    cvHeadEl('Players'), cvSeg([2, 3, 4].map(n => [n, String(n)]), q.n, v => { q.n = v; mdRender(); }),
+    cvHeadEl('Names, in turn order'), form,
+    R.game === 'straight' ? cvHeadEl('Race to') : null, R.game === 'straight' ? cvSeg(PARTY_RACES.map(n => [n, `${n} points`]), q.race, v => { q.race = v; }) : null,
+    cvNoteEl('The device goes round the table: whenever the turn passes, it asks for the next player. 8-ball, snooker, bumper pool and three-cushion are two-player games, played from the home screen.'),
+    cvActs(cvButton('Start', () => partyStart({ ruleset: q.ruleset, names: q.names.slice(0, q.n), race: q.race }), '', 'mdStartP')),
+  ];
+};
+playModes.addEventListener('click', () => showModes());
+modesBack.addEventListener('click', () => mdBack());
+/* test hooks: create a tournament from terms (a seed gives the same field and results), play its
+   next match, start an exhibition or a party from terms; read where each stands */
+Object.assign(felt, { showModes, tourneyCreate, tourneyPlay, exhibition, party: partyStart, tourneyTerms: () => tmatch && tourneyTerms(), exhibitionTerms, partyTerms });
+Object.defineProperties(felt, {
+  tourney: { get: () => tour && JSON.parse(JSON.stringify(tour)) },
+  tmatch: { get: () => tmatch && { m: tmatch.m, score: tmatch.score.slice(), rack: tmatch.rack, need: tmatch.need, foe: tmatch.foe.name, round: tmatch.round } },
+  handoff: { get: () => ({ shown: handoff.classList.contains('show'), who: handoff.dataset.who === undefined ? null : +handoff.dataset.who, count: hoCount, title: hoTitle.textContent }) },
+  mode: { get: () => tmatch ? 'tourney' : exhib ? 'exhibit' : party ? 'party' : null },
+  partyState: { get: () => party && { names: party.names.slice(), n: party.n, wins: party.wins.slice() } },
+});
+
 /* ============ 7. BOOT ============ */
 /* the career engine (1z) keeps its slots in localStorage; booting it copies the old ladder's
    record (felt.career.v1, still the 6d ladder's) to felt.career.v1.bak before anything else */
 try { Career.boot(localStorage); } catch (e) { Career.boot(null); }
 /* audit F5: a CPU game or a career match left by closing the page counts as lost (6d, 6) */
 try { abandonedAtBoot(); careerLeftover(); } catch (e) { }
+/* the quick tournament (6f): the stored one, a match left by closing the page forfeited */
+try { tourneyLeftover(); } catch (e) { tour = null; }
 muted = !settings.sound;
 /* a resize or a rotation drops any gesture in flight: its screen axes are stale */
 const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); };

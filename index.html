@@ -1266,10 +1266,14 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 /* More games and More modes share the games grid's slim fourth row; narrow, each drops its
    subtitle and chevron, More games' balls a size down */
 /* under the cards, their gap apart; when the two do not fit side by side (large text) each takes the row */
-.mrow { grid-area: more; display: flex; flex-wrap: wrap; gap: var(--tile-gap); margin-top: var(--tile-gap); min-width: 0; container-type: inline-size; }
+/* at the default text size the two always share the row (a wider font than SF ellipsises the labels
+   rather than wrapping, so the home's height never depends on font metrics); larger text wraps */
+.mrow { grid-area: more; display: flex; flex-wrap: nowrap; gap: var(--tile-gap); margin-top: var(--tile-gap); min-width: 0; container-type: inline-size; }
+:is([data-text="115"], [data-text="130"]) .mrow { flex-wrap: wrap; }
 .mrow .more { flex: 1 1 auto; min-width: 0; }
+.mrow .more .tt { overflow: hidden; }
+.mrow .more b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mrow #playMore { flex-grow: 1.5; }
-.more b { flex: none; }
 @container (max-width: 600px) {
   .mrow .more small { display: none; }
 }

@@ -24,5 +24,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright-core install --with-deps --no-shell chromium
+      # the layout checks measure with Inter (closest to SF Pro), as a phone would; see tests/fonts
+      - run: |
+          sudo apt-get install -y fonts-inter
+          mkdir -p ~/.config/fontconfig/conf.d
+          cp tests/fonts/prefer-inter.conf ~/.config/fontconfig/conf.d/56-prefer-inter.conf
+          fc-cache -f
+          fc-match system-ui | tee /dev/stderr | grep -q Inter
       - run: npm run lint
       - run: npm test

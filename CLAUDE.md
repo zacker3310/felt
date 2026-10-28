@@ -182,6 +182,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 ## Common mistakes
 
 - Port 4199 on this machine is another project's server. Use 4173 or let `run-all` pick a port.
+- Layout checks are font-sensitive: they measure with Inter (closest to the iPhone's SF Pro). CI installs it and maps
+  system-ui to it (`tests/fonts/prefer-inter.conf`); a runner on DejaVu Sans (7.5% wider) fails fit checks. Design
+  rows that ellipsise rather than wrap, so a wider font never changes the home's height.
 - Writing a test that reads final positions after a firm shot: balls bounce around for seconds.
   Read velocities just after the event instead (see the stun/follow/draw check).
 

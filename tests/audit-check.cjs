@@ -5,7 +5,13 @@
    A2 the live roll keeps real time at any display rate (rounding per frame ran 144 Hz 4% slow).
    A3 the daily shot's first try counts when it is struck: quitting mid-roll no longer frees a retry.
    A4 a daily record whose last day is in the future neither shows its streak nor blocks scoring.
-   A5 a stored daily date that names no real day is dropped. */
+   A5 a stored daily date that names no real day is dropped.
+   A6 (F7) keyboard play: the focused power bar takes its mark from up and down; Space drives the bar
+      only with Settings' switch on, pulls to the mark and lets go as the bar does; any key stops it.
+   A7 (F11) a hidden page pauses the game and suspends the audio; nothing steps while hidden; back,
+      the audio resumes and Resume carries on with no time jump.
+   A8 (F14) the CPU's win plays no win sting (a quiet one of its own); a player's win still does.
+   A9 (F16) the last banner does not show through the pause menu (landscape). */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -94,6 +100,96 @@ const { check, done, open } = require('./lib.cjs');
   check('A5 daily record with an impossible date (2026-13-45): read as no last day and no streak, the best kept',
     r5.last === null && r5.streak === 0 && r5.best === 3, JSON.stringify(r5));
   a4.errors.push(...a5.errors);
+
+  /* A6-A9 on a desktop page (keyboard) */
+  const k = await open('');
+  const kp = k.page, sleep = ms => kp.waitForTimeout(ms);
+  await kp.evaluate(() => { felt.start('9'); felt.speed = 1; });
+  await sleep(500);
+  await kp.evaluate(() => powerBar.focus());
+  const k0 = await kp.evaluate(() => ({ mark: markPower, shots: felt.game.shots }));
+  await kp.keyboard.press('ArrowUp'); await kp.keyboard.press('ArrowUp');
+  await kp.keyboard.down('Shift'); await kp.keyboard.press('ArrowDown'); await kp.keyboard.up('Shift');
+  await kp.keyboard.press('Space'); await kp.keyboard.press('Enter');
+  await sleep(1300);
+  const k1 = await kp.evaluate(() => ({ mark: markPower, aria: powerBar.getAttribute('aria-valuenow'), tab: powerBar.tabIndex, shots: felt.game.shots, state: felt.state, pulling: felt.pulling, msg: msg.textContent }));
+  check('A6 keyboard: the power bar is in the tab order; up and down move its mark (Shift a big step); with the switch off Space and Enter shoot nothing and say where to turn it on',
+    k1.tab === 0 && Math.abs(k1.mark - (k0.mark + 0.04 - 0.1)) < 1e-9 && k1.aria === String(Math.round(k1.mark * 100)) && k1.shots === k0.shots && k1.state === 'aim' && !k1.pulling && /Accessibility/.test(k1.msg), JSON.stringify({ k0, k1 }));
+  await kp.evaluate(() => { setSetting('keyShoot', true); powerBar.focus(); });
+  await kp.keyboard.press('Space');
+  await sleep(150);
+  const k2 = await kp.evaluate(() => ({ pulling: felt.pulling, power: felt.power, state: felt.state }));
+  await kp.keyboard.press('Escape');
+  await sleep(1300);
+  const k3 = await kp.evaluate(() => ({ pulling: felt.pulling, state: felt.state, paused: felt.paused, shots: felt.game.shots, power: felt.power, mark: markPower }));
+  check('A6 keyboard: with the switch on, Space arms the bar and it fills toward the mark; any key (Esc here) stops it, nothing is shot and the game is not paused',
+    k2.pulling && k2.power > 0 && k2.power < k1.mark && k2.state === 'aim' && !k3.pulling && k3.state === 'aim' && !k3.paused && k3.shots === k0.shots && k3.power === k3.mark, JSON.stringify({ k2, k3 }));
+  await kp.evaluate(() => powerBar.focus());
+  await kp.keyboard.press('Enter');
+  await kp.waitForFunction(() => felt.state !== 'aim', null, { timeout: 4000 }).catch(() => { });
+  const k4 = await kp.evaluate(() => ({ state: felt.state, power: felt.power, mark: markPower, pulling: felt.pulling }));
+  check('A6 keyboard: left alone, the driven bar reaches its mark and lets go: the shot is struck at the mark (only the bar shoots)', ['stroke', 'rolling'].includes(k4.state) && Math.abs(k4.power - k1.mark) < 1e-9 && !k4.pulling, JSON.stringify(k4));
+  await kp.evaluate(() => { felt.speed = 40; setSetting('keyShoot', false); document.activeElement.blur(); });
+  await kp.waitForFunction(() => !['stroke', 'rolling'].includes(felt.state), null, { timeout: 30000 });
+
+  /* A7: hide the page mid-roll */
+  const a7 = await kp.evaluate(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const hide = h => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => h }); document.dispatchEvent(new Event('visibilitychange')); };
+    felt.quitToHome(); felt.start('8'); audioOn(); felt.speed = 1;
+    await wait(400);
+    felt.shoot(0, 0.9, 0);
+    while (felt.state !== 'rolling') await wait(10);
+    await wait(100);
+    hide(true);
+    await wait(80);
+    const t1 = felt.simT, s1 = felt.state, p1 = felt.paused, a1 = felt.audio.state;
+    await wait(600);
+    const t2 = felt.simT;
+    hide(false);
+    await wait(80);
+    const a2 = felt.audio.state, p2 = felt.paused, t2b = felt.simT;
+    const r0 = performance.now();
+    resumeBtn.click();
+    await wait(150);
+    const t3 = felt.simT, el = (performance.now() - r0) / 1000, s3 = felt.state;
+    delete document.hidden;
+    return { t1, t2, t2b, t3, el, s1, p1, a1, a2, p2, s3, hidden: document.hidden };
+  });
+  check('A7 lifecycle: hidden mid-roll, the game pauses (the pause menu), the audio is suspended, and the roll does not move',
+    a7.s1 === 'menu' && a7.p1 && a7.a1 === 'suspended' && a7.t2 === a7.t1, JSON.stringify(a7));
+  check('A7 lifecycle: back, the audio resumes, the game waits for Resume, then the roll carries on with no jump in time',
+    a7.a2 === 'running' && a7.p2 && a7.t2b === a7.t2 && a7.s3 === 'rolling' && a7.t3 > a7.t2 && a7.t3 - a7.t2 <= a7.el + 0.02 && a7.hidden === false, JSON.stringify(a7));
+  await kp.evaluate(() => { felt.speed = 40; });
+  await kp.waitForFunction(() => !['stroke', 'rolling'].includes(felt.state), null, { timeout: 30000 });
+
+  /* A8: who hears the win sting */
+  const a8 = await kp.evaluate(() => {
+    const heard = [], real = window.sfx;
+    window.sfx = (kind, v) => { if (kind === 'win' || kind === 'lose') heard.push(kind); return real(kind, v); };
+    const run = (cpu, p) => { heard.length = 0; settings.cpu = cpu; felt.quitToHome(); felt.start('8'); felt.forceWin(p); return heard.join(); };
+    const out = { cpuWins: run(true, 1), youWin: run(true, 0), twoPlayers: run(false, 1) };
+    window.sfx = real; settings.cpu = false; felt.quitToHome();
+    return out;
+  });
+  check('A8 audio: the CPU winning plays the quiet sting, not the win; your win and a two-player win still play the win', a8.cpuWins === 'lose' && a8.youWin === 'win' && a8.twoPlayers === 'win', JSON.stringify(a8));
+
+  /* A9: a banner on show, then the pause menu, on a phone on its side */
+  await kp.setViewportSize({ width: 956, height: 440 });
+  await sleep(300);
+  const a9 = await kp.evaluate(async () => {
+    felt.start('8');
+    flash('turn', 'Player 2 to shoot', '', 60000);
+    const before = getComputedStyle(banner).visibility;
+    felt.pause();
+    const under = getComputedStyle(banner).visibility;
+    resumeBtn.click();
+    const after = getComputedStyle(banner).visibility;
+    return { before, under, after, shown: banner.classList.contains('show') };
+  });
+  check('A9 the last banner is hidden under the pause menu, and back after Resume', a9.before === 'visible' && a9.under === 'hidden' && a9.after === 'visible' && a9.shown, JSON.stringify(a9));
+  a4.errors.push(...k.errors);
+  await k.browser.close();
   await a5.browser.close();
   check('no console errors', errors.length === 0 && a4.errors.length === 0, errors.concat(a4.errors).join(' | '));
   await a4.browser.close();

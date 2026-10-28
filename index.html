@@ -459,13 +459,6 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .chip-g, .chip-r, .chip-b { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
 .chip-g { background: #1b5d47; }
 .chip-r { background: #9a1f26; }
-/* settings on a short landscape screen: the four choices two by two */
-@media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
-  #prefsSheet .sheet { max-width: 820px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 26px; align-items: center; }
-  #prefsSheet .shead, #prefsSheet .note, #prefsSheet .diag { grid-column: 1 / -1; }
-  #prefsSheet #aaNote { display: none; }
-  #prefsSheet .field { grid-template-columns: 84px minmax(0, 1fr); }
-}
 /* stats: four numbers, then a row per game */
 #statsSheet .sheet { max-width: 560px; }
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
@@ -487,29 +480,29 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    tutorial, or the lesson) pinned at the foot, clear of the home indicator. The back button pops
    to the list, and from the list goes home. The header stays pinned while the page scrolls under
    it. Full screen on a phone held upright, a card on anything wider. One accent from the cloth. ---- */
-#helpSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+#helpSheet, #prefsSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
   --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
-[data-cloth="red"] #helpSheet { --accent: #ff8a7a; }
-[data-cloth="blue"] #helpSheet { --accent: #7cb6ff; }
-#helpSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+[data-cloth="red"] :is(#helpSheet, #prefsSheet) { --accent: #ff8a7a; }
+[data-cloth="blue"] :is(#helpSheet, #prefsSheet) { --accent: #7cb6ff; }
+:is(#helpSheet, #prefsSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
   padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
 @media (max-width: 600px) {
-  #helpSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  #helpSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  #helpSheet .howTop { padding-top: calc(var(--sat) + 14px); }
+  #helpSheet, #prefsSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  :is(#helpSheet, #prefsSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  :is(#helpSheet, #prefsSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
 }
 .howTop { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 18px var(--pr) 8px var(--pl); background: var(--page); }
 .howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px; background: linear-gradient(var(--page), rgba(11, 11, 12, 0)); pointer-events: none; }
-#helpSheet .shead { margin: 0; gap: 14px; }
-#helpSheet .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#helpSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
-#helpSheet .back:hover { background: #26262a; }
+:is(#helpSheet, #prefsSheet) .shead { margin: 0; gap: 14px; }
+:is(#helpSheet, #prefsSheet) .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:is(#helpSheet, #prefsSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+:is(#helpSheet, #prefsSheet) .back:hover { background: #26262a; }
 .how .group { margin: 8px 0 0; padding: 0; list-style: none; overflow: hidden; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
 .howList { padding: 0 0 max(24px, var(--sab)); }
 .howList[hidden], .pan[hidden] { display: none; }
 /* on a full-screen phone a short page still puts its action at the foot of the screen */
-#helpSheet .sheet { display: flex; flex-direction: column; }
+:is(#helpSheet, #prefsSheet) .sheet { display: flex; flex-direction: column; }
 .how .pan:not([hidden]) { flex: 1 0 auto; display: flex; flex-direction: column; }
 .how .pan .howAct { margin-top: auto; }
 /* the topics */
@@ -562,14 +555,14 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* push and pop: the page comes in from the right, the list back from the left */
 .how .push { animation: pushIn .4s cubic-bezier(.22, .9, .28, 1) both; }
 .how .pop { animation: popIn .4s cubic-bezier(.22, .9, .28, 1) both; }
-#helpTitle.swap { animation: titleIn .32s ease-out both; }
+:is(#helpTitle, #prefsTitle).swap { animation: titleIn .32s ease-out both; }
 @keyframes pushIn { from { transform: translateX(100%); } }
 @keyframes popIn { from { transform: translateX(-30%); opacity: .2; } }
 @keyframes titleIn { from { opacity: 0; transform: translateX(16px); } }
 /* a short screen (a phone on its side): a tighter header and foot, so more rules show */
 @media (max-height: 500px) {
   .howTop { padding-top: 12px; padding-bottom: 4px; }
-  #helpSheet .shead .title { font-size: 24px; }
+  :is(#helpSheet, #prefsSheet) .shead .title { font-size: 24px; }
   .howAct { padding-top: 16px; padding-bottom: max(12px, var(--sab)); }
   .howAct button { min-height: 46px; font-size: 16px; }
   .how .rules li { padding-top: 10px; padding-bottom: 11px; }
@@ -582,10 +575,55 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (prefers-reduced-motion: reduce) {
   .overlay.show .sheet { animation: none; }
   .hero, .tile, .nav, .hero:active, .tile:active, .nav:active { transition: none; transform: none; }
-  .how .push, .how .pop, #helpTitle.swap { animation: none; }
+  .how .push, .how .pop, :is(#helpTitle, #prefsTitle).swap { animation: none; }
   .topic, .howAct button, .howAct button:active { transition: none; transform: none; }
   #menu.show:not([data-paused]) .newgame > * { animation: none; }
 }
+/* ---- Settings: the How to play pattern (an inset grouped list, a page pushed per group). A page
+   is grouped cells under small headers: a row is a label over a segmented choice, a switch, or a
+   slider; a quiet footnote under each group says what it does. ---- */
+.how .ghead { display: flex; align-items: center; gap: 8px; margin: 22px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
+.how .ghead:first-child, .how .lock + .ghead { margin-top: 10px; }
+.how .gfoot { margin: 6px 16px 0; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+.how .prow { position: relative; display: grid; gap: 8px; padding: 10px 14px 12px; }
+.how .prow[hidden] { display: none; }
+.how .group > * + *::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.how .group > .topic + .topic::before { left: 60px; }
+.how .plab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 15px; line-height: 1.3; color: var(--label); }
+.how .plab b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--label-2); }
+.how .seg { background: #0b0b0c; }
+.how .tog { position: relative; width: 100%; min-height: 50px; padding: 8px 14px; font-size: 15px; color: var(--label); }
+.how .tog + .tog { border-top: 0; }
+.how .note.lock { margin: 10px 16px 0; font-size: 13px; }
+.how .vol input { width: 100%; height: 44px; margin: 0; accent-color: #2f9e62; background: transparent; }
+.how .about { padding: 12px 16px; }
+.how .about p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--label-2); }
+.how .about p + p { margin-top: 8px; }
+.how .about b { margin-right: 6px; color: var(--label); }
+#prefsSheet .diag { margin: 12px 16px max(24px, var(--sab)); font-size: 12px; color: var(--label-2); }
+#prefsSheet .pan { padding-bottom: max(28px, var(--sab)); }
+/* Accessibility: a larger text size grows the sheets and the words over the table (not the table) */
+[data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #callBar, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
+[data-text="130"] .overlay .sheet, [data-text="130"] #banner, [data-text="130"] #callBar, [data-text="130"] #coach, [data-text="130"] #callout { zoom: 1.3; }
+/* the full-screen sheets (How to play, Settings) keep the screen's height under that zoom */
+[data-text="115"] :is(#helpSheet, #prefsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
+[data-text="130"] :is(#helpSheet, #prefsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
+@media (max-width: 600px) {
+  [data-text="115"] :is(#helpSheet, #prefsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
+  [data-text="130"] :is(#helpSheet, #prefsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
+}
+/* Controls: left-handed mirrors the strip (portrait) and puts the column left of the table (wide);
+   the power bar at the edge is the last control of the strip, or the foot of the column */
+[data-hand="left"][data-layout="portrait"] #ctl { flex-direction: row-reverse; }
+[data-hand="left"][data-layout="wide"] #ui { grid-template: "ctl stage" minmax(0, 1fr) / var(--col) minmax(0, 1fr); }
+[data-bar="edge"][data-layout="portrait"] #powerBar { order: 6; }
+[data-bar="edge"][data-layout="wide"] #powerBar { order: 2; }
+[data-bar="edge"][data-layout="wide"] #fineWheel { order: 1; }
+/* the pause menu covers the table: the last banner does not show through it (audit F16) */
+html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
+/* Reduce motion (settings.reduceMotion): whatever the system says, nothing slides, swings or pulses */
+[data-motion="reduce"] *, [data-motion="reduce"] *::before, [data-motion="reduce"] *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+[data-motion="reduce"] #banner, [data-motion="reduce"] #banner.show { transform: translate(-50%, -50%); }
 /* game over */
 .kicker { margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 /* ---- game over: in the home screen's manner (system font, sentence case, one accent from the
@@ -1003,13 +1041,11 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .mtile small { display: block; margin-top: 2px; font-size: 13px; color: rgba(255, 255, 255, .8); }
 @media (orientation: landscape) and (min-width: 700px) { #moreSheet .sheet { max-width: 900px; } .mlist { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mtile { min-height: 200px; } }
 .rnote:empty { display: none; }
-/* settings, Gameplay: wrapping choices, and switch rows */
-.psect { grid-column: 1 / -1; margin: 22px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+/* settings, Gameplay: wrapping choices, and switch rows (in Settings' groups: see .how .tog) */
 .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
 .seg.wrap button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
 .seg button:disabled, .tog:disabled { opacity: .55; cursor: default; }
 .note.lock { color: #ffd58a; }
-.toggles { grid-column: 1 / -1; display: grid; margin-top: 12px; border-radius: 14px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); }
 .tog { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 0; background: transparent; text-align: left; color: var(--text); font-size: 14px; }
 .tog + .tog { border-top: 1px solid var(--line); }
 .tog span { flex: 1; min-width: 0; }
@@ -1017,7 +1053,6 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .tog i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #f5f5f7; transition: transform .15s; }
 .tog[aria-checked="true"] i { background: #2f9e62; }
 .tog[aria-checked="true"] i::after { transform: translateX(18px); }
-@media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) { .toggles { grid-template-columns: 1fr 1fr; } .tog + .tog { border-top: 0; } .tog { border-bottom: 1px solid var(--line); } }
 /* the call bar: the call in words (tap to change), the shot-type flags, Safety and Push out; it sits
    at the stage's foot, next to the power bar (upright: over it; wide: by the column) */
 #callBar { position: absolute; z-index: 2; left: 50%; bottom: 6px; transform: translateX(-50%); width: max-content; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: calc(100% - 12px); pointer-events: none; }
@@ -1090,7 +1125,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
     </div>
-    <div id="powerBar" role="slider" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
+    <div id="powerBar" role="slider" tabindex="0" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot. Up and down set its mark." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
       <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div>
     </div>
     <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
@@ -1229,43 +1264,147 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 </div>
 
 <div class="overlay" id="prefsSheet" role="dialog" aria-modal="true" aria-labelledby="prefsTitle">
-  <div class="sheet">
+  <div class="sheet how prefs" id="prefsBody">
+    <div class="howTop">
     <div class="shead"><button class="back" id="prefsBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><h2 class="title" id="prefsTitle">Settings</h2></div></div>
-    <div class="field"><span class="label" id="clLab">Cloth <span class="swatch" id="clothSwatch" aria-hidden="true"></span></span>
-      <div class="seg" role="group" aria-labelledby="clLab"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
-    <div class="field"><span class="label" id="gLab">Aim guide</span>
-      <div class="seg" role="group" aria-labelledby="gLab"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div></div>
-    <div class="field"><span class="label" id="aaLab">Auto aim</span>
-      <div class="seg" role="group" aria-labelledby="aaLab" aria-describedby="aaNote"><button id="aaOn" aria-pressed="true">On</button><button id="aaOff" aria-pressed="false">Off</button></div></div>
-    <p class="note" id="aaNote">Auto aim starts each turn pointed at the ball to play next. The cut is up to you.</p>
-    <div class="field"><span class="label" id="camLab">Camera</span>
-      <div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
-    <p class="note" id="camNote">Follow moves in a little on the action while the balls roll, and close on replays. Aiming always shows the whole table.</p>
-    <div class="field"><span class="label" id="sndLab">Sound</span>
-      <div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
-    <div class="field"><span class="label" id="hapLab">Haptics</span>
-      <div class="seg" role="group" aria-labelledby="hapLab"><button id="hapOn" aria-pressed="true">On</button><button id="hapOff" aria-pressed="false">Off</button></div></div>
-    <h3 class="psect" id="gpLab">Gameplay</h3>
-    <p class="note lock" id="lockNote" hidden>Locked by event: this match plays its own rules, whatever is set here.</p>
-    <div class="field stack"><span class="label" id="cmLab">Called shots</span>
-      <div class="seg wrap" role="group" aria-labelledby="cmLab"><button id="cmOff" aria-pressed="false">Off</button><button id="cmEight" aria-pressed="false">8-ball only</button><button id="cmOfficial" aria-pressed="true">Official rules</button><button id="cmAll" aria-pressed="false">All shots</button><button id="cmCareer" aria-pressed="false">Career rules</button></div></div>
-    <div class="field stack"><span class="label" id="cdLab">Declaration</span>
-      <div class="seg wrap" role="group" aria-labelledby="cdLab"><button id="cdBall" aria-pressed="false">Ball only</button><button id="cdPocket" aria-pressed="true">Ball and pocket</button><button id="cdRails" aria-pressed="false">Ball, pocket and rails (custom)</button><button id="cdStrict" aria-pressed="false">Strict (custom)</button></div></div>
-    <div class="toggles" role="group" aria-labelledby="gpLab">
-      <button class="tog" id="tgSafety" role="switch" aria-checked="true"><span>Require safety declarations</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgEight" role="switch" aria-checked="false"><span>Require called 8 pocket</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgObvious" role="switch" aria-checked="true"><span>Auto-recognise obvious shots</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgChange" role="switch" aria-checked="true"><span>Allow changing the call before striking</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgHighlight" role="switch" aria-checked="true"><span>Highlight called ball and pocket</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgConfirm" role="switch" aria-checked="true"><span>Show declaration confirmation</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgSound" role="switch" aria-checked="true"><span>Called-shot sound</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgWarn" role="switch" aria-checked="true"><span>Invalid-shot warnings</span><i aria-hidden="true"></i></button>
-      <button class="tog" id="tgHistory" role="switch" aria-checked="true"><span>Declaration history</span><i aria-hidden="true"></i></button>
     </div>
-    <p class="note" id="callNote">Official rules: each game's own (8-ball WPA, 10-ball and straight pool call every shot; 9-ball and rotation none). A missed call is not a foul: the turn ends.</p>
-    <p class="note">The cloth applies to every game (blue is carom's classic). Table size, pockets, the rules and the race are chosen when you start a game.</p>
-    <p class="diag" id="diag"></p>
+    <!-- the root page: one row per group of settings, each pushing its page (the How to play pattern) -->
+    <div class="howList" id="prefsList">
+      <div class="group" role="group" aria-label="Settings">
+        <button class="topic" id="prGame" aria-controls="ppGame"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21" cy="11" r="6.2" fill="none" stroke="#ffe27a" stroke-width="1.8"/><circle cx="21" cy="11" r="3.4" fill="#2f6fd0"/></svg></span><span class="tt"><b>Gameplay</b><small id="prGameSub">Rules, called shots, races, aim guide</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="prCtl" aria-controls="ppCtl"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="7" y="13" width="18" height="7" rx="3.5" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><rect x="8.6" y="14.6" width="9" height="3.8" rx="1.9" fill="#f6f4ec"/></svg></span><span class="tt"><b>Controls</b><small>Auto aim, layout, power bar</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="prGfx" aria-controls="ppGfx"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><rect x="7" y="9" width="18" height="14" rx="2.5" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><circle cx="13" cy="16" r="2.6" fill="#f6f4ec"/><circle cx="20" cy="14" r="2" fill="#f4c430"/></svg></span><span class="tt"><b>Graphics</b><small>Cloth, camera, replay, motion</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="prAud" aria-controls="ppAud"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 13h4l5-4v14l-5-4H8z" fill="#f6f4ec"/><path d="M20.5 12.5a5 5 0 0 1 0 7M23 10a8.5 8.5 0 0 1 0 12" fill="none" stroke="#f6f4ec" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="tt"><b>Audio and haptics</b><small>Volume, table sounds, haptics</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="prA11y" aria-controls="ppA11y"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="8.5" r="2.4" fill="#f6f4ec"/><path d="M9 12.5l7 1.6 7-1.6M16 14v5l-3.4 6.5M16 19l3.4 6.5" fill="none" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tt"><b>Accessibility</b><small>Ball marks, text size, keyboard</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="prAbout" aria-controls="ppAbout"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="8" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><path d="M16 15v6" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="11.6" r="1.2" fill="#f6f4ec"/></svg></span><span class="tt"><b>About</b><small>This build</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+      </div>
+    </div>
+    <!-- Gameplay: the rules a new game takes, the called-shot system, the races and the aim guide -->
+    <section class="pan" id="ppGame" aria-labelledby="prefsTitle" hidden>
+      <p class="note lock" id="lockNote" hidden>Locked by event: this match plays its own rules, whatever is set here.</p>
+      <h3 class="ghead" id="gpRulesLab">Default rules</h3>
+      <div class="group" role="group" aria-labelledby="gpRulesLab" id="rulesRows">
+        <!-- one row per game with a choice of rulesets, built from RULESETS (rulesetsFor) -->
+        <div class="prow" id="stmRow"><span class="plab" id="pstmLab">House re-rack on a stalemate (8 and 9-ball)</span>
+          <div class="seg" role="group" aria-labelledby="pstmLab"><button id="psmOff" aria-pressed="true">Off</button><button id="psmOn" aria-pressed="false">On</button></div></div>
+      </div>
+      <p class="gfoot">A new game starts on these. An event (a career match) brings its own.</p>
+      <h3 class="ghead" id="gpRaceLab">Races</h3>
+      <div class="group" role="group" aria-labelledby="gpRaceLab">
+        <div class="prow"><span class="plab" id="prcLab">Straight pool (14.1), points</span>
+          <div class="seg" role="group" aria-labelledby="prcLab"><button id="prc25">25</button><button id="prc50">50</button><button id="prc100">100</button><button id="prc150">150</button></div></div>
+        <div class="prow"><span class="plab" id="pcrLab">Three-cushion, points</span>
+          <div class="seg" role="group" aria-labelledby="pcrLab"><button id="pcr5">5</button><button id="pcr10">10</button><button id="pcr15">15</button></div></div>
+        <div class="prow"><span class="plab" id="psfLab">Snooker, frames</span>
+          <div class="seg" role="group" aria-labelledby="psfLab"><button id="psf1">One frame</button><button id="psf3">Best of 3</button></div></div>
+      </div>
+      <h3 class="ghead" id="gpLab">Called shots</h3>
+      <div class="group" role="group" aria-labelledby="gpLab">
+        <div class="prow"><span class="plab" id="cmLab">Call</span>
+          <div class="seg wrap" role="group" aria-labelledby="cmLab"><button id="cmOff" aria-pressed="false">Off</button><button id="cmEight" aria-pressed="false">8-ball only</button><button id="cmOfficial" aria-pressed="true">Official rules</button><button id="cmAll" aria-pressed="false">All shots</button><button id="cmCareer" aria-pressed="false">Career rules</button></div></div>
+        <div class="prow"><span class="plab" id="cdLab">Declaration</span>
+          <div class="seg wrap" role="group" aria-labelledby="cdLab"><button id="cdBall" aria-pressed="false">Ball only</button><button id="cdPocket" aria-pressed="true">Ball and pocket</button><button id="cdRails" aria-pressed="false">Ball, pocket and rails (custom)</button><button id="cdStrict" aria-pressed="false">Strict (custom)</button></div></div>
+        <button class="tog" id="tgObvious" role="switch" aria-checked="true"><span>Auto-call obvious shots</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgSafety" role="switch" aria-checked="true"><span>Require safety declarations</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgEight" role="switch" aria-checked="false"><span>Require called 8 pocket</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgChange" role="switch" aria-checked="true"><span>Allow changing the call before striking</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgHighlight" role="switch" aria-checked="true"><span>Highlight called ball and pocket</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgConfirm" role="switch" aria-checked="true"><span>Show declaration confirmation</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgSound" role="switch" aria-checked="true"><span>Called-shot sound</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgWarn" role="switch" aria-checked="true"><span>Invalid-shot warnings</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgHistory" role="switch" aria-checked="true"><span>Declaration history</span><i aria-hidden="true"></i></button>
+      </div>
+      <p class="gfoot" id="callNote">Official rules: each game's own (8-ball WPA, 10-ball and straight pool call every shot; 9-ball and rotation none). A missed call is not a foul: the turn ends.</p>
+      <h3 class="ghead" id="gLab">Aim guide</h3>
+      <div class="group" role="group" aria-labelledby="gLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="gLab"><button id="gFull" aria-pressed="true">Full</button><button id="gShort" aria-pressed="false">Short</button><button id="gOff" aria-pressed="false">Off</button></div></div>
+      </div>
+      <p class="gfoot">Full runs both balls' paths out; short shows the ghost ball and a stub; off draws nothing.</p>
+    </section>
+    <!-- Controls -->
+    <section class="pan" id="ppCtl" aria-labelledby="prefsTitle" hidden>
+      <h3 class="ghead" id="aaLab">Auto aim</h3>
+      <div class="group" role="group" aria-labelledby="aaLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="aaLab" aria-describedby="aaNote"><button id="aaOn" aria-pressed="true">On</button><button id="aaOff" aria-pressed="false">Off</button></div></div>
+      </div>
+      <p class="gfoot" id="aaNote">Auto aim starts each turn pointed at the ball to play next. The cut is up to you.</p>
+      <h3 class="ghead" id="ctlLab">Layout</h3>
+      <div class="group" role="group" aria-labelledby="ctlLab">
+        <div class="prow"><span class="plab" id="hdLab">Hand</span>
+          <div class="seg" role="group" aria-labelledby="hdLab"><button id="hdRight" aria-pressed="true">Right-handed</button><button id="hdLeft" aria-pressed="false">Left-handed</button></div></div>
+        <div class="prow"><span class="plab" id="pbLab">Power bar</span>
+          <div class="seg" role="group" aria-labelledby="pbLab"><button id="pbMid" aria-pressed="true">Middle</button><button id="pbEdge" aria-pressed="false">At the edge</button></div></div>
+      </div>
+      <p class="gfoot">Left-handed mirrors the controls: the strip under the table runs the other way, and on its side the column stands left of the table. At the edge puts the power bar under your thumb, at the end of the strip or the foot of the column.</p>
+      <p class="gfoot">Keyboard: the arrows aim, Alt or Ctrl for a hair. Tab to the power bar, then up and down set its mark. Accessibility can let Space drive the bar.</p>
+    </section>
+    <!-- Graphics -->
+    <section class="pan" id="ppGfx" aria-labelledby="prefsTitle" hidden>
+      <h3 class="ghead" id="clLab">Cloth <span class="swatch" id="clothSwatch" aria-hidden="true"></span></h3>
+      <div class="group" role="group" aria-labelledby="clLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="clLab"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
+      </div>
+      <p class="gfoot">The cloth applies to every game (blue is carom's classic).</p>
+      <h3 class="ghead" id="camLab">Camera</h3>
+      <div class="group" role="group" aria-labelledby="camLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
+      </div>
+      <p class="gfoot" id="camNote">Follow moves in a little on the action while the balls roll, and close on replays. Aiming always shows the whole table.</p>
+      <h3 class="ghead" id="rpLab">Replays</h3>
+      <div class="group" role="group" aria-labelledby="rpLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="rpLab"><button id="rpOn" aria-pressed="true">Offer</button><button id="rpOff" aria-pressed="false">Never</button></div></div>
+      </div>
+      <p class="gfoot">Offer puts a Replay pill over the table after a shot. Never keeps the table clear after every shot.</p>
+      <h3 class="ghead" id="mo1Lab">Motion</h3>
+      <div class="group" role="group" aria-labelledby="mo1Lab">
+        <button class="tog" id="tgMotion" role="switch" aria-checked="false"><span>Reduce motion</span><i aria-hidden="true"></i></button>
+      </div>
+      <p class="gfoot">On: no sliding sheets, swings or pulses, whatever the system says. Off: follows the system setting.</p>
+    </section>
+    <!-- Audio and haptics -->
+    <section class="pan" id="ppAud" aria-labelledby="prefsTitle" hidden>
+      <h3 class="ghead" id="sndLab">Sound</h3>
+      <div class="group" role="group" aria-labelledby="sndLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
+        <label class="prow vol"><span class="plab">Master volume <b id="volMasterVal">100%</b></span><input type="range" id="volMaster" min="0" max="100" step="5" value="100"></label>
+        <label class="prow vol"><span class="plab">Table sounds <b id="volFxVal">100%</b></span><input type="range" id="volFx" min="0" max="100" step="5" value="100"></label>
+      </div>
+      <p class="gfoot">Table sounds are the balls, cushions, cue and pockets; the master volume is everything, the game's little cues too. felt has no music or ambience.</p>
+      <h3 class="ghead" id="hapLab">Haptics</h3>
+      <div class="group" role="group" aria-labelledby="hapLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="hapLab"><button id="hapOn" aria-pressed="true">On</button><button id="hapOff" aria-pressed="false">Off</button></div></div>
+      </div>
+      <p class="gfoot">A tick for a hard contact, two for a pot, three for a win.</p>
+    </section>
+    <!-- Accessibility -->
+    <section class="pan" id="ppA11y" aria-labelledby="prefsTitle" hidden>
+      <h3 class="ghead" id="a11yLab">Seeing the table</h3>
+      <div class="group" role="group" aria-labelledby="a11yLab">
+        <button class="tog" id="tgMarks" role="switch" aria-checked="false"><span>Colour-blind safe ball marks</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgHcAim" role="switch" aria-checked="false"><span>High-contrast aim line</span><i aria-hidden="true"></i></button>
+        <button class="tog" id="tgMotion2" role="switch" aria-checked="false"><span>Reduce motion</span><i aria-hidden="true"></i></button>
+      </div>
+      <p class="gfoot">Ball marks put an upright badge on every ball: solids light with a dark number, stripes dark with a light one, snooker's colours their value, carom's yellow Y and red R, bumper pool's reds R. Tell them apart without colour.</p>
+      <h3 class="ghead" id="tsLab">Text size</h3>
+      <div class="group" role="group" aria-labelledby="tsLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="tsLab"><button id="ts100" aria-pressed="true">Default</button><button id="ts115" aria-pressed="false">Large</button><button id="ts130" aria-pressed="false">Larger</button></div></div>
+      </div>
+      <p class="gfoot">Menus, sheets, banners and the call bar grow; the table keeps its size.</p>
+      <h3 class="ghead" id="kbLab">Keyboard</h3>
+      <div class="group" role="group" aria-labelledby="kbLab">
+        <button class="tog" id="tgKeyShoot" role="switch" aria-checked="false"><span>Space drives the power bar</span><i aria-hidden="true"></i></button>
+      </div>
+      <p class="gfoot">For keyboard and switch players. Tab to the power bar, set its mark with up and down, then Space or Enter: the bar pulls to the mark and lets go, as a finger would. Any other key stops it. Off, no key ever shoots.</p>
+    </section>
+    <!-- About -->
+    <section class="pan" id="ppAbout" aria-labelledby="prefsTitle" hidden>
+      <div class="group about">
+        <p><b>felt</b> Pool, snooker and carom in one page. Offline, no account, nothing leaves the device.</p>
+        <p>Settings, records and the career stay in this browser's storage.</p>
+      </div>
+      <p class="diag" id="diag"></p>
+    </section>
   </div>
 </div>
 
@@ -1325,7 +1464,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       </ul>
       <h3 class="fineHead">Fine print</h3>
       <ul class="fine keys">
-        <li>Only the power bar shoots. No key and no click on the table ever will.</li>
+        <li>Only the power bar shoots. No click on the table ever will, and no key unless Settings, Accessibility lets Space drive the bar.</li>
+        <li>Tab to the power bar: up and down set its mark, where the next pull starts from.</li>
         <li>To cancel a shot, bring the pull back past the start or slide off the bar.</li>
         <li>A fine-tuned aim holds until the mouse moves away or clicks. The aim never follows the pointer off the cloth.</li>
         <li>Auto aim starts each turn on the ball to play and marks a pocket. The cut is up to you.</li>
@@ -5999,12 +6139,16 @@ const Career = (() => {
    in m/s (0 to about 9). No Math.random: the small differences between two hits come from a
    hash of the impact speed (vary), so the same hit always sounds the same and no two differ. */
 let ac = null, noiseBuf = null, bus = null, muted = false;
+/* the volumes (settings.vol, settings.volFx): bus carries the master volume times BUS_GAIN, and the
+   table's sounds (FX_KINDS) go through fxBus into it, at their own volume; the UI's cues do not */
+let fxBus = null;
+const BUS_GAIN = 0.55, FX_KINDS = ['ball', 'cue', 'rail', 'jaw', 'pocket', 'brk', 'point'];
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
 /* per kind: most voices sounding at once, shortest gap between two (s). brk is the cluster layer
    under a break (one at a time); tap and moment are the quiet UI sounds; point is carom's score,
    two soft ivory clicks and a faint bell. */
 const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35],
-  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3] };
+  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], lose: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3] };
 const voices = {}, crowd = {};
 /* the hash: a value in [-1, 1] for a seed, then the next seed. vary(x, r): x within +-r of itself. */
 let vseed = 1;
@@ -6033,8 +6177,16 @@ function audioInit(c) {
     curve[i] = Math.sign(y) * (a <= 0.7 ? a : 0.7 + 0.28 * Math.tanh((a - 0.7) / 0.28));
   }
   clip.curve = curve;
-  bus = c.createGain(); bus.gain.value = 0.55;
+  bus = c.createGain(); bus.gain.value = BUS_GAIN;
   bus.connect(lim).connect(pre).connect(clip).connect(c.destination);
+  fxBus = c.createGain(); fxBus.connect(bus);
+  audioLevels();
+}
+/* the master and table-sound volumes onto the graph (once there is one) */
+function audioLevels() {
+  if (!ac || !bus) return;
+  bus.gain.value = BUS_GAIN * settings.vol / 100;
+  fxBus.gain.value = settings.volFx / 100;
 }
 function audioOn() {
   if (!ac) {
@@ -6159,13 +6311,17 @@ function sfxAt(kind, v, t) {
   if (t - c.t < lim[1]) return;
   c.e = c.e * Math.exp(-(t - c.t) / 0.06) + 1; c.t = t; crowd[kind] = c;
   vseed = Math.round((v || 0) * 1e4) * 7 + kind.length;
-  const duck = 1 / Math.sqrt(c.e);
+  const duck = 1 / Math.sqrt(c.e), main = bus;
+  if (fxBus && FX_KINDS.includes(kind)) bus = fxBus;   /* the table's sounds at their own volume */
+  try { sfxVoice(kind, v, t, duck, live, c.e); } finally { bus = main; }
+}
+function sfxVoice(kind, v, t, duck, live, crowded) {
   let end = t + 0.06;
   if (kind === 'ball') {
     const s = clamp(v / 6, 0, 1);
     clack(t, s * duck, bus);
     /* three or more hard contacts inside ~60 ms: the rack is breaking */
-    if (v > 2.5 && c.e >= 2.6) sfxAt('brk', v, t);
+    if (v > 2.5 && crowded >= 2.6) sfxAt('brk', v, t);
   } else if (kind === 'brk') {
     burst(t, clamp(v / 8, 0, 1));
     end = t + 0.3;
@@ -6199,6 +6355,10 @@ function sfxAt(kind, v, t) {
     note(t + 0.18, 1046.5, 0.035, 0.6);
     partial(t + 0.27, bus, 2093, 2093, 0.012, 0.9, 0.04);
     end = t + 0.9;
+  } else if (kind === 'lose') {
+    /* the CPU won (audit F14): no fanfare, two soft falling notes, quieter than the win */
+    note(t, 392, 0.055, 0.45); note(t + 0.16, 311.13, 0.045, 0.7);
+    end = t + 0.9;
   }
   live.push(end); voices[kind] = live;
 }
@@ -6219,7 +6379,7 @@ function sfx(kind, v) {
    three. ---- */
 const HAP_GAP = 60, HAP_BALL = 0.8, HAP_SWITCH = 'switch' in document.createElement('input');
 let hapArmed = false, hapLast = -1e9, hapCount = 0;
-const hapPlans = { pocket: [0, 90], point: [0, 110], foul: [0], win: [0, 130, 260] };
+const hapPlans = { pocket: [0, 90], point: [0, 110], foul: [0], win: [0, 130, 260], lose: [0] };
 for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { hapArmed = true; }, { capture: true, passive: true });
 hapTick.addEventListener('click', e => e.stopPropagation());
 hapTick.firstElementChild.addEventListener('click', e => e.stopPropagation());
@@ -7437,8 +7597,33 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
      (#c4c4c4: about 7:1 on the tray; render-check measures it). On the cloth it needs none: it
      is dark on a mid green, and in 8-ball the game ball's halo rings it. */
   if (n === 8 && rim) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+  if (settings.marks) drawMark(g, n, X, Y, r);
   if (dark > 0) { g.fillStyle = `rgba(0,0,0,${dark})`; g.beginPath(); g.arc(X, Y, r + 0.5, 0, Math.PI * 2); g.fill(); }
   g.globalAlpha = 1;
+}
+/* colour-blind safe marks (settings.marks): an upright badge on the ball, read by lightness and
+   by its words, never by hue. Pool: solids (and the 8) a light badge with a dark number, stripes a
+   dark badge with a light one; snooker's colours their value (2 yellow to 7 black, reds none);
+   carom's yellow Y (dark) and red R (light), the white none; bumper pool's reds R. [text, dark] */
+function markOf(n) {
+  if (n >= 1 && n <= 15) return [String(n), n > 8];
+  if (n >= 57 && n <= 62) return [String(n - 55), n === 62];
+  if (n === 71) return ['Y', true];
+  if (n === 72) return ['R', false];
+  if (n >= 21 && n <= 25) return ['R', true];
+  return null;
+}
+function drawMark(g, n, X, Y, r) {
+  const m = markOf(n);
+  if (!m) return;
+  const R = r * 0.6, dark = m[1];
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = dark ? '#141414' : IVORY; g.beginPath(); g.arc(X, Y, R, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = dark ? IVORY : '#141414'; g.lineWidth = Math.max(dpr * 0.75, r * 0.07); g.stroke();
+  g.fillStyle = dark ? IVORY : '#141414';
+  g.font = `700 ${(R * (m[0].length > 1 ? 1.0 : 1.2)).toFixed(1)}px ${NUM_FONT}`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText(m[0], X, Y + R * 0.06);
 }
 /* the game ball (the 8 in 8-ball, the 9 in 9-ball) wears a thin soft halo on the cloth, under
    its edge: a pale gold core (about 7:1 on the brightest cloth, render-check measures it) in a
@@ -7669,19 +7854,25 @@ function aimTrace(x, y, dx, dy, skip, far) {
   return out;
 }
 /* polylines and rings in CSS pixels, over a faint dark under-stroke so they read on any cloth */
+/* the high-contrast aim line (settings.hcAim, set by guide() while it draws): the guide's white
+   lines and rings opaque and thicker, each over a near-black edge, so they read on any cloth */
+let guideHC = false;
+const hcStyle = style => guideHC && /^rgba\(255,255,255/.test(style) ? '#ffffff' : style;
 function strokeLine(pts, style, w, dash) {
   ctx.beginPath();
   pts.forEach((p, i) => { const s = toScreen(p[0], p[1]); i ? ctx.lineTo(s[0], s[1]) : ctx.moveTo(s[0], s[1]); });
   ctx.setLineDash(dash || []);
-  ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = w + 2; ctx.stroke();
-  ctx.strokeStyle = style; ctx.lineWidth = w; ctx.stroke();
+  const W = guideHC ? Math.max(2.5, w * 1.8) : w;
+  ctx.strokeStyle = guideHC ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.22)'; ctx.lineWidth = W + (guideHC ? 3 : 2); ctx.stroke();
+  ctx.strokeStyle = hcStyle(style); ctx.lineWidth = W; ctx.stroke();
   ctx.setLineDash([]);
 }
 function guideRing(x, y, r, style, w, fill) {
   const s = toScreen(x, y);
   ctx.beginPath(); ctx.arc(s[0], s[1], r, 0, Math.PI * 2);
   if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  ctx.strokeStyle = style; ctx.lineWidth = w; ctx.stroke();
+  if (guideHC) { ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = Math.max(2.5, w * 1.8) + 3; ctx.stroke(); }
+  ctx.strokeStyle = hcStyle(style); ctx.lineWidth = guideHC ? Math.max(2.5, w * 1.8) : w; ctx.stroke();
 }
 /* cut a polyline to a total length */
 function cutLine(pts, len) {
@@ -7859,6 +8050,10 @@ function potOk(n, k) {
    of a complete preview (see shotPreview), so nothing in the guide blinks or grows. */
 let guideLegal = true;
 function guide(c, ang) {
+  guideHC = !!settings.hcAim;
+  try { return guideLines(c, ang); } finally { guideHC = false; }
+}
+function guideLines(c, ang) {
   const mode = solo && solo.guide ? solo.guide : careerGuide(settings.guide);   /* a tutorial shows the full guide; a career match may cap it (6d) */
   if (mode === 'off') return null;
   const full = mode !== 'short', R = BALL_R, rp = R * view.k, dx = Math.cos(ang), dy = Math.sin(ang);
@@ -8249,7 +8444,16 @@ const FINE_STEP = WHEEL_RIDGE * WHEEL_RATE;
 const AUTO_AIM_MS = 250;          /* the cue's swing onto the suggested line at the start of a turn, at speed 1 */
 const SETTINGS_KEY = 'felt.settings';
 /* the settings' version (loadSettings), 14.1's races, and the page's own call options (5c) */
-const SETTINGS_V = 2, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: true, confirm: true, sound: true, warn: true, history: true };
+const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: true, confirm: true, sound: true, warn: true, history: true };
+const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
+const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
+  'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
+  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot'];
+/* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
+   2 and 2 to 3 renamed nothing: the new keys simply take their defaults in loadSettings. */
+/* (migrateSettings, section 6) */
+const SETTINGS_STEPS = { 1: o => Object.assign(o, { sv: 2 }), 2: o => Object.assign(o, { sv: 3 }) };
+let settingsExtra = {};
 const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, as a share of its radius */
 let game = newGame('8'), state = 'menu', cpuMode = false, cpuLevel = 'medium', tab = null;
 let aimAngle = 0, power = 0.5, markPower = 0.5, cueSpin = { x: 0, y: 0 };
@@ -8484,7 +8688,8 @@ function dropBall() {
    adjustment, so a resting mouse does not throw it away; moving LOCK_PX, or any aiming, takes
    over. After the ball in hand moves it runs again: the hint follows the new spot, and so does
    the aim unless the player has aimed by hand this turn. */
-const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* the system's reduced motion, or Settings' Reduce motion (settings.reduceMotion) whatever it says */
+const reducedMotion = () => !!settings.reduceMotion || matchMedia('(prefers-reduced-motion: reduce)').matches;
 function autoAim() {
   aimAnim = null; hint = null;
   if (state !== 'aim' || !human() || (solo && solo.kind === 'lesson')) return;   /* the lesson teaches aiming (6d) */
@@ -8521,7 +8726,8 @@ function finish() {
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
   if (!careerRackOver()) showOver();   /* a career rack: between racks, or the match result (6d) */
-  sfx('win', 1);
+  /* the win sting for a player's win; the CPU's is quiet (audit F14), as the sheet's mood is */
+  sfx(cpuMode && game.winner === 1 ? 'lose' : 'win', 1);
   hud();
 }
 /* "Player 2 is" or "You are": the verb agrees with the name */
@@ -8941,6 +9147,7 @@ function say(t) { if (msg.textContent !== t) msg.textContent = t; }
 function pause() {
   if (state === 'menu' || (state === 'over' && !(tutOn() && solo.then))) return;   /* a tutorial's result on show (6d) can pause */
   cancelGestures();
+  if (keyPull) cancelKeyPull();
   /* an auto-aim swing in flight lands first: left to stepAutoAim it would stop half way */
   finishAutoAim();
   paused = { state, at: performance.now() };
@@ -8976,8 +9183,10 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function frameBody(now) {
+  if (document.hidden) { frame.last = undefined; return; }   /* hidden: nothing steps (F11) */
   const dtMs = clamp(now - (frame.last || now), 0, 50);   /* never backwards, at most 50 ms */
   frame.last = now;
+  stepKeyPull(now);
   if (state === 'stroke' && !rp && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
   if (rp) replayStep(now, dtMs);   /* a replay (5r) holds the live game where it is */
   else if (state === 'rolling' && tab) {
@@ -9068,6 +9277,7 @@ function offerReplay(res) {
   if (nb) { rec.notable = nb; felt.lastNotable = rec; }
   if (state !== 'aim' && state !== 'thinking') return;
   if (coachOn()) return;   /* the lesson and the tutorials (6d) offer no replay: the coach card is the focus */
+  if (!settings.replays) return;   /* Settings, Graphics: Replays Never (felt.replay() still plays one) */
   offer = { rec, notable: nb, until: performance.now() + (nb ? REPLAY_NOTABLE_MS : REPLAY_OFFER_MS) };
   replayBtn.toggleAttribute('data-notable', !!nb);
   /* the callout over the table has already named the moment: the pill just says Replay, in gold */
@@ -9662,8 +9872,13 @@ for (const el of [spinPad, powerBar, fineWheel]) el.addEventListener('mousedown'
    (right and down turn clockwise); with the english pad focused, arrows move the tip. With
    the ball in hand, M starts moving the cue ball: the arrows move it (Shift for 5 cm) until M or
    Enter goes back to aiming; nothing is locked until the bar shoots. No key ever shoots: the
-   power bar is the only way a player strikes the ball (owner's rule). */
+   power bar is the only way a player strikes the ball (owner's rule). With the power bar focused
+   (Tab reaches it), up and down (Shift for big steps, Page Up and Down, Home and End) move its
+   mark, the power the next pull starts from; and with Settings' "Space drives the power bar"
+   (settings.keyShoot, off by default: audit F7) Space or Enter drives the bar itself, as a finger
+   pulling to the mark and letting go would (keyDrive). Any key during that drive stops it. */
 addEventListener('keydown', e => {
+  if (keyPull) { if (!['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) { cancelKeyPull(); e.preventDefault(); } return; }
   /* Esc closes the sheet on top first; then it resumes a paused game, or pauses one */
   if (e.key === 'Escape') { if (!escSheet()) { if (state === 'menu' && paused) resume(); else pause(); } e.preventDefault(); return; }
   if (state === 'menu' || state === 'over' || !human()) return;
@@ -9675,6 +9890,13 @@ addEventListener('keydown', e => {
   }
   else if (arrow && document.activeElement === spinPad) {
     if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s }); hudControls(); }
+  } else if (document.activeElement === powerBar && state === 'aim' && !move && (dy || ['PageUp', 'PageDown', 'Home', 'End', ' ', 'Enter'].includes(k))) {
+    if (k === ' ' || k === 'Enter') keyDrive();
+    else if (!gest) {
+      const step = e.shiftKey || k.startsWith('Page') ? 0.1 : 0.02;
+      markPower = clamp(k === 'Home' ? 0.02 : k === 'End' ? 1 : Math.round((markPower + (dy || (k === 'PageUp' ? 1 : -1)) * step) * 100) / 100, 0.02, 1);
+      power = markPower; hudControls();
+    }
   } else if ((k === 'm' || k === 'M') && canMove() && !gest) {
     if (move) endMove(false); else beginMove(true);
   } else if (move && move.key) {
@@ -9694,6 +9916,59 @@ addEventListener('keydown', e => {
   } else return;
   e.preventDefault();
 });
+
+/* the power bar driven from the keyboard (audit F7). It goes the bar's own way: the bar arms
+   (pull), fills from nothing to its mark over KEY_PULL_MS (a full pull; less for a softer mark), and
+   lets go with commit(), exactly as endBar does when a finger lifts. A needed call missing, it does
+   not arm (5c), as the bar does not. Off (the default) it only says where to turn it on. */
+const KEY_PULL_MS = 900;
+let keyPull = null;
+function keyDrive() {
+  if (gest || pull || keyPull || !human()) return;
+  if (!settings.keyShoot) { say('Space on the power bar is off. Turn on Space drives the power bar in Settings, Accessibility.'); return; }
+  if (!callReady()) { say('Call your shot: tap a ball, then a pocket, or play a safety.'); hudControls(); return; }
+  finishAutoAim();
+  keyPull = { t0: performance.now(), to: clamp(markPower, 0.02, 1), msg0: msg.textContent };
+  pull = { kind: 'bar' }; power = 0;
+  say(`The bar pulls to ${Math.round(keyPull.to * 100)}% and lets go. Any key stops it.`);
+  hudControls();
+}
+function stepKeyPull(now) {
+  const k = keyPull;
+  if (!k) return;
+  if (state !== 'aim' || !human()) { cancelKeyPull(); return; }
+  const u = clamp((now - k.t0) / (KEY_PULL_MS * Math.max(0.35, k.to)), 0, 1);
+  power = k.to * u;
+  hudControls();
+  if (u >= 1) { keyPull = null; commit(k.to); }
+}
+function cancelKeyPull() {
+  const k = keyPull;
+  keyPull = null;
+  if (!k) return;
+  pull = null; power = markPower;
+  say(k.msg0);
+  hudControls();
+}
+
+/* ---- lifecycle (audit F11). A hidden page (another app, the lock screen, a switched tab) pauses a
+   game in play (the pause menu waits for Resume, which carries the stroke's and the CPU's clocks
+   over the gap) and suspends the audio. While hidden no frame steps anything; coming back the frame
+   clock starts afresh (no time jump) and the audio resumes if it was playing. ---- */
+let awayAudio = false;
+function onVisibility() {
+  if (document.hidden) {
+    if (keyPull) cancelKeyPull();
+    if (rp) endReplay();
+    if (state !== 'menu' && state !== 'over') pause();
+    if (ac && ac.state === 'running') { awayAudio = true; ac.suspend().catch(() => { }); }
+  } else {
+    frame.last = undefined;
+    if (awayAudio && ac && !muted) ac.resume().catch(() => { });
+    awayAudio = false;
+  }
+}
+document.addEventListener('visibilitychange', onVisibility);
 
 /* ============ 5s. SOLO: practice and trick shots ============ */
 /* Both run the ordinary turn (aim, the bar shot, the same strike/stepTable as every shot) with
@@ -10124,14 +10399,46 @@ Object.defineProperties(felt, {
    race: 25, 50, 100 or 150; 50 on a phone), stalemate (the house re-rack in 8- and 9-ball) and calls
    (the called-shot configuration, makeCall, with the page's own highlight, confirm, sound, warn and
    history). A save from before sv 2 keeps everything it had and takes these defaults. */
+/* sv 3 (the grouped Settings): hand ('right' or 'left': the controls mirrored), bar ('mid' or
+   'edge': the power bar the outermost control), replays (the Replay pill after a shot), reduceMotion
+   (true: reduce whatever the system says), vol and volFx (0-100: the master volume and the table
+   sounds), marks (colour-blind safe ball marks), text (100, 115 or 130: the sheets' text size),
+   hcAim (the high-contrast aim line) and keyShoot (Space on the focused power bar drives it, audit
+   F7). migrateSettings brings any older save up to sv 3 keeping every value it had; the record as
+   it was is backed up once (SETTINGS_BAK) before the first sv 3 write, and keys this build does not
+   know (a newer build's) are carried through every write (settingsExtra), so nothing saved is lost. */
+function migrateSettings(o) {
+  let v = Number.isInteger(o.sv) && o.sv >= 1 ? o.sv : 1;
+  while (v < SETTINGS_V && SETTINGS_STEPS[v]) { o = SETTINGS_STEPS[v](o); v++; }
+  return o;
+}
+/* keys of a stored record this build does not know, kept as they were (never a prototype key, and
+   only while the lot stays small) */
+function keepExtra(o) {
+  const out = {};
+  for (const k of Object.keys(o)) if (!SETTINGS_KEYS.includes(k) && !['__proto__', 'constructor', 'prototype'].includes(k)) out[k] = o[k];
+  try { return JSON.stringify(out).length <= 4096 ? out : {}; } catch (e) { return {}; }
+}
 function loadSettings() {
   /* snooker's table: compact (10 ft) on a phone, where the full table's balls get small; full on a bigger screen */
   const phone = Math.min(innerWidth, innerHeight) < 700;
   const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'off', camV: 2, names: ['', ''], last: null,
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
-    sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI) };
+    sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
+    hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false };
   try {
-    const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    let o = JSON.parse(raw || '{}') || {};
+    if (typeof o !== 'object' || Array.isArray(o)) o = {};
+    /* an older save: kept as it was, once, before this build writes over it */
+    if (raw && !(o.sv >= SETTINGS_V)) { try { if (localStorage.getItem(SETTINGS_BAK) === null) localStorage.setItem(SETTINGS_BAK, raw); } catch (e) { } }
+    o = migrateSettings(o);
+    settingsExtra = keepExtra(o);
+    if (['right', 'left'].includes(o.hand)) s.hand = o.hand;
+    if (['mid', 'edge'].includes(o.bar)) s.bar = o.bar;
+    for (const k of ['replays', 'reduceMotion', 'marks', 'hcAim', 'keyShoot']) if (typeof o[k] === 'boolean') s[k] = o[k];
+    for (const k of ['vol', 'volFx']) if (typeof o[k] === 'number' && Number.isFinite(o[k])) s[k] = clamp(Math.round(o[k] / 5) * 5, 0, 100);
+    if (TEXT_SIZES.includes(o.text)) s.text = o.text;
     for (const k of ['8', '9', '10']) if (rulesetsFor(k).some(r => r.id === o['rules' + k])) s['rules' + k] = o['rules' + k];
     if (RACES_141.includes(o.race141)) s.race141 = o.race141;
     if (typeof o.stalemate === 'boolean') s.stalemate = o.stalemate;
@@ -10172,7 +10479,7 @@ function setSetting(k, v) {
     if (game.rules && !game.rules.locked && POCKET_KINDS.includes(game.kind)) { game.rules = Object.assign({}, game.rules, { call: makeCall(settings.calls) }); resetCall(); }
   } else settings[k] = v;
   settings.sv = SETTINGS_V;
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign({}, settingsExtra, settings))); } catch (e) { }
   if (k === 'sound') { muted = !v; audioOn(); }
   if (k === 'haptics' && v) hapNow();
   if (k === 'autoAim' && !v) hint = null;
@@ -10183,6 +10490,19 @@ function setSetting(k, v) {
   /* the cloth is painted into the table image (stream V reads settings.cloth): repaint it */
   if (k === 'cloth') layout();
   if (k === 'cloth' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
+  applyPrefs(k);
+}
+/* what the sv 3 settings do outside the game's own code: the root's data attributes (the controls'
+   layout, reduce motion, the text size), the audio gains, a layout for a new hand or bar, and the
+   Replay pill gone when replays are off */
+function applyPrefs(k) {
+  const d = document.documentElement.dataset;
+  d.hand = settings.hand; d.bar = settings.bar; d.text = String(settings.text);
+  if (settings.reduceMotion) d.motion = 'reduce'; else delete d.motion;
+  audioLevels();
+  if (k === 'hand' || k === 'bar') { layout(); hudControls(); }
+  if (k === 'replays' && !settings.replays) hideOffer();
+  if (k === 'keyShoot' && !settings.keyShoot && keyPull) cancelKeyPull();
 }
 const SEGS = [
   ['cpu', [[vs2p, false], [vsCpu, true]]],
@@ -10207,12 +10527,46 @@ const SEGS = [
   ['stalemate', [[smOff, false], [smOn, true]]],
   ['calls.mode', [[cmOff, 'off'], [cmEight, 'eight'], [cmOfficial, 'official'], [cmAll, 'all'], [cmCareer, 'career']]],
   ['calls.detail', [[cdBall, 'ball'], [cdPocket, 'pocket'], [cdRails, 'rails'], [cdStrict, 'strict']]],
+  /* Settings' own copies of the setup's choices (Gameplay), and the sv 3 settings */
+  ['stalemate', [[psmOff, false], [psmOn, true]]],
+  ['race141', RACES_141.map(n => [document.getElementById('prc' + n), n])],
+  ['caromRace', [[pcr5, 5], [pcr10, 10], [pcr15, 15]]],
+  ['snookerFrames', [[psf1, 1], [psf3, 3]]],
+  ['hand', [[hdRight, 'right'], [hdLeft, 'left']]],
+  ['bar', [[pbMid, 'mid'], [pbEdge, 'edge']]],
+  ['replays', [[rpOn, true], [rpOff, false]]],
+  ['text', TEXT_SIZES.map(n => [document.getElementById('ts' + n), n])],
 ];
+/* Gameplay's default rules: a row per game with a choice of rulesets, built from RULESETS
+   (rulesetsFor), each button named by its ruleset ("felt rules", "WPA", "Obvious shots free") */
+const RULE_KINDS = { 8: '8-ball', 9: '9-ball', 10: '10-ball' }, RULE_BTNS = [];
+for (const kind of Object.keys(RULE_KINDS)) {
+  const sets = rulesetsFor(kind);
+  if (sets.length < 2) continue;
+  const row = document.createElement('div'), lab = document.createElement('span'), seg = document.createElement('div');
+  row.className = 'prow'; lab.className = 'plab'; lab.id = 'prsLab' + kind; lab.textContent = RULE_KINDS[kind];
+  seg.className = 'seg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
+  const opts = sets.map(r => {
+    const b = document.createElement('button'), w = r.name.split(', ')[1] || r.name;
+    b.id = 'prs' + r.id; b.textContent = w.startsWith('felt') ? w : w[0].toUpperCase() + w.slice(1);
+    seg.appendChild(b); RULE_BTNS.push(b);
+    return [b, r.id];
+  });
+  row.append(lab, seg);
+  rulesRows.insertBefore(row, stmRow);
+  SEGS.push(['rules' + kind, opts]);
+}
 /* Gameplay's switches: settings.calls[key]; the first four are rules an event may lock */
 const TOGS = [[tgSafety, 'safety'], [tgEight, 'eight'], [tgObvious, 'obvious'], [tgChange, 'change'], [tgHighlight, 'highlight'], [tgConfirm, 'confirm'], [tgSound, 'sound'], [tgWarn, 'warn'], [tgHistory, 'history']];
 const LOCKABLE = ['calls.mode', 'calls.detail', 'safety', 'eight', 'obvious', 'change'];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
 for (const [btn, k] of TOGS) btn.addEventListener('click', () => setSetting('calls.' + k, !settings.calls[k]));
+/* the sv 3 switches: settings[key] (Reduce motion is on two pages, Graphics and Accessibility) */
+const BOOL_TOGS = [[tgMotion, 'reduceMotion'], [tgMotion2, 'reduceMotion'], [tgMarks, 'marks'], [tgHcAim, 'hcAim'], [tgKeyShoot, 'keyShoot']];
+for (const [btn, k] of BOOL_TOGS) btn.addEventListener('click', () => setSetting(k, !settings[k]));
+/* the volume sliders: the value shows as it moves, and is stored as it moves */
+const VOLS = [[volMaster, volMasterVal, 'vol'], [volFx, volFxVal, 'volFx']];
+for (const [el, , k] of VOLS) el.addEventListener('input', () => setSetting(k, clamp(Math.round(+el.value / 5) * 5, 0, 100)));
 /* the rules are locked by an event (a career rack) for the game on now */
 const rulesLocked = () => !!(paused && game.rules && game.rules.locked);
 function syncMenu() {
@@ -10222,7 +10576,12 @@ function syncMenu() {
     if (k.startsWith('calls.')) btn.disabled = locked;
   }
   for (const [btn, k] of TOGS) { btn.setAttribute('aria-checked', String(!!settings.calls[k])); btn.disabled = locked && LOCKABLE.includes(k); }
+  for (const [btn, k] of BOOL_TOGS) btn.setAttribute('aria-checked', String(!!settings[k]));
+  /* an event's rules: its ruleset and stalemate too, not only the calls */
+  for (const b of [...RULE_BTNS, psmOff, psmOn]) b.disabled = locked;
+  for (const [el, out, k] of VOLS) { if (+el.value !== settings[k]) el.value = settings[k]; if (out.textContent !== settings[k] + '%') out.textContent = settings[k] + '%'; }
   lockNote.hidden = !locked;
+  prGameSub.textContent = locked ? 'Locked by event: this match plays its own rules' : 'Rules, called shots, races, aim guide';
   syncSetupRules();
   levelSeg.hidden = !settings.cpu;
   nameRow.hidden = settings.cpu;
@@ -10638,9 +10997,38 @@ for (const [i, el] of [[0, name1], [1, name2]]) {
   el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
 }
 statsBtn.addEventListener('click', () => showStats());
-for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => openSheet(prefsSheet, prefsBack));
+for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => showPrefs());
 for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp());
-for (const b of [prefsBack, statsBack]) b.addEventListener('click', () => backToMenu());
+statsBack.addEventListener('click', () => backToMenu());
+
+/* ---- Settings: the same navigation stack as How to play. The list of groups (prefsList), and a
+   page per group (PREF_PAGES: its row, its page, its name), pushed from the right; Back pops to
+   the list, and from the list goes back to the menu it came from. prefsPage(null) is the list. ---- */
+const PREF_PAGES = [[prGame, ppGame, 'game'], [prCtl, ppCtl, 'ctl'], [prGfx, ppGfx, 'gfx'], [prAud, ppAud, 'aud'], [prA11y, ppA11y, 'a11y'], [prAbout, ppAbout, 'about']];
+let prefsAt = null;
+function prefsPage(name, anim) {
+  const P = PREF_PAGES.find(x => x[2] === name), row = P ? P[0] : null, was = prefsAt, page = P ? P[1] : prefsList;
+  prefsAt = P ? name : null;
+  prefsList.hidden = !!P;
+  for (const [, pg] of PREF_PAGES) { pg.hidden = pg !== (P && P[1]); pg.classList.remove('push'); }
+  prefsList.classList.remove('pop'); prefsTitle.classList.remove('swap');
+  prefsTitle.textContent = row ? row.querySelector('b').textContent : 'Settings';
+  prefsBack.setAttribute('aria-label', P ? 'Back to Settings' : 'Back');
+  prefsBody.scrollTop = 0;
+  if (anim && prefsAt !== was) { void page.offsetWidth; page.classList.add(P ? 'push' : 'pop'); prefsTitle.classList.add('swap'); }
+  if (anim && byKeys) (P ? prefsBack : (PREF_PAGES.find(x => x[2] === was) || [prGame])[0]).focus({ preventScroll: true });
+}
+for (const [row, , name] of PREF_PAGES) row.addEventListener('click', () => prefsPage(name, true));
+prefsBack.addEventListener('click', () => { if (prefsAt) prefsPage(null, true); else backToMenu(); });
+/* Settings opens on its list, or on a page ('game', 'ctl', 'gfx', 'aud', 'a11y', 'about') */
+function showPrefs(name) {
+  prefsPage(name || null);
+  syncMenu();
+  openSheet(prefsSheet, prefsBack);
+}
+Object.defineProperty(felt, 'prefsPage', { get: () => prefsAt });
+/* the audio graph's gains (master: the bus, fx: the table's sounds), once there is a graph */
+Object.defineProperty(felt, 'audio', { get: () => (ac && bus ? { master: +bus.gain.value.toFixed(4), fx: +fxBus.gain.value.toFixed(4), state: ac.state } : null) });
 /* a More game's setup goes back to More games */
 setupBack.addEventListener('click', () => { if (MORE_KINDS.includes(setupKind) && !paused) { openSheet(moreSheet, play10); paintArt(); } else backToMenu(); });
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (!career) start(game.kind);   /* a career rack is never taken again (audit F5) */ });
@@ -12301,6 +12689,7 @@ const watchSize = () => { if (sizeSig() !== layoutSig) relayout(); setTimeout(wa
 setTimeout(watchSize, 150);
 /* iOS Safari ignores user-scalable=no; its own pinch event is refused here */
 document.addEventListener('gesturestart', e => e.preventDefault());
+applyPrefs();   /* the sv 3 settings onto the page: layout, motion, text size (6) */
 syncMenu();
 /* the remembered table size and pockets, and a rack on them behind the menu */
 setTable(settings.table, settings.bumperTable);

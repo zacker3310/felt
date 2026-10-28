@@ -288,8 +288,13 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   /* 9. settings survive a reload */
   await page.click('#menuBtn');
   await page.click('#pPrefsBtn');
+  await page.click('#prGame');
   await page.click('#gShort');
+  await page.click('#prefsBack');
+  await page.click('#prAud');
   await page.click('#sndOff');
+  await page.click('#prefsBack');
+  await page.click('#prGfx');
   await page.evaluate(() => { window.oldImg = tableImg; });
   await page.click('#clRed');
   const repaint = await page.evaluate(() => tableImg !== window.oldImg && document.documentElement.dataset.cloth === 'red');
@@ -530,7 +535,9 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
      alone. The setting persists. */
   await page.click('#menuBtn');
   await page.click('#pPrefsBtn');
+  await page.click('#prCtl');
   await page.click('#aaOn');
+  await page.click('#prefsBack');
   await page.click('#prefsBack');
   await page.click('#exitBtn');
   await page.click('#play9');
@@ -562,6 +569,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('auto aim on: the hint is cleared once the shot is fired', hintAfterShot.every(h => h === null), JSON.stringify(hintAfterShot));
   await page.click('#menuBtn');
   await page.click('#pPrefsBtn');
+  await page.click('#prCtl');
   await page.click('#aaOff');
   await page.keyboard.press('Escape');
   await page.click('#resumeBtn');

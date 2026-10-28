@@ -15,13 +15,14 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     const t = await open('', { init: `try { if (!sessionStorage.getItem('mig')) { localStorage.setItem('felt.settings', ${JSON.stringify(JSON.stringify(OLD))}); sessionStorage.setItem('mig', '1'); } } catch (e) { }` });
     const s0 = await t.page.evaluate(() => felt.settings);
     check('settings: an old save keeps its choices and takes the Gameplay defaults', s0.guide === 'short' && s0.cloth === 'red' && s0.table === '9' && s0.last === '9' && s0.names[0] === 'Ann'
-      && s0.calls.mode === 'official' && s0.calls.detail === 'pocket' && s0.calls.highlight === true && s0.rules8 === '8-house' && s0.sv === 2, JSON.stringify(s0));
+      && s0.calls.mode === 'official' && s0.calls.detail === 'pocket' && s0.calls.highlight === true && s0.rules8 === '8-house' && s0.sv === 3, JSON.stringify(s0));
     await t.page.click('#prefsBtn');
+    await t.page.click('#prGame');
     await t.page.click('#cmAll');
     await t.page.click('#cdRails');
     await t.page.click('#tgHighlight');
     const stored = await t.page.evaluate(() => JSON.parse(localStorage.getItem('felt.settings')));
-    check('settings: Gameplay choices are stored, versioned, beside the old ones', stored.sv === 2 && stored.calls.mode === 'all' && stored.calls.detail === 'rails' && stored.calls.highlight === false && stored.guide === 'short', JSON.stringify(stored));
+    check('settings: Gameplay choices are stored, versioned, beside the old ones', stored.sv === 3 && stored.calls.mode === 'all' && stored.calls.detail === 'rails' && stored.calls.highlight === false && stored.guide === 'short', JSON.stringify(stored));
     await t.page.reload();
     await t.page.waitForFunction(() => window.booted === true);
     const s1 = await t.page.evaluate(() => ({ s: felt.settings, all: cmAll.getAttribute('aria-pressed'), hi: tgHighlight.getAttribute('aria-checked') }));
@@ -153,6 +154,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   check('locked: an event\'s rules (passed to start) override the settings', ev.r.locked && ev.r.call.mode === 'all' && ev.r.call.detail === 'ball' && ev.r.id === '10-wpa' && ev.need && ev.need.pocket === false, JSON.stringify(ev));
   await p.evaluate(() => felt.pause());
   await p.click('#pPrefsBtn');
+  await p.click('#prGame');
   const lk = await p.evaluate(() => ({ note: !lockNote.hidden, text: lockNote.textContent, dis: cmAll.disabled && cdPocket.disabled && tgSafety.disabled, free: !tgSound.disabled, state: felt.callState.locked }));
   check('locked: Settings shows "Locked by event" and the rule choices are off limits (presentation ones are not)', lk.note && /Locked by event/.test(lk.text) && lk.dis && lk.free && lk.state, JSON.stringify(lk));
   await p.evaluate(() => cmOfficial.click());

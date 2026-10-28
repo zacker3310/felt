@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `20/20 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `21/21 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -105,6 +105,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed
   is exact; a gesture without them runs at the harness's pace, which reads as a slow finger.
+
+- Settings (page section 6, after the help stack): a grouped list with a page per group (`PREF_PAGES`,
+  `prefsPage(name)`, `showPrefs`), the How to play pattern. Stored as `felt.settings`, `sv` 3: `migrateSettings`
+  steps any older save up keeping every value, the old record is backed up once (`felt.settings.bak`) and unknown
+  keys ride along (`settingsExtra`). A new setting: default and validation in `loadSettings`, its control in
+  `SEGS`/`BOOL_TOGS`, its effect in `applyPrefs` or where it is read, and a page check in `settings-check`.
+  Space on the focused power bar drives the bar only with `keyShoot` (audit F7): it still shoots through `commit`.
 
 ## Conventions
 

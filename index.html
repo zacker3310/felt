@@ -9966,6 +9966,7 @@ function finish() {
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
   if (party && game.winner !== null && !game.mode) party.wins[game.winner]++;   /* a party's racks won (6f) */
+  handoff.classList.remove('show');   /* a rack won (or forced) with a handoff up: the result, not "Pass to" */
   /* a career rack: between racks, or the match result (6d); a tournament rack likewise (6f) */
   if (!careerRackOver() && !tourneyRackOver()) showOver();
   /* the win sting for a player's win; the CPU's is quiet (audit F14), as the sheet's mood is */

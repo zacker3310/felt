@@ -271,6 +271,9 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('party: Ann pots the 9: she wins, the racks won read 1-0-0, game over has a column per player', s5.winner === 0 && s5.wins.join() === '1,0,0' && s5.over && s5.text === 'Ann wins' && s5.cols === 4 && !s5.ho, JSON.stringify(s5));
   const rm = await ev(() => { rematch.click(); return { turn: game.turn, breaker: game.breaker, wins: felt.partyState.wins, ho: felt.handoff }; });
   check('party: Rematch is the next rack: the wins kept, the break passed on to Bob', rm.turn === 1 && rm.wins.join() === '1,0,0' && rm.ho.shown && rm.ho.title === 'Bob breaks', JSON.stringify(rm));
+  /* a rack won while the handoff is up (here forced) leaves no handoff behind the result */
+  const fw = await ev(() => { felt.forceWin(2); return { ho: felt.handoff.shown, over: over.classList.contains('show') }; });
+  check('party: a rack won with the handoff up shows the result alone (no handoff behind game over)', !fw.ho && fw.over, JSON.stringify(fw));
   /* rotation ring: the points go to whoever potted them */
   await ev(() => { felt.party({ ruleset: 'rotation-ring', names: ['Ann', 'Bob', 'Cy'] }); hoGo.click(); });
   await setup([3, 15], [[15, 1.4, 0.75]]);

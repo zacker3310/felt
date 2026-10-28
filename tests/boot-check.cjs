@@ -85,7 +85,7 @@ const artContrast = page => page.evaluate(() => {
   await page.click('#helpBtn');
   const fitsNow = async () => (await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && helpSheet.contains(a.effect.target))), page.evaluate(() => (r => r.left >= 0 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5)(howSheet.getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth && howSheet.scrollWidth <= howSheet.clientWidth));
   const root = await page.evaluate(() => ({ list: !howList.hidden, rows: [...howList.querySelectorAll('.topic')].map(b => b.id), title: helpTitle.textContent, pages: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).length }));
-  check('how to play from home: the list of seven topics, no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tabSolo' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
+  check('how to play from home: the list of eleven topics (the three More games and Called shots after snooker), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
     && (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify(root));
   const tabs = [];
   for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo']) {

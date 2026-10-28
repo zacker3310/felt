@@ -894,6 +894,84 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #concedeBtn[hidden] { display: none; }
 .bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
 .bsnk { background-color: #c41c24; background-image: radial-gradient(circle at 35% 30%, #e8504a, #8a1218 72%); }
+/* ---- the rules engine's page (5c, 6e): the new games' balls, More games, the setup's rules,
+   Settings > Gameplay, the call bar over the table and the option box ---- */
+.b10, .b14, .b15 { background-color: #f6f4ec; }
+.b10 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #1c48b8 22% 78%, #f6f4ec 78%); }
+.b14 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #167842 22% 78%, #f6f4ec 78%); }
+.b15 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #7a1e20 22% 78%, #f6f4ec 78%); }
+/* the games grid gives up a slim fourth row, the whole width, to More games */
+.tiles { grid-template: repeat(3, minmax(0, 1fr)) auto / repeat(2, minmax(0, 1fr)); }
+.more { grid-column: 1 / -1; min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 6px 14px 6px 12px; border: 0; border-radius: 16px; text-align: left;
+  color: #f5f5f7; background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); transition: background-color .15s; }
+.more:hover { background-color: #26262a; }
+.more .mballs { display: flex; flex: none; }
+.more .ball { width: 26px; height: 26px; font-size: 9px; margin-right: -6px; box-shadow: inset -3px -4px 6px rgba(0, 0, 0, .35), 0 0 0 1.5px #1c1c1f; }
+.more .tt { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; padding-left: 8px; }
+.more b { font-size: 16px; font-weight: 600; white-space: nowrap; }
+.more small { min-width: 0; font-size: 13px; color: rgba(235, 235, 245, .66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.more .chev { color: rgba(235, 235, 245, .38); }
+#moreSheet .sheet { max-width: 560px; }
+@media (orientation: landscape) and (min-width: 560px) { .more { min-height: 44px; padding-block: 2px; } .tiles { gap: 10px; } }
+.mlist { display: grid; gap: 12px; margin-top: 14px; }
+.mtile { position: relative; isolation: isolate; overflow: hidden; min-height: 112px; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px; text-align: left; color: #fff;
+  background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
+.mtile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
+.mtile .tt { display: block; padding: 0 16px 13px; }
+.mtile b { display: block; font-size: 18px; font-weight: 600; }
+.mtile small { display: block; margin-top: 2px; font-size: 13px; color: rgba(255, 255, 255, .8); }
+@media (orientation: landscape) and (min-width: 700px) { #moreSheet .sheet { max-width: 900px; } .mlist { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mtile { min-height: 200px; } }
+.rnote:empty { display: none; }
+/* settings, Gameplay: wrapping choices, and switch rows */
+.psect { grid-column: 1 / -1; margin: 22px 0 0; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+.seg.wrap button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
+.seg button:disabled, .tog:disabled { opacity: .55; cursor: default; }
+.note.lock { color: #ffd58a; }
+.toggles { grid-column: 1 / -1; display: grid; margin-top: 12px; border-radius: 14px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); }
+.tog { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 0; background: transparent; text-align: left; color: var(--text); font-size: 14px; }
+.tog + .tog { border-top: 1px solid var(--line); }
+.tog span { flex: 1; min-width: 0; }
+.tog i { flex: none; position: relative; width: 44px; height: 26px; border-radius: 13px; background: #48484f; transition: background-color .15s; }
+.tog i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #f5f5f7; transition: transform .15s; }
+.tog[aria-checked="true"] i { background: #2f9e62; }
+.tog[aria-checked="true"] i::after { transform: translateX(18px); }
+@media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) { .toggles { grid-template-columns: 1fr 1fr; } .tog + .tog { border-top: 0; } .tog { border-bottom: 1px solid var(--line); } }
+/* the call bar: the call in words (tap to change), the shot-type flags, Safety and Push out; it sits
+   at the stage's foot, next to the power bar (upright: over it; wide: by the column) */
+#callBar { position: absolute; z-index: 2; left: 50%; bottom: 6px; transform: translateX(-50%); width: max-content; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: calc(100% - 12px); pointer-events: none; }
+#callBar[hidden] { display: none; }
+#callBar > * { pointer-events: auto; }
+[data-layout="wide"] #callBar { left: 27%; max-width: 40%; }
+.field.stack { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+#callPill { min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94);
+  text-align: left; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); max-width: 100%; }
+#callPill b, #callText { font-size: 14px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#callSub { font-size: 12px; line-height: 1.2; color: var(--muted); white-space: nowrap; }
+#callSub:empty { display: none; }
+#callPill.need { border-color: #ffd58a; }
+#callPill.need #callText { color: #ffd58a; }
+#callPill.set { border-color: #8fd8b0; }
+.cflag { min-height: 44px; min-width: 52px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94); font-size: 14px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+.cflag[hidden] { display: none; }
+.cflag[aria-pressed="true"] { background: var(--cream); border-color: var(--cream); color: #141414; }
+/* a choice the rules give: over the table's middle, two or three answers */
+#optBox { position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: max-content; max-width: min(92%, 380px); display: grid; gap: 6px; padding: 12px 14px 14px;
+  border-radius: 16px; text-align: center; pointer-events: auto; background: rgba(22, 22, 24, .97); border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(0, 0, 0, .6); }
+#optBox[hidden] { display: none; }
+#optHead { font-size: 16px; line-height: 1.25; }
+#optSub { font-size: 13px; color: var(--muted); }
+#optSub:empty { display: none; }
+#optBtns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+#optBtns button { min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel-2); font-size: 14px; font-weight: 600; }
+#optBtns button:first-child { background: var(--cream); border-color: var(--cream); color: #141414; }
+#callHist { margin: 6px 2px 0; font-size: 13px; color: var(--muted); }
+#callHist[hidden] { display: none; }
+@keyframes nudge { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+#callPill.nudge { animation: nudge .25s 2; }
+#powerBar.nocall #powerLab { color: #ffd58a; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { #callPill.nudge { animation: none; } }
 </style>
 </head>
 <body>
@@ -902,6 +980,14 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div>
     <div id="callout" aria-hidden="true"><span id="calloutText"></span></div>
     <div id="snkBar" aria-hidden="true" hidden></div>
+    <!-- the called shot (section 5c): what is called, the shot-type flags (custom detail), Safety and Push out -->
+    <div id="callBar" role="group" aria-label="Your call" hidden>
+      <button id="callPill"><span id="callText">Call your shot</span><small id="callSub">Tap a ball, then a pocket</small></button>
+      <button class="cflag" id="flagBank" aria-pressed="false" hidden>Bank</button><button class="cflag" id="flagKick" aria-pressed="false" hidden>Kick</button><button class="cflag" id="flagCombo" aria-pressed="false" hidden>Combo</button>
+      <button class="cflag" id="safetyBtn" aria-pressed="false">Safety</button><button class="cflag" id="pushBtn" aria-pressed="false" hidden>Push out</button>
+    </div>
+    <!-- a choice the rules give a player: take the table or hand it back, re-rack, spot the 8 -->
+    <div id="optBox" role="group" aria-labelledby="optHead" hidden><b id="optHead"></b><span id="optSub"></span><span id="optBtns"></span></div>
     <div id="tools" role="group" aria-label="Practice tools" hidden>
       <button class="tool" id="handBtn" aria-pressed="false">Ball in hand</button>
       <button class="tool" id="resetBtn">Reset rack</button>
@@ -949,6 +1035,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         </div>
         <div id="potRow"><span class="label">Potted</span><span id="potDots"></span></div>
         <p id="menuMsg"></p>
+        <p id="callHist" hidden></p>
       </section>
       <section id="soloNow" hidden aria-label="This session">
         <h2 id="soloTitle"></h2>
@@ -983,6 +1070,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-cushion</b><small>No pockets, three rails</small></span></button>
         <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
         <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
+        <button class="more" id="playMore" aria-haspopup="dialog"><span class="mballs" aria-hidden="true"><span class="ball b10">10</span><span class="ball b14">14</span><span class="ball b15">15</span></span><span class="tt"><b>More games</b><small>10-ball, straight pool, rotation</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
@@ -1030,7 +1118,31 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
     <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
       <div class="seg" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
+    <div class="field r8" hidden><span class="label" id="r8Lab">Rules</span>
+      <div class="seg" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">felt rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
+    <div class="field r9" hidden><span class="label" id="r9Lab">Rules</span>
+      <div class="seg" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">felt rules</button><button id="rs9Wpa" aria-pressed="false">WPA, push out</button></div></div>
+    <div class="field r10" hidden><span class="label" id="r10Lab">Rules</span>
+      <div class="seg" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious shots free</button></div></div>
+    <div class="field str" hidden><span class="label" id="raceLab">Race to</span>
+      <div class="seg" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
+    <div class="field stm" hidden><span class="label" id="smLab">Stalemate</span>
+      <div class="seg" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play on</button><button id="smOn" aria-pressed="false">Re-rack (house)</button></div></div>
+    <p class="note rnote" id="rulesNote"></p>
     <button class="big cta" id="breakBtn">Break</button>
+    </div>
+  </div>
+</div>
+
+<!-- More games: the three games past the home's six cards, each with its rack -->
+<div class="overlay" id="moreSheet" role="dialog" aria-modal="true" aria-labelledby="moreTitle">
+  <div class="sheet msheet">
+    <div class="shead"><button class="back" id="moreBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="htxt"><p class="kicker">Games</p><h2 class="title" id="moreTitle">More games</h2></div></div>
+    <div class="mlist" role="group" aria-labelledby="moreTitle">
+      <button class="mtile" id="play10" data-kind="10"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>10-ball</b><small>Lowest first, call every shot</small></span></button>
+      <button class="mtile" id="playStr" data-kind="straight"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Straight pool</b><small>14.1: a point a ball, racks again</small></span></button>
+      <button class="mtile" id="playRot" data-kind="rotation"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Rotation</b><small>Balls score their numbers, 61 wins</small></span></button>
     </div>
   </div>
 </div>
@@ -1053,7 +1165,25 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
       <div class="seg" role="group" aria-labelledby="sndLab"><button id="sndOn" aria-pressed="true">On</button><button id="sndOff" aria-pressed="false">Off</button></div></div>
     <div class="field"><span class="label" id="hapLab">Haptics</span>
       <div class="seg" role="group" aria-labelledby="hapLab"><button id="hapOn" aria-pressed="true">On</button><button id="hapOff" aria-pressed="false">Off</button></div></div>
-    <p class="note">The cloth applies to every game (blue is carom's classic). Table size, pockets and the race are chosen when you start a game.</p>
+    <h3 class="psect" id="gpLab">Gameplay</h3>
+    <p class="note lock" id="lockNote" hidden>Locked by event: this match plays its own rules, whatever is set here.</p>
+    <div class="field stack"><span class="label" id="cmLab">Called shots</span>
+      <div class="seg wrap" role="group" aria-labelledby="cmLab"><button id="cmOff" aria-pressed="false">Off</button><button id="cmEight" aria-pressed="false">8-ball only</button><button id="cmOfficial" aria-pressed="true">Official rules</button><button id="cmAll" aria-pressed="false">All shots</button><button id="cmCareer" aria-pressed="false">Career rules</button></div></div>
+    <div class="field stack"><span class="label" id="cdLab">Declaration</span>
+      <div class="seg wrap" role="group" aria-labelledby="cdLab"><button id="cdBall" aria-pressed="false">Ball only</button><button id="cdPocket" aria-pressed="true">Ball and pocket</button><button id="cdRails" aria-pressed="false">Ball, pocket and rails (custom)</button><button id="cdStrict" aria-pressed="false">Strict (custom)</button></div></div>
+    <div class="toggles" role="group" aria-labelledby="gpLab">
+      <button class="tog" id="tgSafety" role="switch" aria-checked="true"><span>Require safety declarations</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgEight" role="switch" aria-checked="false"><span>Require called 8 pocket</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgObvious" role="switch" aria-checked="true"><span>Auto-recognise obvious shots</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgChange" role="switch" aria-checked="true"><span>Allow changing the call before striking</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgHighlight" role="switch" aria-checked="true"><span>Highlight called ball and pocket</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgConfirm" role="switch" aria-checked="true"><span>Show declaration confirmation</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgSound" role="switch" aria-checked="true"><span>Called-shot sound</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgWarn" role="switch" aria-checked="true"><span>Invalid-shot warnings</span><i aria-hidden="true"></i></button>
+      <button class="tog" id="tgHistory" role="switch" aria-checked="true"><span>Declaration history</span><i aria-hidden="true"></i></button>
+    </div>
+    <p class="note" id="callNote">Official rules: each game's own (8-ball WPA, 10-ball and straight pool call every shot; 9-ball and rotation none). A missed call is not a foul: the turn ends.</p>
+    <p class="note">The cloth applies to every game (blue is carom's classic). Table size, pockets, the rules and the race are chosen when you start a game.</p>
     <p class="diag" id="diag"></p>
   </div>
 </div>
@@ -1087,6 +1217,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <button class="topic" id="tabBump" aria-controls="panBump"><span class="htile" aria-hidden="true"><span class="ball bb"></span></span><span class="tt"><b>Bumper pool</b><small>Five each, to the far cup</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabCarom" aria-controls="panCarom"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="10.5" r="4.6" fill="#d8302e"/><circle cx="10" cy="20.5" r="4.6" fill="#f6f4ec"/><circle cx="22" cy="20.5" r="4.6" fill="#f4c430"/></svg></span><span class="tt"><b>Three-cushion</b><small>Three cushions, no pockets</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabSnk" aria-controls="panSnk"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="20.5" cy="12" r="5.2" fill="#141416" stroke="#f6f4ec" stroke-opacity=".35" stroke-width=".8"/><circle cx="11.5" cy="20" r="5.2" fill="#d8302e"/></svg></span><span class="tt"><b>Snooker</b><small>A red, then a colour</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tab10" aria-controls="pan10"><span class="htile" aria-hidden="true"><span class="ball b10">10</span></span><span class="tt"><b>10-ball</b><small>Call every shot</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabStr" aria-controls="panStr"><span class="htile" aria-hidden="true"><span class="ball b14">14</span></span><span class="tt"><b>Straight pool</b><small>14.1, a point a ball</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabRot" aria-controls="panRot"><span class="htile" aria-hidden="true"><span class="ball b15">15</span></span><span class="tt"><b>Rotation</b><small>Numbers score, 61 wins</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabCall" aria-controls="panCall"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21" cy="11" r="6.2" fill="none" stroke="#ffe27a" stroke-width="1.8"/><circle cx="21" cy="11" r="3.4" fill="#2f6fd0"/></svg></span><span class="tt"><b>Called shots</b><small>Ball, pocket, safety</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabSolo" aria-controls="panSolo"><span class="htile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#f2c94c" width="20" height="20"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Solo modes</b><small>Practice, tricks, career</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
     </div>
@@ -1220,6 +1354,73 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
         <li>Not in felt yet: the free ball and the miss rule.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the snooker tutorial</span></button></div>
+    </section>
+    <section class="pan" id="pan10" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Rack</b><p>Ten balls in a triangle: the 1 in front, the 10 in the middle. Break from behind the head string.</p></div></li>
+        <li><div><b>Legal break</b><p>Hit the 1 first, then pot a ball or drive four to the cushions.</p></div></li>
+        <li><div><b>Lowest first</b><p>Always hit the lowest ball first. Then pot a ball or hit a rail.</p></div></li>
+        <li><div><b>Call it</b><p>Every shot: tap the ball, then the pocket. Obvious shots too.</p></div></li>
+        <li><div><b>Push out</b><p>The shot after the break may be a push out. Your opponent shoots it or hands it back.</p></div></li>
+        <li><div><b>Win</b><p>Pot the 10 as a called shot.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>A 10 on the break, or one that drops early or uncalled, is spotted. No win.</li>
+        <li>A called ball that misses ends your turn. If an uncalled ball dropped, your opponent shoots or hands it back.</li>
+        <li>Declare a safety with the Safety chip: what drops stays down and your turn ends.</li>
+        <li>An illegal break: your opponent takes the table or has you break again.</li>
+        <li>Three fouls in a row lose. You are warned after two.</li>
+        <li>The house rule "obvious shots free" calls an obvious shot for you from your aim.</li>
+      </ul>
+    </section>
+    <section class="pan" id="panStr" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>The game</b><p>Fifteen balls, any ball first. Call ball and pocket: each one made is a point.</p></div></li>
+        <li><div><b>Break</b><p>Call a ball and pocket it, or send two balls and the cue ball to the cushions.</p></div></li>
+        <li><div><b>Carry on</b><p>Make your call and you shoot again. Other balls that drop with it count too.</p></div></li>
+        <li><div><b>Re-rack</b><p>With one ball left the other fourteen are racked again. Break the rack open with the last one.</p></div></li>
+        <li><div><b>Fouls</b><p>A point off. Your opponent plays from where the cue ball stopped.</p></div></li>
+        <li><div><b>Win</b><p>The first to the race: 25, 50, 100 or 150, chosen when you start.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>Three fouls in a row cost 15 more, and the fouler breaks a full rack.</li>
+        <li>A breaking foul costs two; your opponent takes the table or has you break again.</li>
+        <li>A miss, or a safety, scores nothing: balls that dropped come back on the foot spot.</li>
+        <li>On a re-rack the last ball and the cue ball stay put unless they are in the rack. Then the ball goes to the head spot, the cue ball to your hand behind the line.</li>
+        <li>The pause menu shows each player's best run.</li>
+      </ul>
+    </section>
+    <section class="pan" id="panRot" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Rack</b><p>Fifteen balls: the 1 in front, the 2 and 3 in the back corners, the 15 in the middle.</p></div></li>
+        <li><div><b>Lowest first</b><p>Always hit the lowest ball first. Then pot a ball or hit a rail.</p></div></li>
+        <li><div><b>Score</b><p>Every ball you pot on a legal shot scores its number.</p></div></li>
+        <li><div><b>Go again</b><p>Pot a ball and you shoot again.</p></div></li>
+        <li><div><b>Fouls</b><p>No score. Balls potted come back on the foot spot; your opponent gets ball in hand.</p></div></li>
+        <li><div><b>Win</b><p>The first to 61 of the 120 points on the table.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>60 all with the table clear: the player who potted the last ball wins (a felt house rule).</li>
+      </ul>
+    </section>
+    <section class="pan" id="panCall" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>When</b><p>Settings, Gameplay: off, 8-ball only, each game's official rules, or every shot. A career event sets its own.</p></div></li>
+        <li><div><b>Call</b><p>Tap the ball, then the pocket. The table marks both until the shot.</p></div></li>
+        <li><div><b>Obvious shots</b><p>Where the rules allow, your aim calls it for you: "Calling: 6 in corner". Tap the pill to change it.</p></div></li>
+        <li><div><b>Safety</b><p>Tap Safety to play one. Your turn ends whatever drops.</p></div></li>
+        <li><div><b>Shoot</b><p>The power bar shoots as always. With a call missing it says Call your shot and waits.</p></div></li>
+        <li><div><b>Missed call</b><p>Not a foul: your turn ends. 14.1 spots what dropped; 10-ball lets your opponent choose.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>Ball, pocket and rails (custom): also call Bank, Kick or Combo. Strict (custom): and nothing else may drop.</li>
+        <li>Fouls are judged apart from the call: a made call on a scratch is still a foul.</li>
+        <li>The pause menu keeps your declarations, made and missed.</li>
+      </ul>
     </section>
     <section class="pan" id="panSolo" aria-labelledby="helpTitle" hidden>
       <ul class="group rules">
@@ -1587,11 +1788,15 @@ function setPockets(style) {
 }
 setTable('7');
 function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
-/* 8-ball: a triangle with the 8 in the middle, a solid and a stripe in the back corners.
-   9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. */
+/* 8-ball (and 14.1): a triangle with the 8 in the middle, a solid and a stripe in the back corners.
+   9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. 10-ball: a four-row triangle,
+   the 1 at the apex and the 10 in the middle of the third row. Rotation: the 1 at the apex, the 2
+   and 3 in the back corners, the 15 in the middle. */
+const RACKS = { 8: [[1], [9, 2], [10, 8, 3], [11, 4, 12, 5], [6, 13, 7, 14, 15]], 9: [[1], [2, 3], [4, 9, 5], [6, 7], [8]], 10: [[1], [2, 3], [4, 10, 5], [6, 7, 8, 9]],
+  rotation: [[1], [10, 11], [12, 15, 13], [4, 5, 6, 7], [2, 8, 9, 14, 3]] };
 function rack(kind) {
   const sp = 2 * BALL_R + RACK_GAP, dx = sp * Math.sqrt(3) / 2;
-  const rows = kind === '9' ? [[1], [2, 3], [4, 9, 5], [6, 7], [8]] : [[1], [9, 2], [10, 8, 3], [11, 4, 12, 5], [6, 13, 7, 14, 15]];
+  const rows = RACKS[kind] || RACKS[8];
   const out = [newBall(0, HEAD_X, TW / 2)];
   rows.forEach((row, k) => row.forEach((n, j) => out.push(newBall(n, FOOT[0] + k * dx, FOOT[1] + (j - (row.length - 1) / 2) * sp))));
   return out;
@@ -1717,7 +1922,7 @@ function hitBalls(tab, a, b) {
 /* cue: the ball the cue strikes (the cue ball; in bumper pool one of the shooter's own) */
 function newTable(balls, cue = 0) {
   return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), cue, t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0,
-    rails: {}, kick: null, contacts: [], met: {}, railAt: {}, seq: [] };
+    rails: {}, kick: null, contacts: [], met: {}, railAt: {}, seq: [], railSeq: [] };
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
    further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
@@ -1802,7 +2007,7 @@ function stepTable(tab) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
         if (v) {
           if (tab.first !== null) tab.railAfter = true;
-          if (k < JAW_FROM) tab.rails[b.n] = (tab.rails[b.n] || 0) + 1;
+          if (k < JAW_FROM) { tab.rails[b.n] = (tab.rails[b.n] || 0) + 1; tab.railSeq.push([b.n, k]); }
           if ((k < JAW_FROM || BUMPERS.length) && !tab.railAt[b.n]) tab.railAt[b.n] = [b.x, b.y];   /* a bumper table's cushions are all rail */
           if (k < JAW_FROM && b.n === tab.cue) tab.seq.push(-1);
           tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
@@ -1849,11 +2054,14 @@ function stepTable(tab) {
    contacts (each pair of balls [lo, hi] that touched, once, in the order they first met), railAt
    (ball number to where its centre was at its first cushion-nose contact: shot moments tell a bank
    from a ball grazing the nose by the pocket) and seq (the struck ball's own contacts in order: -1
-   a cushion nose, else the ball it met, every impact; carom's count is read from it). All
+   a cushion nose, else the ball it met, every impact; carom's count is read from it) and railSeq
+   (every cushion-nose contact of every ball, in order, as [ball, cushion index]: the called-shot
+   checks and the break's rail counts read it). All
    deterministic: trick-shot goals and carom points are judged from them. */
 function resultOf(tab) {
   return { balls: tab.balls.map(b => Object.assign({}, b)), cue: tab.cue, first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), pocketOf: Object.assign({}, tab.pocketOf), end: tab.end, t: tab.t, steps: tab.steps,
-    rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()), railAt: Object.fromEntries(Object.entries(tab.railAt).map(([n, p]) => [n, p.slice()])), seq: tab.seq.slice() };
+    rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()), railAt: Object.fromEntries(Object.entries(tab.railAt).map(([n, p]) => [n, p.slice()])), seq: tab.seq.slice(),
+    railSeq: tab.railSeq.map(c => c.slice()) };
 }
 function simulateShot(balls, shot) {
   const tab = strike(newTable(balls, shot.ball || 0), shot.angle, shot.power, shot.spin || 0);
@@ -1862,16 +2070,172 @@ function simulateShot(balls, shot) {
 }
 
 /* ---- 1e. rules ---- */
+/* The rules engine. RULESETS is the registry: one record per set of rules a game can be played
+   under, with its id, its game (the game.kind it judges), a name, a description and its source
+   ('WPA world standardized rules' or 'felt house rule'), and the rule options its game's module
+   reads. A game carries its resolved rules in game.rules (makeRules): the ruleset's options, any
+   overrides, the race and the called-shot configuration (call). judge(g, r) hands the shot to
+   the game's own module in RULE_MODULES; the pocket games' modules share one foul test
+   (poolFoul), one call test (callResult), one break test (breakLegal) and one ending (poolEnd),
+   so no rule is written twice and no game's rules reach another game. A career event or a
+   tournament locks the rules: start(kind, { rules: { ruleset, call, options, race, locked: true } })
+   makes them from its own terms and the player's settings are not read.
+   The options a pocket ruleset sets:
+     calls       the official call requirement: 'none', 'game' (the game ball only) or 'all'
+     obvious     under the official rules an obvious shot needs no explicit call (auto-call)
+     breakAny    the break may hit any ball first (else the lowest)
+     breakRails  object balls that must reach a cushion on a break that pots nothing (0: no test)
+     badBreak    an illegal break: 'foul' (ball in hand), 'option' (the incoming player takes the
+                 table or has the breaker break again) or 'rerack' (take, re-rack and the breaker
+                 breaks, or re-rack and break yourself)
+     breakScratch  where the ball in hand goes after a scratch on the break: 'kitchen' or 'table'
+     gameBallBreak the game ball down on the break: 'win', 'spot' or 'option' (the breaker spots it
+                 and carries on, or has the balls re-racked and breaks again)
+     earlyGameBall the game ball down on a legal shot before it is the ball on: 'win' or 'spot'
+     pushOut     a push-out on the shot after the break, which the opponent may hand back
+     threeFoul   three fouls in a row: 'loss', 'minus15' (14.1: -15 and break again) or false
+     stalemate   innings in a row with no ball potted after which the rack is played again
+                 (0: never; a felt house rule)
+     missed      a required call missed: 'end' (the turn ends, balls stay down), 'option' (the
+                 opponent takes the table or hands it back) or 'spot' (uncalled balls are spotted)
+     safetyPots  balls potted on a declared safety: 'stay' or 'spot'
+     foulHand    a foul's ball in hand: 'table', or 'position' (the cue ball stays where it is;
+                 a scratch gives ball in hand behind the head string)
+     score       points: null, 'count' (a point a ball, 14.1) or 'numbers' (each ball its number)
+     race        points to win, for a game with a score */
+const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation'];
+const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
+  pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0 };
+const RULESETS = {
+  '8-house': { game: '8', name: '8-ball, felt rules', source: 'felt house rule', breakAny: true,
+    description: 'Hit one of your group first, pot it to carry on. No calls unless your settings ask for them. An 8 on the break is spotted and the breaker carries on.' },
+  '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option',
+    description: 'Call every shot that is not obvious, and the 8 always with its pocket. A legal break pots a ball or drives four to the cushions. An 8 on the break: spot it or re-rack.' },
+  '9-house': { game: '9', name: '9-ball, felt rules', source: 'felt house rule', gameBallBreak: 'win', threeFoul: 'loss',
+    description: 'Lowest ball first. A legal 9 wins, early or on the break. Three fouls in a row lose.' },
+  '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', missed: 'option',
+    description: 'Lowest ball first, any legal 9 wins. Push out on the shot after the break; your opponent may hand it back. A legal break pots a ball or drives four to the cushions. Three fouls lose.' },
+  '10-wpa': { game: '10', name: '10-ball, WPA', source: 'WPA world standardized rules', calls: 'all', obvious: false, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
+    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option',
+    description: 'Lowest ball first, and call every shot, obvious or not. The 10 wins only when called; on the break or early it is spotted. Push out after the break. Three fouls lose.' },
+  '10-house': { game: '10', name: '10-ball, obvious shots free', source: 'felt house rule', calls: 'all', obvious: true, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
+    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option',
+    description: 'WPA 10-ball, except that an obvious shot is called for you from your aim.' },
+  'straight-wpa': { game: 'straight', name: 'Straight pool (14.1), WPA', source: 'WPA world standardized rules', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option',
+    threeFoul: 'minus15', missed: 'spot', safetyPots: 'spot', foulHand: 'position', score: 'count', race: 50,
+    description: 'Any ball, called with its pocket: a point each. With one ball left the other 14 are racked again. A foul costs a point, three in a row 15 more and a new break.' },
+  rotation: { game: 'rotation', name: 'Rotation (61)', source: 'American rotation, felt house rule', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
+    description: 'Lowest ball first; every ball potted on a legal shot scores its number. 61 wins. Balls potted on a foul are spotted.' },
+  bumper: { game: 'bumper', name: 'Bumper pool', source: 'felt house rule', description: 'Five balls each round the posts to the far cup; the marked ball first.' },
+  carom: { game: 'carom', name: 'Three-cushion', source: 'UMB rules, simplified', description: 'Your cue ball meets both others, with three cushions before the second. A point each.' },
+  snooker: { game: 'snooker', name: 'Snooker', source: 'WPBSA rules, simplified', description: 'A red, then a colour, until the reds are gone; then the colours in order.' },
+};
+for (const [id, r] of Object.entries(RULESETS)) Object.assign(r, Object.assign({}, RULE_BASE, r), { id });
+const DEFAULT_RULESET = { 8: '8-house', 9: '9-house', 10: '10-wpa', straight: 'straight-wpa', rotation: 'rotation', bumper: 'bumper', carom: 'carom', snooker: 'snooker' };
+const rulesetsFor = kind => Object.values(RULESETS).filter(r => r.game === kind);
+/* the called-shot configuration: mode (who must call: 'off', 'eight' (8-ball games, by the
+   official rules), 'official' (what the ruleset says), 'all' (every shot of every pocket game but
+   the break) or 'career' (the event's own; the official rules outside one)), detail (what a call
+   names: 'ball', 'pocket' (ball and pocket), 'rails' (and whether it banks, kicks or combines: a
+   custom rule) or 'strict' (that, and no other ball may drop: custom)), safety (a shot with no
+   call must be declared a safety), eight (the 8 is always called with its pocket), obvious
+   (an obvious shot is called from the aim, where the rules allow), change (the call may change
+   until the shot) */
+const CALL_MODES = ['off', 'eight', 'official', 'all', 'career'], CALL_DETAILS = ['ball', 'pocket', 'rails', 'strict'];
+const CALL_DEFAULT = { mode: 'official', detail: 'pocket', safety: true, eight: false, obvious: true, change: true };
+const RULE_KEYS = Object.keys(RULE_BASE);
+function makeCall(c) {
+  const o = Object.assign({}, CALL_DEFAULT);
+  if (c && typeof c === 'object') {
+    if (CALL_MODES.includes(c.mode)) o.mode = c.mode;
+    if (CALL_DETAILS.includes(c.detail)) o.detail = c.detail;
+    for (const k of ['safety', 'eight', 'obvious', 'change']) if (typeof c[k] === 'boolean') o[k] = c[k];
+  }
+  return o;
+}
+/* a game's rules: o = { ruleset, call, options, race, locked }, every part optional. A ruleset of
+   another game is never applied: the game's default is used instead. Rules already made pass through. */
+function makeRules(kind, o) {
+  o = o || {};
+  if (o.made && o.game === kind) return o;
+  const id = RULESETS[o.ruleset] && RULESETS[o.ruleset].game === kind ? o.ruleset : DEFAULT_RULESET[kind] || '8-house';
+  const R = Object.assign({}, RULESETS[id], { call: makeCall(o.call), locked: !!o.locked, made: true });
+  if (o.options && typeof o.options === 'object') for (const k of RULE_KEYS) if (o.options[k] !== undefined) R[k] = o.options[k];
+  if (R.score && Number.isFinite(o.race) && o.race > 0) R.race = Math.round(o.race);
+  return R;
+}
+const rulesOf = g => g.rules || makeRules(g.kind);
+const gameBallOf = g => g.kind === '8' ? 8 : g.kind === '9' ? 9 : g.kind === '10' ? 10 : null;
+/* who must call this game's shots: 'none', 'game' (only a shot at the game ball) or 'all' */
+function callScope(g) {
+  const R = rulesOf(g);
+  if (!POCKET_KINDS.includes(g.kind) || g.mode) return 'none';
+  const m = R.call.mode;
+  let s = m === 'off' ? 'none' : m === 'eight' ? (g.kind === '8' ? R.calls === 'none' ? 'all' : R.calls : 'none') : m === 'all' ? 'all' : R.calls;
+  if (s === 'none' && R.call.eight && g.kind === '8') s = 'game';
+  return s;
+}
+/* what the next shot's declaration must name, or null when it needs none: pocket (the pocket
+   too), flags (bank, kick and combo as played: custom), strict (no other ball may drop), auto (an
+   obvious shot may be called from the aim), safety (a shot with no call must be declared a
+   safety), change (the call may change before the shot). The break needs no call (14.1's may
+   carry one: callOpen); nor does a push-out. */
+function callNeed(g) {
+  if (g.mode || g.winner !== null || g.option || g.breakShot) return null;
+  if (g.call && g.call.push && g.pushAvail) return null;
+  const s = callScope(g);
+  if (s === 'none' || (s === 'game' && !legalTargets(g).includes(gameBallOf(g)))) return null;
+  const R = rulesOf(g), d = R.call.detail;
+  return { pocket: d !== 'ball', flags: d === 'rails' || d === 'strict', strict: d === 'strict', auto: !!(R.call.obvious && R.obvious), safety: !!R.call.safety, change: !!R.call.change };
+}
+/* a call may be made: one is needed, or it is 14.1's break (a called ball is one way to a legal break) */
+const callOpen = g => !!callNeed(g) || (g.kind === 'straight' && g.breakShot && !g.mode && g.winner === null && !g.option && callScope(g) !== 'none');
+/* the declaration (g.call) against the shot, apart from any foul: { need, made, safety, push,
+   missing, ball, pocket, extra (other balls down), why }. A needed call left out counts as a
+   declared safety unless the rules require safeties to be declared, when it is a missed call. */
+function callResult(g, r, need) {
+  const c = g.call || {}, pot = r.potted.filter(x => x !== 0), base = { ball: c.ball == null ? null : c.ball, pocket: c.pocket == null ? null : c.pocket, auto: !!c.auto };
+  if (c.push && g.pushAvail) return Object.assign(base, { need: false, made: false, safety: false, push: true, extra: pot, why: '' });
+  if (!need) return Object.assign(base, { need: false, made: null, safety: !!c.safety, push: false, extra: pot, why: '' });
+  const missing = !c.safety && c.ball == null;
+  if (c.safety || (missing && !need.safety)) return Object.assign(base, { need: true, made: false, safety: true, push: false, missing, extra: pot, why: '' });
+  if (missing) return Object.assign(base, { need: true, made: false, safety: false, push: false, missing: true, extra: pot, why: 'no call' });
+  const down = pot.includes(c.ball), at = (r.pocketOf || {})[c.ball], extra = pot.filter(x => x !== c.ball);
+  let made = down && (!need.pocket || at === c.pocket), why = !down ? `the ${c.ball} did not drop` : made ? '' : `the ${c.ball} missed the called pocket`;
+  if (made && need.flags) {
+    const bank = !!(r.rails && r.rails[c.ball] > 0), kick = r.kick > 0, combo = r.first !== c.ball;
+    const off = [['bank', bank, !!c.bank], ['kick', kick, !!c.kick], ['combination', combo, !!c.combo]].filter(x => x[1] !== x[2]);
+    if (off.length) { made = false; why = off.map(x => (x[1] ? 'an uncalled ' : 'no ') + x[0]).join(', '); }
+  }
+  if (made && need.strict && extra.length) { made = false; why = `the ${extra[0]} dropped too`; }
+  return Object.assign(base, { need: true, made, safety: false, push: false, missing: false, extra, why });
+}
+/* a break that pots nothing is legal when breakRails object balls reach a cushion (r.rails;
+   a result without it, made by hand, passes) */
+const railBalls = r => r.rails ? Object.keys(r.rails).filter(k => +k > 0 && r.rails[k] > 0).length : Infinity;
+const breakLegal = (R, r, pot) => !R.breakRails || pot.length > 0 || railBalls(r) >= R.breakRails;
+/* spot balls (lowest first): each on the foot spot, or the nearest free point behind it */
+function spotAll(balls, list) { for (const x of list.slice().sort((a, b) => a - b)) spot(balls, x); return balls; }
 const groupOf = n => n === 0 || n === 8 ? null : n < 8 ? 'solids' : 'stripes';
 const otherGroup = gr => gr === 'solids' ? 'stripes' : 'solids';
 const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
 const copyGame = g => JSON.parse(JSON.stringify(g));
+/* kind: '8', '9', '10', 'straight' (14.1 continuous), 'rotation', 'bumper', 'snooker' or 'carom'.
+   opts.rules: the rules (makeRules); carom takes its own opts. A pocket game also carries call (the
+   declaration for the next shot, set by the page or the CPU before the shot: { ball, pocket,
+   safety, push, bank, kick, combo, auto }), option (a choice pending for a player, see
+   chooseOption), pushAvail (the next shot may be a push-out), breaker, calls (the declaration
+   history) and, with a score, score, race, high (best run) and run (the run in progress). */
 function newGame(kind, opts) {
   if (kind === 'bumper') return bumperGame();
   if (kind === 'snooker') return snookerGame();
   if (kind === 'carom') return caromGame(opts);
   if (TABLE === 'bumper' || TABLE === 'snooker' || TABLE === 'carom') setTable(POOL_TABLE);
-  return { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null };
+  const R = makeRules(kind, opts && opts.rules);
+  const g = { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: [0, 0], winner: null, shots: 0, dry: 0, verdict: null,
+    rules: R, call: null, option: null, pushAvail: false, breaker: 0, calls: [] };
+  if (R.score) Object.assign(g, { score: [0, 0], race: R.race, high: [0, 0], run: 0 });
+  return g;
 }
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
@@ -1879,8 +2243,8 @@ function legalTargets(g) {
   if (g.kind === 'snooker') return snookerOn(g);
   if (g.kind === 'carom') return caromTargets(g);
   const on = onTable(g);
-  if (g.mode) return on;   /* practice and trick shots: any ball first */
-  if (g.kind === '9') return on.slice(0, 1);
+  if (g.mode || g.kind === 'straight') return on;   /* practice, trick shots and 14.1: any ball first */
+  if (g.kind !== '8') return on.slice(0, 1);       /* 9-ball, 10-ball, rotation: the lowest */
   if (g.open) { const t = on.filter(n => n !== 8); return t.length ? t : [8]; }
   const mine = on.filter(n => groupOf(n) === g.groups[g.turn]);
   return mine.length ? mine : [8];
@@ -1917,59 +2281,227 @@ function placeCue(g, x, y) {
   Object.assign(n.balls.find(b => b.n === 0), { x, y, vx: 0, vy: 0, on: true });
   return n;
 }
-/* judge a finished shot: returns the next game state with a verdict; g is not touched.
-   With the cue ball in hand behind the head string (after a break scratch) the shot is legal
-   when the first ball hit lies past the head string or the cue ball crossed the string before
-   that contact (r.crossed: a bank off the foot rail onto a ball in the kitchen is fine), as in
-   the WPA and BCA rules. Those rules let a player whose legal balls are all behind the string
-   have the nearest one spotted; felt has no spot request, so then any legal hit counts. A result
-   without `crossed` is judged on the first ball's position alone. An 8 potted on a legal break
-   is spotted and the breaker shoots again. The verdict: foul (text or null), keep (same player
-   shoots), win, why, potted (balls that stayed down), scratch, grouped (groups set by this shot),
-   twoFouls (9-ball: the player to shoot next is on two fouls in a row, a third loses). The game
-   also counts `dry`, shots in a row with no object ball down, which the CPU reads to break
-   safety loops. */
+/* the declaration on a game for its next shot (null clears it): a new game, g untouched */
+const withCall = (g, call) => Object.assign({}, g, { call: call || null });
+/* judge a finished shot: returns the next game state with a verdict; g is not touched. Each game's
+   module (RULE_MODULES) judges its own shots. The pocket games' verdict: foul (text or null), keep
+   (same player shoots), win, why, potted (balls that stayed down), scratch, grouped (8-ball: groups
+   set by this shot), twoFouls (the player to shoot next is on two fouls in a row and a third
+   loses), call (callResult: the declaration's fate, apart from the foul), push (a push-out),
+   option (a choice now pending: game.option), scored (points), rerack (why the balls were racked
+   again: 'stalemate', 'fourteen', 'fifteen', 'fouls'). With the cue ball in hand behind the head
+   string (after a break scratch) the shot is legal when the first ball hit lies past the head
+   string or the cue ball crossed the string before that contact (r.crossed: a bank off the foot
+   rail onto a ball in the kitchen is fine), as in the WPA and BCA rules. Those rules let a player
+   whose legal balls are all behind the string have the nearest one spotted; felt has no spot
+   request, so then any legal hit counts. A result without `crossed` is judged on the first ball's
+   position alone. The game also counts `dry`, shots in a row with no object ball down, which the
+   CPU reads to break safety loops and the stalemate rule reads. */
 function judge(g, r) {
-  if (g.kind === 'bumper') return judgeBumper(g, r);
-  if (g.kind === 'snooker') return judgeSnooker(g, r);
-  if (g.kind === 'carom') return judgeCarom(g, r);
-  const n = copyGame(g), me = g.turn, op = 1 - me;
+  const m = RULE_MODULES[g.kind] || RULE_MODULES[8];
+  return m.judge(g, r);
+}
+/* the pocket games' fouls: a scratch; on a push-out nothing else; no ball hit; the wrong ball
+   first; from the kitchen, a ball behind the head string first; no ball potted and none to a
+   cushion after contact (not on the break) */
+function poolFoul(g, r, R, targets, push) {
+  const pot = r.potted.filter(x => x !== 0);
+  if (r.potted.includes(0)) return 'scratch';
+  if (push) return null;
+  if (r.first === null) return 'no ball hit';
+  const firstBall = g.balls.find(b => b.n === r.first);
+  if (!(g.breakShot && R.breakAny) && !targets.includes(r.first)) return `hit the ${r.first} first`;
+  if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && r.crossed !== true && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) return `hit the ${r.first} behind the head string`;
+  if (!g.breakShot && !pot.length && !r.railAfter) return 'no rail after contact';
+  return null;
+}
+/* what every pocket game's judge starts from: the next game (a copy) and the shot's facts */
+function poolBase(g, r) {
+  const R = rulesOf(g), n = copyGame(g), me = g.turn;
+  n.rules = R;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
-  const pot = r.potted.filter(x => x !== 0), scratch = r.potted.includes(0), targets = legalTargets(g);
-  const firstBall = r.first === null ? null : g.balls.find(b => b.n === r.first);
-  let foul = null, keep = false, win = null, why = '';
-  if (r.first === null) foul = 'no ball hit';
-  else if (!(g.kind === '8' && g.breakShot) && !targets.includes(r.first)) foul = `hit the ${r.first} first`;
-  else if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && r.crossed !== true && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) foul = `hit the ${r.first} behind the head string`;
-  else if (!g.breakShot && !pot.length && !r.railAfter) foul = 'no rail after contact';
-  if (scratch) foul = 'scratch';
-  if (g.kind === '8') {
-    const mine = g.groups[me], cleared = !!mine && !onTable(g).some(x => groupOf(x) === mine);
-    if (pot.includes(8)) {
-      if (g.breakShot) spot(n.balls, 8);
-      else if (!foul && cleared) { win = me; why = 'the 8, legally'; }
-      else { win = op; why = foul ? 'the 8 went down on a foul' : 'the 8 went down before the group was clear'; }
-    }
-    if (win === null) {
-      const objs = pot.filter(x => x !== 8);
-      if (!foul && g.open && !g.breakShot && objs.length) {
-        n.groups[me] = groupOf(objs[0]); n.groups[op] = otherGroup(n.groups[me]); n.open = false;
-      }
-      keep = !foul && (objs.some(x => g.open || groupOf(x) === mine) || (g.breakShot && pot.includes(8)));
-    }
-  } else {
-    if (pot.includes(9)) { if (!foul) { win = me; why = 'the 9'; } else spot(n.balls, 9); }
-    n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
-    if (win === null && n.fouls[me] >= 3) { win = op; why = 'three fouls in a row'; }
-    keep = !foul && pot.length > 0;
+  const pot = r.potted.filter(x => x !== 0), push = !!(g.call && g.call.push && g.pushAvail && !g.breakShot);
+  const need = push ? null : callNeed(g);
+  return { R, n, me, op: 1 - me, pot, push, need, scratch: r.potted.includes(0), foul: poolFoul(g, r, R, legalTargets(g), push), call: callResult(g, r, need) };
+}
+/* the balls racked again for the same game, the score, the race, the best runs and the call
+   history kept: breaker breaks */
+function rerack(g, breaker) {
+  const f = newGame(g.kind, { rules: rulesOf(g) });
+  for (const k of ['score', 'high', 'calls', 'shots']) if (g[k] !== undefined) f[k] = copyGame({ v: g[k] }).v;
+  f.turn = breaker; f.breaker = breaker;
+  return f;
+}
+/* the end every pocket game's judge shares: the turn, the ball in hand, the push-out, the verdict,
+   the call history and the stalemate. o: { foul, keep, win, why, option, inHand, scored, grouped,
+   rerack, game (a replacement game, a re-rack), twoFouls } */
+function poolEnd(g, b, o) {
+  let n = b.n;
+  const { me, op, R } = b, foul = o.foul !== undefined ? o.foul : b.foul;
+  if (o.win != null) { n.winner = o.win; n.inHand = null; n.turn = me; n.option = null; }
+  else if (o.option) { n.option = o.option; n.turn = o.option.who; n.inHand = o.inHand || null; }
+  else {
+    n.turn = o.keep ? me : op;
+    n.inHand = o.inHand !== undefined ? o.inHand : !foul ? null : g.breakShot && b.scratch ? R.breakScratch : R.foulHand === 'position' ? (b.scratch ? 'kitchen' : null) : 'table';
   }
-  if (win !== null) { n.winner = win; n.inHand = null; n.turn = me; }
-  else { n.turn = keep ? me : op; n.inHand = foul ? (g.breakShot && scratch ? 'kitchen' : 'table') : null; }
+  if (g.breakShot) n.breaker = me;
   n.breakShot = false;
-  n.dry = pot.length ? 0 : (g.dry || 0) + 1;
-  n.verdict = { foul, keep, win, why, potted: pot.filter(x => !n.balls.find(b => b.n === x).on), scratch, grouped: g.open && !n.open,
-    twoFouls: g.kind === '9' && win === null && n.fouls[n.turn] >= 2 };
+  n.pushAvail = !!(g.breakShot && R.pushOut && n.winner === null && !n.option);
+  n.call = null;
+  n.dry = b.pot.length ? 0 : (g.dry || 0) + 1;
+  const potted = o.potted || b.pot.filter(x => !n.balls.find(q => q.n === x).on), c = b.call;
+  if (c.need || c.push || c.safety || c.ball !== null) n.calls = (g.calls || []).concat([{ p: me, ball: c.ball, pocket: c.pocket, safety: c.safety, push: c.push, made: c.made, auto: c.auto }]).slice(-40);
+  let again = o.rerack || null;
+  if (o.game) { n = Object.assign(o.game, { calls: n.calls }); }
+  else if (R.stalemate && n.winner === null && !n.option && n.dry >= 2 * R.stalemate) {
+    n = Object.assign(rerack(n, g.breaker || 0), { calls: n.calls });
+    again = 'stalemate';
+  }
+  n.verdict = { foul, keep: !!o.keep && !o.option, win: o.win == null ? null : o.win, why: o.why || '', potted, scratch: b.scratch, grouped: !!o.grouped,
+    twoFouls: o.win == null && !!R.threeFoul && R.threeFoul !== 'minus15' && n.fouls && n.fouls[n.turn] >= 2, call: c, push: b.push, option: n.option ? n.option.kind : null,
+    scored: o.scored || 0, rerack: again, threeFouls: !!o.threeFouls, illegalBreak: !!o.illegalBreak };
+  return n;
+}
+/* ---- 8-ball ---- */
+function judge8(g, r) {
+  const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b;
+  const mine = g.groups[me], cleared = !!mine && !onTable(g).some(x => groupOf(x) === mine);
+  let foul = b.foul, win = null, why = '', keep = false, option = null, illegalBreak = false, grouped = false;
+  if (g.breakShot && !foul && !breakLegal(R, r, pot)) {
+    foul = 'illegal break'; illegalBreak = true;
+    if (R.badBreak === 'rerack') option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak', 'break'] };
+  }
+  if (pot.includes(8)) {
+    if (g.breakShot) { if (R.gameBallBreak === 'option' && !foul) option = { kind: 'eightBreak', who: me, choices: ['spot', 'rerack'] }; else spot(n.balls, 8); }
+    else if (!foul && cleared && (!need || (call.made && call.ball === 8))) { win = me; why = 'the 8, legally'; }
+    else { win = op; why = foul ? 'the 8 went down on a foul' : !cleared ? 'the 8 went down before the group was clear' : call.safety ? 'the 8 went down on a safety' : 'the 8 went down in an uncalled pocket'; }
+  }
+  if (win === null) {
+    const objs = pot.filter(x => x !== 8), ok = !foul && (!need || call.made) && !call.safety;
+    if (ok && g.open && !g.breakShot && objs.length) {
+      const by = need && groupOf(call.ball) ? call.ball : objs[0];
+      n.groups[me] = groupOf(by); n.groups[op] = otherGroup(n.groups[me]); n.open = false; grouped = true;
+    }
+    keep = ok && (objs.some(x => g.open || groupOf(x) === mine) || (g.breakShot && pot.includes(8)));
+  }
+  return poolEnd(g, b, { foul, keep, win, why, option, grouped, illegalBreak });
+}
+/* ---- 9-ball and 10-ball: the lowest ball first, the game ball wins ---- */
+function judgeLowest(g, r) {
+  const b = poolBase(g, r), { R, n, me, op, pot, need, call, push } = b, gb = gameBallOf(g), on = legalTargets(g)[0];
+  let foul = b.foul, win = null, why = '', option = null, illegalBreak = false;
+  if (g.breakShot && !foul && !breakLegal(R, r, pot)) {
+    foul = 'illegal break'; illegalBreak = true;
+    if (R.badBreak === 'option') option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak'] };
+  }
+  const ok = !foul && !push && (!need || call.made) && !call.safety;
+  if (pot.includes(gb)) {
+    const wins = !foul && !push && (g.breakShot ? R.gameBallBreak === 'win' : need ? call.made && call.ball === gb : R.earlyGameBall === 'win' || on === gb);
+    if (wins) { win = me; why = `the ${gb}`; } else spot(n.balls, gb);
+  }
+  /* an illegal break the incoming player decides on is not one of the three fouls */
+  n.fouls[me] = foul && !option ? n.fouls[me] + 1 : foul ? n.fouls[me] : 0;
+  if (win === null && R.threeFoul === 'loss' && n.fouls[me] >= 3) { win = op; why = 'three fouls in a row'; }
+  if (win === null && !foul && !option) {
+    if (push) option = { kind: 'push', who: op, choices: ['take', 'pass'] };
+    else if (need && !call.made) {
+      const extra = pot.filter(x => x !== gb && !n.balls.find(q => q.n === x).on);
+      const rule = call.safety ? R.safetyPots : R.missed;
+      if (rule === 'spot') spotAll(n.balls, extra);
+      else if (rule === 'option' && extra.length && !call.safety) option = { kind: 'uncalled', who: op, choices: ['take', 'pass'] };
+    }
+  }
+  return poolEnd(g, b, { foul, keep: ok && pot.length > 0, win, why, option, illegalBreak });
+}
+/* ---- rotation (61): the lowest ball first; every ball down on a legal shot scores its number ---- */
+function judgeRotation(g, r) {
+  const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b, foul = b.foul;
+  const ok = !foul && (!need || call.made) && !call.safety;
+  let scored = 0, win = null, why = '';
+  if (ok) scored = pot.reduce((s, x) => s + x, 0);
+  else spotAll(n.balls, pot);   /* a foul, a safety or a missed call: what went down comes back */
+  n.score[me] += scored;
+  if (n.score[me] >= n.race) { win = me; why = `${n.race} points`; }
+  else if (!onTable(n).length) { win = n.score[me] >= n.score[op] ? me : op; why = `${n.race} points`; }   /* 60-60: the last ball takes it */
+  return poolEnd(g, b, { keep: ok && pot.length > 0, win, why, scored });
+}
+/* ---- straight pool (14.1 continuous) ---- */
+/* the rack's 15 spots, apex on the foot spot */
+function rackSpots() { return rack('straight').filter(b => b.n > 0).map(b => [b.x, b.y]); }
+const inRackArea = (b, spots) => b.on && spots.some(p => Math.hypot(p[0] - b.x, p[1] - b.y) < 2 * BALL_R);
+/* 14 down: the 14 are racked with the apex left empty. The break ball (the 15th) and the cue ball
+   stay where they are unless they lie in the rack's area: the break ball then goes to the head spot
+   (the centre spot if the cue ball is on the head spot), the cue ball to the hand behind the head
+   string. Returns the hand ('kitchen' or null). */
+function rackFourteen(n) {
+  const spots = rackSpots(), ball = n.balls.find(q => q.n > 0 && q.on), cue = n.balls.find(q => q.n === 0);
+  const head = [HEAD_X, TW / 2], centre = [TL / 2, TW / 2], near = (q, p) => Math.hypot(q.x - p[0], q.y - p[1]) < 2 * BALL_R;
+  const bIn = inRackArea(ball, spots), cIn = !cue.on || inRackArea(cue, spots);
+  let hand = cIn ? 'kitchen' : null;
+  if (bIn) {
+    const p = cIn ? head : cue.on && near(cue, head) ? centre : head;
+    Object.assign(ball, { x: p[0], y: p[1] });
+  } else if (cIn && near(ball, head)) Object.assign(ball, { x: centre[0], y: centre[1] });
+  /* the cue ball in hand behind the string: off the balls, on its way in */
+  if (hand) Object.assign(cue, { on: true, x: HEAD_X - 0.12, y: TW / 2 + (near({ x: HEAD_X - 0.12, y: TW / 2 }, [ball.x, ball.y]) ? 0.2 : 0) });
+  let k = 1;
+  for (const q of n.balls) if (q.n > 0 && q !== ball) { const p = spots[k++]; Object.assign(q, { on: true, x: p[0], y: p[1], vx: 0, vy: 0 }); }
+  return hand;
+}
+function judgeStraight(g, r) {
+  const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b;
+  let foul = b.foul, scored = 0, pen = 0, keep = false, win = null, why = '', option = null, again = null, inHand, threeFouls = false, illegalBreak = false, game = null;
+  if (g.breakShot) {
+    const c = g.call || {}, detail = R.call.detail;
+    const called = c.ball != null && pot.includes(c.ball) && (detail === 'ball' || (r.pocketOf || {})[c.ball] === c.pocket);
+    if (!foul && !called && !(railBalls(r) >= R.breakRails && (!r.rails || r.rails[0] > 0))) {
+      foul = 'breaking foul'; illegalBreak = true; pen = 2;
+      option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak'] };
+    } else if (!foul && called) { scored = pot.length; keep = true; }
+    if (!keep) spotAll(n.balls, pot);
+    if (foul && !illegalBreak) pen = 1;
+  } else if (foul) { pen = 1; spotAll(n.balls, pot); }
+  else if (!need || call.made) { scored = pot.length; keep = pot.length > 0; }
+  else spotAll(n.balls, pot);   /* a safety or a missed call: no score, the balls back on the spot */
+  if (foul && !illegalBreak) n.fouls[me] = g.fouls[me] + 1; else if (!foul) n.fouls[me] = 0;
+  if (n.fouls[me] >= 3 && R.threeFoul === 'minus15') { pen += 15; threeFouls = true; n.fouls[me] = 0; }
+  n.score[me] += scored - pen;
+  const run = (g.run || 0) + scored;
+  n.high[me] = Math.max(n.high[me], run);
+  n.run = keep ? run : 0;
+  const down = pot.filter(x => !n.balls.find(q => q.n === x).on);
+  if (n.score[me] >= n.race) { win = me; why = `${n.race} points`; }
+  else if (threeFouls) { game = rerack(n, me); game.fouls = n.fouls; again = 'fouls'; }
+  else if (keep) {
+    const left = onTable(n).length;
+    if (left === 1) { inHand = rackFourteen(n); again = 'fourteen'; }
+    else if (left === 0) { n.balls = rack('straight'); inHand = 'kitchen'; again = 'fifteen'; }
+  }
+  return poolEnd(g, b, { foul, keep, win, why, option, inHand, scored: scored - pen, rerack: again, game, threeFouls, illegalBreak, potted: down });
+}
+/* the modules: each game's judge; legalTargets and callNeed read the game the same way */
+const RULE_MODULES = {
+  8: { judge: judge8 }, 9: { judge: judgeLowest }, 10: { judge: judgeLowest }, rotation: { judge: judgeRotation }, straight: { judge: judgeStraight },
+  bumper: { judge: (g, r) => judgeBumper(g, r) }, snooker: { judge: (g, r) => judgeSnooker(g, r) }, carom: { judge: (g, r) => judgeCarom(g, r) },
+};
+/* a pending choice (game.option, for player option.who) made: a new game, g untouched, or null
+   when the choice is not on offer. 'push' and 'uncalled' (a ball down on a missed call): take
+   the table, or pass it back. 'badBreak': take the table as it lies, have the breaker break again
+   ('rebreak') or, in 8-ball, re-rack and break yourself ('break'). 'eightBreak': the breaker spots
+   the 8 and carries on, or re-racks and breaks again. */
+function chooseOption(g, choice) {
+  const o = g.option;
+  if (!o || !o.choices.includes(choice)) return null;
+  let n = copyGame(g);
+  n.option = null; n.call = null;
+  const who = o.who, other = 1 - who;
+  if (choice === 'take' || choice === 'pass') {
+    n.turn = choice === 'take' ? who : other;
+    if (o.kind === 'badBreak') n.pushAvail = !!rulesOf(g).pushOut;
+  } else if (choice === 'spot') { spot(n.balls, 8); n.turn = who; n.pushAvail = !!rulesOf(g).pushOut; }
+  else n = rerack(n, choice === 'rebreak' ? other : who);
+  n.verdict = Object.assign({}, g.verdict || {}, { chose: choice, chooser: who });
   return n;
 }
 
@@ -2280,12 +2812,18 @@ function cpuDryCost(g, j, v) {
 /* the score of a judged outcome j of a shot from g, for the player who shot */
 function cpuValue(g, j, L) {
   if (g.kind === 'snooker') return cpuSnookerValue(g, j, L);
-  const me = g.turn;
+  const me = g.turn, R = rulesOf(g);
   if (j.winner !== null) return j.winner === me ? 1000 : -1000;
   let v;
-  if (j.verdict.foul) v = -400 - (g.kind === '9' && j.fouls[me] >= 2 ? 150 : 0);
-  else if (j.turn === me) v = 300 + (L.position ? 250 * cpuChance(j, me, L) : 0);
+  if (j.verdict.foul && !j.option) v = -400 - (R.threeFoul && j.fouls[me] >= 2 ? 150 : 0);
+  /* a choice for the opponent (a push-out, a ball down on a missed call): they take the better side */
+  else if (j.option && j.option.who !== me) {
+    const t = Object.assign({}, j, { option: null });
+    v = L.position ? Math.min(-250 * cpuChance(t, 1 - me, L), 250 * cpuChance(t, me, L)) : -100;
+  } else if (j.turn === me) v = 300 + (L.position && !j.option ? 250 * cpuChance(j, me, L) : 0);
   else v = L.position ? -250 * cpuChance(j, j.turn, L) : 0;
+  /* points games: a little for each point (rotation's balls are worth their numbers) */
+  if (R.score) v += (R.score === 'numbers' ? 2 : 20) * (j.verdict.scored || 0);
   v -= cpuDryCost(g, j, v);
   if (g.kind === '8' && j.groups[me]) for (const n of j.verdict.potted) v += groupOf(n) === j.groups[me] ? 12 : groupOf(n) ? -12 : 0;
   return v;
@@ -2369,7 +2907,7 @@ function cpuSafeties(g, cx, cy, targets, place) {
 /* the break: from the kitchen, full and square on the head ball (the 1 in 9-ball), a touch of draw */
 function cpuBreak(g, rnd, L) {
   const objs = g.balls.filter(b => b.on && b.n > 0);
-  const head = (g.kind === '9' && objs.find(b => b.n === 1)) || objs.reduce((a, b) => b.x < a.x ? b : a);
+  const head = (g.kind !== '8' && g.kind !== 'straight' && objs.find(b => b.n === 1)) || objs.reduce((a, b) => b.x < a.x ? b : a);
   const place = [HEAD_X - 0.03, TW / 2 + (rnd() - 0.5) * 0.3];
   return { angle: Math.atan2(head.y - place[1], head.x - place[0]), power: L.brk, spin: { x: 0, y: -0.2 }, place };
 }
@@ -2388,14 +2926,17 @@ function* cpuSearch(g, seed, level = 'medium') {
   const rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
+  /* the shot played carries its declaration (call): the target and pocket of a pot line, a
+     safety, a push-out, or null when the rules ask for none */
   const play = s => ({ angle: s.angle + gauss() * L.noise, power: cpuPower(cpuSpeedAt(s.power) * (1 + gauss() * L.pnoise)),
-    spin: { x: s.spin.x, y: s.spin.y }, place: g.inHand ? s.place : null });
+    spin: { x: s.spin.x, y: s.spin.y }, place: g.inHand ? s.place : null, call: s.call || null });
   if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L));
+  const need = callNeed(g), potCall = (base, l) => callNeed(base) ? { ball: l.n, pocket: l.k } : null, safeCall = need ? { safety: true } : null;
   const targets = cpuTargets(g), cue = g.balls.find(b => b.n === 0), spots = g.inHand ? cpuSpots(g, targets, L) : [null];
   const recs = [];
   let sims = 0;
   const sim = (shot, base = g) => {
-    const g2 = shot.place && base === g ? placeCue(base, shot.place[0], shot.place[1]) : base, o = cpuRun(g2.balls, shot), j = judge(g2, o.r);
+    const g1 = shot.place && base === g ? placeCue(base, shot.place[0], shot.place[1]) : base, g2 = shot.call ? withCall(g1, shot.call) : g1, o = cpuRun(g2.balls, shot), j = judge(g2, o.r);
     sims++;
     return { shot, j, dir: o.dir, first: o.r.first, value: cpuValue(g2, j, L), line: null };
   };
@@ -2410,14 +2951,14 @@ function* cpuSearch(g, seed, level = 'medium') {
     let psi = l.psi, potted = false;
     for (const f of L.ladder) {
       if (sims >= L.sims - reserve) break;
-      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, f), spin: { x: 0, y: 0 }, place: l.place });
+      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, f), spin: { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
       o.line = l; o.f = f; recs.push(o);
       yield;
       potted = potted || o.j.verdict.potted.includes(l.n);
       psi = learn(l, o, psi);
     }
     if (L.retry && !potted && Math.abs(psi - l.psi) > 0.0005 && sims < L.sims - reserve) {
-      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, L.ladder[0]), spin: { x: 0, y: 0 }, place: l.place });
+      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, L.ladder[0]), spin: { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
       o.line = l; o.f = L.ladder[0]; recs.push(o);
       yield;
     }
@@ -2430,7 +2971,7 @@ function* cpuSearch(g, seed, level = 'medium') {
   for (const r of keepers.slice(0, L.spin)) {
     for (const [sx, sy, pf] of L.spins) {
       if (sims >= L.sims - reserve) break;
-      const l = r.line, shot = { angle: cpuAim(l, l.psi), power: cpuPotPower(l, r.f * pf), spin: { x: sx, y: sy }, place: l.place };
+      const l = r.line, shot = { angle: cpuAim(l, l.psi), power: cpuPotPower(l, r.f * pf), spin: { x: sx, y: sy }, place: l.place, call: potCall(g, l) };
       let o = sim(shot);
       o.line = l; o.f = r.f * pf; recs.push(o);
       yield;
@@ -2466,7 +3007,7 @@ function* cpuSearch(g, seed, level = 'medium') {
     if (L.look && r.j.turn === me && r.j.winner === null && sims < L.sims) {
       const c = r.j.balls.find(b => b.n === 0), next = c.on ? cpuLines(r.j.balls, c.x, c.y, cpuTargets(r.j), L)[0] : null;
       if (next) {
-        const o = sim({ angle: next.angle, power: cpuPotPower(next, 1.25), spin: { x: 0, y: 0 }, place: null }, r.j);
+        const o = sim({ angle: next.angle, power: cpuPotPower(next, 1.25), spin: { x: 0, y: 0 }, place: null, call: potCall(r.j, next) }, r.j);
         yield;
         r.mean += o.value >= 300 || o.j.winner === me ? 40 : -40;
       }
@@ -2483,6 +3024,10 @@ function* cpuSearch(g, seed, level = 'medium') {
     const safes = [], got = [];
     for (const place of spots.length > 2 ? [spots[0], spots[spots.length - 1]] : spots) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
     if (g.kind === 'snooker' && g.breakShot) safes.push(...snkBreaks(g));
+    for (const s of safes) s.call = safeCall;
+    /* the shot after the break may be a push-out: the best few safeties again as pushes, which
+       the opponent may hand back (cpuValue scores the choice they would make) */
+    if (g.pushAvail && rulesOf(g).pushOut) safes.push(...safes.slice(0, 4).map(s => Object.assign({}, s, { call: { push: true }, pri: s.pri - 0.01 })));
     safes.sort((a, b) => b.pri - a.pri);
     for (const s of safes.slice(0, L.safe)) {
       if (sims >= L.sims - (L.robust ? 8 : 0)) break;
@@ -2495,12 +3040,22 @@ function* cpuSearch(g, seed, level = 'medium') {
   }
   if (!recs.length) {
     const place = spots[0], cx = place ? place[0] : cue.x, cy = place ? place[1] : cue.y, t = g.balls.find(b => b.n === targets[0]);
-    return play({ angle: Math.atan2(t.y - cy, t.x - cx), power: cpuPower(cpuSpeedFor(Math.hypot(t.x - cx, t.y - cy) + 1.5)), spin: { x: 0, y: 0 }, place });
+    return play({ angle: Math.atan2(t.y - cy, t.x - cx), power: cpuPower(cpuSpeedFor(Math.hypot(t.x - cx, t.y - cy) + 1.5)), spin: { x: 0, y: 0 }, place, call: safeCall });
   }
   /* a shot simulated as a foul (or a loss) is never played over one simulated as legal */
   const legal = r => !r.j.verdict.foul && !(r.j.winner !== null && r.j.winner !== me);
   const pick = [tested.filter(legal), recs.filter(legal), tested, recs].find(c => c.length);
   return play(pick.reduce((a, b) => b.mean > a.mean ? b : a).shot);
+}
+/* the CPU's answer to a choice pending for it (game.option): the 8 on the break is spotted;
+   otherwise it takes the table when its best shot from there is a fair chance, else hands it back
+   (or has the breaker break again) */
+function cpuOption(g, level = 'medium') {
+  const o = g.option;
+  if (!o) return null;
+  if (o.kind === 'eightBreak') return 'spot';
+  const L = CPU_LEVELS[level] || CPU_LEVELS.medium, q = cpuChance(Object.assign({}, g, { option: null, turn: o.who }), o.who, L);
+  return q >= 0.3 ? 'take' : o.kind === 'badBreak' ? 'rebreak' : 'pass';
 }
 function cpuShot(g, seed, level) {
   const it = cpuSearch(g, seed, level);
@@ -3024,7 +3579,8 @@ function shotMoments(g, r, n, run = { pots: 0, fromBreak: false }) {
   if (g.kind === 'carom') return { legal: 0, keys: v.point && !v.foul ? ['point'] : [] };
   const down = ((g.kind === 'snooker' ? r.potted : v.potted) || []).filter(x => x !== 0);
   let legal = [];
-  if (v.foul) legal = [];
+  /* a foul, a push-out, a safety or a missed call (the called-shot games) earns no moment */
+  if (v.foul || (v.call && (v.call.push || v.call.safety || (v.call.need && !v.call.made)))) legal = [];
   else if (g.kind === 'bumper') legal = down;
   else if (g.kind === '8' && !g.mode) {
     const mine = g.groups[me];
@@ -4296,9 +4852,9 @@ const colorOf = n => n >= 70 ? CAROM_COLOR[n - 70] : n > 40 ? (isRed(n) ? SNOOKE
    #ffa597 on green (over 3:1; the signal red only reaches 2.2:1) and a warm yellow on red, where
    no red or pink can read, and on blue (carom's classic cloth; any game may use it). */
 const CLOTHS = {
-  green: { base: '#1b5d47', cushion: '#1d6450', illegal: '#ffa597', ovMin: 0.6, bounce: '120,200,160', lamp: '255,248,220' },
-  red: { base: '#9a1f26', cushion: '#a2242b', illegal: '#ffe27a', ovMin: 0.68, bounce: '236,122,118', lamp: '255,196,160' },
-  blue: { base: '#1d4f91', cushion: '#21579c', illegal: '#ffe27a', ovMin: 0.66, bounce: '120,160,230', lamp: '235,240,255' },
+  green: { base: '#1b5d47', cushion: '#1d6450', illegal: '#ffa597', ovMin: 0.6, bounce: '120,200,160', lamp: '255,248,220', call: '#ffe27a' },
+  red: { base: '#9a1f26', cushion: '#a2242b', illegal: '#ffe27a', ovMin: 0.68, bounce: '236,122,118', lamp: '255,196,160', call: '#9ff0ff' },
+  blue: { base: '#1d4f91', cushion: '#21579c', illegal: '#ffe27a', ovMin: 0.66, bounce: '120,160,230', lamp: '235,240,255', call: '#9ff0ff' },
 };
 let CL = CLOTHS.green, CLOTH = CL.base, CUSHION = CL.cushion, ILLEGAL = CL.illegal;
 const clothOf = () => CLOTHS[settings && settings.cloth] || CLOTHS.green;
@@ -5180,7 +5736,7 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
 /* the game ball (the 8 in 8-ball, the 9 in 9-ball) wears a thin soft halo on the cloth, under
    its edge: a pale gold core (about 7:1 on the brightest cloth, render-check measures it) in a
    faint glow. It is a ring round the ball, so it rolls with nothing. */
-const gameBall = () => game.kind === '9' ? 9 : 8;
+const gameBall = () => game.kind === 'straight' || game.kind === 'rotation' ? null : gameBallOf(game) || 8;
 function drawHalo(X, Y, r, alpha = 1) {
   const g = ctx, w = Math.max(1.25 * dpr, r * 0.075), R = r + w * 0.75;
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -5763,7 +6319,7 @@ function draw(now) {
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
-  if (!rp) { drawHint(now); drawSolo(); }
+  if (!rp) { drawHint(now); drawSolo(); drawCall(now); hudCall(); }
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
@@ -5947,7 +6503,8 @@ function drawLoupe(now, gi) {
 const HINT_FADE = 300, HINT_PULSE = 2400;
 let hintSeen = { key: '', t: 0 };
 function drawHint(now) {
-  const b = hint && state === 'aim' && human() ? game.balls.find(o => o.n === hint.n && o.on) : null;
+  /* a call on the table (5c) stands in for the hint */
+  const b = hint && state === 'aim' && human() && !(callMan && callMan.ball != null) ? game.balls.find(o => o.n === hint.n && o.on) : null;
   if (!b) { hintSeen.key = ''; return; }
   const key = hint.n + '/' + hint.k;
   if (hintSeen.key !== key) hintSeen = { key, t: now };
@@ -5984,6 +6541,8 @@ const WHEEL_RIDGE = 4;            /* px between the wheel's ridges; an Alt+arrow
 const FINE_STEP = WHEEL_RIDGE * WHEEL_RATE;
 const AUTO_AIM_MS = 250;          /* the cue's swing onto the suggested line at the start of a turn, at speed 1 */
 const SETTINGS_KEY = 'felt.settings';
+/* the settings' version (loadSettings), 14.1's races, and the page's own call options (5c) */
+const SETTINGS_V = 2, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: true, confirm: true, sound: true, warn: true, history: true };
 const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, as a share of its radius */
 let game = newGame('8'), state = 'menu', cpuMode = false, cpuLevel = 'medium', tab = null;
 let aimAngle = 0, power = 0.5, markPower = 0.5, cueSpin = { x: 0, y: 0 };
@@ -6055,8 +6614,10 @@ function start(kind, o = null) {
   setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
   setPockets(o ? o.pockets : settings.pockets);
   if (kind === 'snooker') setTable('snooker', settings.snookerTable);
-  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind, kind === 'carom' ? caromOpts() : undefined);
-  if (o && o.breaker === 1 && kind !== 'bumper' && kind !== 'carom') game.turn = 1;
+  /* a pocket game's rules: the event's when it passes them (locked), else the settings' (5c) */
+  game = kind === 'snooker' ? snookerGame(settings.snookerFrames) : newGame(kind, kind === 'carom' ? caromOpts() : { rules: rulesFor(kind, o) });
+  if (o && o.breaker === 1 && kind !== 'bumper' && kind !== 'carom') { game.turn = 1; game.breaker = 1; }
+  resetCall(); cpuCall = null; optBox.hidden = true;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
@@ -6081,12 +6642,22 @@ function commit(p) {
   power = clamp(p, 0, 1);
   if (human()) markPower = power;
   pull = null;
+  takeCall();
   stroke = { t0: performance.now(), power };
   state = 'stroke';
   hud();
 }
+/* the declaration goes on the game as the shot is committed (5c): the player's call or the CPU's,
+   with a moment's confirmation over the table when the settings ask for it */
+function takeCall() {
+  if (!POCKET_KINDS.includes(game.kind) || game.mode || tutOn()) return;
+  const c = human() ? humanCall() : cpuCall;
+  game.call = c || null;
+  if (c && settings.calls.confirm && (c.ball != null || c.safety || c.push)) flash('turn', callName(c).replace('Calling: ', 'Called: '), human() ? '' : `${nameOf(game.turn)}`, 800);
+}
 function shoot() {
   audioOn();
+  if (state === 'aim') takeCall();   /* a shot not committed through the bar (the test hook) */
   stroke = null; pull = null;
   dropBall();
   felt.lastShot = shotRecord({ angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() });
@@ -6243,8 +6814,8 @@ function handWords(p, kitchen) {
   const where = kitchen ? ' behind the head string' : '';
   return cpuMode ? `Ball in hand for ${p === 0 ? 'you' : 'the CPU'}${where}` : `${nameOf(p)}: ball in hand${where}`;
 }
-/* 9-ball: a player on two fouls in a row loses with a third (stream C may say so in the verdict) */
-const onTwo = (g, p) => g.kind === '9' && g.winner === null && g.fouls[p] >= 2;
+/* 9-ball and 10-ball: a player on two fouls in a row loses with a third */
+const onTwo = (g, p) => (g.kind === '9' || g.kind === '10') && rulesOf(g).threeFoul === 'loss' && g.winner === null && g.fouls[p] >= 2;
 function settle() {
   if (game.mode || tutOn()) { settleSolo(); return; }   /* practice, trick shots (5s) and the tutorials (6d) */
   const r = resultOf(tab);
@@ -6261,23 +6832,25 @@ function settle() {
   if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null; picked = false;
-  if (!human()) {
-    state = 'thinking'; cpuPlan = null;
-    felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
-    cpuIt = cpuSearch(game, cpuSeed++, cpuLevel);
-  } else { state = 'aim'; enterHand(); }
-  keepAim();
-  autoAim();
+  /* a choice the rules give (5c): the CPU answers at once, a player in the option box */
+  const chose = nextTurn();
   /* the words, once the next state is set so the banner can keep clear of the cue ball */
   const kitchen = game.inHand === 'kitchen';
   const group = v.grouped ? `${isOf(shooter)} ${game.groups[shooter]}.` : '';
-  const ballOn = game.kind === '9' ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
+  const ballOn = ['9', '10', 'rotation'].includes(game.kind) && legalTargets(game).length ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
   const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
   if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
   if (game.kind === 'snooker') { snookerWords(v, shooter, who); hud(); return; }
   if (game.kind === 'carom') { caromWords(v, shooter, who); hud(); return; }
-  if (v.foul) {
-    const hand = handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
+  /* the call, the points, a re-rack and a choice made or pending: their own banner first */
+  const extra = callWords(v, shooter, chose);
+  if (state === 'choose') { say(extra || optionSay()); sfx(v.foul ? 'foul' : 'turn', 1); hud(); return; }
+  if (extra && !v.foul) {
+    flash('turn', extra, who === shooter ? `${nameOf(who)} ${cpuMode && who === 0 ? 'shoot' : 'shoots'} again` : turnOf(who), 1500);
+    say(`${extra} ${turnOf(who)}.${ballOn}`);
+    sfx('turn', 1);
+  } else if (v.foul) {
+    const hand = (extra ? extra + '\n' : '') + handWords(who, kitchen), w = [warn(shooter), warn(who)].filter(Boolean).join('\n');
     flash('foul', `Foul: ${v.foul}`, hand + (w ? '\n' + w : ''), w ? 2400 : 1500);
     say(game.inHand && human() ? handHint() + ballOn : `Foul: ${v.foul}. ${hand}.${ballOn}`);
     sfx('foul', 1);
@@ -6292,6 +6865,252 @@ function settle() {
   }
   hud();
 }
+/* ---- 5c. the called shot and the rules' choices ----
+   The rules engine (sim 1e) says what the next shot's declaration must name (callNeed) and judges
+   it (judge reads game.call). The page builds the declaration: callMan is what the player chose
+   by tapping (an object ball, then a pocket, and under custom detail the Bank, Kick and Combo
+   flags); where the rules allow an obvious shot is called from the aim (obviousCall: the ball the
+   aim line meets and the pocket its path heads into), shown in the pill as "Calling: 6 in side,
+   tap to change"; the Safety chip declares a safety and Push out (the shot after the break in 9-
+   and 10-ball) a push-out. The power bar is still the only way to shoot: with a needed call
+   missing it reads Call your shot and does not arm. shoot() puts the declaration on the game
+   (humanCall, or the CPU's plan.call) and judge takes it from there. A choice the rules give
+   (game.option: take the table or hand it back, re-rack, spot the 8) is the CPU's at once
+   (cpuOption) or the player's in the option box (state 'choose'). The effective rules are the
+   event's when a career rack or tournament passes them to start() (locked: Settings shows Locked
+   by event), else the player's settings (rulesFor). */
+let callMan = null, callSafe = false, callPushOn = false, callAutoOff = false, cpuCall = null, callKey = '';
+function resetCall() { callMan = null; callSafe = false; callPushOn = false; callAutoOff = false; }
+/* the rules for a new game: an event's (o.rules, locked), else the settings' */
+function rulesFor(kind, o) {
+  if (o && o.rules) return makeRules(kind, Object.assign({}, o.rules, { locked: true }));
+  const ruleset = kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : kind === '10' ? settings.rules10 : undefined;
+  return makeRules(kind, { ruleset, call: settings.calls, race: kind === 'straight' ? settings.race141 : undefined,
+    options: (kind === '8' || kind === '9') && settings.stalemate ? { stalemate: STALEMATE_INNINGS } : undefined });
+}
+const STALEMATE_INNINGS = 6;
+const callable = () => state === 'aim' && human() && !rp && !game.mode && !tutOn() && game.winner === null && !game.option;
+const callOn = () => callable() && callOpen(game);
+const pushOffer = () => callable() && game.pushAvail && rulesOf(game).pushOut;
+/* the obvious shot down the aim line: the legal ball it meets, and the pocket whose mouth that
+   ball's line runs into with a clear path, or null */
+function obviousCall() {
+  const c = cueBall();
+  if (!c || !c.on) return null;
+  const dx = Math.cos(aimAngle), dy = Math.sin(aimAngle), h = aimTrace(c.x, c.y, dx, dy, [c.n], 6);
+  if (h.kind !== 'ball' || !h.ball || !legalTargets(game).includes(h.ball.n)) return null;
+  const o = h.ball, gx = c.x + dx * h.t, gy = c.y + dy * h.t, ul = Math.hypot(o.x - gx, o.y - gy) || 1, ux = (o.x - gx) / ul, uy = (o.y - gy) / ul;
+  let best = -1, bd = Infinity;
+  POCKET_AIM.forEach((p, k) => {
+    const vx = p[0] - o.x, vy = p[1] - o.y, along = vx * ux + vy * uy, off = Math.abs(vx * uy - vy * ux);
+    if (along > 0 && off < (k === 1 || k === 4 ? SIDE_W : CORNER_W) * 0.45 && off < bd && cpuClear(game.balls, o.x, o.y, p[0], p[1], o.n)) { best = k; bd = off; }
+  });
+  return best >= 0 ? { ball: o.n, pocket: best, auto: true } : null;
+}
+/* the declaration the next human shot carries */
+function humanCall() {
+  if (callPushOn && pushOffer()) return { push: true };
+  if (!callOn()) return null;
+  if (callSafe) return { safety: true };
+  const need = callNeed(game) || { pocket: settings.calls.detail !== 'ball', auto: false }, auto = need.auto && !callAutoOff ? obviousCall() : null;
+  if (callMan && callMan.ball != null) {
+    const c = Object.assign({}, callMan);
+    if (c.pocket == null && auto && auto.ball === c.ball) c.pocket = auto.pocket;
+    return c;
+  }
+  return callMan ? null : auto;
+}
+/* the bar may arm: no call needed, or the declaration is whole */
+function callReady() {
+  if (!human() || state !== 'aim') return true;
+  if (callPushOn && pushOffer()) return true;
+  const need = callOn() ? callNeed(game) : null;
+  if (!need) return true;
+  const c = humanCall();
+  return !!c && (c.safety || (c.ball != null && (!need.pocket || c.pocket != null)));
+}
+const callLocked = () => !rulesOf(game).call.change && !!callMan && callMan.ball != null && callMan.pocket != null;
+function callTick() { if (settings.calls.sound) sfx('tap', 1); }
+/* a tap on an object ball while a call is open: it is the called ball (the tap still aims, as ever) */
+function pickCallBall(n) {
+  if (!callOn() || callLocked()) return;
+  callSafe = false;
+  if (!callMan || callMan.ball !== n) callMan = { ball: n, pocket: null, bank: false, kick: false, combo: false };
+  callTick(); hud();
+}
+/* a tap on a pocket: the called pocket (the ball from the aim when none is picked yet) */
+function pickPocket(k) {
+  if (!callOn() || callLocked()) return;
+  callSafe = false;
+  if (!callMan || callMan.ball == null) {
+    const a = obviousCall() || (hint && hint.n ? { ball: hint.n } : null);
+    callMan = { ball: a ? a.ball : null, pocket: k, bank: false, kick: false, combo: false };
+  } else callMan.pocket = k;
+  callTick(); hud();
+}
+/* the pocket under a tap at screen (sx, sy), within a finger's reach of its hole, or -1 */
+function pocketAt(sx, sy) {
+  let best = -1, bd = Math.max(26, 1.6 * BALL_R * view.k);
+  POCKETS.forEach((p, k) => { const s = toScreen(p[0], p[1]), d = Math.hypot(s[0] - sx, s[1] - sy); if (d < bd) { bd = d; best = k; } });
+  return best;
+}
+/* why the call cannot stand as it is (invalid-shot warnings), or '' */
+function callWarn(c) {
+  if (!settings.calls.warn || !c || c.ball == null) return '';
+  const t = legalTargets(game);
+  if (game.kind === 'straight' || t.includes(c.ball) || (c.combo && c.ball !== t[0])) return '';
+  return game.kind === '8' ? `The ${c.ball} is not yours to hit first` : `The ${c.ball} is not on: hit the ${t[0]} first`;
+}
+/* a pocket in words as the player sees the table: "top left corner", "right side" (the view turns
+   the table upright on a phone, so the words come from the screen) */
+function pocketWords(k) {
+  const p = POCKET_AIM[k];
+  if (!p) return 'pocket';
+  const s = toScreen(p[0], p[1]), c = toScreen(TL / 2, TW / 2), e = 4;
+  const v = s[1] < c[1] - e ? 'top' : s[1] > c[1] + e ? 'bottom' : '', h = s[0] < c[0] - e ? 'left' : s[0] > c[0] + e ? 'right' : '';
+  return k === 1 || k === 4 ? `${v || h} side` : `${v} ${h} corner`;
+}
+const callName = c => c.push ? 'Push out' : c.safety ? 'Safety' : c.ball == null ? 'Call your shot' : c.pocket == null ? `Calling the ${c.ball}` : `Calling: ${c.ball} in ${pocketWords(c.pocket)}`;
+/* the call bar's words and chips, each frame while aiming (cheap: a key skips unchanged frames) */
+function hudCall() {
+  const open = callOn(), push = pushOffer(), shown = open || push;
+  if (callBar.hidden !== !shown) callBar.hidden = !shown;
+  if (!shown) { callKey = ''; return; }
+  const need = callNeed(game), c = humanCall(), flags = !!(need && need.flags) && !callSafe && !(callPushOn && push);
+  const ready = callReady(), warnT = callWarn(c);
+  const text = c ? callName(c) : 'Call your shot';
+  const sub = callPushOn && push ? 'They may hand it back' : callSafe ? 'Your turn ends after it' : !c ? (open ? 'Tap a ball, then a pocket' : '') : warnT || (c.ball != null && c.pocket == null && need && need.pocket ? 'now tap a pocket' : callLocked() ? 'call locked' : c.auto ? 'tap to change' : 'tap to clear');
+  const key = [text, sub, ready, flags, open, push, callSafe, callPushOn, c && c.bank, c && c.kick, c && c.combo].join('|');
+  if (key === callKey) return;
+  callKey = key;
+  callText.textContent = text; callSub.textContent = sub;
+  callPill.classList.toggle('need', !ready || !!warnT);
+  callPill.classList.toggle('set', ready && !!c && !warnT);
+  callPill.hidden = !open && !(callPushOn && push);
+  callPill.setAttribute('aria-label', `${text}${sub ? ', ' + sub : ''}`);
+  for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) { b.hidden = !flags; b.setAttribute('aria-pressed', String(!!(callMan && callMan[f]))); }
+  safetyBtn.hidden = !open; safetyBtn.setAttribute('aria-pressed', String(callSafe));
+  pushBtn.hidden = !push; pushBtn.setAttribute('aria-pressed', String(callPushOn && push));
+}
+callPill.addEventListener('click', () => {
+  if (!callable()) return;
+  if (callPushOn) { callPushOn = false; hud(); return; }
+  if (callSafe) { callSafe = false; hud(); return; }
+  if (callLocked()) { say('The call is locked for this shot.'); return; }
+  /* tap to change: the aim's call goes, and the player taps the ball and the pocket */
+  callMan = { ball: null, pocket: null, bank: false, kick: false, combo: false }; callAutoOff = true;
+  callTick(); hud();
+});
+for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) b.addEventListener('click', () => {
+  if (!callOn() || callLocked()) return;
+  const c = humanCall();
+  if (!callMan) callMan = c && c.ball != null ? { ball: c.ball, pocket: c.pocket, bank: false, kick: false, combo: false } : { ball: null, pocket: null, bank: false, kick: false, combo: false };
+  callMan[f] = !callMan[f]; callTick(); hud();
+});
+safetyBtn.addEventListener('click', () => { if (!callOn()) return; callSafe = !callSafe; callPushOn = false; callTick(); hud(); });
+pushBtn.addEventListener('click', () => { if (!pushOffer()) return; callPushOn = !callPushOn; callSafe = false; callTick(); hud(); });
+/* the called ball (an accent ring) and pocket (a glow), until the shot: the player's call while
+   aiming, the CPU's from its plan; the colour is the cloth's CL.call (3:1 and more on each cloth) */
+function drawCall(now) {
+  if (!settings.calls.highlight || rp) return;
+  const c = state === 'aim' && human() ? humanCall() : state === 'thinking' && cpuPlan ? cpuPlan.call : state === 'stroke' ? game.call : null;
+  if (!c || c.ball == null) return;
+  const b = game.balls.find(o => o.n === c.ball && o.on);
+  const g = ctx, rp0 = BALL_R * view.k, w = Math.max(2, rp0 * 0.12), col = CL.call;
+  g.save();
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.globalAlpha = c.auto ? 0.8 : 1;
+  if (b) { const s = toScreen(b.x, b.y); g.strokeStyle = col; g.lineWidth = w; circle(g, s[0], s[1], rp0 + 2 + w / 2); g.stroke(); }
+  if (c.pocket != null && POCKETS[c.pocket]) {
+    const p = POCKETS[c.pocket], s = toScreen(p[0], p[1]), r = POCKET_R[c.pocket] * view.k, pulse = reducedMotion() ? 0.5 : 0.5 + 0.5 * Math.sin(now / 320);
+    const glow = g.createRadialGradient(s[0], s[1], r * 0.4, s[0], s[1], r * 1.9);
+    glow.addColorStop(0, col); glow.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = (c.auto ? 0.35 : 0.5) + 0.15 * pulse; g.fillStyle = glow; circle(g, s[0], s[1], r * 1.9); g.fill();
+    g.globalAlpha = c.auto ? 0.8 : 1; g.strokeStyle = col; g.lineWidth = w; circle(g, s[0], s[1], r * 1.15); g.stroke();
+  }
+  g.restore();
+}
+/* the next turn, or the choice before it: the CPU answers a choice at once (and the turn goes on
+   from what it chose), a player gets the option box. Returns the CPU's choice, if it made one. */
+function nextTurn() {
+  resetCall(); cpuCall = null; optBox.hidden = true;
+  let chose = null;
+  while (game.option && !(cpuMode ? game.option.who === 0 : true)) {
+    const o = game.option, c = cpuOption(game, cpuLevel);
+    chose = { o, c };
+    game = chooseOption(game, c);
+  }
+  if (game.option) { state = 'choose'; showOption(); return chose; }
+  if (game.breakShot) randomOrient();
+  if (!human()) {
+    state = 'thinking'; cpuPlan = null;
+    felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
+    cpuIt = cpuSearch(game, cpuSeed++, cpuLevel);
+  } else { state = 'aim'; enterHand(); }
+  keepAim();
+  autoAim();
+  return chose;
+}
+const OPT_WORDS = {
+  push: { head: 'Push out', sub: 'Shoot it from here, or hand it back.', take: 'Shoot it', pass: 'Hand it back' },
+  uncalled: { head: 'A ball dropped on a missed call', sub: 'Shoot from here, or hand it back.', take: 'Shoot it', pass: 'Hand it back' },
+  badBreak: { head: 'Illegal break', sub: 'Take the table as it lies, or have the balls racked again.', take: 'Take the table', rebreak: 'They break again', break: 'Re-rack, I break' },
+  eightBreak: { head: 'The 8 on the break', sub: 'Spot it and carry on, or re-rack and break again.', spot: 'Spot the 8', rerack: 'Re-rack' },
+};
+const optionSay = () => game.option ? `${nameOf(game.option.who)}: ${OPT_WORDS[game.option.kind].head}. ${OPT_WORDS[game.option.kind].sub}` : '';
+function showOption() {
+  const o = game.option, w = OPT_WORDS[o.kind];
+  optHead.textContent = (cpuMode ? '' : nameOf(o.who) + ': ') + w.head;
+  optSub.textContent = w.sub;
+  optBtns.replaceChildren(...o.choices.map(c => {
+    const b = document.createElement('button');
+    b.textContent = w[c]; b.dataset.choice = c;
+    b.addEventListener('click', () => choose(c));
+    return b;
+  }));
+  optBox.hidden = false;
+  if (byKeys) optBtns.firstChild.focus({ preventScroll: true });
+}
+/* the player's answer to the option box */
+function choose(c) {
+  if (state !== 'choose' || !game.option || !game.option.choices.includes(c)) return false;
+  audioOn();
+  const o = game.option;
+  game = chooseOption(game, c);
+  optBox.hidden = true;
+  nextTurn();
+  const t = OPT_WORDS[o.kind][c];
+  flash('turn', t, turnOf(game.turn), 1000);
+  say(`${t}. ${turnOf(game.turn)}.`);
+  hud();
+  return true;
+}
+/* the shot's call, points, re-rack and any choice the CPU made, in a few words ('' for none) */
+function callWords(v, shooter, chose) {
+  const parts = [], c = v.call;
+  if (c && c.push) parts.push('Push out');
+  else if (c && c.need && !v.foul) {
+    if (c.safety && !c.missing) parts.push('Safety');
+    else if (c.missing && c.safety) parts.push('No call: played as a safety');
+    else if (!c.made) parts.push(`Missed call: ${c.why}`);
+  }
+  if (v.illegalBreak && !v.foul) parts.push('Illegal break');
+  if (v.scored && (game.kind === 'straight' || game.kind === 'rotation')) parts.push(`${v.scored > 0 ? '+' : ''}${v.scored} for ${nameOf(shooter)}`);
+  if (v.threeFouls) parts.push('Three fouls: 15 more off');
+  if (v.rerack) parts.push({ stalemate: 'Stalemate: the balls are racked again', fourteen: 'Fourteen down: re-rack', fifteen: 'All fifteen down: re-rack', fouls: 'Break a new rack' }[v.rerack]);
+  if (chose) parts.push(`${nameOf(chose.o.who)}: ${OPT_WORDS[chose.o.kind][chose.c].toLowerCase()}`);
+  return parts.join('. ');
+}
+/* the pause menu's declaration history (settings.calls.history): made of called, the last few */
+function hudCallHist() {
+  const list = settings.calls.history && paused && !game.mode ? game.calls || [] : [];
+  callHist.hidden = !list.length;
+  if (!list.length) return;
+  const called = list.filter(c => c.ball != null), made = called.filter(c => c.made).length;
+  const last = list.slice(-4).reverse().map(c => (c.push ? 'push out' : c.safety ? 'safety' : `${c.ball}${c.pocket != null ? ' in ' + pocketWords(c.pocket) : ''}, ${c.made ? 'made' : 'missed'}`) + (cpuMode ? ` (${c.p ? 'CPU' : 'you'})` : ''));
+  callHist.textContent = `Calls: ${made} of ${called.length} made. Last: ${last.join('; ')}.`;
+}
+
 /* bumper pool's banners and status line after a shot */
 const colourOf = p => p ? 'White' : 'Red';
 function bumperWords(v, shooter, who) {
@@ -6469,7 +7288,7 @@ function think(now) {
   aimAngle = cpuPlan.from + d * (u < 0.6 ? 1 - (1 - u / 0.6) ** 3 : 1);
   if (u > 0.6) { power = cpuPlan.power * (1 - (1 - (u - 0.6) / 0.4) ** 2); pull = pull || { kind: 'cpu' }; }
   hudControls();
-  if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuPlan = null; commit(p); }
+  if (u >= 1) { aimAngle = cpuPlan.angle; const p = cpuPlan.power; cpuCall = cpuPlan.call || null; cpuPlan = null; commit(p); }
 }
 /* ---- 5r. the shot replay ----
    shoot() records every shot (shotRecord): the balls before it, the stroke, and the table it was
@@ -6919,6 +7738,12 @@ function endTable(e, cancel) {
   if (tap && solo && solo.edit && game.mode === 'practice') { editAt(toTable(g.x0, g.y0)); return; }   /* free table editing (5s) */
   /* bumper pool: a tap on one of the shooter's own balls picks it to strike */
   if (tap && game.kind === 'bumper') { const n = ballAt(g.x0, g.y0); if (n !== null && n !== cueN()) { pickBall(n); return; } }
+  /* a call open (5c): a tap on a pocket calls it (and does not aim); a tap on a ball calls it and aims */
+  if (tap && callOn()) {
+    const k = pocketAt(g.x0, g.y0), o = objectAt(g.x0, g.y0), os = o && toScreen(o.x, o.y), ps = k >= 0 && toScreen(POCKETS[k][0], POCKETS[k][1]);
+    if (k >= 0 && !(os && Math.hypot(os[0] - g.x0, os[1] - g.y0) < Math.hypot(ps[0] - g.x0, ps[1] - g.y0))) { pickPocket(k); return; }
+    if (o) pickCallBall(o.n);
+  }
   if (tap) {
     /* on the cue ball itself there is no direction to take (it once swung the aim anywhere):
        nothing, as hover does. On an object ball: the full-ball line to its centre; on the
@@ -6967,6 +7792,8 @@ powerBar.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' &
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
   if (state !== 'aim' || !human() || (gest && !yieldTable(e))) return;
+  /* a needed call missing: the bar says so and does not arm (5c) */
+  if (!callReady()) { say('Call your shot: tap a ball, then a pocket, or play a safety.'); callPill.classList.remove('nudge'); void callPill.offsetWidth; callPill.classList.add('nudge'); hudControls(); return; }
   /* a thumb still on the wheel gives way too: the bar is never dead */
   if (wheelDrag) { if (e.pointerType === 'mouse') return; try { fineWheel.releasePointerCapture(wheelDrag.id); } catch (err) { /* already gone */ } endWheel(null); }
   finishAutoAim();
@@ -7553,12 +8380,25 @@ Object.defineProperties(felt, {
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
    game the menu last started (Play again replays it on the current settings), null at first.
    caromRace (5, 10 or 15 points) and caromCush (3, or 1 for the one-cushion game): carom's setup. */
+/* sv 2 (the rules engine): rules8, rules9, rules10 (each game's ruleset, RULESETS), race141 (14.1's
+   race: 25, 50, 100 or 150; 50 on a phone), stalemate (the house re-rack in 8- and 9-ball) and calls
+   (the called-shot configuration, makeCall, with the page's own highlight, confirm, sound, warn and
+   history). A save from before sv 2 keeps everything it had and takes these defaults. */
 function loadSettings() {
   /* snooker's table: compact (10 ft) on a phone, where the full table's balls get small; full on a bigger screen */
+  const phone = Math.min(innerWidth, innerHeight) < 700;
   const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'off', camV: 2, names: ['', ''], last: null,
-    snookerTable: Math.min(innerWidth, innerHeight) < 700 ? 'compact' : 'full', snookerFrames: 1 };
+    snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
+    sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI) };
   try {
     const o = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {};
+    for (const k of ['8', '9', '10']) if (rulesetsFor(k).some(r => r.id === o['rules' + k])) s['rules' + k] = o['rules' + k];
+    if (RACES_141.includes(o.race141)) s.race141 = o.race141;
+    if (typeof o.stalemate === 'boolean') s.stalemate = o.stalemate;
+    if (o.calls && typeof o.calls === 'object') {
+      s.calls = Object.assign(makeCall(o.calls), CALL_UI);
+      for (const k of Object.keys(CALL_UI)) if (typeof o.calls[k] === 'boolean') s.calls[k] = o.calls[k];
+    }
     if (['full', 'short', 'off'].includes(o.guide)) s.guide = o.guide;
     if (typeof o.cpu === 'boolean') s.cpu = o.cpu;
     if (['easy', 'medium', 'hard'].includes(o.level)) s.level = o.level;
@@ -7577,14 +8417,21 @@ function loadSettings() {
        Follow was the default, is not kept */
     if (o.camV === 2 && ['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
-    if (['8', '9', 'bumper', 'carom', 'snooker'].includes(o.last)) s.last = o.last;
+    if (['8', '9', 'bumper', 'carom', 'snooker', '10', 'straight', 'rotation'].includes(o.last)) s.last = o.last;
   } catch (e) { }
   return s;
 }
 /* a player's name: one line, at most 12 characters, '' for none */
 function cleanName(v) { return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, 12) : ''; }
+/* a setting by key; 'calls.mode' and the like reach into settings.calls */
+const getSetting = k => k.startsWith('calls.') ? settings.calls[k.slice(6)] : settings[k];
 function setSetting(k, v) {
-  settings[k] = v;
+  if (k.startsWith('calls.')) {
+    settings.calls = Object.assign({}, settings.calls, { [k.slice(6)]: v });
+    /* a game in progress follows the new call rules, unless an event locked its own */
+    if (game.rules && !game.rules.locked && POCKET_KINDS.includes(game.kind)) { game.rules = Object.assign({}, game.rules, { call: makeCall(settings.calls) }); resetCall(); }
+  } else settings[k] = v;
+  settings.sv = SETTINGS_V;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { }
   if (k === 'sound') { muted = !v; audioOn(); }
   if (k === 'haptics' && v) hapNow();
@@ -7613,10 +8460,30 @@ const SEGS = [
   ['snookerTable', [[stCompact, 'compact'], [stFull, 'full']]],
   ['snookerFrames', [[sf1, 1], [sf3, 3]]],
   ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
+  ['rules8', [[rs8House, '8-house'], [rs8Wpa, '8-wpa']]],
+  ['rules9', [[rs9House, '9-house'], [rs9Wpa, '9-wpa']]],
+  ['rules10', [[rs10Wpa, '10-wpa'], [rs10House, '10-house']]],
+  ['race141', RACES_141.map(n => [document.getElementById('rc' + n), n])],
+  ['stalemate', [[smOff, false], [smOn, true]]],
+  ['calls.mode', [[cmOff, 'off'], [cmEight, 'eight'], [cmOfficial, 'official'], [cmAll, 'all'], [cmCareer, 'career']]],
+  ['calls.detail', [[cdBall, 'ball'], [cdPocket, 'pocket'], [cdRails, 'rails'], [cdStrict, 'strict']]],
 ];
+/* Gameplay's switches: settings.calls[key]; the first four are rules an event may lock */
+const TOGS = [[tgSafety, 'safety'], [tgEight, 'eight'], [tgObvious, 'obvious'], [tgChange, 'change'], [tgHighlight, 'highlight'], [tgConfirm, 'confirm'], [tgSound, 'sound'], [tgWarn, 'warn'], [tgHistory, 'history']];
+const LOCKABLE = ['calls.mode', 'calls.detail', 'safety', 'eight', 'obvious', 'change'];
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
+for (const [btn, k] of TOGS) btn.addEventListener('click', () => setSetting('calls.' + k, !settings.calls[k]));
+/* the rules are locked by an event (a career rack) for the game on now */
+const rulesLocked = () => !!(paused && game.rules && game.rules.locked);
 function syncMenu() {
-  for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.setAttribute('aria-pressed', String(settings[k] === v));
+  const locked = rulesLocked();
+  for (const [k, opts] of SEGS) for (const [btn, v] of opts) {
+    btn.setAttribute('aria-pressed', String(getSetting(k) === v));
+    if (k.startsWith('calls.')) btn.disabled = locked;
+  }
+  for (const [btn, k] of TOGS) { btn.setAttribute('aria-checked', String(!!settings.calls[k])); btn.disabled = locked && LOCKABLE.includes(k); }
+  lockNote.hidden = !locked;
+  syncSetupRules();
   levelSeg.hidden = !settings.cpu;
   nameRow.hidden = settings.cpu;
   document.documentElement.dataset.cloth = settings.cloth;
@@ -7650,11 +8517,16 @@ const KINDS = {
   bumper: { name: 'Bumper pool', ball: 'bb', num: '', sub: 'Red against white, five each, round the posts to the far cup.' },
   carom: { name: 'Three-cushion', ball: 'bc', num: '', sub: 'No pockets. Your cue ball meets both others, three cushions before the second.' },
   snooker: { name: 'Snooker', ball: 'bsnk', num: '', sub: 'A red, then a colour, and again. Most points wins the frame.' },
+  10: { name: '10-ball', ball: 'b10', num: '10', sub: 'Lowest ball first, and call every shot. A called 10 wins.' },
+  straight: { name: 'Straight pool', ball: 'b14', num: '14', sub: '14.1 continuous: any ball, called, a point each. Fourteen down, rack again.' },
+  rotation: { name: 'Rotation', ball: 'b15', num: '15', sub: 'Lowest ball first; every ball scores its number. 61 wins.' },
 };
+/* the games on the More games sheet; their setup goes back there */
+const MORE_KINDS = ['10', 'straight', 'rotation'];
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
 let setupKind = '8';
-const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet];
+const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet];
 function openSheet(el, focus) {
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
@@ -7678,8 +8550,17 @@ function setupWords(kind) {
   const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon')
     : kind === 'carom' ? `${settings.caromRace} points` + (settings.caromCush === 1 ? ', one cushion' : '')
     : kind === 'snooker' ? (settings.snookerTable === 'full' ? 'full 12 ft' : 'compact 10 ft') + (settings.snookerFrames === 3 ? ', best of 3' : '')
-    : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '');
+    : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '') + (kind === 'straight' ? `, to ${settings.race141}` : '')
+      + ({ '8-wpa': ', WPA', '9-wpa': ', WPA', '10-house': ', obvious free' }[kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : kind === '10' ? settings.rules10 : ''] || '');
   return KINDS[kind].name + who + ', ' + tb;
+}
+/* the setup's rules: which choices this game has, and the ruleset's description and source */
+function syncSetupRules() {
+  const kind = setupKind;
+  for (const [cls, on] of [['.r8', kind === '8'], ['.r9', kind === '9'], ['.r10', kind === '10'], ['.str', kind === 'straight'], ['.stm', kind === '8' || kind === '9']])
+    for (const el of setupSheet.querySelectorAll(cls)) el.hidden = !on;
+  const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : null, t = R ? `${R.name} (${R.source}). ${R.description}` : '';
+  if (rulesNote.textContent !== t) rulesNote.textContent = t;
 }
 /* the home screen's hero and the setup's records against each CPU opponent. The hero is Play
    again (the last setup in words) once there is one; on a first run it starts 8-ball's setup. */
@@ -7716,6 +8597,7 @@ function showSetup(kind) {
   for (const el of setupSheet.querySelectorAll('.bump')) el.hidden = kind !== 'bumper';
   for (const el of setupSheet.querySelectorAll('.carom')) el.hidden = kind !== 'carom';
   for (const el of setupSheet.querySelectorAll('.snk')) el.hidden = kind !== 'snooker';
+  syncSetupRules();
   name1.value = settings.names[0]; name2.value = settings.names[1];
   syncTutLinks(kind);   /* the tutorial's link while it is not done (6d) */
   previewGame(kind);
@@ -7735,7 +8617,8 @@ function quitToHome() {
   if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
-  game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9'].includes(game.kind) ? game.kind : '8'));
+  game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9', '10', 'straight', 'rotation'].includes(game.kind) ? game.kind : '8'));
+  resetCall(); optBox.hidden = true;
   tutKeptKind = null;
   closeSolo();
   showMenu();
@@ -7754,6 +8637,7 @@ function paintArt() {
   const words = b => b.querySelector('.tt').offsetHeight;
   const list = [[heroArt, againBtn.dataset.kind || '8', 'hero', words(againBtn)], ...[...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)])];
   if (setupSheet.classList.contains('show')) list.push([setupArt, setupKind, 'fit', 0]);
+  if (moreSheet.classList.contains('show')) for (const b of moreSheet.querySelectorAll('.mtile')) list.push([b.querySelector('.art'), b.dataset.kind, 'card', words(b)]);
   for (const [cv, kind, mode, low] of list) paintRack(cv, kind, mode, low);
 }
 /* the home's pictures cover their card (no letterbox), zoomed in on the rack and placed where the
@@ -7776,7 +8660,9 @@ function coverView(w, h, kind, mode, obj, low) {
     k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' && !wide ? 1.5 : 1); e = -0.02;
   }
   const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
-  const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : w * 0.7) : w * 0.5, ty = wide ? h / 2 : Math.min(h * 0.42, free / 2 + 4);
+  /* a wide card's carom balls go up into the corner, clear of its long name */
+  const cw = kind === 'carom' && mode === 'card';
+  const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : cw ? w * 0.8 : w * 0.7) : w * 0.5, ty = wide ? (cw ? h * 0.32 : h / 2) : Math.min(h * 0.42, free / 2 + 4);
   /* keep the edge e (metres past the cloth: the rail, or just inside the cushions) outside the card */
   const fit = (o, size, len) => { const lo = size - (len + e) * k, hi = e * k; return lo > hi ? (bump ? o : (lo + hi) / 2) : clamp(o, lo, hi); };
   return up ? { k, portrait: true, ox: fit(tx - fy * k, w, TW), oy: fit(ty - (TL - fx) * k, h, TL), tray: null }
@@ -7821,7 +8707,7 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
     /* the Play again banner shows the rack alone: the cue ball would sit under its words */
-    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'hero' && b.n === 0 && (kind === '8' || kind === '9' || kind === 'snooker')));
+    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'hero' && b.n === 0 && (POCKET_KINDS.includes(kind) || kind === 'snooker')));
     if (kind === 'carom' && mode !== 'fit') caromArt(balls, mode === 'hero' || w > h * 1.6);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
@@ -7865,7 +8751,7 @@ function caromArt(balls, wide) {
 const REC_KEY = 'felt.record.v1', LEVELS = ['easy', 'medium', 'hard'];
 function freshRec() {
   const k = () => ({ played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } } });
-  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), carom: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }) }, streak: 0, best: 0 };
+  return { v: 1, kinds: { 8: k(), 9: k(), bumper: k(), carom: k(), snooker: Object.assign(k(), { frames: 0, high: 0 }), 10: k(), straight: k(), rotation: k() }, streak: 0, best: 0 };
 }
 function loadRec() {
   const r = freshRec(), n = v => Number.isInteger(v) && v >= 0 ? v : 0;
@@ -7915,9 +8801,9 @@ function showStats() {
   const head = document.createElement('thead'), body = document.createElement('tbody'), hr = document.createElement('tr');
   hr.append(cell('th', 'Game'), cell('th', 'Played'), ...LEVELS.map(lv => cell('th', FOES[lv])), cell('th', '2P'));
   head.appendChild(hr);
-  for (const kind of ['8', '9', 'bumper', 'carom', 'snooker']) {
+  for (const kind of ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker']) {
     const r = rec.kinds[kind], tr = document.createElement('tr');
-    tr.append(cell('th', kind === 'bumper' ? 'Bumper' : kind === 'carom' ? 'Carom' : KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
+    tr.append(cell('th', { bumper: 'Bumper', carom: 'Carom', straight: '14.1' }[kind] || KINDS[kind].name), cell('td', String(r.played), r.played ? '' : 'z'),
       ...LEVELS.map(lv => { const o = r.cpu[lv]; return cell('td', `${o.w}-${o.l}`, o.w + o.l ? '' : 'z'); }), cell('td', String(r.two), r.two ? '' : 'z'));
     body.appendChild(tr);
   }
@@ -7934,8 +8820,8 @@ function showStats() {
    (TABS: its row, its page), pushed from the right; the back button pops to the list, and from the
    list goes home. pickTab(null) is the list. Each game's page ends with its tutorial (6d), the
    controls' with the lesson, pinned at the foot. ---- */
-const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tabSolo, panSolo]];
-const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, solo: tabSolo };
+const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tab10, pan10], [tabStr, panStr], [tabRot, panRot], [tabCall, panCall], [tabSolo, panSolo]];
+const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, 10: tab10, straight: tabStr, rotation: tabRot, call: tabCall, solo: tabSolo };
 let helpPage = null;
 function pickTab(tab, anim) {
   const was = helpPage, page = tab ? TABS.find(([t]) => t === tab)[1] : howList;
@@ -7965,6 +8851,9 @@ play9.addEventListener('click', () => showSetup('9'));
 playB.addEventListener('click', () => showSetup('bumper'));
 playC.addEventListener('click', () => showSetup('carom'));
 playS.addEventListener('click', () => showSetup('snooker'));
+playMore.addEventListener('click', () => { openSheet(moreSheet, play10); paintArt(); });
+for (const [b, kind] of [[play10, '10'], [playStr, 'straight'], [playRot, 'rotation']]) b.addEventListener('click', () => showSetup(kind));
+moreBack.addEventListener('click', () => backToMenu());
 concedeBtn.addEventListener('click', () => { audioOn(); concedeFrame(); });
 breakBtn.addEventListener('click', () => { if (!maybeOfferTut(setupKind)) playSetup(setupKind); });   /* a first Break may offer the tutorial (6d) */
 againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); else showSetup('8'); });
@@ -7975,10 +8864,24 @@ for (const [i, el] of [[0, name1], [1, name2]]) {
 statsBtn.addEventListener('click', () => showStats());
 for (const b of [prefsBtn, pPrefsBtn]) b.addEventListener('click', () => openSheet(prefsSheet, prefsBack));
 for (const b of [helpBtn, pHelpBtn]) b.addEventListener('click', () => showHelp());
-for (const b of [setupBack, prefsBack, statsBack]) b.addEventListener('click', () => backToMenu());
+for (const b of [prefsBack, statsBack]) b.addEventListener('click', () => backToMenu());
+/* a More game's setup goes back to More games */
+setupBack.addEventListener('click', () => { if (MORE_KINDS.includes(setupKind) && !paused) { openSheet(moreSheet, play10); paintArt(); } else backToMenu(); });
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (career) careerRack(); else start(game.kind); });
 exitBtn.addEventListener('click', () => quitToHome());
 Object.assign(felt, { showSetup, showStats, showHelp, quitToHome, setupWords });
+/* the called shot and the rules (5c): set the player's call as taps would ({ ball, pocket, bank,
+   kick, combo }, or { safety: true } / { push: true }, null to clear), answer an option, read
+   where things stand; a pocket's hole on screen; the rules a new game of a kind would get */
+Object.assign(felt, {
+  setCall(c) {
+    resetCall();
+    if (c && c.push) callPushOn = true; else if (c && c.safety) callSafe = true; else if (c) { callMan = Object.assign({ ball: null, pocket: null, bank: false, kick: false, combo: false }, c); callAutoOff = true; }
+    hud(); return humanCall();
+  },
+  choose, rulesFor, pocketXY: k => POCKETS[k] ? toScreen(POCKETS[k][0], POCKETS[k][1]) : null,
+});
+Object.defineProperties(felt, { callState: { get: () => ({ open: callOn(), need: callNeed(game), call: humanCall(), ready: callReady(), auto: obviousCall(), text: callText.textContent, sub: callSub.textContent, bar: !callBar.hidden, locked: rulesLocked() }) } });
 Object.defineProperties(felt, { record: { get: () => JSON.parse(JSON.stringify(rec)) } });
 
 /* a solid this dark is under 3:1 on the lighter panel (#26262a, the menu's player cards), so
@@ -8004,6 +8907,12 @@ function fillDots(box, list, big) {
 function cardOf(p) {
   const on = game.balls.filter(b => b.on && b.n > 0).map(b => b.n);
   if (game.kind === 'carom') return { meta: `${p ? 'Yellow' : 'White'}, ${game.score[p]} of ${game.race}` + (game.high[p] > 1 ? `, best run ${game.high[p]}` : ''), dots: [C_CUE[p]], warn: false };
+  /* 14.1 and rotation: the points over the race; 14.1's best run and fouls in a row, rotation's ball on */
+  if (game.kind === 'straight' || game.kind === 'rotation') {
+    const f = game.fouls[p], st = game.kind === 'straight';
+    return { meta: `${game.score[p]} of ${game.race}` + (st && game.high[p] > 1 ? `, best run ${game.high[p]}` : '') + (st && f ? `, ${f} foul${f > 1 ? 's' : ''} in a row` : ''),
+      dots: !st && p === game.turn && on.length ? [Math.min(...on)] : [], warn: st && f >= 2 };
+  }
   /* snooker: the score, the break while at the table and the best; the ball on, for the player to shoot */
   if (game.kind === 'snooker') {
     const up = p === game.turn && game.winner === null, need = up && snookersNeeded(game, p);
@@ -8039,7 +8948,8 @@ function chipOf(p) {
   if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
   /* carom: the points in the player's ball colour, over the race */
   if (game.kind === 'carom') return { balls: [], num: String(game.score[p]), of: '/' + game.race, col: C_CUE[p] };
-  if (game.kind === '9') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
+  if (game.kind === 'straight' || game.kind === 'rotation') return { balls: game.kind === 'rotation' && p === game.turn && on.length ? [on[0]] : [], num: String(game.score[p]), of: '/' + game.race };
+  if (game.kind === '9' || game.kind === '10') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
   if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
   const left = on.filter(n => groupOf(n) === gr);
@@ -8074,6 +8984,7 @@ function hudMenu() {
   gameNow.hidden = !paused;
   if (!paused) return;
   hudCareerMenu();
+  hudCallHist();
   const kick = `Paused, ${KINDS[game.kind].name}` + (cpuMode ? ` vs ${foeName()}` : '');
   if (soloKind.textContent !== kick) soloKind.textContent = kick;
   const potted = [];
@@ -8146,7 +9057,8 @@ function hudControls() {
   powerBar.classList.toggle('live', live);
   fineWheel.classList.toggle('off', !(state === 'aim' && human()) || !!rp);
   powerBar.classList.toggle('rp', !!rp);   /* a replay (5r): the bar is off and says so */
-  const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? 'Pull to shoot' : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : '';
+  const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? (callReady() ? 'Pull to shoot' : 'Call your shot') : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'choose' ? 'Your choice' : '';
+  powerBar.classList.toggle('nocall', state === 'aim' && human() && !live && !callReady());
   if (powerLab.textContent !== lab) powerLab.textContent = lab;
   powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
   spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';
@@ -8199,8 +9111,11 @@ function overLine(g) {
     if (/legal/.test(why)) return `${who(w)} potted the 8 to win.`;
     if (/foul/.test(why)) return v.scratch ? `${who(l)} scratched while potting the 8.` : `${who(l)} potted the 8 on a foul${v.foul ? ` (${v.foul})` : ''}.`;
     if (/before|clear|early/.test(why)) return `${who(l)} potted the 8 before clearing ${their(l)} group.`;
+    if (/uncalled/.test(why)) return `${who(l)} potted the 8 in a pocket not called.`;
+    if (/safety/.test(why)) return `${who(l)} potted the 8 on a safety.`;
   }
   if (/\b9\b/.test(why)) return `${who(w)} potted the 9 to win.`;
+  if (why === 'the 10') return `${who(w)} potted the called 10 to win.`;
   if (/points/.test(why)) return `${who(w)} reached ${why} first` + (g.high && g.high[w] > 1 ? `, with a best run of ${g.high[w]}.` : '.');
   if (/all five/.test(why)) return `${who(w)} got all five ${cpuMode && w === 0 ? 'of yours' : w ? 'whites' : 'reds'} down${v.foul ? ` (${who(l)} fouled: ${v.foul})` : ''}.`;
   return `${who(w)} won: ${why}.`;
@@ -8263,7 +9178,7 @@ function overBallOf(w) {
   if (game.kind === 'bumper') return ['ball ' + (w ? 'bw' : 'bb'), ''];
   if (game.kind === 'snooker') return ['ball bsblk', ''];
   if (game.kind === 'carom') return ['ball ' + (w ? 'bc' : 'bcue'), ''];
-  return game.kind === '9' ? ['ball b9', '9'] : ['ball b8', '8'];
+  return { 9: ['ball b9', '9'], 10: ['ball b10', '10'], straight: ['ball b14', '14'], rotation: ['ball b15', '15'] }[game.kind] || ['ball b8', '8'];
 }
 function showOver() {
   const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind === 'carom' ? (game.need === 1 ? 'One-cushion' : 'Three-cushion') : game.kind + '-ball';

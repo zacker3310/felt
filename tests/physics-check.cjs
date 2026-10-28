@@ -742,7 +742,7 @@ for (const shape of ['rect', 'octagon']) {
    carom -> 9-ball -> bumper (both shapes), twice over. Geometry, the ball and the cloth
    (physOf's record), and a fixed shot's roll on each. */
 {
-  const GLOBALS = ['TABLE', 'TL', 'TW', 'BALL_R', 'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'HEAD_X', 'FOOT', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM',
+  const GLOBALS = ['TABLE', 'TL', 'TW', 'BALL_R', 'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MU_SP', 'HEAD_X', 'FOOT', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM',
     'MOUTHS', 'BUMPERS', 'BED_LINES', 'JAW_ARCS', 'JAW_RAD', 'SPOTS', 'D_R', 'CPU_MOUTH_N'];
   const visit = [['8', () => { S.setTable('7'); return S.newGame('8'); }], ['snooker compact', () => { S.setTable('snooker', 'compact'); return S.newGame('snooker'); }],
     ['carom', () => S.newGame('carom')], ['9 (9 ft)', () => { S.setTable('9'); return S.newGame('9'); }],
@@ -751,7 +751,7 @@ for (const shape of ['rect', 'octagon']) {
   const snap = make => {
     const g = make(), ph = S.physOf(S.TABLE), cue = g.kind === 'bumper' ? 21 : g.kind === 'carom' ? 70 : 0;
     const roll = S.simulateShot(g.balls, { angle: 0.37, power: 0.55, spin: { x: 0.2, y: -0.3 }, ball: cue });
-    return { vals: JSON.stringify(GLOBALS.map(n => S[n])), rec: [S.BALL_R, S.MU_ROLL, S.CUE_RATIO, S.CUSH_MU, S.RAIL_E].every((v, i) => v === [ph.R, ph.roll, ph.cue, ph.mu, ph.e][i]),
+    return { vals: JSON.stringify(GLOBALS.map(n => S[n])), rec: [S.BALL_R, S.MU_ROLL, S.CUE_RATIO, S.CUSH_MU, S.RAIL_E, S.MU_SP].every((v, i) => v === [ph.R, ph.roll, ph.cue, ph.mu, ph.e, ph.sp][i]),
       roll: JSON.stringify(roll.balls.map(b => [b.n, b.on, b.x, b.y])) };
   };
   const first = visit.map(([, make]) => snap(make)), again = visit.map(([, make]) => snap(make));
@@ -762,5 +762,101 @@ for (const shape of ['rect', 'octagon']) {
 }
 S.setTable('7');
 check('bumper: back on a pool table every pool global is rebuilt and the posts are gone', S.BUMPERS.length === 0 && S.POCKETS.length === 6 && S.CUSH.length === 18 && Math.abs(S.TL - 1.981) < 1e-9 && S.BED_LINES === null);
+
+/* 11. spin about the vertical (audit F9, F10) and the elevated cue (swerve and masse).
+   The cloth's spinning friction is pooltool's: the vertical spin falls at 5 u_sp g / (2R) with
+   u_sp = 4/9 R, 10.89 rad/s^2 for every ball. A ball that stops still spinning turns in place
+   until that takes the spin, and a ball that meets it meanwhile is thrown by it. An elevated cue
+   with side spin curves the ball towards the english while it slides. The level cue is the old
+   path exactly but for those two changes: the sim rebuilt with the old decay and rest prints what
+   the build before them printed (tests/level-cue.cjs). */
+{
+  const { levelPrint, LEVEL_PRINT, oldSim } = require('./level-cue.cjs');
+  const A = 2.5 * (10 * 2 / 5 / 9) * 9.8, DT = S.SIM_DT;
+  /* every table: the documented rate, a stationary ball spinning in place, and its decay */
+  const TABLES = [['7', () => S.setTable('7'), 0], ['9', () => S.setTable('9'), 0], ['snooker', () => S.setTable('snooker', 'compact'), 0], ['carom', () => S.setTable('carom'), 70],
+    ['bumper octagon', () => S.setTable('bumper', 'octagon'), 21], ['bumper rect', () => S.setTable('bumper', 'rect'), 21]];
+  const spinRows = [], rollRows = [];
+  for (const [name, set, n] of TABLES) {
+    set();
+    const t = S.newTable([S.newBall(n, S.TL * 0.35, S.TW * 0.3)]), b = t.balls[0];   /* clear of every post and cup */
+    b.wz = 30;
+    for (let i = 0; i < 1200; i++) S.stepTable(t);   /* one second */
+    const at1 = { wz: b.wz, moved: Math.hypot(b.x - S.TL * 0.35, b.y - S.TW * 0.3), v: Math.hypot(b.vx, b.vy), on: b.on };
+    while (S.stepTable(t));
+    spinRows.push({ name, rate: S.spinA(), at1, end: t.end, t: t.t, wz: b.wz, on: b.on });
+    /* the rate on a ball rolling with english: the same deceleration while it rolls */
+    const r = S.newTable([S.newBall(n, S.TL * 0.3, S.TW * 0.15)]), c = r.balls[0];
+    Object.assign(c, { vx: 0.8, vy: 0, wx: 0, wy: -0.8 / S.BALL_R, wz: 40 });
+    for (let i = 0; i < 600; i++) S.stepTable(r);   /* half a second */
+    rollRows.push({ name, dwz: 40 - c.wz });
+  }
+  S.setTable('7');
+  check('F10 spinning friction: every table (7 and 9 ft, snooker, carom, both bumper tables) takes the vertical spin off at 5/2 (4/9) g = 10.89 rad/s^2, pooltool\'s default',
+    spinRows.every(r => Math.abs(r.rate - A) < 1e-12) && Math.abs(A - 10.8889) < 1e-4, JSON.stringify(spinRows.map(r => [r.name, r.rate])));
+  check('F9 a ball at rest with side spin keeps turning in place: after 1 s it has not moved and has 30 - 10.89 rad/s left; the shot ends when the spin has gone, at 30 / 10.89 s (within a step)',
+    spinRows.every(r => r.at1.moved === 0 && r.at1.v === 0 && r.at1.on && Math.abs(r.at1.wz - (30 - A)) < 1e-6 && r.end === 'rest' && r.wz === 0 && r.on && Math.abs(r.t - 30 / A) < 2 * DT), JSON.stringify(spinRows));
+  check('F10 the decay while rolling matches the model within 0.1%: 0.5 s takes 5.44 rad/s off a rolling ball\'s english on every table',
+    rollRows.every(r => Math.abs(r.dwz - A * 0.5) < A * 0.5 * 1e-3), JSON.stringify(rollRows));
+
+  /* F9: a spinning ball at rest is struck square: its spin throws it off the line it would take
+     without the spin (and a mirror spin throws it the other way) */
+  const struck = wz => {
+    const t = S.newTable([S.newBall(0, 0.5, S.TW / 2), S.newBall(1, 1.0, S.TW / 2)]);
+    t.balls[1].wz = wz;
+    t.balls[0].vx = 1.2; t.balls[0].wy = -1.2 / R;   /* rolling square into it */
+    let seen = null;
+    while (S.stepTable(t)) { const o = t.balls[1]; if (seen === null && t.first !== null && o.vx > 0.3) { seen = Math.atan2(o.vy, o.vx); break; } }
+    return seen;
+  };
+  const dead = struck(0), cw = struck(25), ccw = struck(-25);
+  check('F9 a stationary spinning ball is thrown by its own spin when struck square (either way, by the spin\'s sense); without spin it goes straight',
+    Math.abs(dead) < 1e-9 && Math.abs(cw) > 1e-4 && Math.sign(cw) === -Math.sign(ccw) && Math.abs(cw + ccw) < 1e-9, JSON.stringify({ dead, cw, ccw }));
+
+  /* the level cue: old path but for F9 and F10 */
+  const missing = [], before = levelPrint(oldSim(loadSim, missing));
+  check('level cue: the sim with the old spin decay and rest prints exactly what the build before F9 and F10 printed (100+ shots on 7 and 9 ft, snooker, carom)', before === LEVEL_PRINT && missing.length === 0, JSON.stringify({ before, LEVEL_PRINT, missing }));
+  const ball0 = () => [S.newBall(0, 0.4, S.TW / 2), S.newBall(3, 1.2, S.TW / 2 + 0.03)];
+  const same = [{ x: 0.5, y: -0.3 }, { x: -0.7, y: 0.2 }, 0.4].every(sp => {
+    const a = JSON.stringify(S.simulateShot(ball0(), { angle: 0.02, power: 0.5, spin: sp }));
+    const b = JSON.stringify(S.simulateShot(ball0(), { angle: 0.02, power: 0.5, spin: Object.assign(typeof sp === 'number' ? { x: 0, y: sp } : Object.assign({}, sp), { e: 0 }) }));
+    return a === b;
+  });
+  const sp0 = S.spinOf({ x: 0.3, y: 0.1, e: 0 }), spE = S.spinOf({ x: 0.3, y: 0.1, e: 2 }), spBad = S.spinOf({ x: 0.3, y: 0.1, e: -1 });
+  check('level cue: a spin with e 0 (or below) is the plain {x, y} and plays byte for byte the same; e is clamped to 60 degrees',
+    same && !('e' in sp0) && !('e' in spBad) && spE.e === S.ELEV_MAX && Math.abs(S.ELEV_MAX - Math.PI / 3) < 1e-15, JSON.stringify({ sp0, spE, spBad }));
+
+  /* the elevated strike: speed cos th of the level one, a centre hit spinless, side split into
+     english (cos th) and travel-axis spin (sin th) */
+  const st = (spin, a = 0) => S.strike(S.newTable([S.newBall(0, 0.5, S.TW / 2)]), a, 0.4, spin).balls[0];
+  const lv = st({ x: 0.8, y: 0.2 }), up = st({ x: 0.8, y: 0.2, e: Math.PI / 4 }), mid = st({ x: 0, y: 0, e: Math.PI / 4 }), mid0 = st(0);
+  const c45 = Math.SQRT1_2, k = 2.5 * Math.hypot(lv.vx, lv.vy) / R;
+  check('elevated strike: the ball leaves at cos th of the level speed; a centre hit carries no spin at any elevation; english is cos th of the level, the rest of the side about the line of travel, follow unchanged',
+    Math.abs(Math.hypot(up.vx, up.vy) - c45 * Math.hypot(lv.vx, lv.vy)) < 1e-12 && mid.wx === 0 && mid.wy === 0 && mid.wz === 0 && Math.abs(Math.hypot(mid.vx, mid.vy) - c45 * Math.hypot(mid0.vx, mid0.vy)) < 1e-12 &&
+    Math.abs(up.wz - c45 * lv.wz) < 1e-9 && Math.abs(up.wx - k * 0.8 * S.TIP_MAX * c45) < 1e-9 * k && Math.abs(up.wy - lv.wy) < 1e-9, JSON.stringify({ lv, up, mid }));
+
+  /* swerve and masse: the curve goes the english's way, mirrors exactly, and grows with elevation */
+  const curve = (x, e, angle = 0, y = 0, pw = 0.4) => {
+    const t = S.strike(S.newTable([S.newBall(0, angle ? S.TL - 0.4 : 0.4, S.TW / 2)]), angle, pw, { x, y, e: e * DEG }), c = t.balls[0];
+    const a0 = Math.atan2(c.vy, c.vx);
+    let len = 0, px = c.x, py = c.y;
+    while (S.stepTable(t)) { len += Math.hypot(c.x - px, c.y - py); px = c.x; py = c.y; if (Math.hypot(c.vx + R * c.wy, c.vy - R * c.wx) < 1e-9) break; }
+    let turn = Math.atan2(c.vy, c.vx) - a0;
+    turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+    return { turn: turn / DEG, radius: len / Math.abs(turn), len };
+  };
+  const right30 = curve(1, 30), left30 = curve(-1, 30), back30 = curve(1, 30, Math.PI), level = curve(1, 0), right15 = curve(1, 15), masse = curve(0.7, 60, 0, -0.7);
+  /* y grows down the screen, so a turn of + is clockwise: to the right of the line of travel */
+  check('swerve: right english with a raised cue curves right of the line of travel (either way along the table), left english left, exact mirrors; a level cue does not curve',
+    right30.turn > 10 && left30.turn === -right30.turn && Math.abs(back30.turn - right30.turn) < 1e-6 && Math.abs(level.turn) < 1e-9, JSON.stringify({ right30, left30, back30, level }));
+  check('swerve and masse: more elevation, a tighter curve (15 degrees wide, 30 tighter, a 60 degree masse with draw tighter still)',
+    right15.radius > right30.radius && right30.radius > masse.radius && masse.turn > 45, JSON.stringify({ right15, right30, masse }));
+
+  /* determinism: an elevated shot gives the same JSON again, and again after a round of the tables */
+  const eshot = () => JSON.stringify(S.simulateShot(ball0(), { angle: 0.05, power: 0.6, spin: { x: -0.6, y: -0.4, e: 0.7 } }));
+  const e1 = eshot(), e2 = eshot();
+  S.setTable('carom'); S.setTable('snooker'); S.setTable('7');
+  check('elevated shots are deterministic: the same result twice and after carom and snooker and back', e1 === e2 && e2 === eshot());
+}
 
 done();

@@ -59,9 +59,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `tests/tutorial-solutions.json`; paste the printed `TUT_SOLS`). Stored as `felt.tutorials.v1`; `tests/lib.cjs`
   marks every offer skipped unless `firstRun: true`. Pinned by `tutorial-check`.
 - Per-table physics: one record per table (`POOL_PHYS`, `SNOOKER_PHYS`, `CAROM_PHYS`, sim 1b, `physOf`) that
-  `buildTable` applies, setting `BALL_R`, `MU_ROLL`, `CUE_RATIO`, `CUSH_MU` and `RAIL_E`. They are `let`s that
+  `buildTable` applies, setting `BALL_R`, `MU_ROLL`, `CUE_RATIO`, `CUSH_MU`, `RAIL_E` and `MU_SP`. They are `let`s that
   `setTable` changes: read them at call time, never cache them. `physics-check` (sim) and `play-check` (live
   rolls) go round every table and back and pin that each value returns exactly.
+- Spin: side spin decays at pooltool's spinning friction (`MU_SP` = 4/9, `spinA()` = 10.89 rad/s^2, audit F10), and a
+  ball at rest keeps turning in place until it is gone (F9: a shot does not end while anything spins). Cue elevation
+  is `spin.e` (radians, 0 to `ELEV_MAX`, present only when above 0): `strike` tilts the side spin's axis, so the cloth
+  curves a sliding ball (swerve, masse). Elevation 0 is the old level code; `tests/level-cue.cjs` pins it against the
+  pre-F9/F10 build. The page sets it from the english pad (hold, right click, Page Up/Down; `#elevPop`); every shot
+  starts level, and the CPU plays level. Changing the cloth or the strike moves stored solutions: re-solve the tricks.
 - Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).

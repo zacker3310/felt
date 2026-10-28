@@ -14,9 +14,40 @@
    A9 (F16) the last banner does not show through the pause menu (landscape).
 
    A10 (F8) the CPU's think time: it waits as cpuThinkMs says (the break briefly), the frame never
-      stalls meanwhile, a tap on the table skips the wait, and felt.speed runs it faster. */
+      stalls meanwhile, a tap on the table skips the wait, and felt.speed runs it faster.
+   A11 (F9) a ball that stops with side spin keeps turning in place until the cloth takes it, and
+      a ball that hits it meanwhile is thrown by it (the old rest zeroed it on the spot).
+   A12 (F10) side spin decays at pooltool's spinning friction, 5 u_sp g / 2R with u_sp = 4/9 R
+      (10.89 rad/s^2), on every table, not the old flat 8 rad/s^2. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
+
+/* A11 and A12 run on the sim alone */
+{
+  const S = require('./sim.cjs').loadSim(), R = S.BALL_R;
+  const t = S.newTable([S.newBall(0, 1, S.TW / 2)]);
+  t.balls[0].wz = 20;
+  const first = S.stepTable(t), wz1 = t.balls[0].wz;
+  while (S.stepTable(t));
+  check('A11 (F9) a ball at rest with side spin keeps spinning in place: the first step goes on (it once ended the shot), and the shot lasts until the spin is gone',
+    first === true && wz1 > 19.9 && t.end === 'rest' && t.t > 1.5 && t.balls[0].x === 1, JSON.stringify({ first, wz1, t: t.t }));
+  const hit = wz => {
+    const h = S.newTable([S.newBall(0, 0.5, S.TW / 2), S.newBall(1, 1.0, S.TW / 2)]);
+    h.balls[1].wz = wz; h.balls[0].vx = 1.2; h.balls[0].wy = -1.2 / R;
+    while (S.stepTable(h)) if (h.balls[1].vx > 0.3) return Math.atan2(h.balls[1].vy, h.balls[1].vx);
+    return null;
+  };
+  check('A11 (F9) the spin is still there when the stationary ball is struck: it throws the ball off the line', Math.abs(hit(25)) > 1e-4 && Math.abs(hit(0)) < 1e-12, JSON.stringify([hit(25), hit(0)]));
+  const rates = [['7'], ['9'], ['snooker', 'full'], ['carom'], ['bumper', 'rect']].map(a => {
+    S.setTable(...a);
+    const r = S.newTable([S.newBall(a[0] === 'carom' ? 70 : a[0] === 'bumper' ? 21 : 0, S.TL * 0.35, S.TW * 0.3)]);
+    r.balls[0].wz = 10;
+    for (let i = 0; i < 120; i++) S.stepTable(r);
+    return (10 - r.balls[0].wz) / (120 * S.SIM_DT);
+  });
+  S.setTable('7');
+  check('A12 (F10) side spin decays at 10.89 rad/s^2 (pooltool: 5/2 x 4/9 x g) on pool, snooker, carom and bumper tables, not 8', rates.every(v => Math.abs(v - 2.5 * 4 / 9 * 9.8) < 1e-6), JSON.stringify(rates));
+}
 
 (async () => {
   const { browser, page, errors } = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });

@@ -22,7 +22,7 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'shotMoments', 'MOMENTS', 'MOMENT_WORDS', 'LONG_POT', 'RUN_MIN', 'momentWord', 'NOTABLE_MOMENTS',
   'POOL_PHYS', 'SNOOKER_PHYS', 'physOf', 'SNOOKER_SIZES', 'SNOOKER_SIZE', 'SPOTS', 'D_R', 'JAW_ARCS', 'JAW_RAD', 'jawRadius', 'inD', 'isRed', 'snkValue', 'snkName', 'S_COLS', 'S_BLACK',
   'snookerRack', 'snookerGame', 'snookerOn', 'snookerSpot', 'snookerLeft', 'snookersNeeded', 'judgeSnooker', 'concedeSnooker', 'SNK_APEX', 'SNK_CPU', 'SNK_BAULK', 'SNK_D', 'SNK_BLACK_IN', 'POCKET_STYLES', 'CORNER_W', 'SIDE_W', 'cpuTargets', 'cpuSpots', 'cpuSafeties', 'cpuCalibrate',
-  'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MOUTHS', 'CAROM_SIZE', 'CAROM_PHYS', 'C_CUE', 'C_RED', 'caromGame', 'caromCount', 'caromFree', 'caromTargets', 'judgeCarom', 'CPU_CAROM', 'suggestCarom', 'cMirror',
+  'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MU_SP', 'spinA', 'ELEV_MAX', 'STOP_V', 'G', 'TIP_MAX', 'MOUTHS', 'CAROM_SIZE', 'CAROM_PHYS', 'C_CUE', 'C_RED', 'caromGame', 'caromCount', 'caromFree', 'caromTargets', 'judgeCarom', 'CPU_CAROM', 'suggestCarom', 'cMirror',
   'trickHelpers', 'TUTORIALS', 'TUT_SOLS', 'tutById', 'tutBalls', 'tutNum', 'tutGame', 'tutJudge', 'tutSol', 'swapGroup', 'caromNo',
   'RULESETS', 'DEFAULT_RULESET', 'RULE_BASE', 'RULE_MODULES', 'POCKET_KINDS', 'CALL_MODES', 'CALL_DETAILS', 'CALL_DEFAULT', 'rulesetsFor', 'makeRules', 'makeCall', 'rulesOf', 'gameBallOf',
   'callScope', 'callNeed', 'callOpen', 'callResult', 'breakLegal', 'railBalls', 'spotAll', 'withCall', 'chooseOption', 'cpuOption', 'cpuValue', 'cpuChance', 'rerack', 'rackSpots', 'RACKS', 'groupOf',
@@ -37,11 +37,12 @@ function regionSource() {
   if (c < 0 || d < c) throw new Error('career region markers missing from index.html');
   return html.slice(a, b) + '\n' + html.slice(c, d);
 }
-function loadSim() {
+/* edit (optional) rewrites the region's source first: physics-check rebuilds the pre-F9/F10 sim with it */
+function loadSim(edit) {
   const ctx = vm.createContext({});
   const exp = NAMES.map(n => `get ${n}() { return typeof ${n} === 'undefined' ? undefined : ${n}; }`).join(',');
   const builtins = 'const { Math, Object, JSON, Number, Array } = globalThis;';
-  vm.runInContext(`globalThis.__sim = (function () { 'use strict'; ${builtins}\n${regionSource()}\n;return { ${exp} }; })();`, ctx);
+  vm.runInContext(`globalThis.__sim = (function () { 'use strict'; ${builtins}\n${edit ? edit(regionSource()) : regionSource()}\n;return { ${exp} }; })();`, ctx);
   return ctx.__sim;
 }
 module.exports = { loadSim, regionSource };

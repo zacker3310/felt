@@ -826,6 +826,62 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .btns .big, .btns .ghost { min-height: 48px; }
 @media (min-width: 600px) { #trickRes .sheet { max-width: 600px; } .btns { grid-template-columns: repeat(4, 1fr); } }
+/* ---- 5d: drills. The list and each drill's page in How to play's manner (an inset grouped list,
+   a page pushed per drill, the accent capsule pinned at the foot), full screen on a phone held
+   upright. A medal per drill: bronze, silver and gold, each 3:1 or better on the cell. The result
+   is the trick shots' light sheet, each shot's score as a chip. ---- */
+#drillSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
+[data-cloth="red"] #drillSheet { --accent: #ff8a7a; }
+[data-cloth="blue"] #drillSheet { --accent: #7cb6ff; }
+#drillSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
+  display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+@media (max-width: 600px) {
+  #drillSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  #drillSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  #drillSheet .howTop { padding-top: calc(var(--sat) + 14px); }
+}
+[data-text="115"] #drillSheet .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
+[data-text="130"] #drillSheet .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
+@media (max-width: 600px) {
+  [data-text="115"] #drillSheet .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
+  [data-text="130"] #drillSheet .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
+}
+#drillSheet .shead { margin: 0; gap: 14px; }
+#drillSheet .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#drillSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+#drillSheet .back:hover { background: #26262a; }
+#drillSheet .pan { padding-bottom: 0; }
+#drillSheet .topic .val { flex: none; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+#drillSheet .dnote { margin: 4px 16px 6px; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+#drillTitle.swap { animation: titleIn .32s ease-out both; }
+@media (max-height: 500px) { #drillSheet .shead .title { font-size: 24px; } }
+/* the medal: a disc in the tier's colour with the drill's number, or an empty ring */
+.dmedal { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--label-2); box-shadow: inset 0 0 0 1.5px rgba(235, 235, 245, .38); }
+.dmedal[data-tier="1"] { background: #c98a52; color: #1a1006; box-shadow: none; }
+.dmedal[data-tier="2"] { background: #c8ccd4; color: #15171b; box-shadow: none; }
+.dmedal[data-tier="3"] { background: #f2c94c; color: #1a1404; box-shadow: none; }
+#drillBtn > span:nth-child(2) { flex: 1; min-width: 0; }
+#drillBtn .medal { width: 16px; height: 16px; color: #f2c94c; }
+#drillBtn .dacc { color: var(--muted); font-size: 14px; }
+#drillBtn .ball { flex: none; }
+.bdrill { display: grid; place-items: center; background: radial-gradient(circle at 36% 30%, #3a3a40, #1c1c1f 70%); color: #f2c94c; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14); }
+.bdrill svg { width: 60%; height: 60%; }
+/* the scores: each a row with the date */
+#drillHist .topic { min-height: 48px; }
+/* the result: the score large, then the shots */
+#drillRes .title { font-size: 26px; }
+#drillRes[data-tier="3"] .title { color: #f2c94c; }
+#drillRes[data-tier="0"] .title { color: var(--text); }
+#drillWhy { margin-bottom: 10px; }
+.dshots { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; padding: 0; list-style: none; }
+.dshots li { min-width: 44px; padding: 6px 10px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 14px; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
+.dshots li.z { color: var(--muted); }
+#drillCareer { margin: -4px 0 12px; }
+#drillCareer[hidden], #drillToCareer[hidden], #drillToList[hidden], #drillHistHead[hidden], #drillHist[hidden] { display: none; }
+@media (min-width: 600px) { #drillRes .sheet { max-width: 600px; } }
 /* How to play: touch words on a touch screen, mouse and keyboard words otherwise */
 .how .touch { display: none; }
 @media (hover: none) and (pointer: coarse) { .how .touch { display: grid; } .how .keys { display: none; } }
@@ -1290,7 +1346,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
         <button class="solo" id="lessonBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt"><b>Learn to play</b><small>A 30 second lesson</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
-        <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>No fouls, undo</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>Free play and scored drills</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo" id="trickBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Trick shots</b><small id="trickSub">14 challenges</small></span><span class="acc"><svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg><span id="trickSum">0 of 42</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo daily" id="dailyBtn"><span class="ic cal" aria-hidden="true"><i></i><b id="dailyBall">1</b></span><span class="tt"><b>Daily shot</b><small id="dailyName">New every day</small></span><span class="acc" id="dailyAcc"><svg class="flame" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12.8 1.8c.4 3.6 5.7 5.9 5.7 12.2a6.5 6.5 0 0 1-13 0c0-2.7 1.1-4.7 2.7-6.3.1 2.2.9 3.6 2.1 4.2-.7-4 .4-7.4 2.5-10.1zM12 19.4a2.4 2.4 0 0 0 2.4-2.5c0-1.6-1.3-2.6-2-4.3-.8 1.5-2.7 2.6-2.7 4.4a2.4 2.4 0 0 0 2.3 2.4z"/></svg><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg><span id="dailySum"></span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
@@ -1764,6 +1820,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <ul class="group rules">
         <li><div><b>Practice</b><p>No opponent and no fouls, always your shot. Undo takes back the last one.</p></div></li>
         <li><div><b>Practice tools</b><p>The tools button holds ball in hand and reset rack. On a free table it adds and removes balls.</p></div></li>
+        <li><div><b>Drills</b><p>In Practice: a few shots each, scored out of 100 from where the balls really went. Bronze, silver and gold by score; a career's practice is played here too.</p></div></li>
         <li><div><b>Trick shots</b><p>One layout, one goal. Show me plays one way to make it.</p></div></li>
         <li><div><b>Stars</b><p>Three for a make on the first try, two within three tries, one for any make.</p></div></li>
         <li><div><b>Daily shot</b><p>One trick shot a day, the same for everyone. Your first try counts.</p></div></li>
@@ -1876,6 +1933,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <h2 class="title" id="pracTitle">Practice</h2>
     <p class="sub">No opponent and no fouls: it is always your shot. Undo any shot, take ball in hand when you like.</p>
     <div class="pick">
+      <button class="game" id="drillBtn"><span class="ball bdrill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 19v-4M10 19v-7M14 19V9M18 19V5"/></svg></span><span><b>Drills</b><small id="drillSub">11 scored drills, medals to win</small></span><span class="acc dacc"><svg class="medal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h3.2l1.3 5-2.6 2.6zM16.5 2h-3.2L12 7l2.6 2.6z" opacity=".6"/><circle cx="12" cy="15.2" r="5.8"/></svg><span id="drillSum">0 of 33</span></span></button>
       <button class="game" id="prac8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-ball rack</b><small>Break and run</small></span></button>
       <button class="game" id="prac9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-ball rack</b><small>The diamond</small></span></button>
       <button class="game" id="pracScatter"><span class="ball bscat" aria-hidden="true"></span><span><b>Free table</b><small>Seven balls, scattered</small></span></button>
@@ -1892,6 +1950,34 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <p class="sub" id="tricksSub"></p>
     <div class="tgrid" id="trickGrid"></div>
     <button class="ghost wide" id="tricksBack">Back</button>
+  </div>
+</div>
+
+<!-- 5d: the drills, a list of drills and a page per drill (How to play's push pages), and a drill's result -->
+<div class="overlay" id="drillSheet" role="dialog" aria-modal="true" aria-labelledby="drillTitle">
+  <div class="sheet how" id="drillHow">
+    <div class="howTop">
+    <div class="shead"><button class="back" id="drillBack" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="htxt"><h2 class="title" id="drillTitle">Drills</h2></div></div>
+    </div>
+    <div class="howList" id="drillList"></div>
+    <section class="pan" id="drillPan" aria-labelledby="drillTitle" hidden>
+      <ul class="group rules" id="drillRules"></ul>
+      <h3 class="ghead" id="drillHistHead">Your scores</h3>
+      <div class="group" id="drillHist"></div>
+      <div class="howAct"><button id="drillGo">Start drill</button></div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay lite" id="drillRes" role="dialog" aria-modal="true" aria-labelledby="drillHead">
+  <div class="sheet">
+    <p class="kicker" id="drillKind"></p>
+    <h2 class="title" id="drillHead"></h2>
+    <p class="sub" id="drillWhy"></p>
+    <ol class="dshots" id="drillShots" aria-label="Each shot's score"></ol>
+    <p class="sub" id="drillCareer" hidden></p>
+    <div class="btns"><button class="big" id="drillAgain">Again</button><button class="ghost" id="drillToList">All drills</button><button class="ghost" id="drillToCareer" hidden>Career</button><button class="ghost" id="drillHome">Home</button></div>
   </div>
 </div>
 
@@ -4916,6 +5002,210 @@ function tutSol(id, i) {
   if (!s) return null;
   return { angle: s[0], power: s[1], spin: { x: s[2], y: s[3] }, place: s.length >= 6 ? [s[4], s[5]] : null, ball: s.length === 5 ? s[4] : undefined };
 }
+/* ---- 1m. drills: measured practice ----
+   A drill is a short ladder of shots on fixed layouts, each shot scored 0 to 100 from what it
+   really did (resultOf: pots, the pocket, contacts, cushions, where the cue ball stopped), and the
+   drill's score is the mean over its shots (a shot never reached, when a drill ends on a miss,
+   scores 0). No randomness: every layout is built at call time from table fractions and the trick
+   shots' pocket-relative helpers, so it fits both pool sizes and both pocket styles, and the same
+   shots always score the same. The shots are ordinary shots (game.mode 'drill': any ball first,
+   no fouls), struck and rolled by strike and stepTable like every other.
+   DRILL_LIB: { id (the career's drill id too: Career.practice(id, score)), name, sub (the list's
+   line), goal (what to do), how (how it is scored), shots, tiers ([bronze, silver, gold] score
+   thresholds), setup(T, i, prev), score(r, S), end?(j, S), total?(js) }. setup gets the helpers
+   (drillHelpers: trickHelpers with TL, TW, R and cut), the shot's index and the balls the last shot
+   left (only the run-out reads them), and returns the shot S: { balls ([n, [x, y]] pairs, the cue
+   ball first), say (the shot's goal), pocket? (the named pocket, marked), zone? ({ at, full, zero }:
+   the cue ball's ring, full marks with its edge within full metres of at, none past zero), line?
+   ({ x, full, zero, lag }: a target line across the table), box? ([x0, y0, x1, y1]: the break's box),
+   target? (the ball on) }. score(r, S) returns { s, why, n? } (why: what the shot did, in words);
+   end(j, S) true stops the drill after that shot; total(js) is the score when it is not the mean. */
+/* 1 within full of the target, 0 past zero, a straight line between */
+const nearOf = (d, full, zero) => d <= full ? 1 : d >= zero ? 0 : (zero - d) / (zero - full);
+const fracPct = f => Math.round(100 * clamp(f, 0, 1));
+const drillCue = r => r.balls.find(b => b.n === 0);
+const cmOf = m => Math.round(m * 100);
+function drillHelpers() {
+  const T = trickHelpers(), R = BALL_R;
+  Object.assign(T, { TL, TW, R });
+  /* the cue ball for a cut of deg degrees on ball p into pocket k, dist metres from the ghost
+     ball, on whichever side of the pot line keeps it on the cloth */
+  T.cut = (p, k, deg, dist) => {
+    const G = T.line(p, k, 2), a0 = Math.atan2(p[1] - POCKET_AIM[k][1], p[0] - POCKET_AIM[k][0]);
+    for (const sg of [1, -1]) {
+      const a = a0 + sg * deg * Math.PI / 180, c = [G[0] + Math.cos(a) * dist, G[1] + Math.sin(a) * dist];
+      if (c[0] > 3 * R && c[0] < TL - 3 * R && c[1] > 3 * R && c[1] < TW - 3 * R) return c;
+    }
+    return [G[0] + Math.cos(a0) * dist, G[1] + Math.sin(a0) * dist];
+  };
+  return T;
+}
+/* a pot of ball n into pocket k (any pocket when k is undefined) */
+function potScore(r, n, k) {
+  if (r.potted.includes(0)) return { s: 0, why: 'Scratch.' };
+  if (!r.potted.includes(n)) return { s: 0, why: r.first === null ? 'No contact.' : `The ${n} stayed up.` };
+  if (k !== undefined && r.pocketOf[n] !== k) return { s: 0, why: `The ${n} went in the wrong pocket.` };
+  return { s: 100, why: `The ${n} is down.` };
+}
+/* the cue ball's edge to the ring's centre, in metres */
+const ringGap = (r, at) => { const c = drillCue(r); return Math.max(0, Math.hypot(c.x - at[0], c.y - at[1]) - BALL_R); };
+/* a pot into the marked pocket, then the cue ball to the ring */
+function posScore(r, S) {
+  const p = potScore(r, 1, S.pocket);
+  if (!p.s) return p;
+  const d = ringGap(r, S.zone.at), s = fracPct(nearOf(d, S.zone.full, S.zone.zero));
+  return { s, why: d <= S.zone.full ? 'Potted, and the cue ball is in the ring.' : `Potted; the cue ball stopped ${cmOf(d)} cm from the ring.` };
+}
+const DRILL_LIB = [
+  { id: 'long-pot', name: 'Long pots', sub: 'Four pots from the far end', shots: 4, tiers: [50, 75, 100],
+    goal: 'Pot the 1 in the marked corner from the other end of the table.', how: 'Each pot in the marked pocket scores 100; a miss, the wrong pocket or a scratch scores 0.',
+    setup: (T, i) => {
+      const L = [[[0.22, 0.5], [0.78, 0.28], 2], [[0.2, 0.3], [0.76, 0.7], 5], [[0.12, 0.72], [0.84, 0.32], 2], [[0.15, 0.22], [0.8, 0.66], 5]][i];
+      return { balls: [[0, T.at(...L[0])], [1, T.at(...L[1])]], pocket: L[2], say: 'Pot the 1 in the marked corner.' };
+    },
+    score: (r, S) => potScore(r, 1, S.pocket) },
+  { id: 'cut-ladder', name: 'Cut ladder', sub: 'Cuts from 15 to 75 degrees', shots: 5, tiers: [60, 80, 100],
+    goal: 'Cut the 1 into the marked corner at 15, 30, 45, 60 and 75 degrees.', how: 'Each pot in the marked pocket scores 100; a miss scores 0.',
+    setup: (T, i) => {
+      const b = T.at(0.74, 0.3), deg = 15 * (i + 1);
+      return { balls: [[0, T.cut(b, 2, deg, 0.2 * T.TL)], [1, b]], pocket: 2, say: `A ${deg} degree cut: pot the 1 in the marked corner.` };
+    },
+    score: (r, S) => potScore(r, 1, S.pocket) },
+  { id: 'power-ladder', name: 'Power ladder', sub: 'Speed to a line, then the lag', shots: 5, tiers: [50, 75, 90],
+    goal: 'Stop the cue ball on each line, then lag it to the foot rail and back to the head rail.', how: 'Full marks within a ball of the line (touching the head rail on a lag), none 12 balls away. A lag must reach the foot rail and come back.',
+    setup: (T, i) => i < 3 ? { balls: [[0, T.at(0.1, 0.5)]], line: { x: [0.35, 0.55, 0.8][i] * T.TL, full: T.R, zero: 12 * T.R }, say: 'Stop the cue ball on the line.' }
+      : { balls: [[0, T.at(0.25, i === 3 ? 0.5 : 0.3)]], line: { x: T.R, full: T.R, zero: 12 * T.R, lag: true }, say: 'Lag: to the foot rail and back to the head rail.' },
+    score: (r, S) => {
+      const c = drillCue(r), L = S.line;
+      if (!c.on) return { s: 0, why: 'Scratch.' };
+      if (L.lag && !((r.rails[0] || 0) >= 1 && c.x < TL / 2)) return { s: 0, why: (r.rails[0] || 0) >= 1 ? 'Too hard: it went back up the table.' : 'Short: a lag goes to the foot rail and back.' };
+      const d = Math.abs(c.x - L.x), s = fracPct(nearOf(d, L.full, L.zero));
+      return { s, why: d <= L.full ? (L.lag ? 'Dead on the rail.' : 'On the line.') : L.lag ? `${cmOf(d)} cm off the rail.` : `${cmOf(d)} cm ${c.x > L.x ? 'long' : 'short'}.` };
+    } },
+  { id: 'break-box', name: 'Break box', sub: 'Open the rack, cue ball in the box', shots: 3, tiers: [45, 65, 85],
+    goal: 'Break the 9-ball rack: hit the 1 first, open the rack, pot what you can and keep the cue ball in the box.',
+    how: 'Out of 100: 40 for the spread (how far the balls moved), 20 for two balls down, 40 for the cue ball in the box. A scratch loses the pots and the box.',
+    setup: T => ({ balls: rack('9').map(b => [b.n, [b.x, b.y]]), box: [0.38 * T.TL, 0.22 * T.TW, 0.62 * T.TL, 0.78 * T.TW], say: 'Break: open the rack and keep the cue ball in the box.' }),
+    score: (r, S) => {
+      if (r.first !== 1) return { s: 0, why: r.first === null ? 'No contact.' : 'Hit the 1 first.' };
+      const at = Object.fromEntries(S.balls), obj = r.balls.filter(b => b.n > 0), scr = r.potted.includes(0);
+      const spread = obj.reduce((a, b) => a + (b.on ? Math.min(1, Math.hypot(b.x - at[b.n][0], b.y - at[b.n][1]) / (0.35 * TW)) : 1), 0) / obj.length;
+      const down = r.potted.filter(n => n > 0).length, c = drillCue(r), B = S.box;
+      const out = c.on ? Math.hypot(Math.max(B[0] - c.x, 0, c.x - B[2]), Math.max(B[1] - c.y, 0, c.y - B[3])) : Infinity;
+      const s = Math.round(40 * spread + (scr ? 0 : 20 * Math.min(1, down / 2) + 40 * nearOf(out, 0, 0.25 * TW)));
+      return { s, why: `Spread ${fracPct(spread)}%, ${down} down, ` + (scr ? 'scratch.' : out === 0 ? 'cue ball in the box.' : `cue ball ${cmOf(out)} cm out.`) };
+    } },
+  { id: 'stop-shot', name: 'Stop shot ladder', sub: 'Pot it and stop dead', shots: 4, tiers: [50, 75, 90],
+    goal: 'Pot the 1 straight in and stop the cue ball where it hit, from further back each time.', how: 'A pot is needed. Full marks with the cue ball in the ring, none a quarter of a metre away.',
+    setup: (T, i) => {
+      const b = T.lip(2, 9);
+      return { balls: [[0, T.line(b, 2, 2 + [6, 12, 18, 24][i])], [1, b]], pocket: 2, zone: { at: T.line(b, 2, 2), full: T.R, zero: 10 * T.R }, say: 'Pot the 1 and stop the cue ball in the ring.' };
+    },
+    score: posScore },
+  { id: 'spin-control', name: 'Follow and draw', sub: 'Pot it, roll or draw to the ring', shots: 4, tiers: [50, 75, 90],
+    goal: 'Pot the 1 and send the cue ball forward or back into the ring: follow, draw, a longer follow, a longer draw.', how: 'A pot is needed. Full marks with the cue ball in the ring, none a third of a metre away.',
+    setup: (T, i) => {
+      const L = [[16, 12, 'lip', 8], [10, 10, 'line', 14], [22, 10, 'lip', 11], [10, 16, 'line', 24]][i], b = T.lip(2, L[0]), fol = L[2] === 'lip';
+      return { balls: [[0, T.line(b, 2, 2 + L[1])], [1, b]], pocket: 2, zone: { at: fol ? T.lip(2, L[3]) : T.line(b, 2, L[3]), full: 1.5 * T.R, zero: 12 * T.R },
+        say: fol ? 'Follow: pot the 1 and roll the cue ball into the ring.' : 'Draw: pot the 1 and draw the cue ball back into the ring.' };
+    },
+    score: posScore },
+  { id: 'bank-ladder', name: 'Bank ladder', sub: 'Off one rail into the pocket', shots: 4, tiers: [50, 75, 100],
+    goal: 'Bank the 1 off a rail into the marked pocket.', how: 'A bank that drops in the marked pocket scores 100; no rail, the wrong pocket or a miss scores 0.',
+    setup: (T, i) => {
+      const L = [[[0.4, 0.35], [0.5, 0.72], 1], [[0.3, 0.38], [0.44, 0.7], 1], [[0.6, 0.42], [0.76, 0.76], 2], [[0.74, 0.4], [0.6, 0.7], 0]][i];
+      return { balls: [[0, T.at(...L[0])], [1, T.at(...L[1])]], pocket: L[2], say: 'Bank the 1 off the rail into the marked pocket.' };
+    },
+    score: (r, S) => {
+      const p = potScore(r, 1, S.pocket);
+      if (p.s && !((r.rails[1] || 0) >= 1)) return { s: 0, why: 'No bank: the 1 went straight in.' };
+      return p.s ? { s: 100, why: 'Banked in.' } : p;
+    } },
+  { id: 'kick-ladder', name: 'Kick ladder', sub: 'A rail first, then the 1', shots: 3, tiers: [45, 70, 90],
+    goal: 'The 2 is in the way. Kick off a rail and hit the 1 first; pot it for full marks.', how: 'A rail and then the 1 scores 70, the 1 down 30 more. The 2 first, no rail first or a scratch scores 0.',
+    setup: (T, i) => {
+      const L = [[[0.3, 0.5], [0.7, 0.5], 0.5], [[0.25, 0.3], [0.75, 0.38], 0.5], [[0.2, 0.7], [0.78, 0.3], 0.6]][i], c = T.at(...L[0]), b = T.at(...L[1]);
+      return { balls: [[0, c], [1, b], [2, T.along(c, b, L[2])]], say: 'Kick: a rail first, then the 1.' };
+    },
+    score: r => {
+      if (r.potted.includes(0)) return { s: 0, why: 'Scratch.' };
+      if (r.first !== 1) return { s: 0, why: r.first === null ? 'No contact.' : `The ${r.first} was hit first.` };
+      if (!(r.kick >= 1)) return { s: 0, why: 'No rail before the 1.' };
+      return r.potted.includes(1) ? { s: 100, why: 'Kicked in.' } : { s: 70, why: 'A good hit; the 1 stayed up.' };
+    } },
+  { id: 'safety-ladder', name: 'Safety ladder', sub: 'Contact, a rail, cue ball to the ring', shots: 3, tiers: [50, 75, 90],
+    goal: 'Hit the 1, get a ball to a rail after contact, and leave the cue ball in the ring.', how: 'Contact and a rail after it are needed. Full marks in the ring, none 40 cm away; potting the 1 halves it.',
+    setup: (T, i) => {
+      const L = [[[0.3, 0.5], [0.62, 0.42], [0.08, 0.5]], [[0.25, 0.3], [0.55, 0.55], [0.9, 0.12]], [[0.7, 0.3], [0.45, 0.6], [0.08, 0.86]]][i];
+      return { balls: [[0, T.at(...L[0])], [1, T.at(...L[1])]], zone: { at: T.at(...L[2]), full: 2 * T.R, zero: 14 * T.R }, say: 'Safety: hit the 1, a rail after, cue ball to the ring.' };
+    },
+    score: (r, S) => {
+      if (r.potted.includes(0)) return { s: 0, why: 'Scratch.' };
+      if (r.first !== 1) return { s: 0, why: 'No contact with the 1.' };
+      if (!r.railAfter) return { s: 0, why: 'No rail after contact: a foul.' };
+      const d = ringGap(r, S.zone.at), up = !r.potted.includes(1), f = nearOf(d, S.zone.full, S.zone.zero) * (up ? 1 : 0.5);
+      return { s: fracPct(f), why: (up ? '' : 'The 1 dropped: a safety leaves it up. ') + (d <= S.zone.full ? 'In the ring.' : `${cmOf(d)} cm from the ring.`) };
+    } },
+  { id: 'pattern-play', name: 'Three-ball run', sub: 'The 1, 2 and 3 in order', shots: 3, tiers: [33, 66, 100],
+    goal: 'Run out the 1, the 2 and the 3 in order from where they lie. A miss ends the run.', how: 'Each ball potted in order scores a third. Hit the lowest ball first and pot it; a miss or a scratch ends the run.',
+    setup: (T, i, prev) => {
+      const balls = prev ? prev.filter(b => b.on).map(b => [b.n, [b.x, b.y]]) : [[0, T.at(0.3, 0.6)], [1, T.at(0.55, 0.3)], [2, T.at(0.78, 0.62)], [3, T.at(0.35, 0.18)]];
+      const t = Math.min(...balls.map(b => b[0]).filter(n => n > 0));
+      return { balls, target: t, say: `Pot the ${t}.` };
+    },
+    score: (r, S) => {
+      const p = potScore(r, S.target);
+      if (p.s && r.first !== S.target) return { s: 0, why: `Hit the ${S.target} first.` };
+      return p.s ? { s: 100, n: r.potted.filter(n => n > 0).length, why: p.why } : p;
+    },
+    end: j => !j.s || j.left === 0,
+    total: js => fracPct(js.reduce((a, j) => a + j.n, 0) / 3) },
+  { id: 'pressure-nine', name: 'Pressure 9', sub: 'Five 9-balls, one miss ends it', shots: 5, tiers: [40, 60, 100],
+    goal: 'Pot the 9 in any pocket, five times, each harder than the last. One miss ends the drill.', how: 'Each make scores 20. A miss or a scratch ends it.',
+    setup: (T, i) => {
+      const b = [T.lip(5, 8), T.at(0.7, 0.66), T.lip(2, 14), T.at(0.56, 0.13), T.at(0.85, 0.52)][i];
+      const c = [T.line(b, 5, 14), T.at(0.48, 0.48), T.line(b, 2, 30), T.at(0.36, 0.5), T.at(0.25, 0.25)][i];
+      return { balls: [[0, c], [9, b]], say: 'Pot the 9 in any pocket.' };
+    },
+    score: r => potScore(r, 9),
+    end: j => !j.s },
+];
+const DRILL_TIERS = ['', 'Bronze', 'Silver', 'Gold'];
+const drillById = id => DRILL_LIB.find(d => d.id === id) || null;
+/* shot i of drill d on the current table; prev: the balls the last shot left (the run-out) */
+function drillShot(d, i, prev) { return d.setup(drillHelpers(), i, prev || null); }
+const drillBalls = S => S.balls.map(([n, p]) => newBall(n, p[0], p[1]));
+/* the shot as a game: game.mode 'drill' (any ball first, no fouls), no ball in hand */
+function drillGame(d, i, prev) {
+  const g = newGame('9');
+  return Object.assign(g, { mode: 'drill', drill: d.id, shot: i, balls: drillBalls(drillShot(d, i, prev)), breakShot: false, inHand: null });
+}
+/* one shot judged: { s (a whole number, 0 to 100), why, n (balls it counts), left (object balls up) } */
+function drillJudge(d, S, r) {
+  const j = Object.assign({ n: 0 }, d.score(r, S));
+  j.s = Math.round(clamp(j.s, 0, 100));
+  j.left = r.balls.filter(b => b.n > 0 && b.on).length;
+  return j;
+}
+/* the drill is over: every shot played, or its end rule after the last one */
+const drillOver = (d, js) => js.length >= d.shots || (!!d.end && js.length > 0 && d.end(js[js.length - 1]));
+/* the drill's score: the mean over every shot (those not reached score 0), or its own total */
+const drillTotal = (d, js) => d.total ? d.total(js) : Math.round(js.reduce((a, j) => a + j.s, 0) / d.shots);
+/* 0 none, 1 bronze, 2 silver, 3 gold */
+const drillTier = (d, score) => d.tiers.filter(t => score >= t).length;
+/* a whole drill in the sim: shots[i] { angle, power, spin }; { js, total } (the page plays the same
+   shots through strike and stepTable, one at a time) */
+function drillRun(d, shots) {
+  const js = [];
+  let prev = null;
+  for (let i = 0; i < d.shots && shots[i]; i++) {
+    const S = drillShot(d, i, prev), r = simulateShot(drillBalls(S), shots[i]);
+    js.push(drillJudge(d, S, r));
+    prev = r.balls;
+    if (drillOver(d, js)) break;
+  }
+  return { js, total: drillTotal(d, js) };
+}
 // #endregion sim
 
 // #region career
@@ -5093,12 +5383,14 @@ const Career = (() => {
   /* the achievements an item can need, and their words. drillGold: gold mastery in any drill (the
      hook a new drill gets for free: it only has to record mastery through practice()) */
   const NEED_WORDS = { hof: 'Hall of Fame only', title: 'Win a title', wins100: 'Win 100 matches', drillGold: 'Gold mastery in a drill' };
+  /* the drills a session is recorded for: the same ids as the page's drill library (sim 1m,
+     DRILL_LIB), which plays and scores them on the table */
   const DRILLS = [
-    { id: 'long-pot', skill: 'aim', name: 'Long pots' }, { id: 'power-ladder', skill: 'power', name: 'Power ladder' },
-    { id: 'break-box', skill: 'brk', name: 'Break box' }, { id: 'stop-shot', skill: 'pos', name: 'Stop, follow, draw' },
-    { id: 'spin-control', skill: 'spin', name: 'Spin control' }, { id: 'bank-ladder', skill: 'banks', name: 'Bank ladder' },
-    { id: 'safety-ladder', skill: 'safety', name: 'Safety ladder' }, { id: 'pattern-play', skill: 'tactics', name: 'Pattern play' },
-    { id: 'pressure-nine', skill: 'pressure', name: 'Pressure 9-ball' },
+    { id: 'long-pot', skill: 'aim', name: 'Long pots' }, { id: 'cut-ladder', skill: 'aim', name: 'Cut ladder' }, { id: 'power-ladder', skill: 'power', name: 'Power ladder' },
+    { id: 'break-box', skill: 'brk', name: 'Break box' }, { id: 'stop-shot', skill: 'pos', name: 'Stop shot ladder' },
+    { id: 'spin-control', skill: 'spin', name: 'Follow and draw' }, { id: 'bank-ladder', skill: 'banks', name: 'Bank ladder' }, { id: 'kick-ladder', skill: 'banks', name: 'Kick ladder' },
+    { id: 'safety-ladder', skill: 'safety', name: 'Safety ladder' }, { id: 'pattern-play', skill: 'tactics', name: 'Three-ball run' },
+    { id: 'pressure-nine', skill: 'pressure', name: 'Pressure 9' },
   ];
   const DRILL_BY = Object.fromEntries(DRILLS.map(d => [d.id, d]));
   const MILESTONES = [[50, 'bronze'], [75, 'silver'], [90, 'gold']];
@@ -10792,6 +11084,7 @@ function settleSolo() {
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
   if (solo.kind === 'lesson') { lessonSettle(r); return; }   /* the lesson (6d) */
   if (solo.kind === 'tutorial') { tutSettle(r); return; }   /* a tutorial step (6d) */
+  if (solo.kind === 'drill') { drillSettle(r); return; }   /* a drill's shot (5d) */
   if (game.mode === 'practice') {
     game = practiceJudge(game, r);
     const v = game.verdict, st = solo.st;
@@ -10854,7 +11147,7 @@ function showTrickRes(c, j) {
   trickRes.classList.add('show');
   if (byKeys) (j.ok ? trickNext : trickRetry).focus({ preventScroll: true });
 }
-function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, rackSheet, matchSheet, tutDone, tutOffer, handoff]) o.classList.remove('show'); }
+function closeSolo() { for (const o of [prac, tricks, trickRes, lessonDone, lessonOffer, drillRes, rackSheet, matchSheet, tutDone, tutOffer, handoff]) o.classList.remove('show'); }
 function showPractice() {
   closeSolo(); menu.classList.remove('show');
   prac.classList.add('show');
@@ -10884,6 +11177,7 @@ function restartSolo() {
   if (solo.kind === 'practice') startPractice(solo.layout, solo.seed);
   else if (solo.kind === 'lesson') startLesson();
   else if (solo.kind === 'tutorial') tutStep(solo.step);
+  else if (solo.kind === 'drill') startDrill(solo.id, { career: solo.career });
   else startTrick(solo.id, true);
 }
 
@@ -10904,7 +11198,8 @@ function hudSolo() {
     editBtn.setAttribute('aria-pressed', String(!!s.edit));
     undoBtn.style.opacity = s.undo.length ? '' : '0.5';
     toolBtn.classList.toggle('on', !!s.edit || !!game.hand);
-  } else {
+  } else if (s.kind === 'drill') drillChip(s);   /* 5d */
+  else {
     const n = String(s.attempts + (state === 'over' ? 0 : 1)), name = pchip0.firstChild, box = pchip0.lastChild;
     if (name.textContent !== 'Try') name.textContent = 'Try';
     if (box.dataset.key !== 'try|' + n) { box.dataset.key = 'try|' + n; const t = document.createElement('span'); t.className = 'num'; t.textContent = n; box.replaceChildren(t); }
@@ -10936,7 +11231,8 @@ function hudSoloMenu() {
     soloTitle.textContent = PRACTICE_NAMES[s.layout];
     soloGoal.textContent = s.edit ? 'Editing: tap the cloth to drop a ball, tap a ball to take it off.' : '';
     cells.push(['Shots', s.st.shots], ['Pots', s.st.pots], ['Pot %', s.st.shots ? pctOf(s.st) + '%' : '-']);
-  } else {
+  } else if (s.kind === 'drill') drillMenu(s, cells);   /* 5d */
+  else {
     const c = trickById(s.id);
     soloKind.textContent = s.daily ? `Daily shot, ${dayWords(s.daily.day)}` : `Trick shot ${TRICKS.indexOf(c) + 1} of ${TRICKS.length}`;
     soloTitle.textContent = c.title;
@@ -10965,6 +11261,7 @@ function syncSoloMenu() {
   dailyBtn.dataset.daily = done ? 'done' : s ? 'streak' : 'new';
   dailyBtn.classList.toggle('done', done);
   dailyBtn.setAttribute('aria-label', `Daily shot, ${dayWords(day)}: ${dailyTrick(day).title}. ` + (done ? `Played today, day streak ${s}.` : s ? `Day streak ${s}: play today to keep it.` : 'A new shot every day.'));
+  syncDrillHome();   /* 5d */
   syncCareerHome();
 }
 
@@ -11025,6 +11322,7 @@ function scoreDaily(ok) {
 }
 /* the canvas marks of a trick shot: the cue ball's target ring and the pocket the goal names */
 function drawSolo() {
+  if (game.mode === 'drill') { drawDrill(); return; }   /* 5d */
   if (game.mode !== 'trick' || state === 'menu') return;
   const c = trickById(game.trick);
   if (!c || (!c.zone && c.pocket === undefined)) return;
@@ -11077,6 +11375,237 @@ Object.defineProperties(felt, {
   solo: { get: () => solo },
   trickBest: { get: () => Object.assign({}, trickBest) },
   dailyRec: { get: () => Object.assign({}, dailyRec, { streakNow: dailyStreak() }) },
+});
+
+/* ============ 5d. DRILLS: measured practice on the table ============ */
+/* A drill (sim 1m, DRILL_LIB) runs as a solo session: { kind: 'drill', id, i (the shot), S (the
+   shot's layout and targets, drillShot), js (each shot's judgement), career (the career hub
+   launched it: the score goes to Career.practice), beat (the pause after a shot, so the cue ball
+   is seen against its ring) }. Every shot is the ordinary turn (the bar shoots, strike and
+   stepTable roll it); settleSolo hands it to drillSettle, which judges it from resultOf and sets
+   the next layout after DRILL_BEAT ms (felt.drillBeat in tests). The last shot opens the result.
+   Records persist under DRILLS_KEY, versioned: { v: 1, d: { id: { best, n, hist: [[score, day]]
+   (the last DRILL_HIST) } } }; anything malformed is dropped on load, never trusted. A medal is
+   the drill's tier for the best score (drillTier: bronze, silver, gold). */
+const DRILLS_KEY = 'felt.drills.v1', DRILL_HIST = 20, DRILL_BEAT = 900;
+const isScore = v => Number.isInteger(v) && v >= 0 && v <= 100;
+let drillRec = loadDrills(), drillTimer = 0;
+function loadDrills() {
+  const out = {};
+  try {
+    const o = JSON.parse(localStorage.getItem(DRILLS_KEY) || 'null'), d = o && typeof o === 'object' && o.v === 1 && o.d && typeof o.d === 'object' ? o.d : {};
+    for (const x of DRILL_LIB) {
+      const r = d[x.id];
+      if (!r || typeof r !== 'object') continue;
+      const hist = (Array.isArray(r.hist) ? r.hist : []).filter(h => Array.isArray(h) && isScore(h[0]) && typeof h[1] === 'string' && realDay(h[1])).map(h => [h[0], h[1]]).slice(-DRILL_HIST);
+      const best = Math.max(isScore(r.best) ? r.best : 0, ...hist.map(h => h[0])), n = Math.max(Number.isInteger(r.n) && r.n > 0 ? r.n : 0, hist.length);
+      if (n) out[x.id] = { best, n, hist };
+    }
+  } catch (e) { }
+  return out;
+}
+function saveDrills() { try { localStorage.setItem(DRILLS_KEY, JSON.stringify({ v: 1, d: drillRec })); } catch (e) { } }
+const drillBest = id => (drillRec[id] || { best: 0 }).best;
+const medalsOf = () => DRILL_LIB.reduce((a, d) => a + (drillRec[d.id] ? drillTier(d, drillRec[d.id].best) : 0), 0);
+const drillOn = () => !!solo && solo.kind === 'drill';
+
+function startDrill(id, o = {}) {
+  const d = drillById(id) || DRILL_LIB[0], s = { kind: 'drill', id: d.id, i: 0, js: [], S: null, career: !!o.career, beat: false };
+  clearTimeout(drillTimer);
+  if (drillOn()) s.power = markPower;
+  beginSolo(() => { s.S = drillShot(d, 0, null); return drillGame(d, 0, null); }, s);
+  flash('turn', d.name, d.goal, 2200);
+  say(`${d.name}. ${s.S.say}`);
+}
+/* a drill's shot is over (settleSolo): judge it, then the next layout or the result */
+function drillSettle(r) {
+  const s = solo, d = drillById(s.id), j = drillJudge(d, s.S, r);
+  s.js.push(j);
+  game = Object.assign(copyGame(game), { balls: r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 })), shots: game.shots + 1 });
+  felt.lastDrill = { id: d.id, shot: s.i, s: j.s, why: j.why, scores: s.js.map(x => x.s), done: drillOver(d, s.js) };
+  sfx(j.s >= 50 ? 'win' : 'foul', 0.6);
+  state = 'over'; s.beat = true;
+  flash(j.s >= 50 ? 'turn' : 'foul', `Shot ${s.i + 1} of ${d.shots}: ${j.s}`, j.why, Math.max(1200, felt.drillBeat + 600));
+  say(`${j.why} Shot ${s.i + 1}: ${j.s}.`);
+  hud();
+  const next = () => {
+    if (solo !== s) return;
+    s.beat = false;
+    if (drillOver(d, s.js)) { drillFinish(d); return; }
+    s.i++;
+    s.S = drillShot(d, s.i, r.balls);
+    game = drillGame(d, s.i, r.balls);
+    soloAim();
+    say(`Shot ${s.i + 1} of ${d.shots}. ${s.S.say}`);
+  };
+  clearTimeout(drillTimer);
+  if (felt.drillBeat > 0) drillTimer = setTimeout(next, felt.drillBeat); else next();
+}
+/* the drill is over: the score, the record, the career's session, the result sheet */
+function drillFinish(d) {
+  const s = solo, total = drillTotal(d, s.js), was = drillRec[d.id] ? drillRec[d.id].best : null;
+  const rec = drillRec[d.id] || (drillRec[d.id] = { best: 0, n: 0, hist: [] });
+  rec.n++; rec.best = Math.max(rec.best, total);
+  rec.hist.push([total, today()]);
+  if (rec.hist.length > DRILL_HIST) rec.hist.splice(0, rec.hist.length - DRILL_HIST);
+  saveDrills();
+  let cr = null;
+  if (s.career) {
+    cr = Career.loaded ? Career.practice(d.id, total) : { ok: false, why: 'no career loaded' };
+    if (cr.ok) cvSave();
+  }
+  state = 'over';
+  felt.lastDrill = Object.assign({}, felt.lastDrill, { done: true, total, tier: drillTier(d, total), best: rec.best, newBest: was === null || total > was, career: cr });
+  banner.classList.remove('show');
+  showDrillRes(d, total, was, cr);
+  sfx(drillTier(d, total) ? 'win' : 'foul', 1);
+  hud();
+  syncSoloMenu();
+}
+function showDrillRes(d, total, was, cr) {
+  const s = solo, t = drillTier(d, total);
+  drillRes.dataset.tier = String(t);
+  drillKind.textContent = `Drill: ${d.name}`;
+  drillHead.textContent = `${total} of 100` + (t ? `, ${DRILL_TIERS[t].toLowerCase()}` : '');
+  const nextT = d.tiers.find(x => x > total);
+  drillWhy.textContent = (was === null ? 'Your first score on this drill.' : total > was ? `A new best, up from ${was}.` : `Best: ${was}.`) + (nextT !== undefined ? ` ${DRILL_TIERS[drillTier(d, nextT)]} at ${nextT}.` : ' Gold, the top medal.');
+  drillShots.replaceChildren(...Array.from({ length: d.shots }, (_, i) => {
+    const li = document.createElement('li'), j = s.js[i];
+    li.textContent = j ? String(j.s) : '-';
+    if (!j || !j.s) li.className = 'z';
+    li.setAttribute('aria-label', `Shot ${i + 1}: ${j ? j.s : 'not played'}`);
+    return li;
+  }));
+  drillCareer.hidden = !cr;
+  if (cr) drillCareer.textContent = cr.ok ? `Recorded in your career${cr.milestone ? `: ${cr.milestone} mastery` : ''}. Best there ${cr.mastery.best}.` : `Not recorded in your career: ${cr.why}.`;
+  drillToCareer.hidden = !s.career; drillToList.hidden = !!s.career;
+  menu.classList.remove('show'); over.classList.remove('show');
+  drillRes.classList.add('show');
+  if (byKeys) drillAgain.focus({ preventScroll: true });
+}
+/* the chip in a drill: which shot of how many (hudSolo) */
+function drillChip(s) {
+  const d = drillById(s.id), n = `${Math.min(s.js.length + (state === 'over' ? 0 : 1), d.shots)}/${d.shots}`, name = pchip0.firstChild, box = pchip0.lastChild;
+  if (name.textContent !== 'Shot') name.textContent = 'Shot';
+  if (box.dataset.key !== 'drill|' + n) { box.dataset.key = 'drill|' + n; const t = document.createElement('span'); t.className = 'num'; t.textContent = n; box.replaceChildren(t); }
+  pchip0.classList.add('on'); pchip0.classList.remove('busy', 'warn');
+  turnChip.classList.remove('busy', 'warn');
+  turnChip.dataset.name = `Shot ${n.replace('/', ' of ')}`;
+}
+/* the pause menu's numbers in a drill (hudSoloMenu) */
+function drillMenu(s, cells) {
+  const d = drillById(s.id);
+  soloKind.textContent = `Drill, shot ${Math.min(s.i + 1, d.shots)} of ${d.shots}`;
+  soloTitle.textContent = d.name;
+  soloGoal.textContent = s.S ? s.S.say : d.goal;
+  const so = s.js.reduce((a, j) => a + j.s, 0);
+  cells.push(['Shots', `${s.js.length}/${d.shots}`], ['Points', so], ['Best', drillRec[d.id] ? drillBest(d.id) : '-']);
+}
+/* the canvas marks of a drill shot (drawSolo): the ring, the line, the break's box, the pocket */
+function drawDrill() {
+  const s = solo;
+  if (!drillOn() || !s.S || state === 'menu') return;
+  const S = s.S, k = view.k;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.save();
+  ctx.lineWidth = 2; ctx.strokeStyle = wa(0.85); ctx.setLineDash([6, 5]);
+  if (S.zone) {
+    const c = toScreen(S.zone.at[0], S.zone.at[1]), r = (S.zone.full + BALL_R) * k;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'; circle(ctx, c[0], c[1], r); ctx.fill();
+    circle(ctx, c[0], c[1], r); ctx.stroke();
+    ctx.globalAlpha = 0.3; circle(ctx, c[0], c[1], (S.zone.zero + BALL_R) * k); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  if (S.line) {
+    const a = toScreen(S.line.x, 0), b = toScreen(S.line.x, TW);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
+  }
+  if (S.box) {
+    const B = S.box, p = [[B[0], B[1]], [B[2], B[1]], [B[2], B[3]], [B[0], B[3]]].map(q => toScreen(q[0], q[1]));
+    ctx.beginPath(); p.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.stroke();
+  }
+  if (S.pocket !== undefined) {
+    const p = POCKETS[S.pocket], c = toScreen(p[0], p[1]);
+    ctx.setLineDash([]); ctx.strokeStyle = '#f2c94c'; ctx.lineWidth = 2.5;
+    circle(ctx, c[0], c[1], POCKET_R[S.pocket] * k + 5); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---- the drills sheet: a navigation stack in How to play's manner. The list (drillList: every
+   drill with its medal and best), and a page per drill (its goal, scoring and medals, the last
+   scores, Start drill pinned at the foot); Back pops to the list, and from the list goes home. ---- */
+let drillPage = null;
+const medalEl = (d, i) => { const m = document.createElement('span'), t = drillRec[d.id] ? drillTier(d, drillRec[d.id].best) : 0; m.className = 'dmedal'; m.dataset.tier = String(t); m.setAttribute('aria-hidden', 'true'); m.textContent = String(i + 1); return m; };
+function drillRow(d, i) {
+  const b = document.createElement('button'), r = drillRec[d.id], t = r ? drillTier(d, r.best) : 0, tt = document.createElement('span');
+  b.className = 'topic'; b.id = 'drillRow-' + d.id;
+  tt.className = 'tt';
+  tt.append(Object.assign(document.createElement('b'), { textContent: d.name }), Object.assign(document.createElement('small'), { textContent: r ? `Best ${r.best}${t ? `, ${DRILL_TIERS[t].toLowerCase()}` : ''}. ${r.n} played` : d.sub }));
+  b.append(medalEl(d, i), tt);
+  b.insertAdjacentHTML('beforeend', CHEV);
+  b.setAttribute('aria-label', `${d.name}: ${r ? `best ${r.best}${t ? `, ${DRILL_TIERS[t]}` : ''}` : 'not played yet'}`);
+  b.addEventListener('click', () => drillPick(d.id, true));
+  return b;
+}
+function drillPick(id, anim) {
+  const was = drillPage, d = id ? drillById(id) : null;
+  drillPage = d ? d.id : null;
+  drillList.hidden = !!d; drillPan.hidden = !d;
+  drillList.classList.remove('pop'); drillPan.classList.remove('push'); drillTitle.classList.remove('swap');
+  drillTitle.textContent = d ? d.name : 'Drills';
+  drillBack.setAttribute('aria-label', d ? 'Back to drills' : 'Back');
+  if (!d) {
+    const note = document.createElement('p'), g = document.createElement('div');
+    note.className = 'dnote';
+    note.textContent = `${DRILL_LIB.length} drills, each a few shots scored from what the balls really did. Bronze, silver and gold by score: ${medalsOf()} of ${DRILL_LIB.length * 3} medals.`;
+    g.className = 'group'; g.setAttribute('role', 'group'); g.setAttribute('aria-label', 'Drills');
+    g.append(...DRILL_LIB.map(drillRow));
+    drillList.replaceChildren(note, g);
+  } else {
+    const r = drillRec[d.id], li = (h, p) => { const e = document.createElement('li'), w = document.createElement('div'); w.append(Object.assign(document.createElement('b'), { textContent: h }), Object.assign(document.createElement('p'), { textContent: p })); e.append(w); return e; };
+    drillRules.replaceChildren(li('Goal', d.goal), li(`Scoring, ${d.shots} shots`, d.how + (d.total || d.end ? '' : ' Your score is the mean of the shots.')),
+      li('Medals', `Bronze at ${d.tiers[0]}, silver at ${d.tiers[1]}, gold at ${d.tiers[2]}.`), li('Your best', r ? `${r.best} of 100${drillTier(d, r.best) ? `, ${DRILL_TIERS[drillTier(d, r.best)].toLowerCase()}` : ''}, ${r.n} played.` : 'Not played yet.'));
+    const hist = r ? r.hist.slice().reverse().slice(0, 10) : [];
+    drillHistHead.hidden = !hist.length;
+    drillHist.hidden = !hist.length;
+    drillHist.replaceChildren(...hist.map(([v, day]) => {
+      const row = document.createElement('div'), tt = document.createElement('span');
+      row.className = 'topic'; tt.className = 'tt';
+      tt.append(Object.assign(document.createElement('b'), { textContent: `${v}${drillTier(d, v) ? `, ${DRILL_TIERS[drillTier(d, v)].toLowerCase()}` : ''}` }));
+      row.append(tt, Object.assign(document.createElement('span'), { className: 'val', textContent: dayWords(day) }));
+      return row;
+    }));
+    drillGo.textContent = `Start ${d.name}`;
+  }
+  drillHow.scrollTop = 0;
+  if (anim && drillPage !== was) { const p = d ? drillPan : drillList; void p.offsetWidth; p.classList.add(d ? 'push' : 'pop'); drillTitle.classList.add('swap'); }
+  if (anim && byKeys) (d ? drillBack : drillList.querySelector('#drillRow-' + was) || drillList.querySelector('.topic') || drillBack).focus({ preventScroll: true });
+}
+function showDrills(id) {
+  clearTimeout(drillTimer);
+  if (drillOn() && !paused) { solo = null; state = 'menu'; game = newGame('8'); hud(); }   /* from a drill's result */
+  drillPick(id || null, false);
+  openSheet(drillSheet, drillBack);
+}
+/* the home's row: the medals won of all there are */
+function syncDrillHome() {
+  const m = medalsOf(), all = DRILL_LIB.length * 3;
+  drillSub.textContent = `${DRILL_LIB.length} drills, scored`;
+  drillSum.textContent = `${m} of ${all}`;
+  drillBtn.setAttribute('aria-label', `Drills: ${DRILL_LIB.length} scored drills, ${m} of ${all} medals`);
+}
+drillBtn.addEventListener('click', () => { audioOn(); showDrills(); });
+drillBack.addEventListener('click', () => { if (drillPage) drillPick(null, true); else { closeSheets(); showPractice(); } });   /* the drills live in Practice */
+drillGo.addEventListener('click', () => { audioOn(); if (drillPage) startDrill(drillPage); });
+drillAgain.addEventListener('click', () => { audioOn(); if (solo && solo.kind === 'drill') startDrill(solo.id, { career: solo.career && Career.loaded && Career.calendar().practiceToday < 3 }); });
+drillToList.addEventListener('click', () => showDrills(solo && solo.kind === 'drill' ? solo.id : null));
+drillToCareer.addEventListener('click', () => { quitToHome(); showCareer('practice'); });
+drillHome.addEventListener('click', () => quitToHome());
+Object.assign(felt, { drill: startDrill, showDrills, drillBeat: DRILL_BEAT, lastDrill: null });
+Object.defineProperties(felt, {
+  drillRec: { get: () => JSON.parse(JSON.stringify(drillRec)) },
+  drillNow: { get: () => drillOn() ? { id: solo.id, i: solo.i, scores: solo.js.map(j => j.s), beat: solo.beat, career: solo.career, S: JSON.parse(JSON.stringify(solo.S)) } : null },
+  drillPage: { get: () => drillSheet.classList.contains('show') ? drillPage || 'list' : null },
 });
 
 /* ============ 6. HUD ============ */
@@ -11361,7 +11890,7 @@ const MORE_KINDS = ['10', 'straight', 'rotation'];
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
 let setupKind = '8';
-const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet, modesSheet];
+const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet, modesSheet, drillSheet];
 function openSheet(el, focus) {
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
@@ -11376,6 +11905,7 @@ function escSheet() {
   if (tutOffer.classList.contains('show')) { tutOfferAnswer('skip'); return true; }
   if (SHEETS().some(s => s.classList.contains('show')) || prac.classList.contains('show') || tricks.classList.contains('show')) { backToMenu(); return true; }
   if (trickRes.classList.contains('show')) { showTricks(); return true; }
+  if (drillRes.classList.contains('show')) { if (solo && solo.career) { quitToHome(); showCareer('practice'); } else showDrills(solo && solo.id); return true; }
   return false;
 }
 /* a setup in words: "8-ball vs Hustler (CPU hard), 7 ft" */
@@ -13543,18 +14073,12 @@ PAGES.news = () => {
 PAGES.practice = () => {
   const s = Career.stats(), done = Career.calendar().practiceToday, out = [];
   setHead(`${done} of 3 sessions today`, 'Practice');
-  out.push(cvNoteEl('Play a drill in Practice from the home screen, then record your score out of 100 here. Three sessions a day; practice never moves the clock. Mastery is a record; skills grow a little.'));
+  out.push(cvNoteEl('Each drill is played on the table and scored from your shots; the score is recorded here when it ends. Three sessions a day; practice never moves the clock. Mastery is a record; skills grow a little.'));
   out.push(cvGroup(Career.DRILLS.map(d => {
-    const m = s.mastery[d.id] || { best: 0, n: 0, lv: 0 }, i = cvEl('input', 'cvScore');
-    i.type = 'number'; i.min = 0; i.max = 100; i.inputMode = 'numeric'; i.placeholder = '0-100'; i.id = 'drill-' + d.id; i.setAttribute('aria-label', `${d.name} score`);
-    const rec = cvMiniBtn('Record', done >= 3 ? null : () => {
-      const v = Math.round(+i.value);
-      if (!(v >= 0 && v <= 100) || i.value === '') { cv.msg = 'A score from 0 to 100.'; cvRender(); return; }
-      const r = Career.practice(d.id, v);
-      cv.msg = r.ok ? `${d.name}: ${v} recorded${r.milestone ? `, ${r.milestone} mastery` : ''}.` : `Not recorded: ${r.why}.`;
-      cvSave(); cvRender();
-    }, 'go', `Record ${d.name}`);
-    return cvRow({ title: d.name, sub: `${Career.SKILL_NAMES[d.skill]}. Best ${m.best}` + (m.lv ? `, ${['bronze', 'silver', 'gold'][m.lv - 1]}` : ''), end: [i, rec] });
+    const m = s.mastery[d.id] || { best: 0, n: 0, lv: 0 }, lib = drillById(d.id);
+    const play = cvMiniBtn('Play', done >= 3 || !lib ? null : () => { audioOn(); startDrill(d.id, { career: true }); }, 'go', `Play ${d.name}`);
+    play.id = 'drill-' + d.id;
+    return cvRow({ title: d.name, sub: `${Career.SKILL_NAMES[d.skill]}. ${lib ? `${lib.shots} shots. ` : ''}Best ${m.best}` + (m.lv ? `, ${['bronze', 'silver', 'gold'][m.lv - 1]}` : ''), end: play });
   })));
   return out;
 };

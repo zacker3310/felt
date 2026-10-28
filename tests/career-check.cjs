@@ -18,6 +18,7 @@ const path = require('path');
 const { check, done, open, smallTargets, lowContrast, settled } = require('./lib.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
 const DEG = Math.PI / 180;
+const DRILL_SOLS = require('./drill-solutions.json');
 
 async function phone(viewport, opts = {}) {
   const o = await open('', { viewport, hasTouch: true, isMobile: true, deviceScaleFactor: 3, ...opts });
@@ -289,12 +290,19 @@ async function pullBar(T, frac) {
       if (pg !== p || a.small.length || a.low.length || !fine(f)) bad.push({ p, pg, a, f });
     }
     check('rankings, stats, records, sponsors, shop, rivals, news, practice, options, slots: each renders, targets 44 px, text 4.5:1, fits', !bad.length, JSON.stringify(bad).slice(0, 600));
-    /* practice: a score recorded through Career.practice */
-    await ev(T, () => { felt.showCareer(); felt.careerGo('practice'); });
-    await T.page.fill('#drill-long-pot', '64');
-    await T.page.click('[aria-label="Record Long pots"]');
-    const pr = await ev(T, () => ({ m: Career.stats().mastery['long-pot'], msg: (document.getElementById('cvMsg') || {}).textContent }));
-    check('practice: a drill score recorded (best 64, bronze), the page says so', pr.m && pr.m.best === 64 && pr.m.lv === 1 && /recorded/.test(pr.msg), JSON.stringify(pr));
+    /* practice: Play launches the drill on the table; its measured score reaches Career.practice */
+    await ev(T, () => { felt.showCareer(); felt.careerGo('practice'); felt.drillBeat = 0; });
+    await T.page.click('#drill-long-pot');
+    for (const h of DRILL_SOLS['7r']['long-pot'].shots) {
+      await T.page.waitForFunction(() => felt.state === 'aim' && felt.drillNow, null, { timeout: 20000 });
+      await ev(T, h => felt.shoot(h[0], h[1], { x: h[2], y: h[3] }), h);
+      await T.page.waitForFunction(() => felt.state !== 'rolling', null, { timeout: 30000 });
+    }
+    await T.page.waitForFunction(() => drillRes.classList.contains('show'), null, { timeout: 20000 });
+    const pr = await ev(T, () => ({ m: Career.stats().mastery['long-pot'], d: felt.lastDrill, msg: drillCareer.textContent }));
+    check('practice: Play runs the drill on the table, its measured score is recorded (the result says so)', pr.m && pr.m.n === 1 && pr.m.best === pr.d.total && pr.d.career.ok && /Recorded/.test(pr.msg), JSON.stringify(pr));
+    await T.page.click('#drillToCareer');
+    check('practice: Career from the result goes back to the practice page', await ev(T, () => felt.careerPage === 'practice' && felt.drillNow === null));
     /* reload: the career persists */
     await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
     await ev(T, () => felt.showCareer());

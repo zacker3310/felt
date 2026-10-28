@@ -36,8 +36,9 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   const idle = (t = 30000) => page.waitForFunction(() => !['stroke', 'rolling', 'thinking'].includes(felt.state), null, { timeout: t });
 
   /* ---------- the home row and the pages ---------- */
-  const row = await ev(() => { settings.last = '8'; relayout(); showMenu(); const r = playModes.getBoundingClientRect(); return { h: r.height, w: r.width, text: playModes.textContent.trim(), sh: menu.scrollHeight, ch: menu.clientHeight }; });
-  check('home: a More modes row beside More games, 44 px, home still fits at 375x667', row.h >= 44 && row.w >= 44 && /More modes/.test(row.text) && row.sh <= row.ch, JSON.stringify(row));
+  const row = await ev(() => { settings.last = '8'; relayout(); showMenu(); const r = playModes.getBoundingClientRect(), g = playMore.getBoundingClientRect(); return { h: r.height, w: r.width, beside: Math.abs(r.top - g.top) < 1 && r.left > g.right, text: playModes.textContent.trim(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: menu.scrollWidth - menu.clientWidth }; });
+  /* 375x667 scrolls a little since the QA pass (F3: the cards keep their size); qa-check pins the home's fit */
+  check('home: a More modes row beside More games, 44 px, no sideways scroll at 375x667', row.h >= 44 && row.w >= 44 && row.beside && /More modes/.test(row.text) && row.sw <= 0, JSON.stringify(row));
   const pages = [];
   for (const [w, h] of [[375, 667], [440, 956]]) {
     await page.setViewportSize({ width: w, height: h });

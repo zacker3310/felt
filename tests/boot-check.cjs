@@ -124,6 +124,13 @@ const artContrast = page => page.evaluate(() => {
   const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
     .filter(r => r.style && ['backdrop-filter', '-webkit-backdrop-filter', 'filter'].some(k => /blur/.test(r.style.getPropertyValue(k)))).map(r => r.selectorText));
   check('no backdrop or blur filters anywhere (the table behind a sheet or a callout stays sharp)', blurs.length === 0, JSON.stringify(blurs));
+  /* no colour accents: no side stripe (an inset shadow offset on one side, or a border on one side wider than a
+     hairline) and no coloured underline bar on any rule (the owner's call: emphasis is weight, never a stripe) */
+  const stripes = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
+    .filter(r => r.style && (/inset\s+-?[1-9][\d.]*px\s+0(px)?\s+0(px)?(\s|,|$)|inset\s+0(px)?\s+-?[1-9][\d.]*px\s+0(px)?\s+(?!0)/.test(r.style.getPropertyValue('box-shadow'))
+      || ['border-left', 'border-right', 'border-inline-start', 'border-inline-end', 'border-bottom', 'border-top'].some(k => { const w = parseFloat(r.style.getPropertyValue(k + '-width') || (r.style.getPropertyValue(k).match(/([\d.]+)px/) || [])[1]); return w > 1; })))
+    .map(r => r.selectorText + ' { ' + r.style.getPropertyValue('box-shadow') + ' }'));
+  check('no colour accents: no side stripes or underline bars anywhere (emphasis is weight)', stripes.length === 0, JSON.stringify(stripes));
   check('no em dashes anywhere on the page', await page.evaluate(() => !document.documentElement.outerHTML.includes('\u2014')));
   await page.click('#helpBack');
   await page.setViewportSize(wide);

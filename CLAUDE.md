@@ -184,6 +184,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - `setTable('7'|'9')` reassigns TL, TW and all table geometry: read them at call time, never cache.
 - Only the power bar shoots. No key and no table drag may fire a shot (play-check enforces it).
 - No em dashes.
+- No colour accents: no side stripes, coloured underline bars or accent dots to mark a row, note or winner.
+  Emphasis is weight (700). boot-check fails on any one-sided inset shadow or thicker-than-hairline one-sided border.
 
 ## Common mistakes
 

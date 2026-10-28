@@ -94,9 +94,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
   `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
-- Home layout: the game cards have a real minimum (`--tile-min`, `--cc-min`), share out spare room, and the home
-  scrolls when they do not fit (small phones, text size Large/Larger; one card a row there). Forfeit match and
-  Concede frame take two taps (`armOrAct`). `qa-check` pins the QA pass (F1 to F10) with real touch and mouse input.
+- Home layout: no Play again and no More rows. Three sections: Games (`#playRow`, all eight games as `.tile` cards
+  with their rack art, each `data-kind` opening `showSetup(kind)`; the setup opens on the last choices, which are
+  settings), Modes (`#modeRow`: `careerBtn`, `modeTour`, `modeEx`, `modeParty`, each opening its page alone via
+  `showModes(page)`, Back straight home; `showModes()` with no page is the list How to play opens) and Solo (Learn
+  to play, Practice, `drillsRow`, Trick shots, Daily shot). Cards share one shape (`--card-ar`) over a real minimum
+  (`--tile-min`, `--cc-min`): two columns upright (the eight games on the first screen at 393x852 and 440x956), four
+  on its side, one a row with Large/Larger text on a narrow phone; the rest scrolls, never sideways. Forfeit match
+  and Concede frame take two taps (`armOrAct`). `qa-check` pins the QA pass (F1 to F10) and the home's real-touch
+  taps on every card with real touch and mouse input.
 - Shot moments: `shotMoments` (sim 1i) is the one classifier. The callout (page 6c), the game-over chips and
   the replay's gold offer (`notableOf`, run on the record's game `rec.g`) all read it; the callout names the
   moment, so the gold pill only says Replay. `moments-check` pins it.
@@ -129,7 +135,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   combos are called with their flags). The page takes it as `start(kind, { cpuProfile, hill })` (`o.level` may
   be left out). Think time (F8): `cpuThinkMs`, held in `think()` from the turn's start (`cpuReady`, `cpuT0`), a tap
   skips it (`cpuSkip`, `felt.cpuSkip()`), `felt.lastThink` records it. `ai2-check` pins it, `audit-check` A6.
-- More modes (page 6f, home's More modes row, `modesSheet` on the career's row builders): `start(kind, o)` with
+- More modes (page 6f, home's Modes cards, `modesSheet` on the career's row builders): `start(kind, o)` with
   `o.mode` 'tourney' | 'exhibit' | 'party'. Quick tournament: `Career.lib` brackets (`makeBracket`, `outcome`), the
   player's matches raced on the table (`tourneyRackOver` from `finish()`), CPU-vs-CPU by `playModel` seeded by the
   tournament's seed, shown as simulated; `felt.tourney.v1`, a match left mid-way is a forfeit (`t.live`). Exhibition:

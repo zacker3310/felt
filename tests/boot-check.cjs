@@ -9,14 +9,14 @@
 'use strict';
 const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
 
-/* the words laid over the home's art (hero and game cards): each line's colour against the art's
+/* the words laid over the home's art (the eight game cards): each line's colour against the art's
    own pixels under it (the scrim is painted into the canvas), worst case at the 2nd percentile
    so a stray anti-aliased speck does not decide it */
 const artContrast = page => page.evaluate(() => {
   const rgba = c => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const out = [];
-  for (const card of [againBtn, play8, play9, playB, playC, playS]) {
+  for (const card of [play8, play9, play10, playStr, playRot, playS, playC, playB]) {
     const cv = card.querySelector('.art'), cr = cv.getBoundingClientRect(), k = cv.width / cr.width, g = cv.getContext('2d');
     for (const el of card.querySelectorAll('.tt small, .tt b')) {
       const r = el.getBoundingClientRect();
@@ -43,12 +43,14 @@ const artContrast = page => page.evaluate(() => {
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
-  check('home: the hero, the five game cards, Career, the solo list and Stats, Settings, How to play; no pause part',
-    await page.evaluate(() => [againBtn, play8, play9, playB, playC, playS, careerBtn, pracBtn, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
+  check('home: the eight game cards, the four modes, the solo list and Stats, Settings, How to play; no pause part',
+    await page.evaluate(() => [play8, play9, play10, playStr, playRot, playS, playC, playB, careerBtn, modeTour, modeEx, modeParty, pracBtn, drillsRow, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
       && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
-  /* the hero shows on a first run too (the layout never collapses): it starts 8-ball's setup */
-  const first = await page.evaluate(() => ({ shown: !againBtn.hidden && againBtn.getBoundingClientRect().height >= 88, cap: againCap.textContent, sum: againSum.textContent, label: againBtn.getAttribute('aria-label') }));
-  check('home on a first run: the hero is there, "Start a game", 8-ball', first.shown && first.cap === 'Start a game' && first.sum === '8-ball' && first.label === 'Start a game: 8-ball', JSON.stringify(first));
+  /* no Play again hero and no More rows: every game and mode is its own card, in three sections */
+  const secs = await page.evaluate(() => ({ gone: ['againBtn', 'heroArt', 'playMore', 'playModes', 'moreSheet'].filter(id => document.getElementById(id)), heads: [...document.querySelectorAll('.newgame .sect')].map(h => h.textContent),
+    games: [...playRow.children].map(b => b.dataset.kind).join(), modes: [...modeRow.children].map(b => b.id).join() }));
+  check('home: no Play again hero and no More games or More modes; sections Games, Modes, Solo; the eight games and four modes in order', !secs.gone.length && secs.heads.join() === 'Games,Modes,Solo'
+    && secs.games === '8,9,10,straight,rotation,snooker,carom,bumper' && secs.modes === 'careerBtn,modeTour,modeEx,modeParty', JSON.stringify(secs));
   /* the header: three round icon buttons, 44 px, each named for a screen reader, no visible words */
   const hdr = await page.evaluate(() => [statsBtn, prefsBtn, helpBtn].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: r.width, h: r.height, round: parseFloat(getComputedStyle(b).borderTopLeftRadius) >= r.width / 2 - 0.5, text: b.textContent.trim() }; }));
   check('home header: Stats, Settings, How to play are 44 px round icon buttons with aria-labels',
@@ -56,10 +58,12 @@ const artContrast = page => page.evaluate(() => {
   /* the solo list: one grouped container, a row each at least 44 px, stacked */
   const rows = await page.evaluate(() => [pracBtn, trickBtn, dailyBtn].map(b => { const r = b.getBoundingClientRect(); return { t: Math.round(r.top), h: r.height, box: b.parentElement === soloRow }; }));
   check('home solo list: Practice, Trick shots, Daily shot in one list, each row 44 px or more', rows.every(r => r.h >= 44 && r.box) && rows[0].t < rows[1].t && rows[1].t < rows[2].t, JSON.stringify(rows));
-  /* the hero and each game card have their rack drawn edge to edge at the device's pixels */
-  const art = await page.evaluate(() => [heroArt, ...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data, p = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect();
+  const dr = await page.evaluate(() => ({ box: drillsRow.parentElement === soloRow, after: drillsRow.previousElementSibling === pracBtn, sum: drillsRowSum.textContent, label: drillsRow.getAttribute('aria-label') }));
+  check('home solo list: Drills is its own row after Practice, with its medals', dr.box && dr.after && /^\d+ of \d+$/.test(dr.sum) && /^Drills: /.test(dr.label), JSON.stringify(dr));
+  /* each game card has its rack drawn edge to edge at the device's pixels */
+  const art = await page.evaluate(() => [...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data, p = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect();
     return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio) && c.height === Math.round(c.clientHeight * devicePixelRatio), a: d[3], bleed: Math.abs(r.width - p.width) < 1 && Math.abs(r.height - p.height) < 1 }; }));
-  check('home: the hero and every game card show their table edge to edge, drawn at the device pixel ratio', art.length === 6 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
+  check('home: every game card shows its table edge to edge, drawn at the device pixel ratio', art.length === 8 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
   check('home words over the art read at 4.5:1 on the cloth', (await artContrast(page)).every(c => c.r >= 4.5), JSON.stringify(await artContrast(page)));
   /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
   await page.click('#playB');
@@ -131,10 +135,11 @@ const artContrast = page => page.evaluate(() => {
   }
   check('back from the sheets: home again', await page.evaluate(() => menu.classList.contains('show') && ![setupSheet, prefsSheet, statsSheet, helpSheet].some(s => s.classList.contains('show'))));
 
-  /* the home screen fits without scrolling: an iPhone 18 Pro Max either way up (insets simulated),
-     with Play again showing, and the other listed sizes but the smallest */
+  /* the home's eight games are all on the first screen, inside the safe area: an iPhone 18 Pro Max
+     either way up (insets simulated), an iPhone 17 Pro upright with its insets, and the other
+     listed sizes but the smallest; the rest (modes, solo) is a scroll away, never sideways */
   const fits = [];
-  for (const [w, h, ins] of [[440, 956, [62, 0, 34, 0]], [956, 440, [0, 62, 21, 62]], [440, 956, [0, 0, 0, 0]], [956, 440, [0, 0, 0, 0]], [390, 844, [0, 0, 0, 0]], [1280, 800, [0, 0, 0, 0]], [768, 1024, [0, 0, 0, 0]]]) {
+  for (const [w, h, ins] of [[440, 956, [62, 0, 34, 0]], [956, 440, [0, 62, 21, 62]], [393, 852, [59, 0, 34, 0]], [440, 956, [0, 0, 0, 0]], [956, 440, [0, 0, 0, 0]], [390, 844, [0, 0, 0, 0]], [1280, 800, [0, 0, 0, 0]], [768, 1024, [0, 0, 0, 0]]]) {
     await page.setViewportSize({ width: w, height: h });
     fits.push(await page.evaluate(async ([ins, w, h]) => {
       let st = document.getElementById('insets');
@@ -142,17 +147,22 @@ const artContrast = page => page.evaluate(() => {
       st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
       settings.last = '8'; relayout(); showMenu();
       await new Promise(r => setTimeout(r, 300));
-      const R = el => el.getBoundingClientRect(), all = [againBtn, play8, playB, playC, playS, careerBtn, pracBtn, dailyBtn, statsBtn, helpBtn].map(R);
-      return { size: `${w}x${h}`, ins: ins.join(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth,
-        inside: all.every(r => r.top >= ins[0] - 0.5 && r.bottom <= h - ins[2] + 0.5 && r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
+      const R = el => el.getBoundingClientRect(), all = [statsBtn, helpBtn, ...playRow.children].map(R), rest = [careerBtn, modeParty, pracBtn, dailyBtn].map(R);
+      const top = menu.scrollTop;
+      menu.scrollTop = 1e6;
+      const end = dailyBtn.getBoundingClientRect().bottom <= h - ins[2] + 0.5;
+      menu.scrollTop = top;
+      return { size: `${w}x${h}`, ins: ins.join(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth, end,
+        inside: all.every(r => r.top >= ins[0] - 0.5 && r.bottom <= h - ins[2] + 0.5 && r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5),
+        across: rest.every(r => r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
     }, [ins, w, h]));
   }
-  check('home fits without scrolling (440x956 and 956x440 with and without the iOS insets, 390x844, 1280x800, 768x1024), everything inside the safe area', fits.every(f => f.sh <= f.ch && f.sw <= f.vw && f.inside), JSON.stringify(fits));
+  check('home: all eight game cards on the first screen inside the safe area (440x956 and 956x440 with and without the iOS insets, 393x852 with them, 390x844, 1280x800, 768x1024); the modes and solo list inside it across, the last row reached by scrolling; no sideways scroll', fits.every(f => f.sw <= f.vw && f.inside && f.across && f.end), JSON.stringify(fits));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
   const h390 = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: innerWidth }));
   check('home: no horizontal scroll at 390 px', h390.sw <= h390.w, JSON.stringify(h390));
-  check('home at 390x844 with Play again: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  check('home at 390x844: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.evaluate(() => setSetting('cloth', 'red'));
   await page.waitForTimeout(100);
   check('home at 390x844 on the red cloth: words over the art 4.5:1, text 4.5:1', (await artContrast(page)).every(c => c.r >= 4.5) && (await lowContrast(page)).length === 0, JSON.stringify([await artContrast(page), await lowContrast(page)]));

@@ -327,15 +327,15 @@ h1 i { font-style: normal; color: var(--signal); }
 .b9 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #f2be28 22% 78%, #f6f4ec 78%); }
 kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
 
-/* ---- the home screen: the menu with no game in progress. One hero (Play again, or on a first
-   run a start on 8-ball) with the last game's table as its picture, the five games and the career
-   as six cards, two by three, whose racks bleed to their edges, and a quiet grouped list for solo
-   play. The wordmark leads the
-   header; Stats, Settings and How to play are three round glass icon buttons. One accent colour,
-   taken from the cloth. Upright it is a column; on its side the hero takes the left and the games
-   and the list share the right. Every card has a real minimum height (its name and line, at any
-   text size); where the screen has room the cards grow to fill it, and where it has not (a small
-   phone, large text) the home scrolls instead of crushing them (QA F2, F3). ---- */
+/* ---- the home screen: the menu with no game in progress. Every way to play is one tap away, in
+   three sections: Games (all eight, each card its rack on its own cloth, the name on a scrim
+   painted into the art), Modes (the career, the quick tournament, the AI exhibition, the party:
+   each card opens its own setup) and Solo (a quiet grouped list). The wordmark leads the header;
+   Stats, Settings and How to play are three round glass icon buttons. One accent colour, taken
+   from the cloth. Upright: two columns, the eight games in four rows inside the first screen of a
+   phone, the rest a scroll away. On its side: the games in one row of four over two, the modes
+   beside the list. Every card has a real minimum (its name and line, at any text size); with
+   large text on a narrow phone it is one card a row, and the home scrolls (QA F2, F3). ---- */
 #menu:not([data-paused]) {
   --accent: #3ddc84; --glow: 38, 150, 104; --gut: 20px;
   --label: #f5f5f7; --label-2: rgba(235, 235, 245, .64); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
@@ -344,7 +344,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   grid-template: minmax(max-content, 1fr) / minmax(0, 1fr);
   /* iOS 26 blurs and fades the band just under the status bar (its scroll edge effect): the header
      starts clear of it */
-  padding: calc(var(--sat) + 22px) max(var(--gut), var(--sar)) max(16px, var(--sab)) max(var(--gut), var(--sal));
+  padding: calc(var(--sat) + 22px) max(var(--gut), var(--sar)) calc(var(--sab) + 28px) max(var(--gut), var(--sal));
   background: #09090a;
   -webkit-backdrop-filter: none; backdrop-filter: none; }
 [data-cloth="red"] #menu:not([data-paused]) { --accent: #ff8a7a; --glow: 186, 44, 52; }
@@ -352,8 +352,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #menu[data-paused] .newgame, #menu:not([data-paused]) .pausePart { display: none; }
 .sheet.home { max-width: 560px; padding: 0; background: transparent; border: 0; box-shadow: none; border-radius: 0; }
 #menu:not([data-paused]) .sheet.home { display: grid; margin: 0 auto; align-self: stretch; animation: none; }
-.newgame { --home-max: 900px; display: grid; align-self: safe center; min-width: 0; min-height: min(100%, var(--home-max)); letter-spacing: -.005em;
-  grid-template: "brand" auto "hero" auto "playlab" auto "tiles" 1fr "more" auto "sololab" auto "solos" auto / minmax(0, 1fr); }
+.newgame { --tile-min: 62px; --cc-min: 92px; --tile-gap: 12px; --card-ar: 1.7;
+  display: grid; align-self: start; min-width: 0; letter-spacing: -.005em;
+  grid-template: "brand" auto "glab" auto "games" auto "mlab" auto "modes" auto "slab" auto "solos" auto / minmax(0, 1fr); }
 .newgame > * { min-width: 0; }
 /* the header: the wordmark, and three round glass buttons */
 .brand { grid-area: brand; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; }
@@ -364,56 +365,53 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); }
 .nav svg { width: 22px; height: 22px; }
 .nav:hover { background-color: #26262a; }
-/* the hero: the last game's table edge to edge under a scrim (painted into the art), the setup in
-   words and a white Play capsule */
-.hero { grid-area: hero; position: relative; isolation: isolate; overflow: hidden; min-height: 0; height: 96px; display: flex; align-items: center; margin-top: 16px; padding: 0;
-  border: 0; border-radius: 22px; text-align: left; color: #fff; background-color: #121214;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 22px 44px -18px rgba(0, 0, 0, .7); }
-.hero::after, .tile::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .13); pointer-events: none; }
-.hero .art, .tile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
-.hero .tt { flex: 1; display: flex; align-items: center; gap: 14px; min-width: 0; padding: 0 16px 0 20px; }
-.hero .hw { flex: 1; display: grid; min-width: 0; max-width: calc(100% - 136px); }
-.hero small { font-size: 13px; font-weight: 500; line-height: 1.3; color: rgba(255, 255, 255, .8); }
-.hero b { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow-wrap: anywhere; margin-top: 1px; font-size: 18px; font-weight: 600; line-height: 1.15; letter-spacing: -.016em; }
-.hero .go { flex: none; margin-left: auto; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background-color: #fff; color: #0a0a0b; box-shadow: 0 6px 16px rgba(0, 0, 0, .3); }
-.hero .go svg { width: 18px; height: 18px; margin-left: 2px; }
-/* the games: six cards, each rack bleeding to the edges, the name on the scrim. A card is never
-   shorter than its words need (--tile-min; the career card, with its faces, --cc-min); the room
-   left over is shared out between the three rows */
-.newgame .sect { margin: 22px 0 10px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
-#playLab { grid-area: playlab; }
-#soloLab { grid-area: sololab; }
-/* two columns of three: 8-ball and 9-ball, bumper pool and three-cushion, snooker and the career */
-.newgame { --tile-min: 62px; --cc-min: 92px; --tile-gap: 12px; }
-.tiles { grid-area: tiles; display: grid; gap: var(--tile-gap); grid-template: repeat(3, 1fr) / repeat(2, minmax(0, 1fr));
-  /* size-contained, so the cards share out the room the rest leaves (never their content's), and
-     never less than they need: past that the home scrolls */
-  contain: size; min-height: calc(2 * var(--tile-min) + var(--cc-min) + 2 * var(--tile-gap)); }
+/* the section titles: one size, one rhythm (the first a little closer to the header) */
+.newgame .sect { margin: 26px 0 10px; font-size: 22px; font-weight: 700; line-height: 1.2; letter-spacing: -.016em; text-transform: none; color: var(--label); }
+.newgame #playLab { margin-top: 18px; }
+#playLab { grid-area: glab; }
+#modeLab { grid-area: mlab; }
+#soloLab { grid-area: slab; }
+#playRow { grid-area: games; }
+#modeRow { grid-area: modes; }
+/* the cards: two columns, every card the same shape (never under its words: --tile-min, the
+   career's faces --cc-min) */
+.tiles { display: grid; gap: var(--tile-gap); grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
+.tiles > * { aspect-ratio: var(--card-ar); min-height: var(--tile-min); container-type: inline-size; }
+.tiles.modes > * { min-height: var(--cc-min); }
 /* text size Large on a small phone, Larger on any phone upright: one card to a row, so every name
    and line fits whole; the solo rows' words wrap rather than cut off */
 :is([data-text="115"], [data-text="130"]) .solo :is(b, small) { white-space: normal; }
-@media (orientation: portrait) and (max-width: 400px) { [data-text="115"] .tiles { grid-template: repeat(6, 1fr) / minmax(0, 1fr);
-  min-height: calc(5 * var(--tile-min) + var(--cc-min) + 5 * var(--tile-gap)); } }
-@media (orientation: portrait) and (max-width: 500px) { [data-text="130"] .tiles { grid-template: repeat(6, 1fr) / minmax(0, 1fr);
-  min-height: calc(5 * var(--tile-min) + var(--cc-min) + 5 * var(--tile-gap)); } }
-.tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: var(--tile-min); display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
+@media (orientation: portrait) and (max-width: 400px) { [data-text="115"] .tiles { grid-template-columns: minmax(0, 1fr); } [data-text="115"] .tiles > * { aspect-ratio: auto; min-height: 84px; } [data-text="115"] .tiles.modes > * { min-height: var(--cc-min); } }
+@media (orientation: portrait) and (max-width: 500px) { [data-text="130"] .tiles { grid-template-columns: minmax(0, 1fr); } [data-text="130"] .tiles > * { aspect-ratio: auto; min-height: 84px; } [data-text="130"] .tiles.modes > * { min-height: var(--cc-min); } }
+.tile { position: relative; isolation: isolate; overflow: hidden; min-width: 0; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px;
   text-align: left; color: #fff; background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
-.tile .tt { display: block; min-width: 0; padding: 0 14px 13px; }
-.tile b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
-.tile small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); }
-.tile b, .tile small { width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* narrow cards (a phone upright): the words a size down; narrower still, the name alone (it may
-   take two lines, standing on the same bottom edge as the others) */
-.tiles { container-type: inline-size; }
-@container (max-width: 360px) {
-  .tile .tt { padding: 0 12px 12px; }
-  .tile small { font-size: 12px; }
+.tile::after, .mode::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .13); pointer-events: none; }
+.tile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
+.tile .tt, .mode .tt { display: block; min-width: 0; max-width: 100%; padding: 0 14px 13px; }
+.tile b, .mode b { display: block; font-size: 17px; font-weight: 600; line-height: 1.2; letter-spacing: -.012em; }
+.tile small, .mode small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); }
+.tile b, .tile small, .mode b, .mode small { width: fit-content; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* the modes: a quiet dark card, a glow of its own colour in the corner, its mark top left where
+   the career has its faces, the name and line where the games have theirs */
+.mode { --mglow: 242, 201, 76; position: relative; isolation: isolate; overflow: hidden; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; align-items: stretch;
+  padding: 0; border: 0; border-radius: 22px; text-align: left; color: #fff;
+  background: radial-gradient(120% 90% at 85% 0%, rgba(var(--mglow), .15), transparent 60%), #17171a; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
+.mode[data-mode="ex"] { --mglow: 246, 244, 236; }
+.mode[data-mode="party"] { --mglow: var(--glow); }
+.mode .mic { flex: none; width: 36px; height: 36px; margin: 10px 0 0 12px; display: grid; place-items: center; border-radius: 11px; background-color: rgba(255, 255, 255, .08); }
+.mode .mic svg { width: 26px; height: 26px; }
+.mode .tt { padding-bottom: 12px; }
+/* narrow cards (two to a row on a phone, four on a small one on its side): the words a size down */
+@container (max-width: 184px) {
+  .tile .tt, .mode .tt { padding: 0 12px 12px; }
+  .tile b, .mode b { font-size: 16px; }
+  .tile small, .mode small { font-size: 12px; }
 }
 /* press: a small give and a spring back */
-.hero, .tile, .nav { transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
-.hero:active, .tile:active, .nav:active { transform: scale(.97); transition-duration: .12s; transition-timing-function: ease-out; }
+.tile, .mode, .nav { transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
+.tile:active, .mode:active, .nav:active { transform: scale(.97); transition-duration: .12s; transition-timing-function: ease-out; }
 /* solo: an inset grouped list, hairlines inset to the text, chevrons */
-.solos { grid-area: solos; display: grid; overflow: hidden; border-radius: 22px; background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px var(--hair); }
+.solos { grid-area: solos; display: grid; align-content: start; overflow: hidden; border-radius: 22px; background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px var(--hair); }
 .solo { position: relative; min-width: 0; min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 8px 14px 8px 16px; border: 0; border-radius: 0;
   background-color: transparent; text-align: left; color: var(--label); transition: background-color .15s; }
 .solo + .solo::before { content: ""; position: absolute; top: 0; left: 62px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
@@ -426,6 +424,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .solo small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .acc { flex: none; display: flex; align-items: center; gap: 5px; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .acc svg { width: 16px; height: 16px; color: var(--accent); }
+#drillsRow .acc svg { color: #f2c94c; }
 .chev { flex: none; width: 15px; height: 15px; margin-left: -4px; color: var(--label-3); }
 /* the daily shot: a calendar leaf with today's date; a flame and the streak, or done today */
 .solo .cal { grid-template-rows: 9px 1fr; place-items: stretch; overflow: hidden; }
@@ -436,34 +435,21 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* opening: a short staggered rise (none with reduced motion) */
 @keyframes homeIn { from { opacity: 0; transform: translateY(10px); } }
 #menu.show:not([data-paused]) .newgame > * { animation: homeIn .22s cubic-bezier(.2, .8, .2, 1) both; }
-#menu.show:not([data-paused]) .newgame > .hero { animation-delay: .025s; }
-#menu.show:not([data-paused]) .newgame > #playLab, #menu.show:not([data-paused]) .newgame > .tiles { animation-delay: .05s; }
-#menu.show:not([data-paused]) .newgame > #soloLab, #menu.show:not([data-paused]) .newgame > .solos { animation-delay: .075s; }
-/* side by side: the hero on the left, the games over the list on the right */
+#menu.show:not([data-paused]) .newgame > :is(#playLab, #playRow) { animation-delay: .025s; }
+#menu.show:not([data-paused]) .newgame > :is(#modeLab, #modeRow) { animation-delay: .05s; }
+#menu.show:not([data-paused]) .newgame > :is(#soloLab, .solos) { animation-delay: .075s; }
+/* on its side: the eight games four to a row, then the modes beside the solo list */
 @media (orientation: landscape) and (min-width: 560px) {
   #menu:not([data-paused]) { --gut: 24px; }
   #menu:not([data-paused]) .sheet.home { max-width: 1100px; }
-  .newgame { --home-max: min(620px, 60vw); column-gap: 16px; grid-template: "brand brand" auto "hero tiles" auto "solos tiles" 1fr "solos more" auto / minmax(0, 1fr) minmax(0, 1fr); }
-  .newgame .sect { display: none; }
-  .tiles { margin-top: 16px; }
-  .solos { margin-top: 12px; grid-auto-rows: 1fr; }
+  .newgame { --tile-gap: 10px; column-gap: 16px; grid-template: "brand brand" auto "glab glab" auto "games games" auto "mlab slab" auto "modes solos" auto / minmax(0, 1fr) minmax(0, 1fr); }
+  .newgame .sect { margin: 20px 0 8px; font-size: 20px; }
+  .newgame #playLab { margin-top: 12px; }
+  #playRow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .solo { min-height: 52px; gap: 12px; padding-block: 6px; }
   .solo b { font-size: 16px; }
   .solo small { font-size: 12px; }
   .solo + .solo::before { left: 60px; }
-}
-/* a phone of middle height upright (390x844, 393x852): the section titles a little closer, so the
-   cards keep their size and it fits */
-@media (orientation: portrait) and (min-height: 741px) and (max-height: 880px) { .newgame .sect { margin: 18px 0 8px; } }
-/* a short phone upright: no section titles, tighter rhythm, so it still fits */
-@media (orientation: portrait) and (max-height: 740px) {
-  .newgame .sect { display: none; }
-  .tiles { margin-top: 16px; }
-  .solos { margin-top: 12px; }
-  .solo { min-height: 52px; }
-}
-@media (orientation: landscape) and (min-width: 1100px) {
-  .newgame { --home-max: 600px; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); }
 }
 
 /* ---- the pause menu: the game (or the solo session), Resume, then four actions ---- */
@@ -666,7 +652,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 }
 @media (prefers-reduced-motion: reduce) {
   .overlay.show .sheet { animation: none; }
-  .hero, .tile, .nav, .hero:active, .tile:active, .nav:active { transition: none; transform: none; }
+  .tile, .mode, .nav, .tile:active, .mode:active, .nav:active { transition: none; transform: none; }
   .how .push, .how .pop, :is(#helpTitle, #prefsTitle, #statsTitle).swap { animation: none; }
   .topic, .howAct button, .howAct button:active { transition: none; transform: none; }
   #menu.show:not([data-paused]) .newgame > * { animation: none; }
@@ -1140,8 +1126,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #tutDone .sheet { max-width: 440px; }
 #tutDone .sub { margin: 0 0 16px; }
 @media (orientation: portrait) and (max-width: 600px) { #tutOffer .sheet, #tutDone .sheet { margin: auto auto 0; } }
-/* the career card beside snooker: the next players' faces, the ladder as a count over a short bar
-   (top right), the name and the next player where the other cards have theirs */
+/* the career card, first of the home's modes: the player's face, the tier over a short bar of the
+   season (top right), the name and the season where the other cards have theirs */
 .cc { position: relative; isolation: isolate; overflow: hidden; min-width: 0; min-height: var(--cc-min); display: grid; grid-template: "av sum" auto "av bar" 1fr "tt tt" auto / minmax(0, 1fr) auto;
   gap: 0 8px; padding: 10px 14px 12px; border: 0; border-radius: 22px; text-align: left; color: #fff;
   background: radial-gradient(120% 90% at 85% 0%, rgba(242, 201, 76, .16), transparent 60%), #17171a; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7), inset 0 0 0 .5px rgba(255, 255, 255, .13);
@@ -1157,7 +1143,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .cc small { display: block; margin-top: 2px; font-size: 13px; line-height: 1.25; color: rgba(255, 255, 255, .74); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ccBar { grid-area: bar; align-self: start; justify-self: end; display: block; width: 52px; height: 4px; margin-top: 6px; border-radius: 2px; background: rgba(255, 255, 255, .14); overflow: hidden; }
 .ccBar i { display: block; height: 100%; width: 0; border-radius: inherit; background: #f2c94c; }
-@container (max-width: 360px) { .cc { padding: 10px 12px 12px; } .cc small { font-size: 12px; } .ccAv .av { width: 28px; height: 28px; } }
+@container (max-width: 184px) { .cc b { font-size: 16px; } .cc small { font-size: 12px; } .ccAv .av { width: 28px; height: 28px; } }
 @media (prefers-reduced-motion: reduce) { .cc, .cc:active { transition: none; transform: none; } }
 
 /* ---- snooker: the scoreboard on the top rail (the break, the ball on, the points left), the
@@ -1183,26 +1169,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .b10 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #1c48b8 22% 78%, #f6f4ec 78%); }
 .b14 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #167842 22% 78%, #f6f4ec 78%); }
 .b15 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #7a1e20 22% 78%, #f6f4ec 78%); }
-/* the slim row under the cards: More games and More modes */
-.more { min-height: 48px; display: flex; align-items: center; gap: 12px; padding: 6px 14px 6px 12px; border: 0; border-radius: 16px; text-align: left;
-  color: #f5f5f7; background-color: #1c1c1f; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); transition: background-color .15s; }
-.more:hover { background-color: #26262a; }
-.more .mballs { display: flex; flex: none; }
-.more .ball { width: 26px; height: 26px; font-size: 9px; margin-right: -6px; box-shadow: inset -3px -4px 6px rgba(0, 0, 0, .35), 0 0 0 1.5px #1c1c1f; }
-.more .tt { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 10px; padding-left: 8px; }
-.more b { font-size: 16px; font-weight: 600; white-space: nowrap; }
-.more small { min-width: 0; font-size: 13px; color: rgba(235, 235, 245, .66); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.more .chev { color: rgba(235, 235, 245, .38); }
-#moreSheet .sheet { max-width: 560px; }
-@media (orientation: landscape) and (min-width: 560px) { .more { min-height: 44px; padding-block: 2px; } .newgame { --tile-gap: 10px; } }
-.mlist { display: grid; gap: 12px; margin-top: 14px; }
-.mtile { position: relative; isolation: isolate; overflow: hidden; min-height: 112px; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 22px; text-align: left; color: #fff;
-  background-color: #121214; box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 30px -14px rgba(0, 0, 0, .7); }
-.mtile .art { position: absolute; z-index: -1; inset: 0; display: block; width: 100%; height: 100%; }
-.mtile .tt { display: block; padding: 0 16px 13px; }
-.mtile b { display: block; font-size: 18px; font-weight: 600; }
-.mtile small { display: block; margin-top: 2px; font-size: 13px; color: rgba(255, 255, 255, .8); }
-@media (orientation: landscape) and (min-width: 700px) { #moreSheet .sheet { max-width: 900px; } .mlist { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mtile { min-height: 200px; } }
 .rnote:empty { display: none; }
 /* settings, Gameplay: wrapping choices, and switch rows (in Settings' groups: see .how .tog) */
 .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
@@ -1260,33 +1226,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #callPill.nudge { animation: nudge .25s 2; }
 #powerBar.nocall #powerLab { color: #ffd58a; font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { #callPill.nudge { animation: none; } }
-/* ---- More modes (6f): the home's second slim row, the modes sheet (the career's navigation
-   stack and its rows, cells and capsule), the exhibition's speed bar over the table, and the
-   party's handoff between players ---- */
-/* More games and More modes share the games grid's slim fourth row; narrow, each drops its
-   subtitle and chevron, More games' balls a size down */
-/* under the cards, their gap apart; when the two do not fit side by side (large text) each takes the row */
-/* at the default text size the two always share the row (a wider font than SF ellipsises the labels
-   rather than wrapping, so the home's height never depends on font metrics); larger text wraps */
-.mrow { grid-area: more; display: flex; flex-wrap: nowrap; gap: var(--tile-gap); margin-top: var(--tile-gap); min-width: 0; container-type: inline-size; }
-:is([data-text="115"], [data-text="130"]) .mrow { flex-wrap: wrap; }
-.mrow .more { flex: 1 1 auto; min-width: 0; }
-.mrow .more .tt { overflow: hidden; }
-.mrow .more b { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.mrow #playMore { flex-grow: 1.5; }
-@container (max-width: 600px) {
-  .mrow .more small { display: none; }
-}
-@container (max-width: 420px) {
-  .mrow .more { gap: 8px; padding: 6px 10px 6px 12px; }
-  .mrow .more small, .mrow .more .chev { display: none; }
-  .mrow .more .tt { padding-left: 4px; }
-  .mrow .more b { font-size: 15px; }
-  .mrow .more .ball { width: 22px; height: 22px; font-size: 8px; margin-right: -7px; }
-  .mrow .more .mic { width: 24px; }
-}
-.more .mic { flex: none; width: 32px; height: 26px; display: grid; place-items: center; color: var(--accent); }
-.more .mic svg { width: 22px; height: 22px; }
+/* ---- More modes (6f): the modes sheet (the career's navigation stack and its rows, cells and
+   capsule), the exhibition's speed bar over the table, and the party's handoff between players ---- */
 .bm b small { display: block; font-size: 11px; font-weight: 500; color: var(--label-2); text-align: center; }
 .bm b { text-align: center; }
 .mdForm { margin: 8px 0 0; }
@@ -1401,26 +1342,29 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
           <button class="nav" id="helpBtn" aria-label="How to play"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.3 2.2c-.6.3-1 .8-1 1.5v.4"/><circle cx="12" cy="16.6" r=".4" fill="currentColor"/></svg></button>
         </nav>
       </header>
-      <button class="hero" id="againBtn"><canvas class="art" id="heroArt" aria-hidden="true"></canvas>
-        <span class="tt"><span class="hw"><small id="againCap">Play again</small><b id="againSum">8-ball</b></span>
-          <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></span></span></button>
       <h2 class="sect" id="playLab">Games</h2>
       <div class="tiles" id="playRow" role="group" aria-labelledby="playLab">
         <button class="tile" id="play8" data-kind="8"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>8-ball</b><small>Solids and stripes</small></span></button>
         <button class="tile" id="play9" data-kind="9"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>9-ball</b><small>Lowest ball first</small></span></button>
-        <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper pool</b><small>Round the posts</small></span></button>
-        <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-cushion</b><small>No pockets, three rails</small></span></button>
+        <button class="tile" id="play10" data-kind="10"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>10-ball</b><small>Call every shot</small></span></button>
+        <button class="tile" id="playStr" data-kind="straight"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Straight pool</b><small>14.1, a point a ball</small></span></button>
+        <button class="tile" id="playRot" data-kind="rotation"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Rotation</b><small>Numbers score, 61 wins</small></span></button>
         <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
-        <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
+        <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-cushion</b><small>No pockets, 3 rails</small></span></button>
+        <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper pool</b><small>Round the posts</small></span></button>
       </div>
-      <div class="mrow">
-        <button class="more" id="playMore" aria-haspopup="dialog"><span class="mballs" aria-hidden="true"><span class="ball b10">10</span><span class="ball b14">14</span><span class="ball b15">15</span></span><span class="tt"><b>More games</b><small>10-ball, straight pool, rotation</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
-        <button class="more" id="playModes" aria-haspopup="dialog"><span class="mic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.5a3 3 0 0 0 3 4M16.5 6h3a3 3 0 0 1-3 4M12 13.5V17M8.5 20h7M9.5 17h5v3h-5z"/></svg></span><span class="tt"><b>More modes</b><small>Tournament, exhibition, party</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+      <h2 class="sect" id="modeLab">Modes</h2>
+      <div class="tiles modes" id="modeRow" role="group" aria-labelledby="modeLab">
+        <button class="cc" id="careerBtn"><span class="ccAv" id="careerAvs" aria-hidden="true"></span><span class="ccSum" id="careerSum">0 of 8</span><span class="tt"><b>Career</b><small id="careerHint">Eight players, one ladder</small></span><span class="ccBar" aria-hidden="true"><i id="careerFill"></i></span></button>
+        <button class="mode" id="modeTour" data-mode="tour"><span class="mic" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M10.5 6h11v6a5.5 5.5 0 0 1-11 0z" fill="#f2c94c"/><path d="M10.5 8H7.5a3.2 3.2 0 0 0 3.4 4.4M21.5 8h3a3.2 3.2 0 0 1-3.4 4.4" fill="none" stroke="#f2c94c" stroke-width="1.6"/><path d="M14.5 17.5h3v4h-3zM12 22.5h8v2.5h-8z" fill="#f2c94c"/></svg></span><span class="tt"><b>Quick tournament</b><small id="modeTourSub">Bracket of 4, 8 or 16</small></span></button>
+        <button class="mode" id="modeEx" data-mode="ex"><span class="mic" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21.5" cy="11.5" r="5" fill="#f2be28"/><path d="M14.5 16.5l3.4-3.4" stroke="#f6f4ec" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="1.6 2.6"/></svg></span><span class="tt"><b>AI exhibition</b><small id="modeExSub">Watch two CPUs play</small></span></button>
+        <button class="mode" id="modeParty" data-mode="party"><span class="mic" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="12" r="3.4" fill="#f6f4ec"/><circle cx="21" cy="12" r="3.4" fill="#f6f4ec"/><path d="M5 24c.6-4 3-6 6-6s5.4 2 6 6M15 24c.6-4 3-6 6-6s5.4 2 6 6" fill="none" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round"/></svg></span><span class="tt"><b>Party</b><small id="modePartySub">2 to 4 players</small></span></button>
       </div>
       <h2 class="sect" id="soloLab">Solo</h2>
       <div class="solos" id="soloRow" role="group" aria-labelledby="soloLab">
         <button class="solo" id="lessonBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt"><b>Learn to play</b><small>A 30 second lesson</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
-        <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>Free play and scored drills</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="solo" id="pracBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><span class="tt"><b>Practice</b><small>Free play on any rack</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="solo" id="drillsRow"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 19v-4M10 19v-7M14 19V9M18 19V5"/></svg></span><span class="tt"><b>Drills</b><small id="drillsRowSub">11 drills, scored</small></span><span class="acc"><svg class="medal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h3.2l1.3 5-2.6 2.6zM16.5 2h-3.2L12 7l2.6 2.6z" opacity=".6"/><circle cx="12" cy="15.2" r="5.8"/></svg><span id="drillsRowSum">0 of 33</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo" id="trickBtn"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Trick shots</b><small id="trickSub">14 challenges</small></span><span class="acc"><svg class="star" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/></svg><span id="trickSum">0 of 42</span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="solo daily" id="dailyBtn"><span class="ic cal" aria-hidden="true"><i></i><b id="dailyBall">1</b></span><span class="tt"><b>Daily shot</b><small id="dailyName">New every day</small></span><span class="acc" id="dailyAcc"><svg class="flame" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M12.8 1.8c.4 3.6 5.7 5.9 5.7 12.2a6.5 6.5 0 0 1-13 0c0-2.7 1.1-4.7 2.7-6.3.1 2.2.9 3.6 2.1 4.2-.7-4 .4-7.4 2.5-10.1zM12 19.4a2.4 2.4 0 0 0 2.4-2.5c0-1.6-1.3-2.6-2-4.3-.8 1.5-2.7 2.6-2.7 4.4a2.4 2.4 0 0 0 2.3 2.4z"/></svg><svg class="tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.3 4.3L19 7.3"/></svg><span id="dailySum"></span></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
@@ -1475,19 +1419,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <div class="seg" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play on</button><button id="smOn" aria-pressed="false">Re-rack (house)</button></div></div>
     <p class="note rnote" id="rulesNote"></p>
     <button class="big cta" id="breakBtn">Break</button>
-    </div>
-  </div>
-</div>
-
-<!-- More games: the three games past the home's six cards, each with its rack -->
-<div class="overlay" id="moreSheet" role="dialog" aria-modal="true" aria-labelledby="moreTitle">
-  <div class="sheet msheet">
-    <div class="shead"><button class="back" id="moreBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div class="htxt"><p class="kicker">Games</p><h2 class="title" id="moreTitle">More games</h2></div></div>
-    <div class="mlist" role="group" aria-labelledby="moreTitle">
-      <button class="mtile" id="play10" data-kind="10"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>10-ball</b><small>Lowest first, call every shot</small></span></button>
-      <button class="mtile" id="playStr" data-kind="straight"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Straight pool</b><small>14.1: a point a ball, racks again</small></span></button>
-      <button class="mtile" id="playRot" data-kind="rotation"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Rotation</b><small>Balls score their numbers, 61 wins</small></span></button>
     </div>
   </div>
 </div>
@@ -7534,7 +7465,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-28b';
+const BUILD = 'build 2026-10-28c';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -11984,8 +11915,9 @@ function drillPick(id, anim) {
   if (anim && drillPage !== was) { const p = d ? drillPan : drillList; void p.offsetWidth; p.classList.add(d ? 'push' : 'pop'); drillTitle.classList.add('swap'); }
   if (anim && byKeys) (d ? drillBack : drillList.querySelector('#drillRow-' + was) || drillList.querySelector('.topic') || drillBack).focus({ preventScroll: true });
 }
-function showDrills(id) {
+function showDrills(id, fromHome) {
   clearTimeout(drillTimer);
+  drillsFromHome = !!fromHome;
   if (drillOn() && !paused) { solo = null; state = 'menu'; game = newGame('8'); hud(); }   /* from a drill's result */
   drillPick(id || null, false);
   openSheet(drillSheet, drillBack);
@@ -11993,12 +11925,17 @@ function showDrills(id) {
 /* the home's row: the medals won of all there are */
 function syncDrillHome() {
   const m = medalsOf(), all = DRILL_LIB.length * 3;
-  drillSub.textContent = `${DRILL_LIB.length} drills, scored`;
-  drillSum.textContent = `${m} of ${all}`;
-  drillBtn.setAttribute('aria-label', `Drills: ${DRILL_LIB.length} scored drills, ${m} of ${all} medals`);
+  for (const [sub, sum, btn] of [[drillSub, drillSum, drillBtn], [drillsRowSub, drillsRowSum, drillsRow]]) {
+    sub.textContent = `${DRILL_LIB.length} drills, scored`;
+    sum.textContent = `${m} of ${all}`;
+    btn.setAttribute('aria-label', `Drills: ${DRILL_LIB.length} scored drills, ${m} of ${all} medals`);
+  }
 }
+/* the list opened from home's Drills row goes back home; from anywhere else, to Practice */
+let drillsFromHome = false;
 drillBtn.addEventListener('click', () => { audioOn(); showDrills(); });
-drillBack.addEventListener('click', () => { if (drillPage) drillPick(null, true); else { closeSheets(); showPractice(); } });   /* the drills live in Practice */
+drillsRow.addEventListener('click', () => { audioOn(); showDrills(null, true); });
+drillBack.addEventListener('click', () => { if (drillPage) drillPick(null, true); else if (drillsFromHome) backToMenu(); else { closeSheets(); showPractice(); } });   /* the drills live in Practice */
 drillGo.addEventListener('click', () => { audioOn(); if (drillPage) startDrill(drillPage); });
 drillAgain.addEventListener('click', () => { audioOn(); if (solo && solo.kind === 'drill') startDrill(solo.id, { career: solo.career && Career.loaded && Career.calendar().practiceToday < 3 }); });
 drillToList.addEventListener('click', () => showDrills(solo && solo.kind === 'drill' ? solo.id : null));
@@ -12014,7 +11951,7 @@ Object.defineProperties(felt, {
 /* ============ 6. HUD ============ */
 /* settings, remembered in localStorage when it works and harmlessly forgotten when it does not.
    names: the two players' names for two-player games ('' is Player 1 or Player 2). last: the
-   game the menu last started (Play again replays it on the current settings), null at first.
+   game the menu last started (its card takes the keyboard focus on home), null at first.
    caromRace (5, 10 or 15 points) and caromCush (3, or 1 for the one-cushion game): carom's setup. */
 /* sv 2 (the rules engine): rules8, rules9, rules10 (each game's ruleset, RULESETS), race141 (14.1's
    race: 25, 50, 100 or 150; 50 on a phone), stalemate (the house re-rack in 8- and 9-ball) and calls
@@ -12268,8 +12205,10 @@ function showMenu() {
   const acts = [...pauseActs.children].filter(b => !b.hidden);
   acts.forEach((b, i) => { b.style.gridColumn = acts.length % 2 && i === acts.length - 1 ? '1 / -1' : ''; });
   paintArt();
-  if (byKeys) (paused ? resumeBtn : againBtn).focus({ preventScroll: true });
+  if (byKeys) (paused ? resumeBtn : homeFocus()).focus({ preventScroll: true });
 }
+/* the home's first focus for a keyboard: the card of the game last played */
+function homeFocus() { return (settings.last && playRow.querySelector(`[data-kind="${settings.last}"]`)) || play8; }
 function hideOverlays() {
   disarm();
   if (!leftNote.hidden) hideLeftNote();   /* the boot's notice goes with the home */
@@ -12277,8 +12216,8 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
-/* ---- 6a. the menu's sheets. Home: Play again, the five games (each opens its setup), the solo
-   row, Stats, Settings and How to play. Setup: the opponent (two players, named or not, or one
+/* ---- 6a. the menu's sheets. Home: the eight games (each opens its setup), the modes (each opens
+   its own setup), the solo list, Stats, Settings and How to play. Setup: the opponent (two players, named or not, or one
    of three CPU opponents), the table options that game has, Break. Every sheet goes back to the
    menu it came from (home, or the pause menu); so does Esc. ---- */
 const KINDS = {
@@ -12291,12 +12230,10 @@ const KINDS = {
   straight: { name: 'Straight pool', ball: 'b14', num: '14', sub: '14.1 continuous: any ball, called, a point each. Fourteen down, rack again.' },
   rotation: { name: 'Rotation', ball: 'b15', num: '15', sub: 'Lowest ball first; every ball scores its number. 61 wins.' },
 };
-/* the games on the More games sheet; their setup goes back there */
-const MORE_KINDS = ['10', 'straight', 'rotation'];
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
 let setupKind = '8';
-const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, moreSheet, modesSheet, drillSheet];
+const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet, modesSheet, drillSheet];
 function openSheet(el, focus) {
   if (!leftNote.hidden) hideLeftNote();
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
@@ -12315,8 +12252,8 @@ function escSheet() {
   if (drillRes.classList.contains('show')) { if (solo && solo.career) { quitToHome(); showCareer('practice'); } else showDrills(solo && solo.id); return true; }
   return false;
 }
-/* a setup in words: "8-ball vs Hustler (CPU hard), 7 ft"; short (the home's Play again, QA F9),
-   the opponent's name alone: "8-ball vs Hustler, 7 ft" */
+/* a setup in words: "8-ball vs Hustler (CPU hard), 7 ft"; short, the opponent's name alone and no
+   break inside "9 ft": "8-ball vs Hustler, 9\u00a0ft" */
 function setupWords(kind, short) {
   const n = settings.names, who = settings.cpu ? ` vs ${FOES[settings.level]}` + (short ? '' : ` (CPU ${settings.level})`)
     : n[0] || n[1] ? `, ${n[0] || 'Player 1'} v ${n[1] || 'Player 2'}` : ', two players';
@@ -12326,7 +12263,7 @@ function setupWords(kind, short) {
     : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '') + (kind === 'straight' ? `, to ${settings.race141}` : '')
       + ({ '8-wpa': ', WPA', '9-wpa': ', WPA', '10-house': ', obvious free' }[kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : kind === '10' ? settings.rules10 : ''] || '');
   const w = KINDS[kind].name + who + ', ' + tb;
-  return short ? w.replace(/(\d) (ft|points)/g, '$1\u00a0$2') : w;   /* "9 ft" never breaks across the hero's two lines */
+  return short ? w.replace(/(\d) (ft|points)/g, '$1\u00a0$2') : w;
 }
 /* the setup's rules: which choices this game has, and the ruleset's description and source */
 function syncSetupRules() {
@@ -12336,14 +12273,15 @@ function syncSetupRules() {
   const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : null, t = R ? `${R.name} (${R.source}). ${R.description}` : '';
   if (rulesNote.textContent !== t) rulesNote.textContent = t;
 }
-/* the home screen's hero and the setup's records against each CPU opponent. The hero is Play
-   again (the last setup in words) once there is one; on a first run it starts 8-ball's setup. */
+/* the home's game cards, each named for a screen reader with its setup as it stands (the setup
+   opens on the choices last made: they are settings), the modes' lines, and the setup's records
+   against each CPU opponent */
 function syncHome() {
-  const last = settings.last, w = last ? setupWords(last) : KINDS[8].name, cap = last ? 'Play again' : 'Start a game', ws = last ? setupWords(last, true) : w;
-  if (againSum.textContent !== ws) againSum.textContent = ws;
-  if (againCap.textContent !== cap) againCap.textContent = cap;
-  againBtn.dataset.kind = last || '8';
-  againBtn.setAttribute('aria-label', last ? 'Play again: ' + w : 'Start a game: 8-ball');
+  for (const b of playRow.querySelectorAll('.tile')) {
+    const t = setupWords(b.dataset.kind);
+    if (b.getAttribute('aria-label') !== t) b.setAttribute('aria-label', t);
+  }
+  syncModesHome();
   for (const [lv, el] of [['easy', wlEasy], ['medium', wlMedium], ['hard', wlHard]]) {
     const r = rec.kinds[setupKind].cpu[lv], t = r.w + r.l ? `${r.w} won, ${r.l} lost` : '';
     if (el.textContent !== t) el.textContent = t;
@@ -12443,34 +12381,33 @@ const artTilt = n => rotate(rotate(IDENT, [0, 0, 1], (n * 2.39) % 6.28), [1, 0.2
 function paintArt() {
   if (state !== 'menu' || paused) return;
   const words = b => b.querySelector('.tt').offsetHeight;
-  const list = [[heroArt, againBtn.dataset.kind || '8', 'hero', words(againBtn)], ...[...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)])];
+  const list = [...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)]);
   if (setupSheet.classList.contains('show')) list.push([setupArt, setupKind, 'fit', 0]);
-  if (moreSheet.classList.contains('show')) for (const b of moreSheet.querySelectorAll('.mtile')) list.push([b.querySelector('.art'), b.dataset.kind, 'card', words(b)]);
   for (const [cv, kind, mode, low] of list) paintRack(cv, kind, mode, low);
 }
 /* the home's pictures cover their card (no letterbox), zoomed in on the rack and placed where the
    words are not: a view whose table, rails included, always reaches past every edge */
 function coverView(w, h, kind, mode, obj, low) {
-  /* hero: a slim banner, the words on the left; wide: a card much wider than tall, the words
-     bottom left and the picture to the right of them */
-  const bump = kind === 'bumper', wide = mode === 'hero' || w > h * 1.6, up = !bump && h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL;
+  /* wide: a card much wider than tall, the words bottom left and the picture to the right of them */
+  const bump = kind === 'bumper', wide = w > h * 1.6, up = !bump && h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL;
   /* the room above the words (low: their height in CSS px): the rack sits in the middle of it */
   const free = Math.max(h * 0.3, h - low - 8);
   let k, e;
   if (bump) {
     /* the octagon lies across a card whole (a tall card zooms in a little), its rows of balls above
-       the words; the hero is all cloth and balls */
+       the words */
     k = wide ? Math.max(w / W, h / H) * 1.25 : Math.max(w / W * 1.04, free * 0.86 / H); e = wide ? -0.02 : RAIL;
   } else {
     /* pool: only the cloth shows (no rail or pocket under the scrim), the rack a good part of the
        card but clear of the words (on a strip of a card, beside the name: never behind a word); carom's three balls, sparse, a little closer on a card */
     const xs = obj.map(b => b.x), ys = obj.map(b => b.y), span = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 2 * BALL_R;
-    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.3, h * (mode === 'hero' ? 0.66 : 0.78)) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' && !wide ? 1.5 : 1); e = -0.02;
+    k = Math.max(up ? w / TW : w / TL, up ? h / TL : h / TW, (wide ? Math.min(w * 0.29, h * 0.6) : Math.min(w * 0.56, h * 0.36, free * 0.78)) / span) * (kind === 'carom' && mode === 'card' && !wide ? 1.5 : 1); e = -0.02;
   }
   const fx = bump || !obj.length ? TL / 2 : obj.reduce((a, b) => a + b.x, 0) / obj.length, fy = TW / 2;
   /* a wide card's carom balls go up into the corner, clear of its long name */
   const cw = kind === 'carom' && mode === 'card';
-  const tx = wide && !bump ? (mode === 'hero' ? w - 64 - h * 0.5 : cw ? w * 0.8 : w * 0.7) : w * 0.5, ty = wide ? (cw ? h * 0.32 : h / 2) : Math.min(h * 0.42, free / 2 + 4);
+  /* a wide card's rack sits up and to the right, clear of a long name ("Straight pool") under it */
+  const tx = wide && !bump ? (cw ? w * 0.8 : w * 0.75) : w * 0.5, ty = wide ? (cw ? h * 0.32 : Math.max(h * 0.3, (h - low) / 2 + 2)) : Math.min(h * 0.42, free / 2 + 4);
   /* keep the edge e (metres past the cloth: the rail, or just inside the cushions) outside the card */
   const fit = (o, size, len) => { const lo = size - (len + e) * k, hi = e * k; return lo > hi ? (bump ? o : (lo + hi) / 2) : clamp(o, lo, hi); };
   return up ? { k, portrait: true, ox: fit(tx - fy * k, w, TW), oy: fit(ty - (TL - fx) * k, h, TL), tray: null }
@@ -12488,15 +12425,7 @@ function paintScrim(x, W, H, mode, band = 0) {
     x.fillStyle = g; x.fillRect(0, 0, W, H);
     return;
   }
-  if (mode === 'hero') {
-    /* the banner: dark under the words on the left, the cloth clear towards the play button */
-    const g = x.createLinearGradient(0, 0, W, 0);
-    for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(0.62 * u, `rgba(6,6,8,${(0.86 * (1 - u * u * (3 - 2 * u))).toFixed(3)})`); }
-    x.setTransform(1, 0, 0, 1, 0, 0);
-    x.fillStyle = g; x.fillRect(0, 0, W, H);
-    return;
-  }
-  const g = x.createLinearGradient(0, 0, 0, H), from = mode === 'hero' ? 0.34 : 0.4, top = mode === 'hero' ? 0.86 : 0.84;
+  const g = x.createLinearGradient(0, 0, 0, H), from = 0.4, top = 0.84;
   for (let i = 0; i <= 8; i++) { const u = i / 8; g.addColorStop(from + (1 - from) * u, `rgba(6,6,8,${(top * u * u * (3 - 2 * u)).toFixed(3)})`); }
   if (from > 0) g.addColorStop(0, 'rgba(6,6,8,0)');
   x.setTransform(1, 0, 0, 1, 0, 0);
@@ -12514,9 +12443,9 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
     if (kind === 'snooker') GEO.setTable('snooker', settings.snookerTable);
     else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
-    /* the Play again banner shows the rack alone: the cue ball would sit under its words */
-    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'hero' && b.n === 0 && (POCKET_KINDS.includes(kind) || kind === 'snooker')));
-    if (kind === 'carom' && mode !== 'fit') caromArt(balls, mode === 'hero' || w > h * 1.6);
+    /* a card shows the rack alone: the cue ball would sit under its words */
+    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'card' && b.n === 0 && (POCKET_KINDS.includes(kind) || kind === 'snooker')));
+    if (kind === 'carom' && mode !== 'fit') caromArt(balls, w > h * 1.6);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
@@ -12867,17 +12796,9 @@ function showHelp(kind) {
   openSheet(helpSheet, helpBack);
 }
 
-play8.addEventListener('click', () => showSetup('8'));
-play9.addEventListener('click', () => showSetup('9'));
-playB.addEventListener('click', () => showSetup('bumper'));
-playC.addEventListener('click', () => showSetup('carom'));
-playS.addEventListener('click', () => showSetup('snooker'));
-playMore.addEventListener('click', () => { openSheet(moreSheet, play10); paintArt(); });
-for (const [b, kind] of [[play10, '10'], [playStr, 'straight'], [playRot, 'rotation']]) b.addEventListener('click', () => showSetup(kind));
-moreBack.addEventListener('click', () => backToMenu());
+for (const b of playRow.querySelectorAll('.tile')) b.addEventListener('click', () => showSetup(b.dataset.kind));
 concedeBtn.addEventListener('click', () => armOrAct(concedeBtn, 'Tap again to concede', () => { audioOn(); concedeFrame(); }));
 breakBtn.addEventListener('click', () => { if (!maybeOfferTut(setupKind)) playSetup(setupKind); });   /* a first Break may offer the tutorial (6d) */
-againBtn.addEventListener('click', () => { if (settings.last) playSetup(settings.last); else showSetup('8'); });
 for (const [i, el] of [[0, name1], [1, name2]]) {
   el.addEventListener('input', () => { const n = settings.names.slice(); n[i] = cleanName(el.value); setSetting('names', n); });
   el.addEventListener('keydown', e => { if (e.key === 'Enter') el.blur(); });
@@ -12915,8 +12836,7 @@ function showPrefs(name) {
 Object.defineProperty(felt, 'prefsPage', { get: () => prefsAt });
 /* the audio graph's gains (master: the bus, fx: the table's sounds), once there is a graph */
 Object.defineProperty(felt, 'audio', { get: () => (ac && bus ? { master: +bus.gain.value.toFixed(4), fx: +fxBus.gain.value.toFixed(4), state: ac.state } : null) });
-/* a More game's setup goes back to More games */
-setupBack.addEventListener('click', () => { if (MORE_KINDS.includes(setupKind) && !paused) { openSheet(moreSheet, play10); paintArt(); } else backToMenu(); });
+setupBack.addEventListener('click', () => backToMenu());
 /* a career or tournament rack is never taken again (audit F5); an exhibition or a party plays on its own terms again */
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (modeOpts) start(game.kind, modeOpts); else if (!career && !tmatch) start(game.kind); });
 /* Quit to home goes at once; Forfeit match (a career or tournament match) asks for a second tap */
@@ -13382,7 +13302,7 @@ function skipLesson() {
   lessonRec.seen = true; saveLesson();
   lessonOffer.classList.remove('show');
   syncMenu();
-  if (byKeys) againBtn.focus({ preventScroll: true });
+  if (byKeys) homeFocus().focus({ preventScroll: true });
 }
 function maybeOfferLesson() {
   if (lessonRec.seen || state !== 'menu' || paused) return;
@@ -14943,9 +14863,10 @@ const md = { stack: [], end: false,
   ex: { kind: '9', a: { level: 'medium', arch: 'potter' }, b: { level: 'medium', arch: 'defender' } },
   pt: { ruleset: '9-ring', n: 3, names: ['', '', '', ''], race: 25 } };
 const MD_PAGES = {};
+/* showModes() is the list (How to play's More modes); showModes(page) opens that page alone, so
+   Back goes straight home (the home's mode cards, a tournament match's end) */
 function showModes(page) {
-  md.stack = [{ p: 'root' }];
-  if (page && page !== 'root') md.stack.push({ p: page });
+  md.stack = [{ p: page && MD_PAGES[page] ? page : 'root' }];
   md.end = false;
   openSheet(modesSheet, modesBack);
   mdRender();
@@ -15008,7 +14929,7 @@ function tourneyCreate(o) {
   tourneyAbandon();
   tour = tourneyNew(o);
   tSave();
-  md.stack = [{ p: 'root' }, { p: 'tour' }];
+  md.stack = [{ p: 'tour' }];
   if (modesSheet.classList.contains('show')) mdRender('push');
   return JSON.parse(JSON.stringify(tour));
 }
@@ -15024,7 +14945,7 @@ function tMatchRow(t, c, m) {
 }
 MD_PAGES.tour = () => {
   const t = tour;
-  if (!t) { md.stack = [{ p: 'root' }, { p: 'tsetup' }]; return MD_PAGES.tsetup(); }
+  if (!t) { md.stack = [{ p: 'tsetup' }]; return MD_PAGES.tsetup(); }
   const L = Career.lib, T = tTpl(t), c = tCtx(t), out = [];
   mdHead(`${KINDS[t.kind].name}, ${t.size} players, race to ${unitWords(t.kind, t.race)}`, 'Quick tournament');
   if (t.msg) { const p = cvEl('p', 'cvMsg', t.msg); p.id = 'mdMsg'; p.setAttribute('role', 'status'); out.push(p); }
@@ -15059,7 +14980,7 @@ MD_PAGES.tour = () => {
   for (const r of rounds) { const g = cvGroup(); g.append(...r.ms.map(m => tMatchRow(t, c, m))); out.push(cvHeadEl(r.name), g); }
   if (!t.done) out.push(cvActs(cvButton(md.end ? 'Tap again to end it' : 'End tournament', () => {
     if (!md.end) { md.end = true; mdRender(); return; }
-    tour = null; tSave(); md.stack = [{ p: 'root' }]; mdRender('pop');
+    tour = null; tSave(); md.stack = [{ p: 'tsetup' }]; mdRender('pop');
   }, 'warn', 'mdEndT')));
   if (t.msg) { t.msg = ''; tSave(); }   /* said once */
   return out;
@@ -15096,7 +15017,18 @@ MD_PAGES.psetup = () => {
     cvActs(cvButton('Start', () => partyStart({ ruleset: q.ruleset, names: q.names.slice(0, q.n), race: q.race }), '', 'mdStartP')),
   ];
 };
-playModes.addEventListener('click', () => showModes());
+/* the home's mode cards: each opens its own setup (the tournament under way, if there is one) */
+modeTour.addEventListener('click', () => { audioOn(); showModes(tour ? 'tour' : 'tsetup'); });
+modeEx.addEventListener('click', () => { audioOn(); showModes('exsetup'); });
+modeParty.addEventListener('click', () => { audioOn(); showModes('psetup'); });
+/* the tournament card's line: the one under way, or what it is */
+function syncModesHome() {
+  let t = null;
+  try { t = tour; } catch (e) { return; }   /* syncMenu before this section has run (boot) */
+  const sub = t ? (t.done ? 'Over: start a new one' : `${KINDS[t.kind].name}, under way`) : 'Bracket of 4, 8 or 16';
+  if (modeTourSub.textContent !== sub) modeTourSub.textContent = sub;
+  modeTour.setAttribute('aria-label', 'Quick tournament: ' + (t ? tStatus(t) : 'a bracket of 4, 8 or 16 on any pocket game, snooker or carom'));
+}
 modesBack.addEventListener('click', () => mdBack());
 /* test hooks: create a tournament from terms (a seed gives the same field and results), play its
    next match, start an exhibition or a party from terms; read where each stands */

@@ -36,9 +36,14 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   const idle = (t = 30000) => page.waitForFunction(() => !['stroke', 'rolling', 'thinking'].includes(felt.state), null, { timeout: t });
 
   /* ---------- the home row and the pages ---------- */
-  const row = await ev(() => { settings.last = '8'; relayout(); showMenu(); const r = playModes.getBoundingClientRect(), g = playMore.getBoundingClientRect(); return { h: r.height, w: r.width, beside: Math.abs(r.top - g.top) < 1 && r.left > g.right, text: playModes.textContent.trim(), sh: menu.scrollHeight, ch: menu.clientHeight, sw: menu.scrollWidth - menu.clientWidth }; });
-  /* 375x667 scrolls a little since the QA pass (F3: the cards keep their size); qa-check pins the home's fit */
-  check('home: a More modes row beside More games, 44 px, no sideways scroll at 375x667', row.h >= 44 && row.w >= 44 && row.beside && /More modes/.test(row.text) && row.sw <= 0, JSON.stringify(row));
+  const row = await ev(() => { relayout(); showMenu(); const c = [...modeRow.children].map(b => { const r = b.getBoundingClientRect(); return { id: b.id, h: r.height, w: r.width, in: r.left >= 0 && r.right <= innerWidth }; });
+    return { c, head: modeLab.textContent, more: !!document.getElementById('playModes'), sw: menu.scrollWidth - menu.clientWidth }; });
+  /* the home's Modes section: the career and the three modes as cards (qa-check taps each one and pins the home's fit) */
+  check('home: a Modes section of four cards (Career, Quick tournament, AI exhibition, Party), each 44 px or more, no More modes row, no sideways scroll at 375x667',
+    row.head === 'Modes' && !row.more && row.c.map(x => x.id).join() === 'careerBtn,modeTour,modeEx,modeParty' && row.c.every(x => x.h >= 44 && x.w >= 44 && x.in) && row.sw <= 0, JSON.stringify(row));
+  /* a mode card opens its page alone: Back from it goes straight home */
+  const direct = await ev(() => { modeEx.click(); const a = { page: mdBody.dataset.page, depth: md.stack.length, label: modesBack.getAttribute('aria-label') }; modesBack.click(); a.home = menu.classList.contains('show'); return a; });
+  check('home: the AI exhibition card opens its setup directly; Back goes home', direct.page === 'exsetup' && direct.depth === 1 && direct.label === 'Back to home' && direct.home, JSON.stringify(direct));
   const pages = [];
   for (const [w, h] of [[375, 667], [440, 956]]) {
     await page.setViewportSize({ width: w, height: h });
@@ -99,8 +104,8 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('tournament: the match won 2-0 is reported, the bracket advances, the page says so and offers the final', r2.mode === null && r2.show && r2.page === 'tour' && /You beat/.test(r2.msg || '') && r2.res[semi] && Math.max(...r2.res[semi]) === 2 && Math.min(...r2.res[semi]) === 0 && r2.live === null && r2.play && r2.state === 'menu', JSON.stringify(r2));
   /* reload: the tournament is there, as it was */
   await page.reload(); await page.waitForFunction(() => window.booted === true);
-  const rl = await ev(() => { showModes(); const sub = mdTour.textContent; showModes('tour'); return { t: felt.tourney, sub, play: !!document.getElementById('mdPlay') }; });
-  check('tournament: after a reload it resumes where it was (the final against the other semi-final\'s winner)', rl.t && JSON.stringify(rl.t.res) === JSON.stringify(r2.res) && rl.play && /Final against/.test(rl.sub), JSON.stringify({ sub: rl.sub, res: rl.t && rl.t.res }));
+  const rl = await ev(() => { syncMenu(); const home = modeTourSub.textContent; showModes(); const sub = mdTour.textContent; showModes('tour'); return { t: felt.tourney, sub, home, play: !!document.getElementById('mdPlay') }; });
+  check('tournament: after a reload it resumes where it was (the final against the other semi-final\'s winner); the home\'s card says it is under way', rl.t && JSON.stringify(rl.t.res) === JSON.stringify(r2.res) && rl.play && /Final against/.test(rl.sub) && /under way$/.test(rl.home), JSON.stringify({ sub: rl.sub, home: rl.home, res: rl.t && rl.t.res }));
   /* the final, left half way by Quit: a forfeit, a loss; the tournament ends with you runner-up */
   const ff = await ev(async () => {
     mdPlay.click();

@@ -361,15 +361,17 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     won1.r.kinds['8'].played === rec0.kinds['8'].played + 1 && won1.r.kinds['8'].cpu.easy.w === rec0.kinds['8'].cpu.easy.w + 1 && won1.r.streak === rec0.streak + 1
     && won1.ls.kinds['8'].cpu.easy.w === won1.r.kinds['8'].cpu.easy.w && /vs Rookie/.test(won1.kind) && pc.p1 === 'Rookie (CPU)' && /vs Rookie/.test(pc.kick), JSON.stringify({ rec0, won1, pc }));
   await page.click('#overMenu');
-  const home1 = await page.evaluate(() => ({ again: !againBtn.hidden && againBtn.getClientRects().length > 0, sum: againSum.textContent }));
-  check('home after a game: Play again shows the last setup in words', home1.again && home1.sum === '8-ball vs Rookie, 7\u00a0ft', JSON.stringify(home1));
+  const home1 = await page.evaluate(() => ({ hero: !!document.getElementById('againBtn'), label: play8.getAttribute('aria-label') }));
+  check('home after a game: no Play again; the 8-ball card names the setup it opens on', !home1.hero && home1.label === '8-ball vs Rookie (CPU easy), 7 ft', JSON.stringify(home1));
   await page.click('#statsBtn');
   const st1 = await page.evaluate(() => ({ row: [...recTable.querySelectorAll('tbody tr')][0].textContent, kp: kpis.textContent }));
   check('stats sheet: the 8-ball row has the win against Rookie, the run of wins shows', /^8-ball\d+1-0/.test(st1.row) && /Win streak[1-9]/.test(st1.kp), JSON.stringify(st1));
   await page.click('#statsBack');
-  await page.click('#againBtn');
+  await page.click('#play8');
+  const preset = await page.evaluate(() => [vsCpu, lvEasy].map(b => b.getAttribute('aria-pressed')).join());
+  await page.click('#breakBtn');
   const g2 = await page.evaluate(() => ({ s: felt.state, kind: felt.game.kind, cpu: felt.cpu, lvl: felt.cpuLevel, shots: felt.game.shots }));
-  check('Play again replays the last setup: a fresh 8-ball rack against the CPU on easy', g2.s === 'aim' && g2.kind === '8' && g2.cpu && g2.lvl === 'easy' && g2.shots === 0, JSON.stringify(g2));
+  check('the 8-ball card opens on the last setup (CPU, Rookie) and Break replays it: a fresh 8-ball rack against the CPU on easy', preset === 'true,true' && g2.s === 'aim' && g2.kind === '8' && g2.cpu && g2.lvl === 'easy' && g2.shots === 0, JSON.stringify(g2));
   await page.evaluate(() => felt.forceWin(1));
   const lost = await page.evaluate(() => felt.record);
   check('stats: a loss is recorded against that opponent and ends the run of wins (the best is kept)', lost.kinds['8'].cpu.easy.l === rec0.kinds['8'].cpu.easy.l + 1 && lost.streak === 0 && lost.best >= 1, JSON.stringify(lost));
@@ -389,7 +391,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.reload();
   await page.waitForFunction(() => window.booted === true);
   await page.click('#play9');
-  const nm2 = await page.evaluate(() => ({ s: felt.settings.names, v: [name1.value, name2.value], sum: againSum.textContent, two: felt.record.kinds['9'].two }));
+  const nm2 = await page.evaluate(() => ({ s: felt.settings.names, v: [name1.value, name2.value], two: felt.record.kinds['9'].two }));
   check('names persist across a reload (the setup shows them), and the two-player game was recorded', nm2.s[0] === 'Zac' && nm2.v[0] === 'Zac' && nm2.v[1] === 'Samantha Jon' && nm2.two >= 1, JSON.stringify(nm2));
   await page.fill('#name1', '');
   await page.fill('#name2', '');

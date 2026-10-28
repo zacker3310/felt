@@ -183,11 +183,10 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   const opt = await p.evaluate(() => felt.game.calls.filter(c => c.p === 0).every(c => c.safety));
   check('CPU: the player\'s declared safeties are on the record too', opt);
 
-  /* ---- 6. More games: the three new games' setups, and their rules notes ---- */
+  /* ---- 6. the three newer games: their cards on home, their setups, and their rules notes ---- */
   await p.evaluate(() => felt.quitToHome());
-  await p.click('#playMore');
-  const ms = await p.evaluate(() => ({ show: moreSheet.classList.contains('show'), tiles: [...moreSheet.querySelectorAll('.mtile')].map(b => b.dataset.kind) }));
-  check('more: More games lists 10-ball, straight pool and rotation', ms.show && ms.tiles.join() === '10,straight,rotation', JSON.stringify(ms));
+  const ms = await p.evaluate(() => ({ home: menu.classList.contains('show'), tiles: [play10, playStr, playRot].map(b => b.parentElement === playRow && b.getClientRects().length ? b.dataset.kind : null) }));
+  check('more: 10-ball, straight pool and rotation are cards on home with the other games', ms.home && ms.tiles.join() === '10,straight,rotation', JSON.stringify(ms));
   await p.click('#playStr');
   const st = await p.evaluate(() => ({ title: setupTitle.textContent, race: !document.querySelector('#setupSheet .str').hidden, note: rulesNote.textContent }));
   check('more: straight pool\'s setup has the race and the WPA rules note', st.title === 'Straight pool' && st.race && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));

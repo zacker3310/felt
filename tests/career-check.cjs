@@ -454,14 +454,17 @@ async function pullBar(T, frac) {
       st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
       settings.last = '8'; relayout(); showMenu();
       await new Promise(r => setTimeout(r, 300));
-      const rows = [careerBtn, lessonBtn, pracBtn, trickBtn, dailyBtn].map(b => b.getBoundingClientRect());
-      return { size: `${w}x${h}`, sh: menu.scrollHeight, ch: menu.clientHeight, rows: rows.map(r => Math.round(r.height)), bottom: Math.round(rows[4].bottom), lim: h - ins[2] };
+      const rows = [careerBtn, lessonBtn, pracBtn, trickBtn, dailyBtn].map(b => b.getBoundingClientRect()), top = menu.scrollTop;
+      menu.scrollTop = 1e6;
+      const end = Math.round(dailyBtn.getBoundingClientRect().bottom);
+      menu.scrollTop = top;
+      return { size: `${w}x${h}`, sh: menu.scrollHeight, ch: menu.clientHeight, rows: rows.map(r => Math.round(r.height)), bottom: end, lim: h - ins[2], sw: document.documentElement.scrollWidth - innerWidth };
     }, [ins, w, h]));
     if (w === 956 && ins[1]) await H.shot('home-career-l');
     if (w === 440 && ins[0]) await H.shot('home-career-p');
   }
-  check('home with Career and the lesson rows fits without scrolling (440x956, 956x440 with and without insets, 390x844), rows 44 px+',
-    fits.every(f => f.sh <= f.ch && f.rows.every(r => r >= 44) && f.bottom <= f.lim + 0.5), JSON.stringify(fits));
+  check('home with Career and the lesson rows (440x956, 956x440 with and without insets, 390x844): rows 44 px+, the last row reached by scrolling inside the safe area, no sideways scroll',
+    fits.every(f => f.rows.every(r => r >= 44) && f.bottom <= f.lim + 0.5 && f.sw <= 0), JSON.stringify(fits));
   check('home: targets 44 px, text 4.5:1', (await smallTargets(H.page)).length === 0 && (await lowContrast(H.page)).length === 0, JSON.stringify([await smallTargets(H.page), await lowContrast(H.page)]));
   await H.browser.close();
   done();

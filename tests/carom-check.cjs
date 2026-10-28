@@ -241,7 +241,7 @@ S.setTable('7');
   const back = await page.evaluate(() => ({ table: felt.table, R: BALL_R, n: POCKETS.length }));
   check('rematch is carom again (the break side alternates); an 8-ball game after it is back on pool with the pool ball', re.kind === 'carom' && re.table === 'carom' && back.table === '7' && back.R === 0.028575 && back.n === 6, JSON.stringify({ re, back }));
 
-  /* the home with four game cards fits either way up, the carom card painted */
+  /* the home's Three-cushion card is on the first screen either way up, painted, and names its setup */
   const fits = [];
   for (const [w, h] of [[440, 956], [956, 440]]) {
     await page.setViewportSize({ width: w, height: h });
@@ -249,11 +249,11 @@ S.setTable('7');
       quitToHome(); settings.last = 'carom'; relayout(); showMenu();
       await new Promise(r => setTimeout(r, 300));
       const c = playC.querySelector('.art'), d = c.getContext('2d').getImageData(c.width / 2, c.height / 3, 1, 1).data, r = playC.getBoundingClientRect();
-      return { size: innerWidth + 'x' + innerHeight, sh: menu.scrollHeight, ch: menu.clientHeight, sw: document.documentElement.scrollWidth, vw: innerWidth, art: d[3] === 255, inside: r.bottom <= innerHeight && r.right <= innerWidth, h: r.height, sum: againSum.textContent };
+      return { size: innerWidth + 'x' + innerHeight, sw: document.documentElement.scrollWidth, vw: innerWidth, art: d[3] === 255, inside: r.bottom <= innerHeight && r.right <= innerWidth, h: r.height, sum: playC.getAttribute('aria-label') };
     }));
   }
-  check('home: four game cards, Three-cushion painted, fits without scrolling at 440x956 and 956x440; Play again names it',
-    fits.every(f => f.sh <= f.ch && f.sw <= f.vw && f.art && f.inside && f.h >= 88 && /^Three-cushion/.test(f.sum)), JSON.stringify(fits));
+  check('home: the Three-cushion card painted and on the first screen at 440x956 and 956x440, no sideways scroll; its label names its setup',
+    fits.every(f => f.sw <= f.vw && f.art && f.inside && f.h >= 88 && /^Three-cushion.*\d+ points/.test(f.sum)), JSON.stringify(fits));
 
   /* every overlay against the brightest cloth the carom table paints (off its spots), on each cloth, and blue on a pool table */
   await page.setViewportSize({ width: 440, height: 956 });

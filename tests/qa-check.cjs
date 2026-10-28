@@ -9,8 +9,10 @@
    F6  Forfeit match and Concede frame take a second tap; Forfeit has a flag, not a home
    F7  the career calendar's Open to you lists only events you can enter
    F8  a party's game over: the winner's name has the others' room
-   F9  the home's Play again shows the whole setup
+   F9  the home's game cards carry the whole setup (Play again is gone: each setup opens on the
+       choices last made, so a game is two taps away again), every card opens its setup by touch
    F10 straight pool's Race to buttons are 44 px at 375x667
+   home every game and mode card opens its own setup by a real tap; the setup remembers
    and a CPU game left by closing the app: a one-time notice at the next boot. */
 'use strict';
 const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
@@ -29,12 +31,12 @@ const clickAt = async (page, sel) => { const [x, y] = await centre(page, sel); a
 /* what is on top at the element's centre is the element (or inside it) */
 const onTop = (page, sel) => page.evaluate(sel => { const b = document.querySelector(sel), r = b.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!t && b.contains(t); }, sel);
 
-/* the home's measures: each card's box, its words inside it and not cut, the career's faces, the
-   More row, the page's scroll */
+/* the home's measures: each card's box (the eight games, the four modes), its words inside it and
+   not cut, the career's faces, the game cards on the first screen, the page's scroll */
 const homeFit = page => page.evaluate(() => {
   const R = e => e.getBoundingClientRect(), bad = [];
   const inside = (a, b, s = 0.5) => a.left >= b.left - s && a.right <= b.right + s && a.top >= b.top - s && a.bottom <= b.bottom + s;
-  const cards = [...document.querySelectorAll('#playRow > button')];
+  const cards = [...document.querySelectorAll('#playRow > button, #modeRow > button')];
   for (const c of cards) {
     const r = R(c);
     if (r.height < 44 || r.width < 44) bad.push(c.id + ' ' + Math.round(r.width) + 'x' + Math.round(r.height));
@@ -51,9 +53,9 @@ const homeFit = page => page.evaluate(() => {
     if (!inside(ar, cr) || !inside(ar, R(careerAvs), 3.5)) bad.push('career face clipped');
     if (ar.bottom > title.top + 1) bad.push('career face over the title ' + Math.round(ar.bottom) + '>' + Math.round(title.top));
   }
-  for (const b of [playMore, playModes]) if (b.scrollWidth > b.clientWidth + 1 || R(b).right > innerWidth + 0.5) bad.push(b.id + ' overflows');
-  const tiles = cards.map(c => Math.round(R(c).height));
-  return { bad, tiles, sh: menu.scrollHeight, ch: menu.clientHeight, sw: Math.max(menu.scrollWidth - menu.clientWidth, document.documentElement.scrollWidth - innerWidth), text: document.documentElement.dataset.text };
+  for (const b of cards) if (R(b).right > innerWidth + 0.5 || R(b).left < -0.5) bad.push(b.id + ' overflows');
+  const tiles = cards.map(c => Math.round(R(c).height)), games = [...playRow.children].map(R);
+  return { bad, tiles, first: menu.scrollTop === 0 && games.length === 8 && games.every(r => r.top >= 0 && r.bottom <= innerHeight + 0.5), sh: menu.scrollHeight, ch: menu.clientHeight, sw: Math.max(menu.scrollWidth - menu.clientWidth, document.documentElement.scrollWidth - innerWidth), text: document.documentElement.dataset.text };
 });
 
 (async () => {
@@ -62,9 +64,9 @@ const homeFit = page => page.evaluate(() => {
     const T = await phone(w, h, { init: settingsInit({ sv: 3, text: ts }) });
     await T.page.waitForTimeout(300);
     const f = await homeFit(T.page);
-    check(`home ${tag}, text ${ts}%: every card 44 px or more, its name and line inside it and whole; the career faces whole; More not cut; no sideways scroll`,
+    check(`home ${tag}, text ${ts}%: every card 44 px or more, its name and line inside it and whole; the career faces whole; no card past the edge; no sideways scroll`,
       f.text === String(ts) && !f.bad.length && f.sw <= 1, JSON.stringify(f));
-    if (ts === 100 && h > 800) check(`home ${tag} at the default text size: fits without scrolling, as before`, f.sh <= f.ch + 1, JSON.stringify(f));
+    if (ts === 100 && h > 800) check(`home ${tag} at the default text size: all eight game cards on the first screen, no scrolling needed; the modes and solo list scroll`, f.first && f.sh > f.ch, JSON.stringify(f));
     if (ts === 100 && tag === '375x667') check('home 375x667 (F3): the cards are at least 62 px (were 48), so it scrolls a little', Math.min(...f.tiles) >= 61 && f.sh > f.ch, JSON.stringify(f.tiles));
     if (ts > 100 && w < 500) {
       /* the last solo row comes into view by scrolling, and a card is tapped where it is */
@@ -82,14 +84,13 @@ const homeFit = page => page.evaluate(() => {
   const { page, errors } = T;
   const ev = (f, a) => page.evaluate(f, a);
 
-  /* ---------- F9: Play again in full ---------- */
+  /* ---------- F9: the setup in full on each game card, and the setup remembered ---------- */
   await ev(() => { setSetting('cpu', true); setSetting('level', 'medium'); setSetting('table', 9); setSetting('pockets', 'generous'); setSetting('rules8', '8-wpa'); setSetting('last', '8'); syncMenu(); });
-  const hero = await ev(() => ({ t: againSum.textContent, cut: againSum.scrollHeight > againSum.clientHeight + 1 || againSum.scrollWidth > againSum.clientWidth + 1, lines: Math.round(againSum.getBoundingClientRect().height / parseFloat(getComputedStyle(againSum).lineHeight)), label: againBtn.getAttribute('aria-label') }));
-  check('F9: Play again shows the whole setup (three short lines at most), not cut off; the button\'s label has it in full', /Regular, 9\u00a0ft, generous, WPA$/.test(hero.t) && !hero.cut && hero.lines <= 3 && /CPU medium/.test(hero.label), JSON.stringify(hero));
+  const lab = await ev(() => play8.getAttribute('aria-label'));
+  check('F9: the 8-ball card names the whole setup it opens on for a screen reader', lab === '8-ball vs Regular (CPU medium), 9 ft, generous, WPA', lab);
   await ev(() => { setSetting('cpu', false); setSetting('table', 7); setSetting('pockets', 'regulation'); setSetting('rules8', '8-house'); syncMenu(); });
 
   /* ---------- F10: straight pool's races ---------- */
-  await touchAt(page, '#playMore');
   await touchAt(page, '#playStr');
   const races = await ev(() => ['rc25', 'rc50', 'rc100', 'rc150'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return Math.round(Math.min(r.width, r.height)); }));
   check('F10: straight pool\'s Race to buttons are 44 px or more at 375x667', races.every(s => s >= 44), JSON.stringify(races));
@@ -208,5 +209,67 @@ const homeFit = page => page.evaluate(() => {
   check('note: once only (not at the next boot)', await N.page.evaluate(() => leftNote.hidden && felt.record.kinds['9'].cpu.hard.l === 1));
   check('note: no page errors', !N.errors.length, N.errors.join(' | '));
   await N.browser.close();
+  /* ---------- the home (build 2026-10-28c): every game and every mode a card, by a real tap ---------- */
+  const H = await phone(393, 852);
+  const hp = H.page, hev = (f, a) => hp.evaluate(f, a);
+  await hp.waitForTimeout(300);
+  check('home 393x852: no Play again hero, no More games or More modes row', await hev(() => !['againBtn', 'playMore', 'playModes', 'moreSheet'].some(id => document.getElementById(id))));
+  const GAMES = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper']];
+  const opened = [];
+  for (const [sel, kind] of GAMES) {
+    await hev(() => { menu.scrollTop = 0; });
+    const seen = await hev(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }, sel);
+    await touchAt(hp, sel);
+    const o = await hev(() => ({ open: setupSheet.classList.contains('show'), kind: setupSheet.dataset.kind, title: setupTitle.textContent }));
+    await touchAt(hp, '#setupBack');
+    const back = await hev(() => menu.classList.contains('show') && !setupSheet.classList.contains('show'));
+    opened.push({ sel, kind, seen, ...o, back });
+  }
+  check('home 393x852: a real tap on each of the eight game cards (each on screen without scrolling) opens that game\'s setup; Back goes straight home',
+    opened.every(o => o.seen && o.open && o.back) && opened.every((o, i) => o.kind === GAMES[i][1]), JSON.stringify(opened));
+  const MODES = [['#careerBtn', 'careerSheet', null], ['#modeTour', 'modesSheet', 'tsetup'], ['#modeEx', 'modesSheet', 'exsetup'], ['#modeParty', 'modesSheet', 'psetup']];
+  const mo = [];
+  for (const [sel, sheet, pg] of MODES) {
+    await touchAt(hp, sel);
+    await hp.waitForTimeout(150);
+    const o = await hev(([sheet, pg]) => ({ open: document.getElementById(sheet).classList.contains('show'), page: pg ? mdBody.dataset.page : null, depth: pg ? md.stack.length : null }), [sheet, pg]);
+    if (pg) { await touchAt(hp, '#modesBack'); o.back = await hev(() => menu.classList.contains('show') && !modesSheet.classList.contains('show')); }
+    else { await hev(() => backToMenu()); o.back = true; }
+    mo.push({ sel, ...o, want: pg });
+  }
+  check('home 393x852: a real tap on Career, Quick tournament, AI exhibition and Party opens each one\'s own page directly (no list between); Back goes straight home',
+    mo.every(o => o.open && o.page === o.want && (o.want ? o.depth === 1 : true) && o.back), JSON.stringify(mo));
+  await touchAt(hp, '#drillsRow');
+  const d1 = await hev(() => ({ open: drillSheet.classList.contains('show'), list: !drillList.hidden }));
+  await touchAt(hp, '#drillBack');
+  const d2 = await hev(() => ({ home: menu.classList.contains('show'), drills: drillSheet.classList.contains('show'), prac: prac.classList.contains('show') }));
+  check('home 393x852: a real tap on Drills opens the drill list, and Back goes home', d1.open && d1.list && d2.home && !d2.drills && !d2.prac, JSON.stringify([d1, d2]));
+  /* the setup remembers: choices made by taps in one game's setup are where it opens next time,
+     after a reload too (Play again's one-tap convenience lives on as card, Break) */
+  await touchAt(hp, '#play9');
+  for (const sel of ['#vsCpu', '#lvHard', '#tb9', '#pkGen', '#rs9Wpa']) await touchAt(hp, sel);
+  await touchAt(hp, '#breakBtn');
+  await hp.waitForTimeout(300);
+  const st = await hev(() => felt.game.kind);
+  await hev(() => felt.quitToHome());
+  await hp.reload(); await hp.waitForFunction(() => window.booted === true);
+  await hp.waitForTimeout(300);
+  await touchAt(hp, '#play9');
+  const mem = await hev(() => ['vsCpu', 'lvHard', 'tb9', 'pkGen', 'rs9Wpa'].map(id => document.getElementById(id).getAttribute('aria-pressed')));
+  check('setup remembers: 9-ball set up by taps (CPU, Hustler, 9 ft, generous, WPA) opens on the same choices after a reload', st === '9' && mem.every(v => v === 'true'), JSON.stringify({ st, mem }));
+  await hev(() => backToMenu());
+  await touchAt(hp, '#play8');
+  const mem8 = await hev(() => ['vsCpu', 'lvHard', 'tb9', 'pkGen'].map(id => document.getElementById(id).getAttribute('aria-pressed')));
+  check('setup remembers: the opponent and table carry to the other games\' setups too (as Play again had them)', mem8.every(v => v === 'true'), JSON.stringify(mem8));
+  check('home taps: no page errors', !H.errors.length, H.errors.join(' | '));
+  await H.browser.close();
+  /* 440x956: the eight games on the first screen too */
+  const H2 = await phone(440, 956);
+  await H2.page.waitForTimeout(300);
+  const g440 = await H2.page.evaluate(() => [...playRow.children].map(b => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }));
+  check('home 440x956: all eight game cards on screen without scrolling', g440.length === 8 && g440.every(Boolean), JSON.stringify(g440));
+  await touchAt(H2.page, '#playRot');
+  check('home 440x956: a real tap on Rotation opens its setup', await H2.page.evaluate(() => setupSheet.classList.contains('show') && setupSheet.dataset.kind === 'rotation'));
+  await H2.browser.close();
   done();
 })().catch(e => { console.error(e); process.exit(1); });

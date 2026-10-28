@@ -5336,7 +5336,7 @@ function drawFx(now) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.globalCompositeOperation = 'lighter';
   for (const e of effects) {
-    const u = (now - e.t) / e.d, s = toScreen(e.x, e.y), a = Math.min(1, e.v / 3) * (1 - u) * (1 - u);
+    const u = clamp((now - e.t) / e.d, 0, 1), s = toScreen(e.x, e.y), a = Math.min(1, e.v / 3) * (1 - u) * (1 - u);
     if (e.kind === 'rail') {
       const gr = ctx.createRadialGradient(s[0], s[1], 0, s[0], s[1], rp * 2.2);
       gr.addColorStop(0, `rgba(190,255,220,${0.2 * a})`); gr.addColorStop(1, 'rgba(190,255,220,0)');
@@ -6091,7 +6091,11 @@ function shoot() {
   dropBall();
   felt.lastShot = shotRecord({ angle: aimAngle, power, spin: Object.assign({}, cueSpin), ball: cueN() });
   if (game.mode === 'practice' && solo) { pushUndo(); solo.tools = false; }   /* undo restores this layout */
+  /* the daily shot's scored try counts as it is struck: quitting or restarting mid-roll used to
+     leave the day unscored, so a bad first try could be thrown away and taken again (5s) */
+  if (game.mode === 'trick' && solo && solo.daily) { const d = solo.daily, was = d.counted; if (!solo.demo) scoreDaily(false); d.live = !was && d.counted; }
   tab = strike(newTable(game.balls, cueN()), aimAngle, power, cueSpin);
+  simAcc = 0;
   state = 'rolling';
   say('');
   hud();
@@ -6421,14 +6425,31 @@ function resume() {
   hud();
 }
 
+/* the physics steps a frame of dtMs owes the live roll. The fraction left over is carried to the
+   next frame (simAcc), so the roll runs at real time on any display: rounding each frame on its
+   own ran a 144 Hz screen 4% slow (8 steps for 8.33) and a 90 Hz one 2.5% slow. The steps are the
+   same fixed steps whatever the frame rate, so the result never depends on it. */
+let simAcc = 0;
+function simSteps(dtMs) {
+  simAcc += dtMs / 1000 / SIM_DT * felt.speed;
+  const n = Math.floor(simAcc + 1e-9);
+  simAcc = Math.max(0, simAcc - n);
+  return n;
+}
 function frame(now) {
-  const dtMs = Math.min(50, now - (frame.last || now));
+  /* whatever one frame throws, the next is still asked for: an uncaught error here once stopped
+     the loop for good, and the game froze mid-roll with no way out but a reload */
+  try { frameBody(now); } catch (e) { console.error(e); }
+  requestAnimationFrame(frame);
+}
+function frameBody(now) {
+  const dtMs = clamp(now - (frame.last || now), 0, 50);   /* never backwards, at most 50 ms */
   frame.last = now;
   if (state === 'stroke' && !rp && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
   if (rp) replayStep(now, dtMs);   /* a replay (5r) holds the live game where it is */
   else if (state === 'rolling' && tab) {
     const before = tab.balls.map(b => [b.x, b.y, b.on]);
-    const steps = Math.max(1, Math.round(dtMs / 1000 / SIM_DT * felt.speed));   /* real time, whatever the step */
+    const steps = simSteps(dtMs);   /* real time, whatever the step and the frame rate */
     let live = true;
     for (let i = 0; i < steps && live; i++) live = stepTable(tab);
     tab.balls.forEach((b, i) => { if (before[i][2]) rollBall(b.n, b.x - before[i][0], b.y - before[i][1]); });
@@ -6443,7 +6464,6 @@ function frame(now) {
   stepOffer();
   camStep(dtMs);
   draw(now);
-  requestAnimationFrame(frame);
 }
 /* the CPU: search a slice per frame, then turn the cue onto the line, pull back, stroke */
 function think(now) {
@@ -7285,10 +7305,11 @@ function settleSolo() {
       solo.stars = trickStars(solo.attempts);
       if (solo.stars > (trickBest[c.id] || 0)) { trickBest[c.id] = solo.stars; saveTricks(); }
     }
-    if (solo.daily) scoreDaily(j.ok);
+    /* the day was scored when the try was struck (shoot); a make on that try is remembered */
+    if (solo.daily && solo.daily.live && j.ok && !dailyRec.made) { dailyRec.made = true; saveDaily(); }
   }
   felt.lastTrick = { id: c.id, ok: j.ok, why: j.why, attempts: solo.attempts, stars: j.ok && !solo.demo ? solo.stars : 0, demo: solo.demo,
-    daily: solo.daily ? { day: solo.daily.day, counted: !!solo.daily.counted && solo.attempts === 1 } : null };
+    daily: solo.daily ? { day: solo.daily.day, counted: !!solo.daily.live } : null };
   showTrickRes(c, j);
   sfx(j.ok ? 'win' : 'foul', 1);
   hud();
@@ -7314,7 +7335,7 @@ function showTrickRes(c, j) {
   trickKind.textContent = d ? `Daily shot, ${dayWords(d.day)}: ${c.title}` : `Trick shot ${i + 1} of ${TRICKS.length}: ${c.title}`;
   trickHead.textContent = demo ? (j.ok ? 'Like that' : 'Close') : j.ok ? 'Made it' : 'Not quite';
   /* the daily shot says what the try did for the streak: the first counts, the rest are practice */
-  const day = !d || demo ? '' : d.counted && a === 1 ? ` Day streak: ${dailyRec.streak}${dailyRec.streak === dailyRec.best && dailyRec.best > 1 ? ', your best' : ''}.` : ' Practice: today\'s try is in.';
+  const day = !d || demo ? '' : d.live ? ` Day streak: ${dailyRec.streak}${dailyRec.streak === dailyRec.best && dailyRec.best > 1 ? ', your best' : ''}.` : ' Practice: today\'s try is in.';
   trickWhy.textContent = demo ? (j.ok ? 'One way to make it. Your turn.' : j.why)
     : (j.ok ? `${a === 1 ? 'First try' : `On try ${a}`}: ${solo.stars} star${solo.stars === 1 ? '' : 's'}.` + (trickBest[c.id] > solo.stars ? ` Best: ${trickBest[c.id]}.` : '')
       : `${j.why} Tries: ${a}.`) + day;
@@ -7470,7 +7491,9 @@ function loadDaily() {
 }
 function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(dailyRec)); } catch (e) { } }
 /* the streak as it stands on day: one whose last day is before yesterday has lapsed */
-const dailyStreak = (day = today()) => dailyRec.last && dayNum(day) - dayNum(dailyRec.last) <= 1 ? dailyRec.streak : 0;
+/* a last day after today (a clock set back, or a bad record) is no streak: it once froze the streak
+   on show and the day unscorable until that date came round */
+const dailyStreak = (day = today()) => { const g = dailyRec.last ? dayNum(day) - dayNum(dailyRec.last) : -1; return g === 0 || g === 1 ? dailyRec.streak : 0; };
 const dailyDone = (day = today()) => dailyRec.last === day;
 function startDaily() {
   const day = today(), c = dailyTrick(day);
@@ -7485,7 +7508,7 @@ function scoreDaily(ok) {
   if (!d.scored) return;
   d.scored = false;
   const gap = dailyRec.last ? dayNum(d.day) - dayNum(dailyRec.last) : Infinity;
-  if (gap <= 0) return;   /* already scored on this day (or the clock went back) */
+  if (gap === 0) return;   /* already scored on this day; a clock gone back (gap < 0) starts a new streak */
   dailyRec.streak = gap === 1 ? dailyRec.streak + 1 : 1;
   dailyRec.best = Math.max(dailyRec.best, dailyRec.streak);
   dailyRec.last = d.day; dailyRec.made = !!ok;

@@ -1,0 +1,94 @@
+#!/usr/bin/env node
+/* audit-check: one regression check per fix of the T4 audit (.buildloop/audit/T4-audit.md),
+   each written to fail on the build before the fix and pass after it.
+   A1 the frame loop survives an exception thrown inside a frame (it once stopped for good).
+   A2 the live roll keeps real time at any display rate (rounding per frame ran 144 Hz 4% slow).
+   A3 the daily shot's first try counts when it is struck: quitting mid-roll no longer frees a retry.
+   A4 a daily record whose last day is in the future neither shows its streak nor blocks scoring. */
+'use strict';
+const { check, done, open } = require('./lib.cjs');
+
+(async () => {
+  const { browser, page, errors } = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
+
+  /* A1: draw() throws once mid-roll; the loop must go on and the roll must still end */
+  const a1 = await page.evaluate(async () => {
+    felt.start('8');
+    const real = window.draw;
+    let thrown = 0;
+    window.draw = function (now) { if (!thrown++) throw new Error('audit: one bad frame'); return real.call(this, now); };
+    felt.speed = 8;
+    felt.shoot(0, 0.6, 0);
+    const t0 = performance.now();
+    while (performance.now() - t0 < 15000 && ['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 20));
+    window.draw = real;
+    felt.speed = 1;
+    return { thrown, state: felt.state };
+  });
+  check('A1 frame loop: a frame that throws does not stop the game; the roll still comes to rest and the turn goes on',
+    a1.thrown > 1 && a1.state === 'aim', JSON.stringify(a1));
+  /* the one deliberate error is reported, and nothing else */
+  const own = errors.filter(e => /audit: one bad frame/.test(e)).length;
+  check('A1 the error is reported on the console (not swallowed)', own >= 1, errors.join(' | '));
+  errors.splice(0);
+
+  /* A2: drive frame() by hand at 144 Hz for one simulated second of a firm break */
+  const a2 = await page.evaluate(async () => {
+    felt.quitToHome(); felt.start('8');
+    const raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = () => 0;   /* the page's own loop stops; this test is the clock */
+    await new Promise(r => setTimeout(r, 50));
+    const out = {};
+    try {
+      felt.shoot(0, 1, 0);
+      let t = performance.now();
+      frame(t);   /* the first frame after the strike */
+      const s0 = felt.simT;
+      for (let i = 0; i < 144; i++) { t += 1000 / 144; frame(t); }
+      out.simulated = felt.simT - s0;
+      out.state = felt.state;
+    } finally { window.requestAnimationFrame = raf; frame.last = undefined; raf.call(window, frame); }
+    return out;
+  });
+  check('A2 frame pacing: 144 frames at 144 Hz advance the roll one second of sim time (within one step)',
+    a2.state === 'rolling' && Math.abs(a2.simulated - 1) <= 1 / 1200 + 1e-9, JSON.stringify(a2));
+  await page.waitForFunction(() => !['stroke', 'rolling'].includes(felt.state), null, { timeout: 30000 });
+
+  /* A3: the daily's first try is struck, then the player quits before it stops and comes back */
+  const a3 = await page.evaluate(async () => {
+    felt.today = '2026-03-10';
+    felt.quitToHome();
+    felt.daily();
+    const first = felt.solo.daily.scored;
+    felt.speed = 0.2;
+    felt.shoot(0, 0.5, 0);
+    await new Promise(r => setTimeout(r, 120));
+    const mid = felt.state;
+    felt.pause(); felt.quitToHome();
+    felt.speed = 1;
+    felt.daily();
+    return { first, mid, again: felt.solo.daily.scored, rec: felt.dailyRec };
+  });
+  check('A3 daily shot: a first try quit mid-roll still counts; coming back the same day is practice',
+    a3.first === true && ['stroke', 'rolling'].includes(a3.mid) && a3.again === false && a3.rec.last === '2026-03-10' && a3.rec.streak === 1, JSON.stringify(a3));
+  await page.evaluate(() => felt.quitToHome());
+
+  /* A4: a stored last day far in the future */
+  const a4 = await open('', { init: () => { localStorage.setItem('felt.daily.v1', '{"last":"2099-01-01","streak":500,"best":500,"made":true}'); } });
+  const r4 = await a4.page.evaluate(async () => {
+    felt.today = '2026-03-10';
+    syncMenu();
+    const shown = { now: felt.dailyRec.streakNow, tile: dailySum.textContent };
+    felt.daily();
+    felt.speed = 30;
+    felt.shoot(0, 0.3, 0);
+    while (felt.state !== 'over') await new Promise(r => setTimeout(r, 20));
+    return { shown, rec: felt.dailyRec };
+  });
+  check('A4 daily record from the future: no streak shown, and today\'s first try scores (a new streak of 1, the best kept)',
+    r4.shown.now === 0 && r4.shown.tile === '' && r4.rec.last === '2026-03-10' && r4.rec.streak === 1 && r4.rec.best === 500, JSON.stringify(r4));
+  check('no console errors', errors.length === 0 && a4.errors.length === 0, errors.concat(a4.errors).join(' | '));
+  await a4.browser.close();
+  await browser.close();
+  done();
+})().catch(e => { console.error(e); process.exit(1); });

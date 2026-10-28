@@ -259,7 +259,7 @@ check('run out: the 8 to win at the end of a visit of seven; break and run when 
     return { busy, taps: __taps - t, shown };
   });
   check('a replay neither ticks nor calls out', rpl.busy && rpl.taps === 0 && !rpl.shown, JSON.stringify(rpl));
-  await hp.evaluate(() => { showMenu(); openSheet(prefsSheet, prefsBack); });
+  await hp.evaluate(() => { showMenu(); openSheet(prefsSheet, prefsBack); prefsPage('aud'); });
   await hp.click('#hapOff');
   const off = await hp.evaluate(async () => { const t = __taps; sfx('foul', 1); sfx('pocket', 1); await new Promise(r => setTimeout(r, 200)); return { taps: __taps - t, s: settings.haptics, ls: JSON.parse(localStorage.getItem('felt.settings')).haptics, pressed: hapOff.getAttribute('aria-pressed') }; });
   check('haptics: Settings turns them off (remembered), and then nothing ticks', off.taps === 0 && off.s === false && off.ls === false && off.pressed === 'true', JSON.stringify(off));

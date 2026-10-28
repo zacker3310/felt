@@ -108,6 +108,8 @@ function rackPlay(kind, level, set, seed0, opts) {
   const log = [];
   let k = 0, seed = seed0;
   for (; k < CAP && g.winner === null; k++) {
+    /* snooker's choice after a foul (free ball, put back): the CPU's answer, as the page plays it */
+    if (kind === 'snooker' && g.option) { g = S.chooseOption(g, S.cpuOption(g, level)); log.push('o' + g.verdict.chose); continue; }
     const s = S.cpuShot(g, seed++, level);
     let g1 = s.place ? S.placeCue(g, s.place[0], s.place[1]) : g;
     if (g1.kind === 'bumper' && s.ball != null) { g1 = S.copyGame(g1); g1.striker = s.ball; }

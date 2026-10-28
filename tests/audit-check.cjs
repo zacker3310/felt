@@ -23,7 +23,12 @@
       it from the list, or after a reload, carries on the count, so a make after a miss and a
       reopen earns two stars, not three. A bad record is ignored.
    A14 (F6) the rules engine's re-rack on a stalemate covers 8-ball too (rules2-check pins the
-      rest of F6: legal breaks, the 8 on the break, push-outs, break-foul options, three fouls). */
+      rest of F6: legal breaks, the 8 on the break, push-outs, break-foul options, three fouls).
+
+   A15 (F17) snooker after a foul (WPBSA Section 3 Rules 12 to 14): snookered on the only red, the
+      next player is offered a free ball, and the nominated colour scores as a red and is re-spotted;
+      a miss with the red in plain view can be put back exactly; the third such miss loses the frame.
+      The base build had none of it (the turn simply passed). */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -50,6 +55,25 @@ const { check, done, open } = require('./lib.cjs');
     for (let i = 0; i < 120; i++) S.stepTable(r);
     return (10 - r.balls[0].wz) / (120 * S.SIM_DT);
   });
+  S.setTable('snooker', 'compact');
+  {
+    const g = Object.assign(S.newGame('snooker'), { breakShot: false, inHand: null, turn: 0 }), B = n => g.balls.find(b => b.n === n);
+    for (const b of g.balls) if (S.isRed(b.n) && b.n !== 41) b.on = false;
+    Object.assign(B(0), { x: 1.0, y: 0.5 }); Object.assign(B(41), { x: 2.0, y: 0.5 });
+    const wall = S.copyGame(g), W = n => wall.balls.find(b => b.n === n);
+    Object.assign(W(60), { x: 1.3, y: 0.5 }); Object.assign(W(59), { x: 1.3, y: 0.4465 }); Object.assign(W(61), { x: 1.3, y: 0.5535 });
+    const miss = (h, o = {}) => S.judge(h, Object.assign({ balls: h.balls, cue: 0, first: null, potted: [], pocketOf: {}, crossed: true }, o));
+    const f = miss(wall), fb = f.option && S.chooseOption(f, 'free:62');
+    const fp = fb && miss(fb, { first: 62, potted: [62], pocketOf: { 62: 0 }, balls: fb.balls.map(b => b.n === 62 ? Object.assign({}, b, { on: false }) : b) });
+    check('A15 (F17) snooker: snookered after a foul, a free ball is offered; the black nominated and potted scores 1 and is re-spotted',
+      !!(f.option && f.option.free && fb && fp && fp.score[1] === 5 && fp.balls.find(b => b.n === 62).on && fp.on === 'colour'), JSON.stringify(f.option));
+    Object.assign(B(60), { x: 1.5, y: 0.62 });
+    const snap = JSON.stringify(g.balls), r = S.simulateShot(g.balls, { angle: -Math.PI / 2, power: 0.12, spin: { x: 0, y: 0 } });
+    const m1 = S.judge(g, r), back = m1.option && S.chooseOption(m1, 'replace');
+    const m3 = back && S.judge(S.chooseOption(S.judge(back, r), 'replace'), r);
+    check('A15 (F17) snooker: a miss with the red in view is put back byte for byte, and the third miss loses the frame',
+      !!(back && JSON.stringify(back.balls) === snap && back.turn === 0 && m3 && m3.winner === 1 && m3.verdict.why === 'three misses'));
+  }
   S.setTable('7');
   /* A14 (F6): dry innings in a row in 8-ball re-rack with the house stalemate option */
   {

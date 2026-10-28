@@ -10,7 +10,7 @@
    menu's card, settings surviving a reload, rematch after a win, touch on a phone, and bumper pool
    (its card, the chosen ball, the bar, byte-for-byte rolls, the CPU, the pause cards, a win). */
 'use strict';
-const { check, done, open, settled } = require('./lib.cjs');
+const { check, done, open, settled, smallTargets, lowContrast } = require('./lib.cjs');
 const DEG = Math.PI / 180;
 /* the power a bar pull of d px gives, by the page's own rule (span and arm from where it began) */
 const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92, arm = Math.min(armPx, span * 0.2); return Math.min(1, Math.max(0, (d - arm) / (span - arm))); };
@@ -232,6 +232,39 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.mouse.click(pad.x, pad.y - pad.R * 0.5);
   await page.mouse.click(pad.x, pad.y - pad.R * 0.5);
   check('a double tap centres the english', await page.evaluate(() => felt.cueSpin.x === 0 && felt.cueSpin.y === 0 && spinLabel.textContent === 'center'));
+
+  /* 5b. cue elevation (swerve and masse): a right click on the pad opens its sheet and leaves the
+     tip alone; the slider sets whole degrees, the pad's tag and words say so; a click elsewhere
+     closes it; Page Up on the pad raises the cue 5 degrees; the elevated live roll equals
+     simulateShot byte for byte; and the next turn starts level */
+  if ((await page.evaluate(() => felt.state)) === 'aim') {
+    await inHand();
+    await page.mouse.click(pad.x + pad.R * 0.4, pad.y);
+    await page.waitForTimeout(400);
+    const tip0 = await page.evaluate(() => Object.assign({}, felt.cueSpin));
+    await page.mouse.click(pad.x, pad.y - pad.R * 0.5, { button: 'right' });
+    const ev0 = await page.evaluate(() => ({ open: !elevPop.hidden, tip: Object.assign({}, felt.cueSpin), r: elevSlider.getBoundingClientRect().toJSON(), pop: elevPop.getBoundingClientRect().toJSON(), vw: innerWidth, vh: innerHeight }));
+    const targets = await smallTargets(page), low = await lowContrast(page);
+    await page.mouse.click(ev0.r.x + ev0.r.width / 2, ev0.r.y + ev0.r.height / 2);
+    const ev1 = await page.evaluate(() => ({ e: felt.cueSpin.e, x: felt.cueSpin.x, tag: elevTag.textContent, tagShown: !elevTag.hidden, words: spinLabel.textContent, now: elevSlider.getAttribute('aria-valuenow') }));
+    await page.mouse.click(5, 5);
+    const ev2 = await page.evaluate(() => ({ open: !elevPop.hidden, e: felt.cueSpin.e }));
+    await page.focus('#spinPad');
+    await page.keyboard.press('PageUp');
+    const ev3 = await page.evaluate(() => Math.round(felt.cueSpin.e * 180 / Math.PI));
+    await page.evaluate(() => document.activeElement.blur());
+    check('cue elevation: a right click on the english pad opens the sheet inside the screen and leaves the tip where it was; its targets are 44 px and its text 4.5:1',
+      ev0.open && JSON.stringify(ev0.tip) === JSON.stringify(tip0) && ev0.pop.x >= 0 && ev0.pop.y >= 0 && ev0.pop.right <= ev0.vw && ev0.pop.bottom <= ev0.vh && !targets.length && !low.length, JSON.stringify({ ev0, tip0, targets, low }));
+    check('cue elevation: the slider\'s middle is 30 degrees; the pad shows 30\u00b0 and says cue up 30 degrees; the english is kept; a click elsewhere closes the sheet and keeps the cue up; Page Up on the pad adds 5',
+      Math.abs(ev1.e - Math.PI / 6) < 1e-12 && ev1.x === tip0.x && ev1.tag === '30\u00b0' && ev1.tagShown && /cue up 30 degrees/.test(ev1.words) && ev1.now === '30' && !ev2.open && ev2.e === ev1.e && ev3 === 35, JSON.stringify({ ev1, ev2, ev3 }));
+    const eshot = { x: 0.7, y: -0.4, e: 0.75 };
+    const exp3 = await page.evaluate(s => JSON.stringify(simulateShot(felt.game.balls, { angle: 0.4, power: 0.5, spin: s }).balls.map(b => [b.n, b.on, b.x, b.y])), eshot);
+    await page.evaluate(s => { felt.speed = 40; felt.shoot(0.4, 0.5, s); }, eshot);
+    await settled(page);
+    const live3 = await page.evaluate(() => ({ balls: JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])), rec: felt.lastShot.spin, next: felt.cueSpin, tag: elevTag.hidden }));
+    check('cue elevation: an elevated shot with english plays live exactly as simulateShot does, the shot record keeps the elevation, and the next turn starts level',
+      live3.balls === exp3 && live3.rec.e === 0.75 && !('e' in live3.next) && live3.tag, JSON.stringify({ rec: live3.rec, next: live3.next, same: live3.balls === exp3 }));
+  } else check('cue elevation: the sheet, the slider and an elevated live roll', false, 'not on an aim turn');
 
   /* 6. keyboard: arrows aim, space strokes and shoots, R centres the english */
   if ((await page.evaluate(() => felt.state)) === 'aim') {
@@ -934,6 +967,15 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   for (let i = 0; i < 2; i++) { await tch('touchStart', tpad.x - 8, tpad.y - 8); await tch('touchEnd'); }
   const tdbl = await mp.evaluate(() => felt.cueSpin);
   check('touch: english pad re-drag keeps the english, a real double tap centres it', Math.hypot(tre.x, tre.y) > 0.2 && tdbl.x === 0 && tdbl.y === 0, JSON.stringify({ tre, tdbl }));
+  /* a still hold on the pad opens the cue elevation sheet and puts the tip back where it was */
+  await mp.waitForTimeout(400);
+  await tch('touchStart', tpad.x + 10, tpad.y - 10);
+  await mp.waitForTimeout(700);
+  const thold = await mp.evaluate(() => ({ open: !elevPop.hidden, spin: Object.assign({}, felt.cueSpin) }));
+  await tch('touchEnd');
+  await mp.evaluate(() => { elevLevel.click(); });
+  const tlev = await mp.evaluate(() => ({ open: !elevPop.hidden, e: felt.cueSpin.e }));
+  check('touch: a still hold on the english pad opens the cue elevation sheet, the tip where it was; Level closes it level', thold.open && thold.spin.x === 0 && thold.spin.y === 0 && !tlev.open && tlev.e === undefined, JSON.stringify({ thold, tlev }));
   /* pinch: on the table, on the controls and on the menu, the page never zooms. Headless
      Chromium only applies a synthesized pinch of the 'mouse' kind (it zooms the old page to
      2.5x); the viewport meta is what refuses it, touch-action is checked in boot-check */
@@ -1141,12 +1183,12 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
         Object.assign(settings, set); felt.start(kind); felt.speed = 40;
         const g = felt.game, ph = physOf(TABLE);
         g.breakShot = false;
-        const snap = JSON.stringify(g.balls), vals = [TABLE, TL, TW, BALL_R, MU_ROLL, CUE_RATIO, CUSH_MU, RAIL_E.join('/')].join();
+        const snap = JSON.stringify(g.balls), vals = [TABLE, TL, TW, BALL_R, MU_ROLL, CUE_RATIO, CUSH_MU, RAIL_E.join('/'), MU_SP].join();
         felt.shoot(0.37, 0.55, { x: 0.2, y: -0.3 });
         while (['stroke', 'rolling'].includes(felt.state)) await new Promise(r => setTimeout(r, 30));
         const row = x => JSON.stringify(x.map(o => [o.n, o.on, o.x, o.y]));
         return { kind, table: TABLE, vals, same: row(simulateShot(JSON.parse(snap), felt.lastShot).balls) === row(felt.lastResult.balls),
-          rec: BALL_R === ph.R && MU_ROLL === ph.roll && CUE_RATIO === ph.cue && CUSH_MU === ph.mu && RAIL_E === ph.e };
+          rec: BALL_R === ph.R && MU_ROLL === ph.roll && CUE_RATIO === ph.cue && CUSH_MU === ph.mu && RAIL_E === ph.e && MU_SP === ph.sp };
       }, [kind, set]));
       await settled(k.page);
     }

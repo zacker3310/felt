@@ -202,6 +202,18 @@ button { font: inherit; color: inherit; cursor: pointer; }
               linear-gradient(rgba(40, 40, 44, .2), rgba(40, 40, 44, .2)) center / 62% 1px no-repeat; }
 #spinTip { position: absolute; z-index: 1; left: 50%; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
   background: radial-gradient(circle at 40% 35%, #5b95d0, var(--chalk) 60%, #1f4f82); box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 1px 3px rgba(0, 0, 0, .5); pointer-events: none; }
+/* cue elevation (swerve and masse): a tag on the pad while the cue is raised, and the sheet a long
+   press (right click, Page Up and Down) opens with its slider; the slider fills from the bed up */
+#elevTag { position: absolute; z-index: 2; right: -4px; bottom: -4px; padding: 1px 4px; border-radius: 8px; font-size: 11px; font-weight: 700; line-height: 14px;
+  background: #1f1f24; color: #fff; pointer-events: none; }
+#elevTag[hidden], #elevPop[hidden] { display: none; }
+#elevPop { position: fixed; z-index: 4; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border-radius: 16px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0, 0, 0, .5); font-size: 13px; }
+#elevPop b { font-size: 13px; }
+#elevSlider { position: relative; width: 48px; height: 150px; border-radius: 12px; background: var(--panel-2); border: 1px solid #6b6b74; touch-action: none; cursor: ns-resize; overflow: hidden; }
+#elevFill { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(91, 149, 208, .55); pointer-events: none; }
+#elevCue { position: absolute; left: 50%; bottom: 10px; width: 3px; height: 70px; margin-left: -1.5px; border-radius: 2px; background: #e9d9b0; transform-origin: 50% 100%; pointer-events: none; }
+#elevLevel { min-width: 64px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font: inherit; font-weight: 700; }
 /* the power bar is the only pointer control that shoots: a lighter edge than the other
    controls (#6b6b74, 3.4:1 on the page) and chevrons that point the way to pull */
 #powerBar { position: relative; border-radius: 14px; background: var(--panel-2); border: 1px solid #6b6b74; overflow: hidden; touch-action: none; cursor: grab; }
@@ -1151,13 +1163,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     </div>
     <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div></div>
     <div id="spinBox">
-      <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it." aria-valuetext="center"><span id="spinTip"></span></div>
+      <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it. Hold it, right click it or press Page Up and Page Down to raise the cue." aria-valuetext="center"><span id="spinTip"></span><span id="elevTag" aria-hidden="true" hidden></span></div>
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
     </div>
     <div id="powerBar" role="slider" tabindex="0" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot. Up and down set its mark." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
       <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div>
     </div>
     <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
+  </div>
+  <div id="elevPop" role="dialog" aria-label="Cue elevation" hidden>
+    <b id="elevVal">Level</b>
+    <div id="elevSlider" role="slider" tabindex="0" aria-label="Cue elevation: raise the cue and side spin curves the ball. Up and down arrows move it." aria-valuemin="0" aria-valuemax="60" aria-valuenow="0" aria-valuetext="level"><span id="elevFill"></span><span id="elevCue"></span></div>
+    <button id="elevLevel">Level</button>
   </div>
   <div id="msg" class="sr" role="status" aria-live="polite"></div>
   <div id="coachRing" aria-hidden="true" hidden></div>
@@ -1497,7 +1514,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><div><b>Aim</b><p>Point at the cloth or click a spot. Drag to swing the cue round the ball.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 7v10M12 7v10M16 7v10"/></svg></span><div><b>Fine-tune</b><p><kbd>&larr;</kbd> <kbd>&rarr;</kbd> nudge the aim, with <kbd>Shift</kbd> for big steps and <kbd>Alt</kbd> for tiny ones. The ridged wheel works too.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="4"/><path d="M12 7v7.5M9.6 12.2 12 14.6l2.4-2.4"/></svg></span><div><b>Shoot</b><p>Pull along the power bar and let go. The further you pull, the harder the hit.</p></div></li>
-        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double click it or press <kbd>R</kbd> to centre.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double click it or press <kbd>R</kbd> to centre. Right click it, or press <kbd>Page Up</kbd> and <kbd>Page Down</kbd> on it, to raise the cue: with side spin a raised cue curves the ball (a swerve low, a masse high).</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/></svg></span><div><b>Ball in hand</b><p>Drag the cue ball to place it. Or press <kbd>M</kbd>, move it with the arrows, and press <kbd>M</kbd> again.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6.5v11M15 6.5v11"/></svg></span><div><b>Pause</b><p>Press <kbd>Esc</kbd> or the pause button. <kbd>Esc</kbd> also closes this page.</p></div></li>
       </ul>
@@ -1505,7 +1522,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><div><b>Aim</b><p>Drag anywhere on the table to swing the cue. Or tap where the cue ball should go.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 7v10M12 7v10M16 7v10"/></svg></span><div><b>Fine-tune</b><p>Roll the ridged wheel beside the power bar for the last hair.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="4"/><path d="M12 7v7.5M9.6 12.2 12 14.6l2.4-2.4"/></svg></span><div><b>Shoot</b><p>Pull along the power bar and let go. The further you pull, the harder the hit.</p></div></li>
-        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double tap it to centre.</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double tap it to centre. Hold it to raise the cue: with side spin a raised cue curves the ball (a swerve low, a masse high).</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/></svg></span><div><b>Ball in hand</b><p>Drag the cue ball to place it, as often as you like. Only the shot locks it in.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6.5v11M15 6.5v11"/></svg></span><div><b>Pause</b><p>Tap the pause button. The game waits.</p></div></li>
       </ul>
@@ -1852,12 +1869,22 @@ const SIM_DT = 1 / 1200;          /* fixed step: at MAX_V a ball moves 7.1 mm, a
    CAROM_PHYS) that buildTable (1b) applies, setting BALL_R, MU_ROLL, CUE_RATIO and the cushion's
    rubber (CUSH_MU, RAIL_E: restitution at rest, its fall per m/s, its floor). Read them at call
    time, never cache them. Pool and bumper pool play 2 1/4 in balls; snooker 52.5 mm balls on
-   pool's cloth and cushions; carom 61.5 mm balls on a faster cloth and livelier rubber. */
-const POOL_PHYS = { R: 0.028575, roll: 0.01, cue: 6 / 19, mu: 0.2, e: [0.88, 0.03, 0.7] };
+   pool's cloth and cushions; carom 61.5 mm balls on a faster cloth and livelier rubber.
+   sp is the cloth's spinning friction (audit F10): the friction torque of the contact patch on a
+   ball turning about the vertical. pooltool (Kiefl, pooltool/objects/ball/params.py and
+   physics/evolve, the defaults of its BallParams) writes it as u_sp = u_sp_proportionality * R
+   with u_sp_proportionality = 10 * 2 / 5 / 9 (4/9), and decelerates the vertical spin at
+   5 u_sp g / (2 R) = 5/2 sp g in every state (sliding, rolling, spinning in place): 10.89 rad/s^2
+   for any ball size, as u_sp grows with R. (The audit's first note, about 38 rad/s^2, came from an
+   older fixed u_sp = 0.044, which is 4/9 R only for a ball of 0.099 m.) As a contact patch: the
+   torque of a uniformly loaded disc, 2/3 mu m g a, gives the same rate for a patch radius
+   a = 1.5 sp R^2 / mu, 2.7 mm on pool cloth. No separate measurement for the snooker or carom
+   cloth: both keep pooltool's default. The rate is spinA() (1a), from MU_SP, which buildTable sets with the rest. */
+const POOL_PHYS = { R: 0.028575, roll: 0.01, cue: 6 / 19, mu: 0.2, e: [0.88, 0.03, 0.7], sp: 10 * 2 / 5 / 9 };
 const SNOOKER_PHYS = Object.assign({}, POOL_PHYS, { R: 0.02625 });
-const CAROM_PHYS = { R: 0.03075, roll: 0.0075, cue: 0.4, mu: 0.24, e: [0.92, 0.025, 0.75] };
+const CAROM_PHYS = { R: 0.03075, roll: 0.0075, cue: 0.4, mu: 0.24, e: [0.92, 0.025, 0.75], sp: 10 * 2 / 5 / 9 };
 const physOf = table => table === 'carom' ? CAROM_PHYS : table === 'snooker' ? SNOOKER_PHYS : POOL_PHYS;
-let BALL_R = POOL_PHYS.R, MU_ROLL = POOL_PHYS.roll, CUE_RATIO = POOL_PHYS.cue, CUSH_MU = POOL_PHYS.mu, RAIL_E = POOL_PHYS.e;
+let BALL_R = POOL_PHYS.R, MU_ROLL = POOL_PHYS.roll, CUE_RATIO = POOL_PHYS.cue, CUSH_MU = POOL_PHYS.mu, RAIL_E = POOL_PHYS.e, MU_SP = POOL_PHYS.sp;
 /* playing surfaces between cushion noses: 7 ft (78 x 39 in) and 9 ft (100 x 50 in). The table
    globals below are set by setTable (1b); read them at call time, never cache them. */
 const TABLE_SIZES = { 7: [1.981, 0.991], 9: [2.54, 1.27] };
@@ -1867,7 +1894,11 @@ const POWER_EXP = 1.7;            /* power curve: 0.25 rolls a lone ball 2-3 m (
 const V_CAP = 9;                  /* belt and braces: energy already keeps every ball under MAX_V */
 const G = 9.8;
 const MU_SLIDE = 0.2;             /* ball on cloth, sliding (MU_ROLL, rolling resistance, is the table's) */
-const SPIN_DECAY = 8;             /* rad/s^2: side spin dies against the cloth in a few seconds */
+/* rad/s^2: the vertical spin's deceleration on the cloth, 5/2 MU_SP g (pooltool's 5 u_sp g / 2R
+   with u_sp = MU_SP R; see POOL_PHYS). Full english at 3 m/s (157 rad/s) lasts 14.4 s. */
+const spinA = () => 2.5 * MU_SP * G;
+/* a ball under STOP_V that no longer slips stops; its side spin does not (audit F9): it turns in
+   place until spinA() takes it, and a ball or cushion that meets it meanwhile feels it */
 const STOP_V = 0.01;
 const MAX_SIM_T = 60;
 const BALL_E = 0.94;
@@ -1928,13 +1959,17 @@ const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
 const CAROM_SIZE = [2.84, 1.42];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-/* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre */
+/* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre;
+   e is the cue's elevation above the bed in radians (0 to ELEV_MAX), kept only when above 0, so
+   a level cue's spin is exactly the {x, y} it always was */
+const ELEV_MAX = Math.PI / 3;
 function spinOf(s) {
   if (typeof s === 'number') return { x: 0, y: Number.isFinite(s) ? clamp(s, -1, 1) : 0 };
   let x = s && Number.isFinite(s.x) ? s.x : 0, y = s && Number.isFinite(s.y) ? s.y : 0;
   const m = Math.hypot(x, y);
   if (m > 1) { x /= m; y /= m; }
-  return { x, y };
+  const e = s && Number.isFinite(s.e) ? clamp(s.e, 0, ELEV_MAX) : 0;
+  return e > 0 ? { x, y, e } : { x, y };
 }
 
 /* ---- 1b. table ---- */
@@ -2007,7 +2042,7 @@ function buildTable() {
   BED_LINES = null; JAW_ARCS = []; JAW_RAD = [0, 0]; SPOTS = {}; D_R = 0;
   /* the ball and the cloth: the table's record (bumper pool plays pool's) */
   const ph = physOf(TABLE);
-  BALL_R = ph.R; MU_ROLL = ph.roll; CUE_RATIO = ph.cue; CUSH_MU = ph.mu; RAIL_E = ph.e;
+  BALL_R = ph.R; MU_ROLL = ph.roll; CUE_RATIO = ph.cue; CUSH_MU = ph.mu; RAIL_E = ph.e; MU_SP = ph.sp;
   if (TABLE === 'carom') { buildCarom(); return; }
   if (TABLE === 'bumper') { buildBumper(); return; }
   BUMPERS = [];
@@ -2198,11 +2233,34 @@ function newTable(balls, cue = 0) {
    that follows through loses only TIP_LOSS of that, as the tip stays on the ball), with
    w = 5 v d / (2 R^2) about the axis of the offset: top is follow, bottom draw (0.4 R is a
    natural roll), side is english about the vertical. Side english also squirts the ball off
-   the cue line, away from the side struck. */
+   the cue line, away from the side struck.
+   An elevated cue (spin.e, the angle th of the cue above the bed: swerve and masse). The tip
+   offsets are measured on the ball's face square to the cue, so a centre hit goes through the
+   centre at any elevation. The impulse J runs along the cue d = (cos th forward, sin th down);
+   at p = side * right + top * (up square to the cue) - c d its moment p x d is
+   side (sin th forward + cos th up) + top (left): follow and draw as on a level cue, and the side
+   english's spin axis tilted forward by th, its vertical part (english) cos th and the rest
+   sin th about the line of travel. The bed takes the downward part of J (no jump: a 2D table),
+   so the ball leaves at cos th of the level speed. While the ball slides, the cloth pulls its
+   contact point sideways against that travel-axis spin (cloth(): the slip is v + w x R z), which
+   curves it towards the english: a long, late swerve at low elevation, a tight masse high. The
+   curve ends when the ball rolls. The squirt's sideways push stays the level cue's, so its angle
+   to the slower forward speed is atan(tan s / cos th). The spin is Leckie and Greenspan's cue
+   strike as pooltool (physics/resolve/stick_ball/instantaneous_point) runs it, offsets in the
+   cue's frame; the speed keeps felt's two-mass form above. Elevation 0 runs the level code below,
+   unchanged. */
 function strike(tab, angle, power, spin) {
   const c = tab.balls.find(b => b.n === tab.cue), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
   const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * TIP_LOSS * (ox * ox + oy * oy));
-  const dx = Math.cos(angle), dy = Math.sin(angle), a = angle - SQUIRT * sp.x, k = 2.5 * v / BALL_R;
+  const dx = Math.cos(angle), dy = Math.sin(angle), k = 2.5 * v / BALL_R;
+  if (sp.e) {
+    const ce = Math.cos(sp.e), se = Math.sin(sp.e), a = angle - Math.atan(Math.tan(SQUIRT * sp.x) / ce), vh = v * ce;
+    c.vx = Math.cos(a) * vh; c.vy = Math.sin(a) * vh;
+    c.wx = k * (oy * dy + ox * se * dx); c.wy = k * (ox * se * dy - oy * dx); c.wz = -k * ox * ce;
+    tab.hits.push(['cue', vh]);
+    return tab;
+  }
+  const a = angle - SQUIRT * sp.x;
   c.vx = Math.cos(a) * v; c.vy = Math.sin(a) * v;
   c.wx = k * oy * dy; c.wy = -k * oy * dx; c.wz = -k * ox;
   tab.hits.push(['cue', v]);
@@ -2223,7 +2281,8 @@ function cloth(b, dt) {
     if (sp > 0) { b.vx *= s1 / sp; b.vy *= s1 / sp; }
     b.wx = b.vy / BALL_R; b.wy = -b.vx / BALL_R;
   }
-  b.wz = b.wz > 0 ? Math.max(0, b.wz - SPIN_DECAY * dt) : Math.min(0, b.wz + SPIN_DECAY * dt);
+  const dw = spinA() * dt;
+  b.wz = b.wz > 0 ? Math.max(0, b.wz - dw) : Math.min(0, b.wz + dw);
 }
 const still = b => b.vx === 0 && b.vy === 0 && b.wx === 0 && b.wy === 0 && b.wz === 0;
 function pot(tab, b, k, v) {
@@ -2308,7 +2367,8 @@ function stepTable(tab) {
       if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) {
         const k = onLip(b);
         if (k >= 0) { pot(tab, b, k, Math.sqrt(v2)); continue; }
-        b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0;
+        b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0;
+        if (b.wz !== 0) moving = true;   /* spinning in place (F9): cloth() takes the spin off */
       } else moving = true;
     }
   }
@@ -3981,14 +4041,14 @@ const TRICK_SOLS = {
   draw: { '7r': [-1.570796, 0.5, 0, -1], '9r': [-1.570796, 0.6, 0, -0.6], '7g': [-1.570796, 0.5, 0, -1], '9g': [-1.570796, 0.5, 0, -1] },
   kiss: { '7r': [-0.218166, 0.32, 0, 0], '9r': [-0.235619, 0.32, 0, 0], '7g': [-0.235619, 0.32, 0, 0], '9g': [-0.226893, 0.4, 0, 0] },
   carom: { '7r': [-2.661627, 1, 0, 0], '9r': [-0.253073, 0.72, 0.6, 0], '7g': [-2.661627, 1, 0, 0], '9g': [-1.45735, 1, 0.6, -0.6] },
-  cross: { '7r': [1.27409, 1, -0.6, 0.6], '9r': [1.195551, 0.5, 0, 0], '7g': [1.30027, 1, 0.6, 0.6], '9g': [1.27409, 1, 0, 0] },
+  cross: { '7r': [1.291544, 0.85, 0, 0.6], '9r': [1.195551, 0.5, 0, 0], '7g': [1.30027, 1, 0.6, 0.6], '9g': [1.27409, 1, 0, 0] },
   needle: { '7r': [-0.226893, 0.32, -0.6, 0], '9r': [-0.253073, 0.32, -0.6, 0], '7g': [-0.20944, 0.32, 0, 0], '9g': [-0.235619, 0.32, 0, 0] },
-  around: { '7r': [-0.575959, 0.5, 0.6, 0], '9r': [-2.417281, 0.72, 0, 0.6], '7g': [-2.70526, 0.6, 0, -0.6], '9g': [-2.83616, 0.6, 0, 0] },
+  around: { '7r': [-0.575959, 0.5, 0.6, 0], '9r': [-1.32645, 0.5, 0.6, 0.6], '7g': [-2.70526, 0.6, 0, -0.6], '9g': [-2.83616, 0.6, 0, 0] },
   kick: { '7r': [1.029744, 0.32, 0, 0], '9r': [-2.897247, 0.5, 0, 0], '7g': [0.977384, 0.5, 0, 0], '9g': [-2.96706, 0.6, 0, 0] },
-  two: { '7r': [-0.436332, 1, 0, -1], '9r': [-0.637045, 0.6, 0.6, 0], '7g': [-0.427606, 1, 0, -1], '9g': [-0.410152, 1, 0.6, 0.6] },
+  two: { '7r': [-0.418879, 1, 0, -0.6], '9r': [-0.637045, 0.6, 0.6, 0], '7g': [-0.427606, 1, 0, -1], '9g': [-0.628319, 0.6, 0, 0.6] },
   world: { '7r': [-0.855211, 0.85, 0, 0], '9r': [-0.898845, 0.6, 0, 0.6], '7g': [-0.855211, 0.85, 0, 0], '9g': [-0.890118, 0.72, 0, -0.6] },
   bank2: { '7r': [0.314159, 0.72, 0, 0.6], '9r': [0.322886, 0.85, 0.6, 0.6], '7g': [0.314159, 0.72, 0, 0.6], '9g': [0.296706, 0.85, -0.6, 0.6] },
-  three: { '7r': [-0.829031, 1, 0.6, 0], '9r': [-0.837758, 1, 0, -1], '7g': [-0.951204, 0.85, 0, 0.6], '9g': [-0.942478, 0.72, 0, 1] },
+  three: { '7r': [-0.829031, 1, 0.6, 0], '9r': [-1.064651, 1, 0, 0], '7g': [-0.951204, 0.85, 0, 0.6], '9g': [-0.942478, 0.72, 0, 1] },
 };
 const trickById = id => TRICKS.find(c => c.id === id) || null;
 /* the layout's points for the current table: { n: [x, y] }, and the zone's centre */
@@ -10262,24 +10322,36 @@ fineWheel.addEventListener('wheel', e => {
 }, { passive: false });
 
 /* the english pad: tap or drag the tip anywhere inside the safe circle. Two real taps (each
-   short and still, close together in time and place) centre it; a drag never does. */
+   short and still, close together in time and place) centre it; a drag never does. The tip
+   keeps the cue's elevation (cueSpin.e); a hold (ELEV_HOLD_MS, still) or a right click leaves
+   the tip where it was and opens the elevation sheet instead. */
 const spinOk = () => human() && state === 'aim';
-let spinTap = null, spinDrag = null;
+const ELEV_HOLD_MS = 450;
+let spinTap = null, spinDrag = null, spinHold = 0;
 function spinAt(e) {
   const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE;
   let x = (e.clientX - (r.left + r.width / 2)) / R, y = -(e.clientY - (r.top + r.height / 2)) / R;
   const L = Math.hypot(x, y);
   if (L > 1) { x /= L; y /= L; }
   if (L < 0.08) { x = 0; y = 0; }
-  cueSpin = { x, y };
+  cueSpin = spinOf({ x, y, e: cueSpin.e });
   hudControls();
 }
 spinPad.addEventListener('pointerdown', e => {
   audioOn();
-  if (!spinOk()) return;
-  spinDrag = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, far: 0 };
+  if (!spinOk() || e.button > 0) return;
+  spinDrag = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, far: 0, before: cueSpin };
   spinPad.setPointerCapture(e.pointerId);
   spinAt(e);
+  clearTimeout(spinHold);
+  const id = e.pointerId;
+  spinHold = setTimeout(() => {
+    const d = spinDrag;
+    if (!d || d.id !== id || d.far >= 8 || !spinOk()) return;
+    cueSpin = d.before; spinDrag = null; spinTap = null;
+    try { spinPad.releasePointerCapture(id); } catch { /* already released */ }
+    openElev();
+  }, ELEV_HOLD_MS);
 });
 spinPad.addEventListener('pointermove', e => {
   const d = spinDrag;
@@ -10288,15 +10360,68 @@ spinPad.addEventListener('pointermove', e => {
   spinAt(e);
 });
 spinPad.addEventListener('pointerup', e => {
+  clearTimeout(spinHold);
   const d = spinDrag;
   spinDrag = null;
   if (!d || d.id !== e.pointerId) return;
   const tap = e.timeStamp - d.t < TAP_MS && d.far < 8;
   if (tap && spinTap && e.timeStamp - spinTap.t < 350 && Math.hypot(d.x - spinTap.x, d.y - spinTap.y) < 24 && spinOk()) {
-    spinTap = null; cueSpin = { x: 0, y: 0 }; hudControls();
+    spinTap = null; cueSpin = spinOf({ x: 0, y: 0, e: cueSpin.e }); hudControls();
   } else spinTap = tap ? { t: e.timeStamp, x: d.x, y: d.y } : null;
 });
-spinPad.addEventListener('pointercancel', () => { spinDrag = null; spinTap = null; });
+spinPad.addEventListener('pointercancel', () => { clearTimeout(spinHold); spinDrag = null; spinTap = null; });
+spinPad.addEventListener('contextmenu', e => { e.preventDefault(); if (spinOk()) openElev(); });
+
+/* cue elevation (sim 1d strike: swerve and masse), 0 to 60 degrees in whole degrees, on cueSpin.e.
+   The sheet stands beside the pad: its slider fills from the bed up (drag or tap it; the arrows
+   step 5 degrees, Home and End go to the ends), Level puts the cue back down. It closes on a tap
+   anywhere else, Esc, or once the turn is not the player's to aim. Every shot starts level, as it
+   starts from a centred tip. */
+const elevDeg = () => Math.round((cueSpin.e || 0) * 180 / Math.PI);
+function setElev(deg) {
+  cueSpin = spinOf({ x: cueSpin.x, y: cueSpin.y, e: clamp(Math.round(deg), 0, 60) * Math.PI / 180 });
+  hudControls();
+}
+function openElev() {
+  if (!spinOk()) return;
+  elevPop.hidden = false;
+  hudControls();
+  const r = spinPad.getBoundingClientRect(), w = elevPop.offsetWidth, h = elevPop.offsetHeight, W = innerWidth, H = innerHeight;
+  let x, y;
+  if (document.documentElement.dataset.layout === 'portrait') { x = r.left + r.width / 2 - w / 2; y = r.top - h - 8; }
+  else { x = r.left + r.width / 2 > W / 2 ? r.left - w - 8 : r.right + 8; y = r.top + r.height / 2 - h / 2; }
+  elevPop.style.left = clamp(x, 8, Math.max(8, W - w - 8)) + 'px';
+  elevPop.style.top = clamp(y, 8, Math.max(8, H - h - 8)) + 'px';
+  if (byKeys) elevSlider.focus();
+}
+function closeElev() {
+  if (elevPop.hidden) return;
+  const had = elevPop.contains(document.activeElement);
+  elevPop.hidden = true;
+  if (had) spinPad.focus();
+}
+let elevDrag = null;
+function elevAt(e) {
+  const r = elevSlider.getBoundingClientRect();
+  setElev(60 * clamp((r.bottom - e.clientY) / r.height, 0, 1));
+}
+elevSlider.addEventListener('pointerdown', e => {
+  if (!spinOk()) return;
+  elevDrag = e.pointerId; elevSlider.setPointerCapture(e.pointerId); elevAt(e);
+});
+elevSlider.addEventListener('pointermove', e => { if (elevDrag === e.pointerId && spinOk()) elevAt(e); });
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) elevSlider.addEventListener(ev, e => { if (elevDrag === e.pointerId) elevDrag = null; });
+elevSlider.addEventListener('keydown', e => {
+  const k = e.key, d = k === 'ArrowUp' || k === 'ArrowRight' ? 5 : k === 'ArrowDown' || k === 'ArrowLeft' ? -5 : 0;
+  if (d || k === 'Home' || k === 'End' || k === 'PageUp' || k === 'PageDown') {
+    if (spinOk()) setElev(k === 'Home' ? 0 : k === 'End' ? 60 : elevDeg() + (d || (k === 'PageUp' ? 15 : -15)));
+    e.preventDefault(); e.stopPropagation();
+  }
+});
+elevPop.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === 'Enter') { closeElev(); e.preventDefault(); e.stopPropagation(); } });
+elevLevel.addEventListener('click', () => { if (spinOk()) setElev(0); closeElev(); });
+addEventListener('pointerdown', e => { if (!elevPop.hidden && !elevPop.contains(e.target) && e.target !== spinPad) closeElev(); }, true);
+addEventListener('resize', closeElev);
 
 /* pointing at the pad or the bar does not focus them, so the arrows keep aiming afterwards;
    Tab still reaches both */
@@ -10318,13 +10443,15 @@ addEventListener('keydown', e => {
   if (e.key === 'Escape') { if (!escSheet()) { if (state === 'menu' && paused) resume(); else pause(); } e.preventDefault(); return; }
   if (state === 'menu' || state === 'over' || !human()) return;
   const k = e.key, arrow = k.startsWith('Arrow'), dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0, dy = k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0;
-  if (k === 'r' || k === 'R') { if (spinOk()) { cueSpin = { x: 0, y: 0 }; hudControls(); } }
+  if (k === 'r' || k === 'R') { if (spinOk()) { cueSpin = spinOf({ x: 0, y: 0, e: cueSpin.e }); hudControls(); } }
   else if ((k === 'b' || k === 'B') && game.kind === 'bumper' && state === 'aim') {
     const list = bumperStrikers(game);
     if (list.length > 1) pickBall(list[(list.indexOf(cueN()) + 1) % list.length]);
   }
   else if (arrow && document.activeElement === spinPad) {
-    if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s }); hudControls(); }
+    if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s, e: cueSpin.e }); hudControls(); }
+  } else if ((k === 'PageUp' || k === 'PageDown') && document.activeElement === spinPad) {
+    if (spinOk()) setElev(elevDeg() + (k === 'PageUp' ? 5 : -5));
   } else if (document.activeElement === powerBar && state === 'aim' && !move && (dy || ['PageUp', 'PageDown', 'Home', 'End', ' ', 'Enter'].includes(k))) {
     if (k === ' ' || k === 'Enter') keyDrive();
     else if (!gest) {
@@ -11853,6 +11980,7 @@ const spinWords = s => {
   const parts = [];
   if (Math.abs(s.y) >= 0.15) parts.push((Math.abs(s.y) > 0.7 ? 'strong ' : '') + (s.y > 0 ? 'follow' : 'draw'));
   if (Math.abs(s.x) >= 0.15) parts.push((s.x < 0 ? 'left' : 'right') + ' english');
+  if (s.e) parts.push(`cue up ${Math.round(s.e * 180 / Math.PI)} degrees`);
   return parts.length ? parts.join(', ') : 'center';
 };
 /* the cheap part of the hud, called on every drag */
@@ -11875,6 +12003,17 @@ function hudControls() {
   spinTip.style.top = 50 - cueSpin.y * SPIN_SAFE * 50 + '%';
   const w = spinWords(cueSpin);
   if (spinLabel.textContent !== w) { spinLabel.textContent = w; spinPad.setAttribute('aria-valuetext', w); }
+  /* cue elevation: the pad's tag and, while it is open, the sheet */
+  const deg = elevDeg(), dt = deg ? deg + '\u00b0' : '';
+  if (elevTag.textContent !== dt) { elevTag.textContent = dt; elevTag.hidden = !deg; }
+  if (!elevPop.hidden) {
+    if (!spinOk()) closeElev();
+    const words = deg ? `cue up ${deg} degrees` : 'level';
+    elevVal.textContent = deg ? deg + '\u00b0' : 'Level';
+    elevFill.style.height = deg / 60 * 100 + '%';
+    elevCue.style.transform = `rotate(${90 - deg}deg)`;
+    elevSlider.setAttribute('aria-valuenow', String(deg)); elevSlider.setAttribute('aria-valuetext', words);
+  }
 }
 let flashT = 0, byKeys = false;
 /* overlays take focus only when the player is on the keyboard, so a tap shows no focus ring */
@@ -12673,7 +12812,7 @@ function careerExec(angle, pw, spin) {
   let x = spin.x + g() * a.spinNoise * hill, y = spin.y + g() * a.spinNoise * hill;
   const L = Math.hypot(x, y);
   if (L > 1) { x /= L; y /= L; }
-  return { angle: angle + g() * a.aimNoise * hill, power: clamp(pw * (1 + g() * (game.breakShot ? a.breakNoise : a.powerNoise) * hill), 0, 1), spin: { x, y } };
+  return { angle: angle + g() * a.aimNoise * hill, power: clamp(pw * (1 + g() * (game.breakShot ? a.breakNoise : a.powerNoise) * hill), 0, 1), spin: spinOf({ x, y, e: spin.e }) };
 }
 
 /* ---- between racks and the match result ---- */

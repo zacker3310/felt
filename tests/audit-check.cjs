@@ -18,7 +18,12 @@
    A11 (F9) a ball that stops with side spin keeps turning in place until the cloth takes it, and
       a ball that hits it meanwhile is thrown by it (the old rest zeroed it on the spot).
    A12 (F10) side spin decays at pooltool's spinning friction, 5 u_sp g / 2R with u_sp = 4/9 R
-      (10.89 rad/s^2), on every table, not the old flat 8 rad/s^2. */
+      (10.89 rad/s^2), on every table, not the old flat 8 rad/s^2.
+   A13 (F12) a trick shot's tries persist per challenge (felt.trickTries.v1, versioned): reopening
+      it from the list, or after a reload, carries on the count, so a make after a miss and a
+      reopen earns two stars, not three. A bad record is ignored.
+   A14 (F6) the rules engine's re-rack on a stalemate covers 8-ball too (rules2-check pins the
+      rest of F6: legal breaks, the 8 on the break, push-outs, break-foul options, three fouls). */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -46,6 +51,17 @@ const { check, done, open } = require('./lib.cjs');
     return (10 - r.balls[0].wz) / (120 * S.SIM_DT);
   });
   S.setTable('7');
+  /* A14 (F6): dry innings in a row in 8-ball re-rack with the house stalemate option */
+  {
+    const g0 = S.newGame('8', { rules: { ruleset: '8-house', call: {}, options: { stalemate: 2 } } });
+    g0.breakShot = false; g0.inHand = null; g0.breaker = 1;
+    for (const b of g0.balls) if (b.n > 0 && ![1, 9, 8].includes(b.n)) b.on = false;
+    let g = g0;
+    const dry = x => ({ balls: x.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 })), first: x.groups && x.groups[x.turn] === 'stripes' ? 9 : 1, railAfter: true, potted: [], pocketOf: {}, kick: null, end: 'rest' });
+    for (let i = 0; i < 4 && g.winner === null && !g.breakShot; i++) g = S.judge(g, dry(g));
+    check('A14 (F6) 8-ball: dry innings in a row (the house stalemate option) re-rack all fifteen and the breaker breaks again',
+      g.verdict.rerack === 'stalemate' && g.breakShot && g.turn === 1 && S.onTable(g).length === 15, JSON.stringify({ v: g.verdict, n: S.onTable(g).length, t: g.turn }));
+  }
   check('A12 (F10) side spin decays at 10.89 rad/s^2 (pooltool: 5/2 x 4/9 x g) on pool, snooker, carom and bumper tables, not 8', rates.every(v => Math.abs(v - 2.5 * 4 / 9 * 9.8) < 1e-6), JSON.stringify(rates));
 }
 
@@ -234,6 +250,36 @@ const { check, done, open } = require('./lib.cjs');
     return out;
   });
   check('A8 audio: the CPU winning plays the quiet sting, not the win; your win and a two-player win still play the win', a8.cpuWins === 'lose' && a8.youWin === 'win' && a8.twoPlayers === 'win', JSON.stringify(a8));
+
+  /* A13 (F12): a miss on 'long', back to the list, reopened: try 2, and after a reload too; a make
+     now earns two stars, not three */
+  const a13 = await kp.evaluate(async () => {
+    const idle = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 10) : r(); w(); });
+    localStorage.removeItem('felt.tricks'); localStorage.removeItem('felt.trickTries.v1');
+    felt.speed = 30; felt.trick('long');
+    felt.shoot(Math.PI / 2, 0.08, 0); await idle();
+    const miss = felt.lastTrick.ok;
+    felt.quitToHome(); felt.showTricks(); felt.trick('long');
+    const reopened = { tries: felt.solo.attempts, chip: turnChip.dataset.name, stored: JSON.parse(localStorage.getItem('felt.trickTries.v1')) };
+    felt.quitToHome(); felt.speed = 1;
+    return { miss, reopened };
+  });
+  await kp.reload(); await kp.waitForFunction(() => window.booted === true);
+  const a13b = await kp.evaluate(async () => {
+    const idle = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 10) : r(); w(); });
+    felt.speed = 30; felt.trick('long');
+    const chip = turnChip.dataset.name, L = TRICK_SOLS.long[TABLE + POCKETS_STYLE[0]];
+    felt.shoot(L[0], L[1], { x: L[2], y: L[3] }); await idle();
+    const made = felt.lastTrick;
+    felt.quitToHome(); felt.speed = 1;
+    localStorage.setItem('felt.trickTries.v1', '{"v":2,"n":{"long":"x"}}');
+    return { chip, made, best: felt.trickBest.long };
+  });
+  await kp.reload(); await kp.waitForFunction(() => window.booted === true);
+  const a13c = await kp.evaluate(() => felt.trickTries);
+  check('A13 (F12) trick tries persist per challenge: a miss, the list, reopened is Try 2 (stored v1), after a reload still Try 2; a make then earns 2 stars, not 3; a bad record reads as none',
+    a13.miss === false && a13.reopened.tries === 1 && a13.reopened.chip === 'Try 2' && a13.reopened.stored.v === 1 && a13.reopened.stored.n.long === 1
+    && a13b.chip === 'Try 2' && a13b.made.ok && a13b.made.attempts === 2 && a13b.made.stars === 2 && a13b.best === 2 && JSON.stringify(a13c) === '{}', JSON.stringify({ a13, a13b, a13c }));
 
   /* A9: a banner on show, then the pause menu, on a phone on its side */
   await kp.setViewportSize({ width: 956, height: 440 });

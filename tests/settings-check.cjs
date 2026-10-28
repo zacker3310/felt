@@ -224,7 +224,27 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.waitForTimeout(300);
   check('Accessibility: ball marks put a light badge on a solid and a dark one on a stripe, told apart by lightness alone (off: neither)',
     lum(m1[0]) > 0.6 && lum(m1[1]) < 0.05 && !(lum(m0[0]) > 0.6 && lum(m0[1]) < 0.05), JSON.stringify({ m0, m1 }));
-  await p.evaluate(() => setSetting('marks', false));
+  /* the small dots wear the marks too: the turn chips, the pause menu's cards and potted row, game over */
+  const dotMarks = on => p.evaluate(async on => {
+    setSetting('marks', on); felt.quitToHome(); felt.start('8'); felt.speed = 1;
+    game.groups = ['solids', 'stripes']; stats.potted[0] = [3]; stats.potted[1] = [11];
+    for (const n of [3, 11]) game.balls.find(b => b.n === n).on = false;
+    hud();
+    const read = sel => [...document.querySelectorAll(sel)].filter(d => d.getClientRects().length).map(d => { const c = d.querySelector('.cb'); return c ? `${c.textContent}${c.classList.contains('d') ? 'd' : 'l'}` : '-'; });
+    const chip = read('#turnChip .dot');
+    pause(); await new Promise(r => setTimeout(r, 60));
+    const pz = read('#gameNow .dot');
+    resume(); felt.forceWin(0); await new Promise(r => setTimeout(r, 60));
+    const ov = read('#over .stats .dot');
+    return { chip, pz, ov };
+  }, on);
+  const dm0 = await dotMarks(false), dm1 = await dotMarks(true);
+  const dmLow = await lowContrast(p);
+  const allMarked = a => a.length > 0 && a.every(x => x !== '-');
+  check('Accessibility: ball marks on the small dots too: turn chips, the pause menu and game over (solids light, stripes dark; off: none), text 4.5:1',
+    allMarked(dm1.chip) && allMarked(dm1.pz) && allMarked(dm1.ov) && dm1.pz.includes('3l') && dm1.pz.includes('11d') && dm1.ov.includes('3l') && dm1.ov.includes('11d')
+    && [dm0.chip, dm0.pz, dm0.ov].every(a => a.every(x => x === '-')) && !dmLow.length, JSON.stringify({ dm0, dm1, dmLow }));
+  await p.evaluate(() => { felt.quitToHome(); setSetting('marks', false); });
   const aimLine = async () => {
     await p.evaluate(() => { felt.quitToHome(); felt.start('8'); game.balls.forEach(b => { if (b.n !== 0) b.on = false; }); const c = game.balls[0]; c.x = TL * 0.3; c.y = TW / 2; game.inHand = null; aimAngle = 0; aimLock = 'pending'; });
     await p.waitForTimeout(150);

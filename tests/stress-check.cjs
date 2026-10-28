@@ -13,13 +13,20 @@
    4. Navigation: hundreds of rapid taps on whatever controls are on screen, resizes and
       rotations, pauses, resumes, replays and quits, with games started and played in between;
       and a table fuzz (random touches and mouse drags anywhere but the power bar, random keys)
-      that never fires a shot. No console errors anywhere. */
+      that never fires a shot. No console errors anywhere.
+   Wall time: the parts are independent, so they run side by side: the shots and the CPU racks
+   each in a worker thread (each loads its own sim), the three page parts each in its own
+   browser, all at once. Every part records its checks, and they are printed in the order above,
+   so the output reads the same as when they ran one after another. */
 'use strict';
+const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const { check, done, open } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 const T0 = Date.now();
-const secs = () => ((Date.now() - T0) / 1000).toFixed(1) + ' s';
+const secs = (t = T0) => ((Date.now() - t) / 1000).toFixed(1) + ' s';
+/* a part's checks, kept until it is printed: [name, ok, detail] */
+const part = () => { const rec = []; return { rec, check: (n, ok, d) => rec.push([n, !!ok, d]) }; };
 
 /* ---- 1. shots ---- */
 const TABLES = [
@@ -47,48 +54,51 @@ function onBed(b) {
   return S.BUMPERS.every(q => Math.hypot(q[0] - b.x, q[1] - b.y) >= S.BUMPER_R + R - 1e-5);
 }
 const PER_TABLE = +(process.env.STRESS_SHOTS || 260);
-const bad = { nan: [], escape: [], rest: [], overlap: [], off: [], judge: [] };
-let shots = 0;
-const sample = [];
-for (const T of TABLES) {
-  T.set();
-  const rnd = S.rng(9001 + shots);
-  let g = fresh(T.kind);
-  for (let i = 0; i < PER_TABLE; i++) {
-    /* ball in hand: a legal spot near the middle of what is allowed, else where it lies */
-    if (g.inHand && g.kind !== 'bumper' && g.kind !== 'carom') {
-      const spots = S.cpuSpots(g, S.cpuTargets(g), S.CPU_LEVELS.easy);
-      if (spots.length) g = S.placeCue(g, spots[0][0], spots[0][1]);
+function shotsPart() {
+  const { rec, check } = part(), t0 = Date.now();
+  const bad = { nan: [], escape: [], rest: [], overlap: [], off: [], judge: [] };
+  let shots = 0;
+  const sample = [];
+  for (const T of TABLES) {
+    T.set();
+    const rnd = S.rng(9001 + shots);
+    let g = fresh(T.kind);
+    for (let i = 0; i < PER_TABLE; i++) {
+      /* ball in hand: a legal spot near the middle of what is allowed, else where it lies */
+      if (g.inHand && g.kind !== 'bumper' && g.kind !== 'carom') {
+        const spots = S.cpuSpots(g, S.cpuTargets(g), S.CPU_LEVELS.easy);
+        if (spots.length) g = S.placeCue(g, spots[0][0], spots[0][1]);
+      }
+      const p = rnd(), shot = { angle: rnd() * 2 * Math.PI, power: p < 0.15 ? 0.95 + 0.05 * rnd() : p, spin: { x: rnd() * 2 - 1, y: rnd() * 2 - 1 }, ball: striker(g) };
+      if (!g.balls.some(b => b.n === shot.ball && b.on)) { g = fresh(T.kind); continue; }
+      /* simulateShot by hand, to read the table's escape count (a pool ball through a cushion) */
+      const tab = S.strike(S.newTable(g.balls, shot.ball), shot.angle, shot.power, shot.spin);
+      while (S.stepTable(tab));
+      const r = S.resultOf(tab);
+      shots++;
+      const id = `${T.tag} #${i}`;
+      if (r.balls.some(b => ![b.x, b.y, b.vx, b.vy, b.wx, b.wy, b.wz].every(Number.isFinite))) bad.nan.push(id);
+      if (r.end !== 'rest') bad.rest.push(`${id} ${r.end}`);
+      const up = r.balls.filter(b => b.on);
+      if (up.some(b => !onBed(b))) bad.off.push(id);
+      for (let a = 0; a < up.length; a++) for (let c = a + 1; c < up.length; c++) if (Math.hypot(up[a].x - up[c].x, up[a].y - up[c].y) < 2 * S.BALL_R - 1e-4) bad.overlap.push(`${id} ${up[a].n}/${up[c].n}`);
+      /* a ball out of a pocketless table comes back by the rules; on a pool table nothing may leave */
+      if (S.MOUTHS.length && (tab.escaped || r.potted.some(n => r.pocketOf[n] < 0))) bad.escape.push(id);
+      if (i % 37 === 0) sample.push({ T, balls: g.balls.map(b => Object.assign({}, b)), shot, json: JSON.stringify(S.simulateShot(g.balls, shot)) });
+      let n;
+      try { n = S.judge(g, r); } catch (e) { bad.judge.push(`${id} ${e.message}`); g = fresh(T.kind); continue; }
+      g = n.winner !== null ? fresh(T.kind) : n;
     }
-    const p = rnd(), shot = { angle: rnd() * 2 * Math.PI, power: p < 0.15 ? 0.95 + 0.05 * rnd() : p, spin: { x: rnd() * 2 - 1, y: rnd() * 2 - 1 }, ball: striker(g) };
-    if (!g.balls.some(b => b.n === shot.ball && b.on)) { g = fresh(T.kind); continue; }
-    /* simulateShot by hand, to read the table's escape count (a pool ball through a cushion) */
-    const tab = S.strike(S.newTable(g.balls, shot.ball), shot.angle, shot.power, shot.spin);
-    while (S.stepTable(tab));
-    const r = S.resultOf(tab);
-    shots++;
-    const id = `${T.tag} #${i}`;
-    if (r.balls.some(b => ![b.x, b.y, b.vx, b.vy, b.wx, b.wy, b.wz].every(Number.isFinite))) bad.nan.push(id);
-    if (r.end !== 'rest') bad.rest.push(`${id} ${r.end}`);
-    const up = r.balls.filter(b => b.on);
-    if (up.some(b => !onBed(b))) bad.off.push(id);
-    for (let a = 0; a < up.length; a++) for (let c = a + 1; c < up.length; c++) if (Math.hypot(up[a].x - up[c].x, up[a].y - up[c].y) < 2 * S.BALL_R - 1e-4) bad.overlap.push(`${id} ${up[a].n}/${up[c].n}`);
-    /* a ball out of a pocketless table comes back by the rules; on a pool table nothing may leave */
-    if (S.MOUTHS.length && (tab.escaped || r.potted.some(n => r.pocketOf[n] < 0))) bad.escape.push(id);
-    if (i % 37 === 0) sample.push({ T, balls: g.balls.map(b => Object.assign({}, b)), shot, json: JSON.stringify(S.simulateShot(g.balls, shot)) });
-    let n;
-    try { n = S.judge(g, r); } catch (e) { bad.judge.push(`${id} ${e.message}`); g = fresh(T.kind); continue; }
-    g = n.winner !== null ? fresh(T.kind) : n;
   }
+  check(`${shots} shots across ${TABLES.length} tables: every one comes to rest (no timeout)`, !bad.rest.length, bad.rest.slice(0, 5).join(', '));
+  check('no NaN anywhere in any result', !bad.nan.length, bad.nan.slice(0, 5).join(', '));
+  check('nothing escapes a pocketed table, every ball left up lies on the bed', !bad.escape.length && !bad.off.length, bad.escape.concat(bad.off).slice(0, 5).join(', '));
+  check('no two balls overlap at rest', !bad.overlap.length, bad.overlap.slice(0, 5).join(', '));
+  check('judge takes every result without throwing', !bad.judge.length, bad.judge.slice(0, 5).join(', '));
+  const diff = sample.filter(s => { s.T.set(); return JSON.stringify(S.simulateShot(s.balls, s.shot)) !== s.json; });
+  check(`determinism: ${sample.length} sampled shots re-run (after every table change) give byte-identical results`, !diff.length, diff.map(s => s.T.tag).join(', '));
+  return { rec, time: secs(t0) };
 }
-check(`${shots} shots across ${TABLES.length} tables: every one comes to rest (no timeout)`, !bad.rest.length, bad.rest.slice(0, 5).join(', '));
-check('no NaN anywhere in any result', !bad.nan.length, bad.nan.slice(0, 5).join(', '));
-check('nothing escapes a pocketed table, every ball left up lies on the bed', !bad.escape.length && !bad.off.length, bad.escape.concat(bad.off).slice(0, 5).join(', '));
-check('no two balls overlap at rest', !bad.overlap.length, bad.overlap.slice(0, 5).join(', '));
-check('judge takes every result without throwing', !bad.judge.length, bad.judge.slice(0, 5).join(', '));
-const diff = sample.filter(s => { s.T.set(); return JSON.stringify(S.simulateShot(s.balls, s.shot)) !== s.json; });
-check(`determinism: ${sample.length} sampled shots re-run (after every table change) give byte-identical results`, !diff.length, diff.map(s => s.T.tag).join(', '));
-console.log(`  (shots: ${secs()})`);
 
 /* ---- 2. CPU against CPU ---- */
 const CAP = 500;
@@ -115,23 +125,36 @@ const RACKS = [
   ['carom', 'easy', 3, () => S.setTable('carom'), { race: 5, cushions: 1 }],
   ['snooker', 'easy', 1, () => S.setTable('snooker', 'compact')],
 ];
-let racks = 0, maxShots = 0;
-const stuck = [], sigs = {};
-for (const [kind, level, n, set, opts] of RACKS) {
-  for (let i = 0; i < n; i++) {
-    const o = rackPlay(kind, level, set, 1 + 7919 * i, opts);
-    racks++; maxShots = Math.max(maxShots, o.k);
-    if (o.stuck) stuck.push(`${kind}/${level} #${i}: ${o.stuck} after ${o.k}`);
-    if (i === 0) sigs[kind + level] = { o, set, kind, level, opts };
+function cpuPart() {
+  const { rec, check } = part(), t0 = Date.now();
+  let racks = 0, maxShots = 0;
+  const stuck = [], sigs = {};
+  for (const [kind, level, n, set, opts] of RACKS) {
+    for (let i = 0; i < n; i++) {
+      const o = rackPlay(kind, level, set, 1 + 7919 * i, opts);
+      racks++; maxShots = Math.max(maxShots, o.k);
+      if (o.stuck) stuck.push(`${kind}/${level} #${i}: ${o.stuck} after ${o.k}`);
+      if (i === 0) sigs[kind + level] = { o, set, kind, level, opts };
+    }
   }
+  check(`CPU against CPU: ${racks} racks (8, 9, bumper, carom, snooker; easy and medium) all end, none stuck (longest ${maxShots} shots, cap ${CAP})`, !stuck.length, stuck.slice(0, 5).join(', '));
+  const redo = Object.values(sigs).filter(s => rackPlay(s.kind, s.level, s.set, 1, s.opts).sig !== s.o.sig);
+  check('CPU against CPU: each game replayed from its seeds is identical', !redo.length, redo.map(s => s.kind + s.level).join(', '));
+  return { rec, time: secs(t0) };
 }
-check(`CPU against CPU: ${racks} racks (8, 9, bumper, carom, snooker; easy and medium) all end, none stuck (longest ${maxShots} shots, cap ${CAP})`, !stuck.length, stuck.slice(0, 5).join(', '));
-const redo = Object.values(sigs).filter(s => rackPlay(s.kind, s.level, s.set, 1, s.opts).sig !== s.o.sig);
-check('CPU against CPU: each game replayed from its seeds is identical', !redo.length, redo.map(s => s.kind + s.level).join(', '));
-console.log(`  (cpu: ${secs()})`);
+/* a worker runs one sim part and posts its checks back */
+if (!isMainThread) {
+  parentPort.postMessage(workerData === 'shots' ? shotsPart() : cpuPart());
+  return;
+}
+const inWorker = name => new Promise((resolve, reject) => {
+  const w = new Worker(__filename, { workerData: name });
+  w.once('message', resolve); w.once('error', reject);
+  w.once('exit', c => { if (c) reject(new Error(`${name} worker exited ${c}`)); });
+});
 
 /* ---- 3 and 4. the page ---- */
-const KEYS = ['felt.settings', 'felt.tricks', 'felt.daily.v1', 'felt.record.v1', 'felt.lesson.v1', 'felt.tutorials.v1', 'felt.career.v1', 'felt.muted'];
+const KEYS = ['felt.settings', 'felt.tricks', 'felt.trickTries.v1', 'felt.daily.v1', 'felt.record.v1', 'felt.lesson.v1', 'felt.tutorials.v1', 'felt.career.v1', 'felt.tourney.v1', 'felt.muted'];
 const CORRUPT = ['{', 'null', '[]', '"x"', '123', 'true', '{"v":1}', '{"v":2,"kinds":{}}', '{"__proto__":{"polluted":1},"v":1}',
   '{"v":1,"kinds":{"8":{"played":-5,"cpu":{"easy":{"w":"x","l":1e400}}}},"best":{"pip":[1,0],"benny":"x","rosa":[2,5]},"won":99,"played":3,"streak":2.5}',
   '{"guide":"bogus","names":[{"a":1},"' + 'x'.repeat(3000) + '"],"last":"nope","level":"insane","table":9,"cpu":"yes","camV":2,"camera":"spin"}',
@@ -149,12 +172,13 @@ const TOUR = async page => page.evaluate(async () => {
   return { polluted: ({}).polluted === 1, state: felt.state, settings: typeof felt.settings.names[0] === 'string' && felt.settings.names[0].length <= 12 };
 });
 
-(async () => {
+async function roundTrips() {
+  const { rec, check } = part(), t0 = Date.now();
   /* round trips: write every record through the game, reload, read it back identical */
   {
     const { browser, page, errors } = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
     const snap = () => page.evaluate(keys => Object.fromEntries(keys.map(k => [k, localStorage.getItem(k)])), KEYS);
-    const reads = () => page.evaluate(() => JSON.stringify([felt.settings, felt.record, felt.trickBest, felt.dailyRec, felt.lessonRec, felt.tutRec, felt.careerRec]));
+    const reads = () => page.evaluate(() => JSON.stringify([felt.settings, felt.record, felt.trickBest, felt.trickTries, felt.dailyRec, felt.lessonRec, felt.tutRec, felt.careerRec]));
     let same = 0, trips = 0;
     const rounds = [];
     for (let i = 0; i < 12; i++) {
@@ -179,7 +203,11 @@ const TOUR = async page => page.evaluate(async () => {
     check('storage round trips: no console errors', errors.length === 0, errors.join(' | '));
     await browser.close();
   }
-  /* corrupted records, a storage that throws, a full storage */
+  return { rec, time: secs(t0) };
+}
+/* corrupted records */
+async function corruption() {
+  const { rec, check } = part(), t0 = Date.now();
   {
     const fails = [];
     const { browser, page, errors } = await open('');
@@ -192,6 +220,13 @@ const TOUR = async page => page.evaluate(async () => {
     }
     await browser.close();
     check(`storage corruption: ${CORRUPT.length} kinds of bad record in every key: boot, every screen, no pollution, no console errors`, !fails.length, JSON.stringify(fails).slice(0, 600));
+  }
+  return { rec, time: secs(t0) };
+}
+/* a storage that throws, a full storage */
+async function oddStorage() {
+  const { rec, check } = part(), t0 = Date.now();
+  {
     const odd = [];
     for (const [tag, init] of [
       ['throwing', '(() => { const t = () => { throw new DOMException("denied", "SecurityError"); }; Storage.prototype.getItem = t; Storage.prototype.setItem = t; })()'],
@@ -204,7 +239,11 @@ const TOUR = async page => page.evaluate(async () => {
     }
     check('storage that throws on every access, and a full storage: the game plays on, nothing on the console', !odd.length, JSON.stringify(odd).slice(0, 600));
   }
-  /* rapid navigation, resizes, replays, pauses */
+  return { rec, time: secs(t0) };
+}
+/* rapid navigation, resizes, replays, pauses */
+async function navigation() {
+  const { rec, check } = part(), t0 = Date.now();
   {
     const { browser, page, errors } = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const SIZES = [[440, 956], [956, 440], [375, 667], [1280, 800], [667, 375]];
@@ -260,6 +299,16 @@ const TOUR = async page => page.evaluate(async () => {
     check('table fuzz: no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
     await browser.close();
   }
+  return { rec, time: secs(t0) };
+}
+
+(async () => {
+  /* every part at once; printed in order, each with its own time */
+  const parts = await Promise.all([inWorker('shots'), inWorker('cpu'), roundTrips(), corruption(), oddStorage(), navigation()]);
+  ['shots', 'cpu', 'round trips', 'corruption', 'odd storage', 'navigation'].forEach((name, i) => {
+    for (const [n, ok, d] of parts[i].rec) check(n, ok, d);
+    console.log(`  (${name}: ${parts[i].time})`);
+  });
   console.log(`  (total: ${secs()})`);
   done();
 })().catch(e => { console.error(e); process.exit(1); });

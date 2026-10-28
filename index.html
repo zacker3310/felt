@@ -114,6 +114,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] .pchip { width: var(--col); height: 42px; }
 /* a short landscape screen: the column trims chips, wheel and the meter's floor so it all fits */
 @media (max-height: 420px) { [data-layout="wide"] .pchip { height: 38px; } [data-layout="wide"] #fineWheel { height: 64px; } [data-layout="wide"] #powerBar { min-height: 96px; } }
+/* a party of three or four (6f, .many): every player's chip in the room two take. Portrait: two
+   by two, each a short name over its score or ball on; landscape: a slim row each down the column.
+   The race (.of) is left to the pause menu, which lists everyone. */
+#turnChip.many .pchip { gap: 2px; border-radius: 9px; font-size: 11px; }
+#turnChip.many .pchip .dot { width: 10px; height: 10px; }
+#turnChip.many .pchip .num { margin-left: 0; }
+#turnChip.many .pchip .of { display: none; }
+#turnChip.many .pchip .pb { min-height: 10px; }
+[data-layout="portrait"] #turnChip.many { display: grid; grid-template-columns: repeat(2, auto); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 3px; }
+[data-layout="portrait"] #turnChip.many .pchip { height: auto; min-height: 0; }
+[data-layout="wide"] #turnChip.many { gap: 3px; }
+[data-layout="wide"] #turnChip.many .pchip { height: 24px; flex-direction: row; gap: 3px; padding: 0 2px; }
+/* a slim row has room for a name and a score: the ball on stays on the table (and the lit chip) */
+[data-layout="wide"] #turnChip.many .pb:has(.num) .dot { display: none; }
+@media (max-height: 420px) { [data-layout="wide"] #turnChip.many .pchip { height: 21px; } }
 
 /* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
 #gameNow { margin: 0 0 14px; }
@@ -140,6 +155,14 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .dot.big { width: 18px; height: 18px; }
 /* bumper pool: a marked ball's dot carries its spot (--mk) */
 .dot.mark { background-image: radial-gradient(circle at 50% 50%, var(--mk, #f6f4ec) 0 26%, transparent 31%); }
+/* colour-blind safe marks on a dot (Settings, Accessibility; dotEl): the table's badge, light with
+   a dark number or dark with a light one (about 17:1 either way) */
+.dot { position: relative; }
+.dot .cb { position: absolute; inset: 12%; display: grid; place-items: center; border-radius: 50%; font: 700 7px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-style: normal; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.dot .cb.l { background: #f7f4ea; color: #141414; box-shadow: 0 0 0 .5px #141414; }
+.dot .cb.d { background: #141414; color: #f7f4ea; box-shadow: 0 0 0 .5px #f7f4ea; }
+.dot.big .cb, #potDots .dot .cb { font-size: 10px; }
 .thinking::after { content: ""; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.2s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 #potRow[hidden] { display: none; }
@@ -1266,7 +1289,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <button class="icon" id="undoBtn" aria-label="Undo the last shot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button class="icon" id="toolBtn" aria-label="Practice tools: ball in hand, reset, edit" aria-expanded="false" aria-controls="tools"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
     </div>
-    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div></div>
+    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pb"></span></div></div>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it. Hold it, right click it or press Page Up and Page Down to raise the cue." aria-valuetext="center"><span id="spinTip"></span><span id="elevTag" aria-hidden="true" hidden></span></div>
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
@@ -1544,7 +1567,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="tog" id="tgHcAim" role="switch" aria-checked="false"><span>High-contrast aim line</span><i aria-hidden="true"></i></button>
         <button class="tog" id="tgMotion2" role="switch" aria-checked="false"><span>Reduce motion</span><i aria-hidden="true"></i></button>
       </div>
-      <p class="gfoot">Ball marks put an upright badge on every ball: solids light with a dark number, stripes dark with a light one, snooker's colours their value, carom's yellow Y and red R, bumper pool's reds R. Tell them apart without colour.</p>
+      <p class="gfoot">Ball marks put an upright badge on every ball: solids light with a dark number, stripes dark with a light one, snooker's colours their value, carom's yellow Y and red R, bumper pool's reds R. The small balls in the turn chips, the pause menu and game over wear them too. Tell them apart without colour.</p>
       <h3 class="ghead" id="tsLab">Text size</h3>
       <div class="group" role="group" aria-labelledby="tsLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="tsLab"><button id="ts100" aria-pressed="true">Default</button><button id="ts115" aria-pressed="false">Large</button><button id="ts130" aria-pressed="false">Larger</button></div></div>
@@ -1615,6 +1638,10 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="topic" id="tabRot" aria-controls="panRot"><span class="htile" aria-hidden="true"><span class="ball b15">15</span></span><span class="tt"><b>Rotation</b><small>Numbers score, 61 wins</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabCall" aria-controls="panCall"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21" cy="11" r="6.2" fill="none" stroke="#ffe27a" stroke-width="1.8"/><circle cx="21" cy="11" r="3.4" fill="#2f6fd0"/></svg></span><span class="tt"><b>Called shots</b><small>Ball, pocket, safety</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabSolo" aria-controls="panSolo"><span class="htile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#f2c94c" width="20" height="20"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Solo modes</b><small>Practice, tricks, career</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabCue" aria-controls="panCue"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 27 20.5 11.5" stroke="#d9b37a" stroke-width="2.4" stroke-linecap="round"/><circle cx="23.5" cy="20.5" r="5.2" fill="#f6f4ec"/><path d="M10 25.5a10 10 0 0 1 4-8" fill="none" stroke="#f2c94c" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="tt"><b>Cue elevation</b><small>Swerve and masse</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabModes" aria-controls="panModes"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M10.5 6h11v6a5.5 5.5 0 0 1-11 0z" fill="#f2c94c"/><path d="M10.5 8H7.5a3.2 3.2 0 0 0 3.4 4.4M21.5 8h3a3.2 3.2 0 0 1-3.4 4.4" fill="none" stroke="#f2c94c" stroke-width="1.6"/><path d="M14.5 17.5h3v4h-3zM12 22.5h8v2.5h-8z" fill="#f2c94c"/></svg></span><span class="tt"><b>More modes</b><small>Tournament, exhibition, party</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabDrills" aria-controls="panDrills"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><circle cx="16" cy="16" r="5.6" fill="none" stroke="#f6f4ec" stroke-width="1.6"/><circle cx="16" cy="16" r="2" fill="#f2c94c"/></svg></span><span class="tt"><b>Drills</b><small>Scored practice, medals</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabCareer" aria-controls="panCareer"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="11" r="4.6" fill="#f6f4ec"/><path d="M7.5 26c.8-5 4.2-7.6 8.5-7.6s7.7 2.6 8.5 7.6" fill="none" stroke="#f6f4ec" stroke-width="1.8" stroke-linecap="round"/><path d="M24 4.5l1.1 2.3 2.4.3-1.8 1.7.5 2.4-2.2-1.2-2.2 1.2.5-2.4-1.8-1.7 2.4-.3z" fill="#f2c94c"/></svg></span><span class="tt"><b>Career</b><small>Seasons, tiers, rankings</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
       </div>
     </div>
     <!-- a page per topic: short rules as rows, rare cases in the fine print, its action pinned at the foot -->
@@ -1822,7 +1849,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><div><b>Practice tools</b><p>The tools button holds ball in hand and reset rack. On a free table it adds and removes balls.</p></div></li>
         <li><div><b>Drills</b><p>In Practice: a few shots each, scored out of 100 from where the balls really went. Bronze, silver and gold by score; a career's practice is played here too.</p></div></li>
         <li><div><b>Trick shots</b><p>One layout, one goal. Show me plays one way to make it.</p></div></li>
-        <li><div><b>Stars</b><p>Three for a make on the first try, two within three tries, one for any make.</p></div></li>
+        <li><div><b>Stars</b><p>Three for a make on the first try, two within three tries, one for any make. Tries add up across visits.</p></div></li>
         <li><div><b>Daily shot</b><p>One trick shot a day, the same for everyone. Your first try counts.</p></div></li>
         <li><div><b>Streak</b><p>Play on consecutive days and it grows. Miss a day and it starts again.</p></div></li>
         <li><div><b>Career</b><p>Your own player among 300 others: enter events from the calendar, climb twelve tiers, season after season.</p></div></li>
@@ -1832,6 +1859,74 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <ul class="fine">
         <li>Retries on the daily shot are practice. They never change your streak.</li>
       </ul>
+    </section>
+    <section class="pan" id="panCue" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>What it is</b><p>The cue raised above the bed, from level up to 60 degrees. Every shot starts level.</p></div></li>
+        <li class="touch"><div><b>Open it</b><p>Hold the english pad (the cue ball by the power bar) still for half a second. The elevation slider opens beside it.</p></div></li>
+        <li class="keys"><div><b>Open it</b><p>Right click the english pad (the cue ball by the power bar). The elevation slider opens beside it.</p></div></li>
+        <li><div><b>Set it</b><p>Drag the slider up to raise the cue, down to lower it. Level puts it back down. A tap anywhere else closes it.</p></div></li>
+        <li><div><b>Swerve</b><p>A little elevation with side spin: the ball sets off straight, then bends late towards the side you hit.</p></div></li>
+        <li><div><b>Masse</b><p>A steep cue with side spin: the ball curves hard and early, round a ball in the way.</p></div></li>
+        <li><div><b>No side spin</b><p>A raised cue then only drives the ball into the cloth: no curve.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>The pad shows the angle while the cue is raised.</li>
+        <li>More side spin and a higher cue make a bigger curve. A harder hit runs further before it bends.</li>
+        <li class="keys">On the slider the arrows move 5 degrees, <kbd>Page Up</kbd> and <kbd>Page Down</kbd> 15, <kbd>Home</kbd> and <kbd>End</kbd> go to the ends.</li>
+        <li>The CPU plays a level cue.</li>
+      </ul>
+    </section>
+    <section class="pan" id="panModes" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Quick tournament</b><p>A bracket of 4, 8 or 16 against named CPU players, single or double elimination, on the game you pick.</p></div></li>
+        <li><div><b>Your matches</b><p>Played on the table to the race you chose: racks, snooker's frames, or points in one game at 14.1 and three-cushion.</p></div></li>
+        <li><div><b>The other matches</b><p>Settled by the career's match model from the players' strengths, and marked simulated.</p></div></li>
+        <li><div><b>Leaving a match</b><p>Quit, another game or closing the app forfeits it: a loss.</p></div></li>
+        <li><div><b>AI exhibition</b><p>Watch two CPU players, each with a style you pick, on any table. The bar under the table pauses and sets 1x, 2x or 4x.</p></div></li>
+        <li><div><b>Party</b><p>Two to four people on one device: 9-ball, rotation or straight pool. When the turn passes, the screen asks for the next player.</p></div></li>
+        <li><div><b>Everyone's chip</b><p>With three or four players, each has a chip by the power bar. The lit one is to shoot.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>A tournament locks its rules for every match and is saved as it goes, so it carries on after the app is closed.</li>
+        <li>An exhibition and a party never change your record.</li>
+        <li>A party keeps the racks won from rack to rack, and the break passes round the table.</li>
+        <li>8-ball, snooker, bumper pool and three-cushion are two-player games, so a party never offers them.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo helpGo" id="helpModes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Open More modes</span></button></div>
+    </section>
+    <section class="pan" id="panDrills" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>What they are</b><p>Short scored exercises in Practice: long pots, cuts, power, the break, position, spin, banks, kicks, safeties, a run and a pressure 9.</p></div></li>
+        <li><div><b>Play one</b><p>Pick a drill, read its goal, then Start. Each is a few shots on its own layout.</p></div></li>
+        <li><div><b>Scoring</b><p>Out of 100, measured from where the balls really stop: a pot, how close, the right zone.</p></div></li>
+        <li><div><b>Medals</b><p>Bronze, silver and gold by score. The list shows each drill's medal and best.</p></div></li>
+        <li><div><b>In your career</b><p>The career's practice is played here: three sessions a day build your mastery.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>The table marks the target: a zone, a line or a box, and the pocket to use.</li>
+        <li>Again plays the same drill from the start. Your best is kept on this device.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo helpGo" id="helpDrills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Open the drills</span></button></div>
+    </section>
+    <section class="pan" id="panCareer" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>Your player</b><p>Create a player and join a tour of 300 others. Up to six careers, each in its own save.</p></div></li>
+        <li><div><b>The calendar</b><p>Enter events day by day: opens, leagues, qualifiers, majors and more, across the games.</p></div></li>
+        <li><div><b>Matches</b><p>Yours are played on the table, on the event's own rules and race. The rest of the draw is simulated.</p></div></li>
+        <li><div><b>Climb</b><p>Results earn ranking points. Climb twelve tiers, season after season.</p></div></li>
+        <li><div><b>Around the tour</b><p>Rivals, sponsors and offers, a shop for your look, news, stats and records.</p></div></li>
+        <li><div><b>Forfeits</b><p>Leaving a match before its end, even by closing the app, forfeits it.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine print</h3>
+      <ul class="fine">
+        <li>Three practice drill sessions a day build your mastery.</li>
+        <li>Retire to end a career and see its recap. The best go into the Hall of Fame.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo helpGo" id="helpCareer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span>Open the career</span></button></div>
     </section>
   </div>
 </div>
@@ -7190,7 +7285,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-28a';
+const BUILD = 'build 2026-10-28b';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -10959,9 +11054,21 @@ document.addEventListener('visibilitychange', onVisibility);
    remove balls), tools (the tools panel is open) }. A shot counts in st even when undone.
    Trick shots: { kind: 'trick', id, attempts, stars (of the last make), demo (Show me is
    playing the stored solution: not an attempt) }. Stars per challenge persist in
-   localStorage under TRICKS_KEY, the best kept. */
-const TRICKS_KEY = 'felt.tricks', UNDO_MAX = 60;
-let solo = null, trickBest = loadTricks();
+   localStorage under TRICKS_KEY, the best kept. The tries persist too (audit F12): each
+   challenge's count is stored under TRIES_KEY ({ v: 1, n: { id: tries } }) and a reopened
+   challenge carries on from it, so three stars on the first try means the first try ever, not
+   the first since the list was last opened. */
+const TRICKS_KEY = 'felt.tricks', TRIES_KEY = 'felt.trickTries.v1', UNDO_MAX = 60;
+let solo = null, trickBest = loadTricks(), trickTries = loadTries();
+function loadTries() {
+  const out = {};
+  try {
+    const o = JSON.parse(localStorage.getItem(TRIES_KEY) || 'null');
+    if (o && typeof o === 'object' && o.v === 1 && o.n && typeof o.n === 'object') for (const c of TRICKS) { const k = o.n[c.id]; if (Number.isInteger(k) && k > 0 && k < 1e6) out[c.id] = k; }
+  } catch (e) { }
+  return out;
+}
+function saveTries() { try { localStorage.setItem(TRIES_KEY, JSON.stringify({ v: 1, n: trickTries })); } catch (e) { } }
 function loadTricks() {
   const out = {};
   try {
@@ -11015,7 +11122,7 @@ function startPractice(layout, seed = (Math.random() * 0x7fffffff) >>> 0) {
 }
 function startTrick(id, again) {
   const c = trickById(id) || TRICKS[0];
-  const s = again && solo && solo.kind === 'trick' && solo.id === c.id ? solo : { kind: 'trick', id: c.id, attempts: 0, stars: 0 };
+  const s = again && solo && solo.kind === 'trick' && solo.id === c.id ? solo : { kind: 'trick', id: c.id, attempts: trickTries[c.id] || 0, stars: 0 };
   s.demo = false;
   if (solo && solo.kind === 'trick') s.power = markPower;
   beginSolo(() => trickGame(c), s);
@@ -11100,6 +11207,7 @@ function settleSolo() {
   state = 'over';
   if (!solo.demo) {
     solo.attempts++;
+    trickTries[c.id] = Math.max(trickTries[c.id] || 0, solo.attempts); saveTries();
     if (j.ok) {
       solo.stars = trickStars(solo.attempts);
       if (solo.stars > (trickBest[c.id] || 0)) { trickBest[c.id] = solo.stars; saveTricks(); }
@@ -11185,6 +11293,7 @@ function restartSolo() {
 function hudSolo() {
   const s = soloOf(), prc = !!s && s.kind === 'practice';
   soloCtl.hidden = !prc;
+  if (s) { pchip2.hidden = true; pchip3.hidden = true; turnChip.classList.remove('many'); }   /* a party's chips (6f) */
   if (s && (s.kind === 'lesson' || s.kind === 'tutorial')) { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson and the tutorials: no chip, the coach speaks (6d) */
   tools.hidden = !(prc && s.tools && state === 'aim');
   toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
@@ -11374,6 +11483,7 @@ Object.assign(felt, {
 Object.defineProperties(felt, {
   solo: { get: () => solo },
   trickBest: { get: () => Object.assign({}, trickBest) },
+  trickTries: { get: () => Object.assign({}, trickTries) },
   dailyRec: { get: () => Object.assign({}, dailyRec, { streakNow: dailyStreak() }) },
 });
 
@@ -12386,8 +12496,8 @@ Object.defineProperty(felt, 'statsPage', { get: () => statsAt });
    (TABS: its row, its page), pushed from the right; the back button pops to the list, and from the
    list goes home. pickTab(null) is the list. Each game's page ends with its tutorial (6d), the
    controls' with the lesson, pinned at the foot. ---- */
-const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tab10, pan10], [tabStr, panStr], [tabRot, panRot], [tabCall, panCall], [tabSolo, panSolo]];
-const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, 10: tab10, straight: tabStr, rotation: tabRot, call: tabCall, solo: tabSolo };
+const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tab10, pan10], [tabStr, panStr], [tabRot, panRot], [tabCall, panCall], [tabSolo, panSolo], [tabCue, panCue], [tabModes, panModes], [tabDrills, panDrills], [tabCareer, panCareer]];
+const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, 10: tab10, straight: tabStr, rotation: tabRot, call: tabCall, solo: tabSolo, cue: tabCue, modes: tabModes, drills: tabDrills, career: tabCareer };
 let helpPage = null;
 function pickTab(tab, anim) {
   const was = helpPage, page = tab ? TABS.find(([t]) => t === tab)[1] : howList;
@@ -12396,6 +12506,7 @@ function pickTab(tab, anim) {
   for (const [t, p] of TABS) { p.hidden = t !== tab; p.classList.remove('push'); }
   howList.classList.remove('pop'); helpTitle.classList.remove('swap');
   lessonAgain.hidden = tab !== tabCtl;   /* the controls' lesson; each game's page ends with its tutorial (6d) */
+  for (const b of [helpModes, helpDrills, helpCareer]) b.hidden = !!paused;   /* the modes' pages open their sheet, from home only */
   helpTitle.textContent = tab ? tab.querySelector('b').textContent : 'How to play';
   helpBack.setAttribute('aria-label', tab ? 'Back to How to play' : 'Back');
   howSheet.scrollTop = 0;
@@ -12403,6 +12514,9 @@ function pickTab(tab, anim) {
   if (anim && byKeys) (tab ? helpBack : was || tabCtl).focus({ preventScroll: true });
 }
 for (const [t] of TABS) t.addEventListener('click', () => pickTab(t, true));
+helpModes.addEventListener('click', () => { audioOn(); showModes(); });
+helpDrills.addEventListener('click', () => { audioOn(); showDrills(); });
+helpCareer.addEventListener('click', () => { audioOn(); showCareer(); });
 helpBack.addEventListener('click', () => { if (helpPage) pickTab(null, true); else backToMenu(); });
 /* showHelp(kind) opens that topic's page ('ctl', a game kind, 'solo'); with none, a paused game
    opens on its own page and home on the list */
@@ -12491,10 +12605,14 @@ function dotEl(n, big) {
   if (n === 31) d.style.setProperty('--mk', '#c8262c');
   d.style.background = `rgb(${c[0]},${c[1]},${c[2]})`;
   d.title = String(n);
+  /* colour-blind safe marks (Settings, Accessibility): the table's badge (markOf, 4b) on the dot
+     too, light with a dark number or dark with a light one, so a dot reads by lightness and words */
+  const m = settings.marks && markOf(n);
+  if (m) { const i = document.createElement('i'); i.className = 'cb ' + (m[1] ? 'd' : 'l'); i.textContent = m[0]; d.appendChild(i); }
   return d;
 }
 function fillDots(box, list, big) {
-  const key = list.join(',') + (big ? 'b' : '');
+  const key = list.join(',') + (big ? 'b' : '') + (settings.marks ? 'm' : '');
   if (box.dataset.key === key) return;
   box.dataset.key = key;
   box.replaceChildren(...list.map(n => dotEl(n, big)));
@@ -12551,13 +12669,21 @@ function chipOf(p) {
   const left = on.filter(n => groupOf(n) === gr);
   return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
 }
+/* a party of three or four (6f): a chip for every player, in turn order, the player to shoot lit;
+   the strip packs them two by two in portrait and stacks them slim in landscape (.many) */
+const chipCount = () => party && party.n > 2 && !game.mode ? party.n : 2;
 function hudChip() {
   if (hudSolo()) return;
   turnChip.hidden = game.winner !== null;
-  for (const i of [0, 1]) {
-    const p = seatOf(i), el = document.getElementById('pchip' + i), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
+  const n = chipCount();
+  turnChip.classList.toggle('many', n > 2);
+  for (const i of [0, 1, 2, 3]) {
+    const el = document.getElementById('pchip' + i);
+    if (el.hidden !== i >= n) el.hidden = i >= n;
+    if (i >= n) continue;
+    const p = n > 2 ? i : seatOf(i), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
     if (name.textContent !== nm) name.textContent = nm;
-    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '');
+    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '') + (settings.marks ? 'm' : '');
     if (box.dataset.key !== key) {
       box.dataset.key = key;
       const els = c.balls.map(n => dotEl(n));
@@ -12626,7 +12752,7 @@ function hudSnooker() {
   const parts = [['Break', String(game.brk)], ['On', on, dots], [snookerLeft(game) + ' left', '']];
   if (game.frames > 1) parts.unshift(['Frame ' + game.frame, `${game.won[0]}-${game.won[1]}`]);
   if (need) parts.push(['', 'Snookers needed', null, true]);
-  const key = JSON.stringify(parts);
+  const key = JSON.stringify(parts) + (settings.marks ? 'm' : '');
   if (snkBar.dataset.key === key) return;
   snkBar.dataset.key = key;
   snkBar.replaceChildren(...parts.map(([k, val, ds, warn]) => {
@@ -14171,7 +14297,15 @@ Object.defineProperties(felt, {
      time the turn goes to another player; racks won are kept across the party's racks. Games
      whose rules have no third player (8-ball, snooker, bumper pool, carom) are not offered. ---- */
 const TOURNEY_KEY = 'felt.tourney.v1';
-const T_KINDS = ['8', '9', '10'], T_SIZES = [4, 8, 16], T_RACES = [1, 2, 3, 5], T_FMTS = ['single', 'double'], T_FIELDS = ['mixed', 'easy', 'medium', 'hard'];
+/* the games a tournament plays, and each one's races as the career counts them (unitWords): racks
+   for 8, 9, 10-ball and rotation, frames for snooker, points for 14.1 and three-cushion. A points
+   race is one game to that score (the game's own race: rules.race, carom.race), so the match is
+   that game; the career's match model reads the same race in the same units (modelUnits). */
+const T_KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom'], T_SIZES = [4, 8, 16], T_FMTS = ['single', 'double'], T_FIELDS = ['mixed', 'easy', 'medium', 'hard'];
+const T_RACES = [1, 2, 3, 5], T_RACES_OF = { straight: [25, 50, 75, 100], snooker: [1, 2, 3], carom: [5, 10, 15] };
+const tRaces = kind => T_RACES_OF[kind] || T_RACES;
+const tPoints = kind => kind === 'straight' || kind === 'carom';
+const T_RACE_DEF = { straight: 50, snooker: 2, carom: 10 };
 const T_BASE = { easy: 40, medium: 58, hard: 76 };
 const ARCH_WORDS = { allround: 'All-round', potter: 'Potter', shotmaker: 'Shotmaker', defender: 'Defender', positional: 'Positional', breaker: 'Breaker', banker: 'Banker', grinder: 'Grinder', clutch: 'Clutch' };
 const LEVEL_WORDS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
@@ -14222,7 +14356,7 @@ function tSettle(t) {
 /* a new tournament: o = { kind, ruleset, size, fmt, race, field ('mixed' or a level), seed } */
 function tourneyNew(o) {
   const L = Career.lib, seed = (o.seed >>> 0) || 1, kind = T_KINDS.includes(o.kind) ? o.kind : '9';
-  const size = T_SIZES.includes(o.size) ? o.size : 8, fmt = T_FMTS.includes(o.fmt) ? o.fmt : 'single', race = T_RACES.includes(o.race) ? o.race : 3;
+  const size = T_SIZES.includes(o.size) ? o.size : 8, fmt = T_FMTS.includes(o.fmt) ? o.fmt : 'single', race = tRaces(kind).includes(o.race) ? o.race : T_RACE_DEF[kind] || 3;
   const ruleset = rulesetsFor(kind).some(r => r.id === o.ruleset) ? o.ruleset : DEFAULT_RULESET[kind], str = T_FIELDS.includes(o.field) ? o.field : 'mixed';
   const names = new Set(['You']), field = [{ name: 'You', first: 'You', me: true }];
   for (let i = 1; i < size; i++) {
@@ -14240,7 +14374,7 @@ function tSave() { try { if (tour) localStorage.setItem(TOURNEY_KEY, JSON.string
 function tLoad() {
   let o = null;
   try { o = JSON.parse(localStorage.getItem(TOURNEY_KEY) || 'null'); } catch (e) { return null; }
-  if (!o || typeof o !== 'object' || o.v !== 1 || !T_KINDS.includes(o.kind) || !T_SIZES.includes(o.size) || !T_FMTS.includes(o.fmt) || !T_RACES.includes(o.race)) return null;
+  if (!o || typeof o !== 'object' || o.v !== 1 || !T_KINDS.includes(o.kind) || !T_SIZES.includes(o.size) || !T_FMTS.includes(o.fmt) || !tRaces(o.kind).includes(o.race)) return null;
   const n = tTpl(o).M.length, int = x => Number.isInteger(x) && x >= 0;
   if (!Number.isInteger(o.seed) || !Array.isArray(o.field) || o.field.length !== o.size || !Array.isArray(o.f) || o.f.length !== o.size || o.f.slice().sort((a, b) => a - b).some((x, i) => x !== i)) return null;
   if (![o.res, o.sim, o.ff].every(a => Array.isArray(a) && a.length === n)) return null;
@@ -14273,7 +14407,9 @@ function tourneyPlay() {
   if (!tour || tour.done) return false;
   const m = tMine(tour);
   if (m === null) return false;
-  tmatch = { m, foe: tFoeOf(tour, m), score: [0, 0], rack: 1, need: tour.race, done: false, round: tRound(tour, m), lag: rng(Career.lib.seedOf(tour.seed, 'lag', m))() < 0.5 ? 0 : 1 };
+  /* a points race is one game: the match is won with it (need 1), its score the points */
+  const pts = tPoints(tour.kind);
+  tmatch = { m, foe: tFoeOf(tour, m), score: [0, 0], rack: 1, need: pts ? 1 : tour.race, units: pts ? 'points' : 'racks', done: false, round: tRound(tour, m), lag: rng(Career.lib.seedOf(tour.seed, 'lag', m))() < 0.5 ? 0 : 1 };
   /* from here, leaving the match is a forfeit, even by closing the page */
   tour.live = m; tour.msg = ''; tSave();
   tourneyRack();
@@ -14282,9 +14418,10 @@ function tourneyPlay() {
 /* start(kind, o)'s terms for the rack in play: the tournament's rules (locked), the opponent's
    personality, who breaks (the lag's winner, then alternate breaks) */
 function tourneyTerms() {
-  const t = tmatch;
-  return { mode: 'tourney', level: t.foe.level, cpuProfile: { level: t.foe.level, arch: t.foe.arch }, hill: t.score.some(x => x === t.need - 1), table: settings.table, pockets: settings.pockets,
-    bumperTable: settings.bumperTable, breaker: (t.lag + t.rack - 1) % 2, rules: { ruleset: tour.ruleset, call: settings.calls } };
+  const t = tmatch, k = tour.kind;
+  return Object.assign(tableTerms(k === 'carom' ? '8' : k), { mode: 'tourney', level: t.foe.level, cpuProfile: { level: t.foe.level, arch: t.foe.arch }, hill: t.units === 'racks' && t.score.some(x => x === t.need - 1),
+    breaker: k === 'carom' ? 0 : (t.lag + t.rack - 1) % 2, rules: { ruleset: tour.ruleset, call: settings.calls, race: k === 'straight' ? tour.race : undefined },
+    carom: k === 'carom' ? { race: tour.race, cushions: 3, side: 1, event: true } : undefined });
 }
 function tourneyRack() { start(tour.kind, tourneyTerms()); }
 /* finish() of a tournament rack: true when it took the rack (between racks, or the match over) */
@@ -14294,8 +14431,10 @@ function tourneyRackOver() {
   t.score[w]++;
   if (t.score[w] < t.need) { t.rack++; showTourneyRack(); return true; }
   t.done = true;
-  tReport(t.m, t.score[0], t.score[1], false);
-  tour.msg = t.score[0] > t.score[1] ? `You beat ${t.foe.name} ${t.score[0]}-${t.score[1]}.` : `${t.foe.name} beat you ${t.score[1]}-${t.score[0]}.`;
+  /* a points race: the game's points, the winner's taken as the race, the loser's under it */
+  const rec = t.units === 'points' ? [0, 1].map(p => p === w ? tour.race : Math.max(0, Math.min(tour.race - 1, game.score ? game.score[p] | 0 : 0))) : t.score;
+  tReport(t.m, rec[0], rec[1], false);
+  tour.msg = rec[0] > rec[1] ? `You beat ${t.foe.name} ${rec[0]}-${rec[1]}.` : `${t.foe.name} beat you ${rec[1]}-${rec[0]}.`;
   tSave();
   tmatch = null;
   restartBtn.hidden = false;
@@ -14310,7 +14449,9 @@ function tourneyAbandon() {
   tmatch = null;
   restartBtn.hidden = false;
   if (t.done || !tour || tour.live !== t.m) return;
-  tReport(t.m, Math.min(t.score[0], t.need - 1), t.need, true);
+  /* the race to the opponent; the player keeps the racks (or, in a points race, the points) won so far */
+  const mine = t.units === 'points' ? (game && game.kind === tour.kind && game.score ? game.score[0] | 0 : 0) : t.score[0];
+  tReport(t.m, Math.max(0, Math.min(mine, tour.race - 1)), tour.race, true);
   tour.msg = `Forfeit: the match against ${t.foe.name} was left before its end, and counts as a loss.`;
   tSave();
 }
@@ -14329,7 +14470,7 @@ function tourneyLeftover() {
 function showTourneyRack() {
   const t = tmatch, theirs = tourneyTerms().breaker === 1;
   rackKick.textContent = `Quick tournament, ${t.round}, race to ${t.need}`;
-  rackTitle.textContent = `Rack ${t.rack}`;
+  rackTitle.textContent = `${rackWord(tour.kind)} ${t.rack}`;
   rackSub.textContent = `${leadWords(t.foe.first, t.score[0], t.score[1])} ${theirs ? `${t.foe.first} breaks.` : 'Your break.'}`;
   boardOf(rackBoard, t.score, t.need, t.foe.first);
   menu.classList.remove('show'); over.classList.remove('show');
@@ -14357,8 +14498,9 @@ function hudModesMenu() {
   cnAv.textContent = av.ini || f.first[0];
   cnName.textContent = f.name;
   cnLine.textContent = `Quick tournament, ${t.round}`;
-  cnScore.textContent = `${t.score[0]}-${t.score[1]}`;
-  cnRace.textContent = `Race to ${t.need}, rack ${t.rack}`;
+  const pts = t.units === 'points';
+  cnScore.textContent = pts && game.score ? `${game.score[0]}-${game.score[1]}` : `${t.score[0]}-${t.score[1]}`;
+  cnRace.textContent = pts ? `Race to ${unitWords(tour.kind, tour.race)}` : `Race to ${t.need}, ${rackWord(tour.kind).toLowerCase()} ${t.rack}`;
   careerNow.setAttribute('aria-label', `${f.name}, ${cnLine.textContent}. You ${t.score[0]}, ${f.first} ${t.score[1]}. ${cnRace.textContent}.`);
 }
 
@@ -14490,7 +14632,7 @@ MD_PAGES.root = () => {
   return [
     cvHeadEl('Play'),
     cvGroup(
-      cvRow({ id: 'mdTour', lead: mdIcon('tour'), title: 'Quick tournament', sub: tour ? tStatus(tour) : 'A bracket of 4, 8 or 16 against CPU players', onClick: () => mdGo(tour ? 'tour' : 'tsetup') }),
+      cvRow({ id: 'mdTour', lead: mdIcon('tour'), title: 'Quick tournament', sub: tour ? tStatus(tour) : 'A bracket of 4, 8 or 16 on any pocket game, snooker or carom', onClick: () => mdGo(tour ? 'tour' : 'tsetup') }),
       cvRow({ id: 'mdEx', lead: mdIcon('ex'), title: 'AI exhibition', sub: 'Watch two CPU players on any table', onClick: () => mdGo('exsetup') }),
       cvRow({ id: 'mdParty', lead: mdIcon('party'), title: 'Party', sub: 'Two to four players in turn on one device', onClick: () => mdGo('psetup') })),
     cvNoteEl('Every mode plays the real game, offline: the same physics, rules and CPU as any other table.'),
@@ -14499,14 +14641,15 @@ MD_PAGES.root = () => {
 MD_PAGES.tsetup = () => {
   const f = md.tf, sets = rulesetsFor(f.kind);
   if (!sets.some(r => r.id === f.ruleset)) f.ruleset = DEFAULT_RULESET[f.kind];
+  if (!tRaces(f.kind).includes(f.race)) f.race = T_RACE_DEF[f.kind] || 3;
   const R = RULESETS[f.ruleset];
   mdHead('Quick tournament', 'New tournament');
   return [
-    cvHeadEl('Game'), cvSeg(T_KINDS.map(k => [k, KINDS[k].name]), f.kind, v => { f.kind = v; f.ruleset = DEFAULT_RULESET[v]; mdRender(); }),
-    cvHeadEl('Rules'), cvSeg(sets.map(r => [r.id, ruleWord(r)]), f.ruleset, v => { f.ruleset = v; mdRender(); }, 'wrap two'), cvNoteEl(`${R.name} (${R.source}). ${R.description}`),
+    cvHeadEl('Game'), cvSeg(T_KINDS.map(k => [k, EX_WORDS[k]]), f.kind, v => { f.kind = v; f.ruleset = DEFAULT_RULESET[v]; if (!tRaces(v).includes(f.race)) f.race = T_RACE_DEF[v] || 3; mdRender(); }, 'wrap four'),
+    sets.length > 1 ? cvHeadEl('Rules') : null, sets.length > 1 ? cvSeg(sets.map(r => [r.id, ruleWord(r)]), f.ruleset, v => { f.ruleset = v; mdRender(); }, 'wrap two') : null, cvNoteEl(`${R.name} (${R.source}). ${R.description}`),
     cvHeadEl('Players'), cvSeg(T_SIZES.map(n => [n, String(n)]), f.size, v => { f.size = v; }),
     cvHeadEl('Format'), cvSeg([['single', 'Single elimination'], ['double', 'Double elimination']], f.fmt, v => { f.fmt = v; }, 'wrap two'),
-    cvHeadEl('Race to'), cvSeg(T_RACES.map(n => [n, String(n)]), f.race, v => { f.race = v; }),
+    cvHeadEl(tPoints(f.kind) ? 'Race to (points, one game a match)' : f.kind === 'snooker' ? 'Race to (frames)' : 'Race to (racks)'), cvSeg(tRaces(f.kind).map(n => [n, String(n)]), f.race, v => { f.race = v; }),
     cvHeadEl('Opponents'), cvSeg(T_FIELDS.map(x => [x, x === 'mixed' ? 'Mixed' : LEVEL_WORDS[x]]), f.field, v => { f.field = v; }),
     cvNoteEl('Your matches are played on the table. Every other match is settled by the career\'s match model from the players\' strengths, and shown as simulated.'),
     tour && !tour.done ? cvNoteEl('Starting a new tournament ends the one under way.', true) : null,
@@ -14536,7 +14679,7 @@ MD_PAGES.tour = () => {
   const t = tour;
   if (!t) { md.stack = [{ p: 'root' }, { p: 'tsetup' }]; return MD_PAGES.tsetup(); }
   const L = Career.lib, T = tTpl(t), c = tCtx(t), out = [];
-  mdHead(`${KINDS[t.kind].name}, ${t.size} players, race to ${t.race}`, 'Quick tournament');
+  mdHead(`${KINDS[t.kind].name}, ${t.size} players, race to ${unitWords(t.kind, t.race)}`, 'Quick tournament');
   if (t.msg) { const p = cvEl('p', 'cvMsg', t.msg); p.id = 'mdMsg'; p.setAttribute('role', 'status'); out.push(p); }
   if (t.done) {
     /* the winner's screen */
@@ -14552,7 +14695,7 @@ MD_PAGES.tour = () => {
     const m = tMine(t, c);
     if (m !== null) {
       const foe = tFoeOf(t, m), card = cvEl('div', 'cvCard'), vs = cvEl('div', 'cvVs'), who = cvEl('div', 'cvWho'), tt = cvEl('span', 'tt');
-      vs.append(cvEl('span', null, tRound(t, m)), cvEl('span', 'tag', `Race to ${t.race}`));
+      vs.append(cvEl('span', null, tRound(t, m)), cvEl('span', 'tag', `Race to ${unitWords(t.kind, t.race)}`));
       tt.append(cvEl('b', null, foe.name), cvEl('small', null, `${ARCH_WORDS[foe.arch]}, ${LEVEL_WORDS[foe.level].toLowerCase()} CPU`));
       who.append(avatarEl({ name: foe.name, avatar: foe.av }), tt);
       card.append(vs, who);

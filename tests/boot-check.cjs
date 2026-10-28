@@ -85,10 +85,10 @@ const artContrast = page => page.evaluate(() => {
   await page.click('#helpBtn');
   const fitsNow = async () => (await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && helpSheet.contains(a.effect.target))), page.evaluate(() => (r => r.left >= 0 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5)(howSheet.getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth && howSheet.scrollWidth <= howSheet.clientWidth));
   const root = await page.evaluate(() => ({ list: !howList.hidden, rows: [...howList.querySelectorAll('.topic')].map(b => b.id), title: helpTitle.textContent, pages: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).length }));
-  check('how to play from home: the list of eleven topics (the three More games and Called shots after snooker), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
+  check('how to play from home: the list of fifteen topics (the three More games and Called shots after snooker; cue elevation, More modes, Drills and the career after Solo modes), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo,tabCue,tabModes,tabDrills,tabCareer' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
     && (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify(root));
   const tabs = [];
-  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo']) {
+  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo', 'tabCue', 'tabModes', 'tabDrills', 'tabCareer']) {
     await page.click('#' + id);
     tabs.push(await page.evaluate(id => ({ id, list: !howList.hidden, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), title: helpTitle.textContent === document.getElementById(id).querySelector('b').textContent, text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
     const t = tabs[tabs.length - 1];
@@ -96,12 +96,25 @@ const artContrast = page => page.evaluate(() => {
     await page.click('#helpBack');
     t.back = await page.evaluate(() => helpSheet.classList.contains('show') && !howList.hidden && helpTitle.textContent === 'How to play');
   }
-  check('how to play: seven topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, solo), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 7 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
+  check('how to play: eleven topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, solo, cue elevation, More modes, Drills, career), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 11 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
   await page.click('#tabSnk');
   const pin = await page.evaluate(() => { const r = tutGoS.getBoundingClientRect(), s = howSheet.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, foot: s.bottom, long: howSheet.scrollHeight > howSheet.clientHeight }; });
   check('how to play: the longest page (snooker) scrolls under its tutorial button, pinned at the foot of the screen', pin.long && pin.bottom <= pin.foot + 0.5 && pin.bottom >= pin.foot - 40, JSON.stringify(pin));
   await page.keyboard.press('Escape');
   check('how to play: Esc on a page closes the sheet back to home', await page.evaluate(() => !helpSheet.classList.contains('show') && menu.classList.contains('show')));
+  /* the new pages: cue elevation says how the pad opens it (touch: a hold); More modes, Drills and
+     the career each end with a button that opens their sheet */
+  const opens = [];
+  for (const [tab, btn, sheet] of [['tabModes', 'helpModes', 'modesSheet'], ['tabDrills', 'helpDrills', 'drillSheet'], ['tabCareer', 'helpCareer', 'careerSheet']]) {
+    await page.evaluate(() => showHelp());
+    await page.click('#' + tab);
+    await page.click('#' + btn);
+    opens.push(await page.evaluate(s => ({ s, open: document.getElementById(s).classList.contains('show'), help: helpSheet.classList.contains('show') }), sheet));
+    await page.evaluate(() => backToMenu());
+  }
+  const cue = await page.evaluate(() => { showHelp('cue'); const t = [...panCue.querySelectorAll('li')].filter(l => l.getClientRects().length).map(l => l.textContent).join(' '); const a = { hold: (matchMedia('(hover: none) and (pointer: coarse)').matches ? /Hold the english pad/ : /Right click the english pad/).test(t), swerve: /Swerve/.test(t), masse: /Masse/.test(t), level: /Level/.test(t) }; backToMenu(); return a; });
+  check('how to play: the cue elevation page says how to open it (hold the english pad, or right click it with a mouse) and what swerve and masse do; More modes, Drills and Career open their sheets',
+    cue.hold && cue.swerve && cue.masse && cue.level && opens.every(o => o.open && !o.help), JSON.stringify({ cue, opens }));
   await page.click('#helpBtn');
   /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS) */
   const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
@@ -212,7 +225,7 @@ const artContrast = page => page.evaluate(() => {
         && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
       const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
       return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),
-        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout } };
+        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout } };
     }));
   }
   check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));

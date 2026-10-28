@@ -85,7 +85,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   never stops asking for frames when one throws; never assume one step per millisecond.
 - `.buildloop/audit/T4-audit.md` is the audit: every finding, its owner stream and status. `audit-check` holds one
   regression per audit fix; `stress-check` is the volume suite (thousands of shots on every table, hundreds of CPU
-  racks, storage round trips and corruption, rapid navigation and a table fuzz). Keep it near 90 s.
+  racks, storage round trips and corruption, rapid navigation and a table fuzz). Its parts run side by side (the sim
+  parts in worker threads, each page part in its own browser, checks printed in order): about 45 s. Keep it under
+  90 s; add a new part as another parallel one.
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
   `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
@@ -127,7 +129,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   tournament's seed, shown as simulated; `felt.tourney.v1`, a match left mid-way is a forfeit (`t.live`). Exhibition:
   both players CPU (`exhib`, `humanP`), `o.seed` is `cpuSeed`, the speed bar sets `felt.speed`. Party: 2 to 4 players
   on a ring ruleset (`ring: true`, `rules.players`, `playersOf`/`nextOf` in sim 1e; `rulesetsFor` lists only
-  two-player sets), the handoff sheet when the turn passes. Pinned by `modes-check`.
+  two-player sets), the handoff sheet when the turn passes; with 3 or 4 players every player has a turn chip
+  (`pchip0`-`pchip3`, `chipCount`, `#turnChip.many`: two by two in portrait, slim rows in landscape). The tournament
+  plays 8, 9, 10, 14.1, rotation, snooker and carom (`T_KINDS`, `tRaces`): 14.1 and carom race to points in one game
+  (`tmatch.units` 'points', need 1), snooker in frames. Pinned by `modes-check`.
+- How to play (page 6, `TABS`, `HELP_KINDS`, `showHelp(kind)`): fifteen topics, one push page each (rules rows, fine
+  print, a pinned action); a new topic is a row in `howList`, a `pan` section and a `TABS` entry, and boot-check's
+  list and page loops must name it (fit at 375x667, 44 px, 4.5:1).
+- Trick shots keep their tries per challenge (`trickTries`, `felt.trickTries.v1`, audit F12): stars go by the tries
+  ever taken, so reopening a challenge never resets them. `audit-check` A13.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed
@@ -149,6 +159,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   keys ride along (`settingsExtra`). A new setting: default and validation in `loadSettings`, its control in
   `SEGS`/`BOOL_TOGS`, its effect in `applyPrefs` or where it is read, and a page check in `settings-check`.
   Space on the focused power bar drives the bar only with `keyShoot` (audit F7): it still shoots through `commit`.
+  Ball marks (`marks`) draw on the table (`drawMark`) and on every DOM ball dot (`dotEl`, its `.cb` badge): build any
+  new dot list with `dotEl`/`fillDots`, and put `settings.marks` in any cache key over dots.
 
 ## Conventions
 

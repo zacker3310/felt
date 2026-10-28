@@ -84,6 +84,17 @@ const pngInfo = src => fetch(src).then(async r => {
     return { keys, out };
   });
   check('the page, the manifest and the icons are precached', ['/', '/index.html', '/manifest.webmanifest', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png'].every(p => cached.out.includes(p)), JSON.stringify(cached));
+  /* nothing the app asks for is left out: every same-origin URL in the page (links, scripts,
+     images, media) and every icon of the manifest is in the precache, so offline needs no network */
+  const wants = await page.evaluate(async () => {
+    const urls = new Set(['./', './index.html']);
+    for (const el of document.querySelectorAll('[href], [src]')) { const u = el.getAttribute('href') || el.getAttribute('src'); if (u && !u.startsWith('#') && !u.startsWith('data:')) urls.add(u); }
+    const m = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
+    for (const i of m.icons || []) urls.add(i.src);
+    return [...urls].map(u => new URL(u, location.href)).filter(u => u.origin === location.origin).map(u => u.pathname);
+  });
+  const full = await page.evaluate(async () => { const out = []; for (const k of await caches.keys()) for (const r of await (await caches.open(k)).keys()) out.push(new URL(r.url).pathname); return out; });
+  check('every same-origin URL the page and the manifest reference is precached (one file, its icons, the manifest)', wants.length >= 6 && wants.every(u => full.includes(u)), JSON.stringify({ missing: wants.filter(u => !full.includes(u)), wants }));
 
   /* offline: airplane mode, then reload and play */
   await page.context().setOffline(true);
@@ -95,6 +106,14 @@ const pngInfo = src => fetch(src).then(async r => {
     await page.click('#breakBtn');
     await page.waitForTimeout(200);
     check('and a game starts offline', await page.evaluate(() => felt.state === 'aim' && felt.game.inHand === 'kitchen' && felt.game.balls.length === 16));
+    const modes = await page.evaluate(() => {
+      felt.quitToHome(); felt.showHelp('modes'); const help = !panModes.hidden;
+      felt.party({ ruleset: '9-ring', names: ['A', 'B', 'C'] }); const pty = felt.mode === 'party' && !pchip2.hidden;
+      felt.quitToHome(); felt.tourneyCreate({ kind: 'snooker', size: 4, race: 1, seed: 4 }); felt.tourneyPlay(); const tm = felt.mode === 'tourney' && felt.game.kind === 'snooker';
+      felt.quitToHome(); felt.showDrills(); const dr = drillSheet.classList.contains('show');
+      return { help, pty, tm, dr };
+    });
+    check('offline, the newer screens work too: How to play\'s More modes page, a party of three, a snooker tournament match, the drills', modes.help && modes.pty && modes.tm && modes.dr, JSON.stringify(modes));
   }
   await page.context().setOffline(false);
 

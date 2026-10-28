@@ -131,6 +131,61 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   const wa = { small: (await smallTargets(page)).length, low: await lowContrast(page) };
   check('tournament page (winner): 44 px, 4.5:1', !wa.small && !wa.low.length, JSON.stringify(wa));
 
+  /* the other games: straight pool and carom race to points (one game a match), snooker in
+     frames, rotation in racks, each on start(kind, o)'s terms as the career plays them */
+  const setupKinds = await ev(async () => {
+    const out = [];
+    for (const k of ['straight', 'rotation', 'snooker', 'carom']) {
+      md.tf.kind = k; showModes('tsetup');
+      await new Promise(r => setTimeout(r, 30));
+      out.push({ k, game: [...mdBody.querySelectorAll('.seg')][0].querySelectorAll('button').length, races: [...mdBody.querySelectorAll('.cvHead')].map(h => h.textContent).find(t => /Race to/.test(t)), sw: mdSheet.scrollWidth <= mdSheet.clientWidth });
+    }
+    md.tf.kind = '9'; md.tf.race = 3;
+    return out;
+  });
+  const sk = { small: (await smallTargets(page)).length, low: await lowContrast(page) };
+  check('tournament setup: seven games (8, 9, 10, 14.1, rotation, snooker, carom); the race is in points for 14.1 and carom, frames for snooker, racks for rotation; fits, 44 px, 4.5:1',
+    setupKinds.every(s => s.game === 7 && s.sw) && /points/.test(setupKinds[0].races) && /racks/.test(setupKinds[1].races) && /frames/.test(setupKinds[2].races) && /points/.test(setupKinds[3].races) && !sk.small && !sk.low.length, JSON.stringify([setupKinds, sk]));
+  const kinds = [];
+  for (const [kind, race] of [['straight', 25], ['rotation', 1], ['snooker', 1], ['carom', 5]]) {
+    kinds.push(await ev(async ([kind, race]) => {
+      const T = felt.tourneyCreate({ kind, size: 4, fmt: 'single', race, field: 'easy', seed: 17 });
+      const a = { kind, race: T.race, ruleset: T.ruleset, sim: T.res.filter(Boolean).length, simOk: T.res.filter(Boolean).every(r => Math.max(...r) === race) };
+      felt.tourneyPlay();
+      await new Promise(r => setTimeout(r, 50));
+      a.mode = felt.mode; a.gk = game.kind; a.need = felt.tmatch.need; const m = felt.tmatch.m;
+      a.gameRace = kind === 'straight' || kind === 'carom' ? game.race : null;
+      a.locked = game.rules ? !!game.rules.locked : null;
+      pause(); a.pause = { score: cnScore.textContent, race: cnRace.textContent }; resume();
+      if (game.score) game.score[1] = kind === 'carom' ? 3 : kind === 'straight' ? 12 : game.score[1];
+      felt.forceWin(0);
+      await new Promise(r => setTimeout(r, 60));
+      const t = felt.tourney;
+      a.after = { mode: felt.mode, res: t.res[m], msg: (document.getElementById('mdMsg') || {}).textContent || '', rack: rackSheet.classList.contains('show') };
+      return a;
+    }, [kind, race]));
+  }
+  check('tournament: 14.1 to 25 points and carom to 5 are one game a match at that race; rotation and snooker race in racks and frames; the model settles the other matches to the same race',
+    kinds.every(k => k.race === [25, 1, 1, 5][kinds.indexOf(k)] && k.sim === 1 && k.simOk && k.mode === 'tourney' && k.gk === k.kind && k.need === (['straight', 'carom'].includes(k.kind) ? 1 : k.race))
+    && kinds[0].gameRace === 25 && kinds[3].gameRace === 5 && kinds[0].locked === true && kinds[1].locked === true && /25 points/.test(kinds[0].pause.race) && /5 points/.test(kinds[3].pause.race), JSON.stringify(kinds));
+  check('tournament: a points game won is the match, recorded at the race with the loser\'s points (25-12, 5-3); a frame or rack won likewise ends a race to 1',
+    kinds.every(k => k.after.mode === null && !k.after.rack && k.after.res && /You beat/.test(k.after.msg)) && kinds[0].after.res.slice().sort((a, b) => b - a).join() === '25,12' && kinds[3].after.res.slice().sort((a, b) => b - a).join() === '5,3', JSON.stringify(kinds.map(k => k.after)));
+  /* a points match left half way: a forfeit at the race, the points kept */
+  const pf = await ev(async () => {
+    felt.tourneyCreate({ kind: 'straight', size: 4, fmt: 'single', race: 50, field: 'easy', seed: 9 });
+    felt.tourneyPlay();
+    await new Promise(r => setTimeout(r, 50));
+    const m = felt.tmatch.m;
+    game.score[0] = 17;
+    felt.quitToHome();
+    const t = felt.tourney;
+    return { res: t.res[m], ff: t.ff[m] };
+  });
+  await page.reload(); await page.waitForFunction(() => window.booted === true);
+  const pl = await ev(() => { const t = felt.tourney; return t && { kind: t.kind, race: t.race }; });
+  check('tournament: a 14.1 match quit at 17 points is a forfeit 17-50; the tournament reads back after a reload', pf.ff && pf.res && pf.res.slice().sort((a, b) => a - b).join() === '17,50' && pl && pl.kind === 'straight' && pl.race === 50, JSON.stringify({ pf, pl }));
+  await ev(() => { tour = null; tSave(); });
+
   /* ---------- 2. the AI exhibition ---------- */
   const run = seed => ev(async seed => {
     window.__inputs = 0;
@@ -227,6 +282,34 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   await shoot(a, 0.32, -0.5);
   const s6 = await st();
   check('party: rotation ring: Ann pots the 3 (3 points), fouls, Bob pots the 15 (15 points) and wins with the table clear', s6.score && s6.score.join() === '3,15,0' && s6.winner === 1, JSON.stringify(s6));
+
+  /* every player's chip in the HUD: a party of three and of four, portrait and landscape */
+  const chipFit = [];
+  for (const [w, h] of [[375, 667], [440, 956], [956, 440]]) {
+    await page.setViewportSize({ width: w, height: h });
+    for (const n of [3, 4]) {
+      chipFit.push(await ev(async ([n, size]) => {
+        felt.party({ ruleset: 'rotation-ring', names: ['Ann', 'Bob', 'Cy', 'Dee'].slice(0, n) }); hoGo.click();
+        game.score = game.score.map((_, i) => 10 * i + 5); game.turn = n - 1; hud();
+        await new Promise(r => setTimeout(r, 60));
+        const vw = innerWidth, vh = innerHeight, R = e => e.getBoundingClientRect();
+        const chips = [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden && e.getClientRects().length);
+        const rs = chips.map(R), inView = r => r.left >= -0.5 && r.right <= vw + 0.5 && r.top >= -0.5 && r.bottom <= vh + 0.5;
+        const apart = rs.every((a, i) => rs.every((b, j) => i === j || a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5));
+        const ctlIn = [...ctl.children].filter(e => e.getClientRects().length).every(e => inView(R(e)));
+        const ctlApart = (() => { const k = [...ctl.children].filter(e => e.getClientRects().length).map(R); return k.every((a, i) => k.every((b, j) => i === j || a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5)); })();
+        /* nothing clipped: each chip's content inside it, the whole name and score shown */
+        const whole = chips.every(c => c.scrollWidth <= c.clientWidth + 0.5 && c.scrollHeight <= c.clientHeight + 0.5 && [...c.children].every(k => !k.getClientRects().length || (R(k).left >= R(c).left - 0.5 && R(k).right <= R(c).right + 0.5 && k.scrollWidth <= k.clientWidth + 0.5)));
+        return { size, n, chips: chips.length, names: chips.map(c => c.firstChild.textContent), nums: chips.map(c => (c.querySelector('.num') || {}).textContent), on: chips.map(c => c.classList.contains('on')), inView: rs.every(inView), apart, ctlIn, ctlApart, whole, dw: document.documentElement.scrollWidth <= vw, minH: Math.min(...rs.map(r => r.height)) };
+      }, [n, `${w}x${h}`]));
+    }
+  }
+  await page.setViewportSize({ width: 375, height: 667 });
+  check('party HUD: three or four players, a chip each (name and points) in turn order, the shooter lit, all inside the screen at 375x667, 440x956 and 956x440, nothing overlapping or clipped',
+    chipFit.length === 6 && chipFit.every(c => c.chips === c.n && c.names.join() === ['Ann', 'Bob', 'Cy', 'Dee'].slice(0, c.n).join() && c.nums.join() === [5, 15, 25, 35].slice(0, c.n).join()
+      && c.on.every((x, i) => x === (i === c.n - 1)) && c.inView && c.apart && c.ctlIn && c.ctlApart && c.whole && c.dw && c.minH >= 20), JSON.stringify(chipFit));
+  const two = await ev(() => { felt.party({ ruleset: '9-ring', names: ['Ann', 'Bob'] }); hoGo.click(); hud(); return { shown: [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden).length, many: turnChip.classList.contains('many') }; });
+  check('party HUD: a party of two keeps the two ordinary chips', two.shown === 2 && !two.many, JSON.stringify(two));
 
   check('no page errors', errors.length === 0, errors.join(' | '));
   await browser.close();

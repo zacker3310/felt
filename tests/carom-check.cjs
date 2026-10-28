@@ -160,7 +160,7 @@ S.setTable('7');
   check('setup (three-cushion): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.click('#breakBtn');
   await page.waitForTimeout(300);
-  const s0 = await page.evaluate(() => ({ kind: felt.game.kind, table: felt.table, st: felt.state, n: felt.game.balls.length, striker: felt.striker, R: BALL_R, chips: [...document.querySelectorAll('.pchip .pb')].map(e => e.textContent), hint: felt.hint, sub: bannerSub.textContent }));
+  const s0 = await page.evaluate(() => ({ kind: felt.game.kind, table: felt.table, st: felt.state, n: felt.game.balls.length, striker: felt.striker, R: BALL_R, chips: [...document.querySelectorAll('.pchip:not([hidden]) .pb')].map(e => e.textContent), hint: felt.hint, sub: bannerSub.textContent }));
   check('the card starts three-cushion on the carom table: three balls, white to break, chips at 0/10, auto aim on the red',
     s0.kind === 'carom' && s0.table === 'carom' && s0.st === 'aim' && s0.n === 3 && s0.striker === 70 && s0.R === 0.03075 && s0.chips.join() === '0/10,0/10' && s0.hint && s0.hint.n === 72 && /red first/.test(s0.sub), JSON.stringify(s0));
   const tdrag = async (from, to, n = 6) => {

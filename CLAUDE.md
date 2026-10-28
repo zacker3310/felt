@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `19/19 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `20/20 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -88,6 +88,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   Safety and Push out chips, `obviousCall`), and the bar does not arm without a needed call. Settings `calls`
   (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
   `called-check` pins the page side, `tests/sim.cjs` NAMES has the engine's exports.
+- Career engine: `// #region career` right after the sim region, one global `Career` (DOM-free, seeded from the
+  career seed, time moves only in `Career.advance`). Pure logic and persistence for the multi-season career: AI
+  population from the seed (only changed fields saved), calendar, brackets (single, double, round robin, groups,
+  league, series, qualifier), rankings, sponsors, stats, seasons. Slots in `felt.careers.v1`, saves
+  `felt.career.v2.<id>` (atomic: `.tmp`, `.bak`, checksum); `Career.migrate` turns `felt.career.v1` into a slot and
+  never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }` for the rules stream. The 6d
+  ladder still runs on v1. Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

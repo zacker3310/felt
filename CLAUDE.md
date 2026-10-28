@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `21/21 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `22/22 suites, N/N checks  ok` (about 7 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -101,6 +101,14 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `felt.career.v2.<id>` (atomic: `.tmp`, `.bak`, checksum); `Career.migrate` turns `felt.career.v1` into a slot and
   never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }`; every discipline is
   `live` (played on the table). The engine saves at boundaries; the screens save their own changes (`cvSave`). Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
+- CPU personalities (sim 1f): every search runs on `cpuProfile(levelOrKnobs, { hill })`. A bare level
+  ('easy' | 'medium' | 'hard') is `CPU_LEVELS` exactly (personality knobs neutral, same shots); a person is
+  `{ level, arch }` plus, optionally, the career's `aiProfileOf` numbers (it now carries `arch`). `CPU_ARCH` keys
+  are the career's `ARCH` ids. Knobs: noise on angle, speed and tip (inputs only, drawn after the plan), risk and
+  safety lean, look-ahead depth, break power, option take and push-outs, bank, kick and combo willingness (banks and
+  combos are called with their flags). The page takes it as `start(kind, { cpuProfile, hill })` (`o.level` may
+  be left out). Think time (F8): `cpuThinkMs`, held in `think()` from the turn's start (`cpuReady`, `cpuT0`), a tap
+  skips it (`cpuSkip`, `felt.cpuSkip()`), `felt.lastThink` records it. `ai2-check` pins it, `audit-check` A6.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

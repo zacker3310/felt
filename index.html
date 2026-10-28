@@ -2830,7 +2830,107 @@ const CPU_LEVELS = {
     spins: [[0, 0.6, 1], [0, -0.6, 1], [0.45, 0, 1], [-0.45, 0, 1], [0, 0, 0.7], [0, 0, 1.4]], safe: 20, safeBar: 250, robust: 4, place: 6, minCos: 0.2,
     position: true, look: true, retry: true, noise: 0.0009, pnoise: 0.01, brk: 1 },
 };
-const CPU_T = 4;          /* seconds of a candidate simulated in full; the rest of its roll is coasted */
+/* ---- personalities: cpuProfile ----
+   Every CPU plays from a profile: a level's record (above) plus the knobs a personality turns.
+   cpuProfile('easy' | 'medium' | 'hard') is that level exactly, with every personality knob at
+   its neutral value (no spin noise, no bias, no banks or combos), so the three levels play as
+   they always did. cpuProfile(knobs) builds a player: knobs = { level, arch, and optionally the
+   career's aiProfileOf numbers: aimNoise, powerNoise, safetyBias, riskTolerance, positionWeight,
+   bankWeight, hillNoise, breakChoice }; ctx = { hill: true } when either player is on the hill.
+   The structure (search breadth) is the level's; the archetype (CPU_ARCH, the career's ARCH ids)
+   and the numbers move these, all of which the search reads:
+     noise, pnoise, snoise  execution error on the chosen angle, cue speed and tip offset (never on
+                            the balls; the plan never sees the draw, which comes after it)
+     riskBonus, safeBonus   points added to a pot attempt's or a safety's mean at the pick (a
+                            safety's only while the table is not dry, so the loop breaker still wins)
+     safeBar, safe, minCos  when safeties are looked at, how many, the thinnest cut taken on
+     position, look, posW   look-ahead depth (0 none, 1 the leave, 2 a simulated next shot) and
+                            the leave's weight against the pot itself
+     spin, spins            how many lines get spin variants for position
+     brk                    break power
+     take, push             cpuOption takes a choice handed to it at this chance or better; the
+                            safeties tried again as push-outs
+     bank, kick, combo      0-1: one-rail banks and two-ball combinations proposed as pots (their
+                            calls carry the flag), kicks tried first among safeties
+     think                  the visible think time's multiplier (cpuThinkMs)
+     nscale, pscale         the noise multipliers the bumper and carom searches take */
+const CPU_ARCH = {
+  allround: {},
+  potter: { risk: 0.3, safety: -0.2, take: -0.08, push: -2, think: 0.7 },
+  shotmaker: { risk: 0.4, safety: -0.15, minCos: -0.1, combo: 0.8, bank: 0.4, posW: -0.3, think: 0.8 },
+  defender: { risk: -0.3, safety: 0.45, dsafe: 6, take: 0.12, push: 3, kick: 0.6, think: 1.3 },
+  positional: { depth: 1, posW: 0.5, dspin: 2, think: 1.15 },
+  breaker: { brk: 0.1, risk: 0.1, think: 0.85 },
+  banker: { bank: 1, kick: 1, think: 1.1 },
+  grinder: { pnoiseK: 0.7, risk: -0.15, safety: 0.15, think: 1.35 },
+  clutch: { hillK: 0.3 },
+};
+const CPU_NEUTRAL = { arch: null, snoise: 0, riskBonus: 0, safeBonus: 0, posW: 1, take: 0.3, push: 4, bank: 0, kick: 0, combo: 0, think: 1, nscale: 1, pscale: 1 };
+function cpuProfile(x, ctx) {
+  if (x && x.made === 'cpu') return x;
+  const lv = typeof x === 'string' ? x : x && typeof x.level === 'string' ? x.level : 'medium';
+  const known = !!(CPU_LEVELS[lv] || (typeof CPU_BUMPER !== 'undefined' && CPU_BUMPER[lv]) || (typeof CPU_CAROM !== 'undefined' && CPU_CAROM[lv]));
+  const base = CPU_LEVELS[lv] || CPU_LEVELS.medium;
+  const P = Object.assign({}, base, CPU_NEUTRAL, { made: 'cpu', level: known ? lv : 'medium', d: {} });
+  if (!x || typeof x !== 'object') return P;
+  const has = v => typeof v === 'number' && Number.isFinite(v), a = CPU_ARCH[x.arch] || CPU_ARCH.allround;
+  const risk = (has(x.riskTolerance) ? x.riskTolerance - 0.5 : 0) + (a.risk || 0);
+  const safety = (has(x.safetyBias) ? x.safetyBias - 0.375 : 0) + (a.safety || 0);
+  const pos = has(x.positionWeight) ? x.positionWeight - 0.5 : 0, bankW = has(x.bankWeight) ? x.bankWeight : 0.5;
+  const hill = ctx && ctx.hill ? 1 + ((has(x.hillNoise) ? x.hillNoise : 1.25) - 1) * (a.hillK === undefined ? 1 : a.hillK) : 1;
+  P.arch = CPU_ARCH[x.arch] ? x.arch : 'allround';
+  P.noise = (has(x.aimNoise) && x.aimNoise > 0 ? x.aimNoise : base.noise) * hill;
+  P.pnoise = (has(x.powerNoise) && x.powerNoise > 0 ? x.powerNoise : base.pnoise) * (a.pnoiseK || 1) * hill;
+  P.snoise = clamp(P.noise * 10, 0.004, 0.08);
+  P.riskBonus = Math.round(150 * risk);
+  P.safeBonus = Math.round(150 * safety);
+  P.safeBar = base.safeBar + Math.round(200 * safety - 150 * risk);
+  P.minCos = clamp(base.minCos + (a.minCos || 0) - 0.2 * risk, 0.12, 0.7);
+  P.safe = Math.max(1, base.safe + (a.dsafe || 0));
+  if (a.dspin) { P.spin = base.spin + a.dspin; if (!base.spins.length) P.spins = CPU_LEVELS.medium.spins; }
+  const depth = clamp((base.position ? 1 : 0) + (base.look ? 1 : 0) + (a.depth || 0) + (pos > 0.3 ? 1 : 0), 0, 2);
+  P.position = depth >= 1; P.look = depth >= 2;
+  P.posW = clamp(1 + (a.posW || 0) + 0.8 * pos, 0.3, 2);
+  P.brk = x.breakChoice && has(x.breakChoice.power) ? clamp(x.breakChoice.power + (a.brk || 0) / 2, 0.6, 1) : clamp(base.brk + (a.brk || 0), 0.6, 1);
+  P.take = clamp(0.3 + (a.take || 0) - 0.15 * risk, 0.1, 0.6);
+  P.push = clamp(4 + (a.push || 0) + Math.round(4 * safety), 0, 8);
+  P.bank = clamp((a.bank || 0) + Math.max(0, bankW - 0.6) * 2.5, 0, 1);
+  P.kick = clamp((a.kick || 0) + Math.max(0, bankW - 0.6) * 2.5, 0, 1);
+  P.combo = clamp((a.combo || 0) + Math.max(0, risk - 0.15), 0, 1);
+  P.think = a.think || 1;
+  P.nscale = P.noise / base.noise; P.pscale = P.pnoise / base.pnoise;
+  P.d = { safe: P.safe - base.safe };
+  return P;
+}
+/* the record a search runs on for game kind `kind`: the profile, or for snooker the profile over
+   the leaner SNK_CPU (keeping the personality's extra safeties); for bumper and carom their own
+   level tables with the profile's noise scale (exactly the table's own at a bare level) */
+function cpuRecord(P, kind) {
+  if (kind === 'snooker') {
+    const s = SNK_CPU[P.level] || SNK_CPU.medium, L = Object.assign({}, P, s);
+    if (s.safe !== undefined && P.d.safe) L.safe = Math.max(1, s.safe + P.d.safe);
+    return L;
+  }
+  const T = kind === 'bumper' ? CPU_BUMPER : kind === 'carom' ? CPU_CAROM : null;
+  if (!T) return P;
+  const L = T[P.level] || T.medium;
+  return P.nscale === 1 && P.pscale === 1 ? L : Object.assign({}, L, { noise: L.noise * P.nscale, pnoise: L.pnoise * P.pscale });
+}
+/* F8: how long the CPU visibly thinks before it shoots, ms at speed 1: short on an obvious pot
+   or the break, longer the harder the pot (its chance under the player's own noise), longest on
+   a safety, a kick, a bank or a combination; a little more with ball in hand; times the
+   personality's pace and a seeded jitter. The search's own time counts toward it (the page holds
+   only for what is left), and the player can tap to skip it. */
+const CPU_THINK = { break: 900, pot: 650, bank: 2000, combo: 2200, safety: 1900, kick: 2300, push: 1600, blind: 1300, carom: 1500, bumper: 1100 };
+function cpuThinkMs(g, shot, prof, seed) {
+  const P = cpuProfile(prof), it = (shot && shot.intent) || { type: 'blind', q: 0.5 };
+  let ms = CPU_THINK[it.type] || 1300;
+  if (it.type === 'pot' || it.type === 'carom') ms += 1900 * Math.pow(1 - clamp(Number.isFinite(it.q) ? it.q : 0.5, 0, 1), 1.5);
+  if (g && g.inHand && !g.breakShot) ms += 500;
+  ms *= P.think * (0.85 + 0.3 * rng((seed | 0) * 7919 + 3)());
+  return Math.round(clamp(ms, 350, 3500));
+}
+const CPU_T = 4;         /* seconds of a candidate simulated in full; the rest of its roll is coasted */
 const CPU_MOUTH = 0.05;   /* a coasting ball this close to a mouth's middle at the cushion drops */
 const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
 
@@ -2995,6 +3095,76 @@ function cpuLines(balls, cx, cy, targets, L) {
 }
 /* the ghost position for line l when the object ball should leave along psi, as a cue angle */
 const cpuAim = (l, psi) => Math.atan2(l.ty - 2 * BALL_R * Math.sin(psi) - l.cy, l.tx - 2 * BALL_R * Math.cos(psi) - l.cx);
+/* the ball a line means to pot: its own, or a combination's second ball */
+const cpuPotBall = l => l.pot === undefined ? l.n : l.pot;
+/* the cue angle that sends ball t along psi from (cx, cy): the ghost, its cut and the cue's
+   distance to it, or null when the ghost is off the bed, the cut is too thin or the way is blocked */
+function cpuGhost(balls, cx, cy, t, psi, L) {
+  const gx = t.x - 2 * BALL_R * Math.cos(psi), gy = t.y - 2 * BALL_R * Math.sin(psi);
+  if (gx < BALL_R || gx > TL - BALL_R || gy < BALL_R || gy > TW - BALL_R) return null;
+  const ax = gx - cx, ay = gy - cy, d1 = Math.hypot(ax, ay);
+  if (d1 < 1e-6) return null;
+  const cos = (ax * Math.cos(psi) + ay * Math.sin(psi)) / d1;
+  if (cos < L.minCos || !cpuClear(balls, cx, cy, gx, gy, t.n)) return null;
+  return { angle: Math.atan2(ay, ax), cos, d1 };
+}
+/* one-rail banks (a personality's, L.bank > 0): ball t off a cushion into pocket k. The pocket is
+   mirrored across the line the ball's centre meets that cushion on, its depth divided by the
+   rubber's restitution at about 1 m/s (a ball leaves a cushion steeper than it came); the cushion point must
+   not be in a mouth, both legs clear, the second leg into the mouth. q is a straight pot's chance
+   for the whole path, halved, times the willingness; the simulation decides whether it drops. */
+function cpuBankLines(balls, cx, cy, targets, L) {
+  const out = [], lo = BALL_R, hx = TL - BALL_R, hy = TW - BALL_R, e = clamp(RAIL_E[0] - RAIL_E[1], RAIL_E[2], RAIL_E[0]);
+  for (const n of targets) {
+    const t = balls.find(b => b.n === n);
+    if (!t || !t.on) continue;
+    for (let k = 0; k < POCKET_AIM.length; k++) {
+      const p = POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4;
+      for (const [axis, at] of [[0, lo], [0, hx], [1, lo], [1, hy]]) {
+        const dp = axis ? p[1] - at : p[0] - at, dt = axis ? t.y - at : t.x - at;
+        if (dp * dt <= 0) continue;   /* the ball and the pocket on the same side of that cushion */
+        const mx = axis ? p[0] : at - dp / e, my = axis ? at - dp / e : p[1];
+        const ex = mx - t.x, ey = my - t.y, u = axis ? (at - t.y) / ey : (at - t.x) / ex;
+        if (!(u > 0.02 && u < 0.98)) continue;
+        const rx = t.x + ex * u, ry = t.y + ey * u;
+        if (POCKET_AIM.some((q, j) => Math.hypot(q[0] - rx, q[1] - ry) < (j === 1 || j === 4 ? SIDE_W : CORNER_W) / 2 + 1.5 * BALL_R)) continue;
+        const l2 = Math.hypot(p[0] - rx, p[1] - ry), entry = -((p[0] - rx) * m[0] + (p[1] - ry) * m[1]) / Math.max(l2, 1e-6);
+        if (entry < (side ? 0.6 : 0.5)) continue;
+        if (!cpuClear(balls, t.x, t.y, rx, ry, n) || !cpuClear(balls, rx, ry, p[0], p[1], n)) continue;
+        const psi = Math.atan2(ey, ex), c = cpuGhost(balls, cx, cy, t, psi, L);
+        if (!c) continue;
+        const d2 = Math.hypot(rx - t.x, ry - t.y) + l2, w = 0.03 * (side ? entry : Math.sqrt(entry));
+        const tol = 0.5 * w * 2 * BALL_R * c.cos / (Math.max(c.d1, 0.1) * Math.max(d2, 0.05));
+        out.push({ n, k, cx, cy, tx: t.x, ty: t.y, psi0: psi, psi, angle: c.angle, cos: c.cos, d1: c.d1, d2: d2 * 1.3, q: Math.tanh(0.8 * tol / L.noise) * L.bank, bank: true });
+      }
+    }
+  }
+  return out;
+}
+/* two-ball combinations (L.combo > 0): legal ball t into ball u (within a metre) into pocket k.
+   The second leg is cpuLine from t's centre (its tolerance measured with unit noise); the first
+   sends t to u's ghost; q is the cue-angle tolerance of both legs together, times the willingness */
+function cpuComboLines(balls, cx, cy, targets, L) {
+  const out = [], LN = { minCos: L.minCos, noise: 1 };
+  for (const n of targets) {
+    const t = balls.find(b => b.n === n);
+    if (!t || !t.on) continue;
+    for (const u of balls) {
+      if (!u.on || u.n === 0 || u.n === n || Math.hypot(u.x - t.x, u.y - t.y) > 1) continue;
+      for (let k = 0; k < POCKET_AIM.length; k++) {
+        const p = POCKET_AIM[k], l2 = cpuLine(balls, t.x, t.y, u, k, Math.atan2(p[1] - u.y, p[0] - u.x), LN);
+        if (!l2 || !cpuClear(balls, cx, cy, t.x, t.y, n)) continue;
+        const gx = u.x - 2 * BALL_R * Math.cos(l2.psi), gy = u.y - 2 * BALL_R * Math.sin(l2.psi), psi = Math.atan2(gy - t.y, gx - t.x);
+        const c = cpuGhost(balls, cx, cy, t, psi, L);
+        if (!c) continue;
+        const tol = Math.atanh(Math.min(l2.q, 0.999)) / 0.8 * 2 * BALL_R * c.cos / Math.max(c.d1, 0.1);
+        out.push({ n, pot: u.n, k, cx, cy, tx: t.x, ty: t.y, psi0: psi, psi, angle: c.angle, cos: c.cos * l2.cos, d1: c.d1, d2: l2.d1 + 1.4 * l2.d2 + 0.1,
+          q: 0.7 * Math.tanh(0.8 * tol / L.noise) * L.combo, combo: true });
+      }
+    }
+  }
+  return out;
+}
 /* legal first contacts; from the kitchen only balls past the head string, since a straight line
    from behind the string onto a ball behind it never crosses the string (judge's rule). Banks
    and kicks that do cross are left to the simulation, which judges them like any shot. */
@@ -3042,7 +3212,7 @@ function cpuValue(g, j, L) {
   else if (j.option && j.option.who !== me) {
     const t = Object.assign({}, j, { option: null });
     v = L.position ? Math.min(-250 * cpuChance(t, 1 - me, L), 250 * cpuChance(t, me, L)) : -100;
-  } else if (j.turn === me) v = 300 + (L.position && !j.option ? 250 * cpuChance(j, me, L) : 0);
+  } else if (j.turn === me) v = 300 + (L.position && !j.option ? 250 * (L.posW === undefined ? 1 : L.posW) * cpuChance(j, me, L) : 0);
   else v = L.position ? -250 * cpuChance(j, j.turn, L) : 0;
   /* points games: a little for each point (rotation's balls are worth their numbers) */
   if (R.score) v += (R.score === 'numbers' ? 2 : 20) * (j.verdict.scored || 0);
@@ -3121,7 +3291,7 @@ function cpuSafeties(g, cx, cy, targets, place) {
       const rx = cx + ex * u, ry = cy + ey * u, len = Math.hypot(ex, ey);
       if (POCKET_AIM.some((p, k) => Math.hypot(p[0] - rx, p[1] - ry) < (k === 1 || k === 4 ? SIDE_W : CORNER_W) / 2 + 1.5 * BALL_R)) continue;
       if (!cpuClear(g.balls, cx, cy, rx, ry, -1) || !cpuClear(g.balls, rx, ry, t.x, t.y, n)) continue;
-      out.push({ angle: Math.atan2(ey, ex), power: cpuPower(1.15 * cpuSpeedFor(len + 1)), spin: none, place, pri: -len });
+      out.push({ angle: Math.atan2(ey, ex), power: cpuPower(1.15 * cpuSpeedFor(len + 1)), spin: none, place, pri: -len, kick: true });
     }
   }
   return out.sort((a, b) => b.pri - a.pri);
@@ -3140,20 +3310,36 @@ function cpuBreak(g, rnd, L) {
    only just drops loses to a firmer one, and simulates the next shot from the leave);
    D safeties and kicks when the best mean is below the level's bar, the best of them tested the
    same way. The best mean wins among the shots simulated as legal; a foul only when nothing
-   legal turned up. The shot played carries the level's aim noise. */
+   legal turned up. The shot played carries the profile's execution noise.
+   level: a level name or anything cpuProfile takes (a personality). Banks and combinations join
+   the pot lines, kicks move up the safeties and the pick leans by riskBonus / safeBonus only
+   when the profile says so; at a bare level none of it runs. The shot returned also carries
+   intent ({ type, q }: what it is and, for a pot, its chance), which cpuThinkMs reads. */
 function* cpuSearch(g, seed, level = 'medium') {
-  if (g.kind === 'bumper') return yield* cpuBumper(g, seed, level);
-  if (g.kind === 'carom') return yield* cpuCarom(g, seed, level);
-  const L0 = CPU_LEVELS[level] || CPU_LEVELS.medium, L = g.kind === 'snooker' ? Object.assign({}, L0, SNK_CPU[level] || SNK_CPU.medium) : L0;
+  const P = cpuProfile(level);
+  if (g.kind === 'bumper') return yield* cpuBumper(g, seed, P);
+  if (g.kind === 'carom') return yield* cpuCarom(g, seed, P);
+  const L = cpuRecord(P, g.kind);
   const rnd = rng(seed * 2654435761 + 1), me = g.turn;
   cpuCalibrate();
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
   /* the shot played carries its declaration (call): the target and pocket of a pot line, a
-     safety, a push-out, or null when the rules ask for none */
-  const play = s => ({ angle: s.angle + gauss() * L.noise, power: cpuPower(cpuSpeedAt(s.power) * (1 + gauss() * L.pnoise)),
-    spin: { x: s.spin.x, y: s.spin.y }, place: g.inHand ? s.place : null, call: s.call || null });
-  if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L));
-  const need = callNeed(g), potCall = (base, l) => callNeed(base) ? { ball: l.n, pocket: l.k } : null, safeCall = need ? { safety: true } : null;
+     safety, a push-out, or null when the rules ask for none. A personality's tip offset errs
+     too (its draws come after the angle's and the power's, so a bare level's shot is unchanged) */
+  const play = (s, intent) => {
+    const out = { angle: s.angle + gauss() * L.noise, power: cpuPower(cpuSpeedAt(s.power) * (1 + gauss() * L.pnoise)),
+      spin: { x: s.spin.x, y: s.spin.y }, place: g.inHand ? s.place : null, call: s.call || null, intent };
+    if (L.snoise) {
+      let x = s.spin.x + gauss() * L.snoise, y = s.spin.y + gauss() * L.snoise;
+      const h = Math.hypot(x, y);
+      if (h > 1) { x /= h; y /= h; }
+      out.spin = { x, y };
+    }
+    return out;
+  };
+  if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L), { type: 'break', q: 1 });
+  const need = callNeed(g), safeCall = need ? { safety: true } : null;
+  const potCall = (base, l) => callNeed(base) ? Object.assign({ ball: cpuPotBall(l), pocket: l.k }, l.bank ? { bank: true } : l.combo ? { combo: true } : null) : null;
   const targets = cpuTargets(g), cue = g.balls.find(b => b.n === 0), spots = g.inHand ? cpuSpots(g, targets, L) : [null];
   const recs = [];
   let sims = 0;
@@ -3168,6 +3354,12 @@ function* cpuSearch(g, seed, level = 'medium') {
   /* A: pot lines over the power ladder */
   const lines = [];
   for (const place of spots) for (const l of cpuLines(g.balls, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, L)) lines.push(Object.assign(l, { place }));
+  /* a personality's banks and combinations, from the cue ball or the two best spots in hand */
+  if (L.bank || L.combo) for (const place of spots.slice(0, 2)) {
+    const cx = place ? place[0] : cue.x, cy = place ? place[1] : cue.y;
+    if (L.bank) for (const l of cpuBankLines(g.balls, cx, cy, targets, L)) lines.push(Object.assign(l, { place }));
+    if (L.combo) for (const l of cpuComboLines(g.balls, cx, cy, targets, L)) lines.push(Object.assign(l, { place }));
+  }
   lines.sort((a, b) => b.q - a.q);
   for (const l of lines.slice(0, L.lines)) {
     let psi = l.psi, potted = false;
@@ -3176,7 +3368,7 @@ function* cpuSearch(g, seed, level = 'medium') {
       const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, f), spin: { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
       o.line = l; o.f = f; recs.push(o);
       yield;
-      potted = potted || o.j.verdict.potted.includes(l.n);
+      potted = potted || o.j.verdict.potted.includes(cpuPotBall(l));
       psi = learn(l, o, psi);
     }
     if (L.retry && !potted && Math.abs(psi - l.psi) > 0.0005 && sims < L.sims - reserve) {
@@ -3189,7 +3381,7 @@ function* cpuSearch(g, seed, level = 'medium') {
 
   /* B: spin and power variants on the lines that kept the turn, or potted the ball but lost the
      cue ball after it (draw or stun may save those) */
-  const seen = new Set(), keepers = recs.filter(r => r.value >= 300 || (r.j.verdict.scratch && r.j.verdict.potted.includes(r.line.n))).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
+  const seen = new Set(), keepers = recs.filter(r => r.value >= 300 || (r.j.verdict.scratch && r.j.verdict.potted.includes(cpuPotBall(r.line)))).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
   for (const r of keepers.slice(0, L.spin)) {
     for (const [sx, sy, pf] of L.spins) {
       if (sims >= L.sims - reserve) break;
@@ -3199,7 +3391,7 @@ function* cpuSearch(g, seed, level = 'medium') {
       yield;
       /* side spin throws and squirts: correct the aim from what the ball did and try once more */
       const psi = learn(l, o, l.psi);
-      if (sx && L.retry && !o.j.verdict.potted.includes(l.n) && Math.abs(psi - l.psi) > 0.0005 && sims < L.sims - reserve) {
+      if (sx && L.retry && !o.j.verdict.potted.includes(cpuPotBall(l)) && Math.abs(psi - l.psi) > 0.0005 && sims < L.sims - reserve) {
         o = sim(Object.assign({}, shot, { angle: cpuAim(l, psi) }));
         o.line = l; o.f = r.f * pf; recs.push(o);
         yield;
@@ -3246,10 +3438,10 @@ function* cpuSearch(g, seed, level = 'medium') {
     const safes = [], got = [];
     for (const place of spots.length > 2 ? [spots[0], spots[spots.length - 1]] : spots) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
     if (g.kind === 'snooker' && g.breakShot) safes.push(...snkBreaks(g));
-    for (const s of safes) s.call = safeCall;
+    for (const s of safes) { s.call = safeCall; if (L.kick && s.kick) s.pri += 2 * L.kick; }
     /* the shot after the break may be a push-out: the best few safeties again as pushes, which
        the opponent may hand back (cpuValue scores the choice they would make) */
-    if (g.pushAvail && rulesOf(g).pushOut) safes.push(...safes.slice(0, 4).map(s => Object.assign({}, s, { call: { push: true }, pri: s.pri - 0.01 })));
+    if (g.pushAvail && rulesOf(g).pushOut) safes.push(...safes.slice(0, L.push).map(s => Object.assign({}, s, { call: { push: true }, pri: s.pri - 0.01 })));
     safes.sort((a, b) => b.pri - a.pri);
     for (const s of safes.slice(0, L.safe)) {
       if (sims >= L.sims - (L.robust ? 8 : 0)) break;
@@ -3262,12 +3454,22 @@ function* cpuSearch(g, seed, level = 'medium') {
   }
   if (!recs.length) {
     const place = spots[0], cx = place ? place[0] : cue.x, cy = place ? place[1] : cue.y, t = g.balls.find(b => b.n === targets[0]);
-    return play({ angle: Math.atan2(t.y - cy, t.x - cx), power: cpuPower(cpuSpeedFor(Math.hypot(t.x - cx, t.y - cy) + 1.5)), spin: { x: 0, y: 0 }, place, call: safeCall });
+    return play({ angle: Math.atan2(t.y - cy, t.x - cx), power: cpuPower(cpuSpeedFor(Math.hypot(t.x - cx, t.y - cy) + 1.5)), spin: { x: 0, y: 0 }, place, call: safeCall }, { type: 'blind', q: 0 });
   }
-  /* a shot simulated as a foul (or a loss) is never played over one simulated as legal */
+  /* a shot simulated as a foul (or a loss) is never played over one simulated as legal; the
+     personality's lean (zero at a bare level) moves pots against safeties, a safety's only while
+     the table is not dry */
   const legal = r => !r.j.verdict.foul && !(r.j.winner !== null && r.j.winner !== me);
   const pick = [tested.filter(legal), recs.filter(legal), tested, recs].find(c => c.length);
-  return play(pick.reduce((a, b) => b.mean > a.mean ? b : a).shot);
+  const lean = r => r.line ? L.riskBonus : (g.dry || 0) < CPU_DRY ? L.safeBonus : 0;
+  const best = pick.reduce((a, b) => b.mean + lean(b) > a.mean + lean(a) ? b : a), s = best.shot;
+  return play(s, cpuIntent(best));
+}
+/* what a chosen candidate is, for the think time and the tests: a pot (bank, combo) with its chance, else a push, kick or safety */
+function cpuIntent(r) {
+  const l = r.line, s = r.shot;
+  if (l) return { type: l.bank ? 'bank' : l.combo ? 'combo' : 'pot', q: l.q };
+  return { type: s.call && s.call.push ? 'push' : s.kick ? 'kick' : 'safety', q: 0 };
 }
 /* the CPU's answer to a choice pending for it (game.option): the 8 on the break is spotted;
    otherwise it takes the table when its best shot from there is a fair chance, else hands it back
@@ -3276,8 +3478,8 @@ function cpuOption(g, level = 'medium') {
   const o = g.option;
   if (!o) return null;
   if (o.kind === 'eightBreak') return 'spot';
-  const L = CPU_LEVELS[level] || CPU_LEVELS.medium, q = cpuChance(Object.assign({}, g, { option: null, turn: o.who }), o.who, L);
-  return q >= 0.3 ? 'take' : o.kind === 'badBreak' ? 'rebreak' : 'pass';
+  const L = cpuProfile(level), q = cpuChance(Object.assign({}, g, { option: null, turn: o.who }), o.who, L);
+  return q >= L.take ? 'take' : o.kind === 'badBreak' ? 'rebreak' : 'pass';
 }
 function cpuShot(g, seed, level) {
   const it = cpuSearch(g, seed, level);
@@ -3567,7 +3769,7 @@ function bValue(g, j, minD) {
   return v - (j.verdict.potted.length ? 0 : 300 * Math.min(minD, 0.5));
 }
 function* cpuBumper(g, seed, level) {
-  const L = CPU_BUMPER[level] || CPU_BUMPER.medium, rnd = rng(seed * 2654435761 + 7), me = g.turn, T = POCKETS[1 - me];
+  const L = cpuRecord(cpuProfile(level), 'bumper'), rnd = rng(seed * 2654435761 + 7), me = g.turn, T = POCKETS[1 - me];
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2, none = { x: 0, y: 0 };
   const play = s => ({ angle: s.angle + gauss() * L.noise, power: clamp(powerFor(speedOf(s.power) * (1 + gauss() * L.pnoise)), 0, 1), spin: none, place: null, ball: s.ball });
   const balls = bumperStrikers(g, me).map(n => g.balls.find(b => b.n === n)).filter(b => b && b.on);
@@ -3612,7 +3814,7 @@ function* cpuBumper(g, seed, level) {
     r.mean = sum / (1 + mis);
   }
   const pick = best.slice(0, Math.max(1, L.robust)).reduce((a, b) => b.mean > a.mean ? b : a, best[0]);
-  return play(pick.shot);
+  return Object.assign(play(pick.shot), { intent: { type: 'bumper', q: pick.mean >= 400 ? 0.8 : 0.3 } });
 }
 /* auto aim's suggestion: the ball to strike and a clear line for it to the far cup (straight,
    or off one cushion), the shortest, the marked ball first while it is up; with none clear,
@@ -4089,7 +4291,7 @@ function cpuSnookerValue(g, j, L) {
   if (v.frameOver) return v.frameOver.winner === me ? 900 : -900;
   let s;
   if (v.foul) s = -400 - 25 * v.pen;
-  else if (j.turn === me) s = 300 + 25 * v.pts + (L.position ? 250 * cpuChance(j, me, L) : 0);
+  else if (j.turn === me) s = 300 + 25 * v.pts + (L.position ? 250 * (L.posW === undefined ? 1 : L.posW) * cpuChance(j, me, L) : 0);
   else s = (L.position ? -250 * cpuChance(j, j.turn, L) : 0) + snkLeave(j);
   return s - cpuDryCost(g, j, s);
 }
@@ -4277,7 +4479,7 @@ function cMirror(x, y, i, j) {
   return [R + (i % 2 ? (i + 1) * W - u : i * W + u), R + (j % 2 ? (j + 1) * H - v : j * H + v)];
 }
 function* cpuCarom(g, seed, level) {
-  const L = CPU_CAROM[level] || CPU_CAROM.medium, rnd = rng(seed * 2654435761 + 11), me = g.striker;
+  const L = cpuRecord(cpuProfile(level), 'carom'), rnd = rng(seed * 2654435761 + 11), me = g.striker;
   const gauss = () => (rnd() + rnd() + rnd() - 1.5) * 2;
   const play = s => ({ angle: s.angle + gauss() * L.noise, power: clamp(powerFor(speedOf(s.power) * (1 + gauss() * L.pnoise)), 0, 1),
     spin: { x: s.spin.x, y: s.spin.y }, place: null, ball: me, first: s.first === undefined ? null : s.first });
@@ -4326,7 +4528,7 @@ function* cpuCarom(g, seed, level) {
     r.mean = sum / 3;
   }
   const pick = best.slice(0, Math.max(1, L.robust)).reduce((a, b) => b.mean > a.mean ? b : a, best[0]);
-  return play(pick.shot);
+  return Object.assign(play(pick.shot), { intent: { type: 'carom', q: pick.mean >= 1000 ? 0.85 : pick.mean > -200 ? 0.4 : 0.1 } });
 }
 /* auto aim's suggestion: the best of a small noiseless search (the 'hint' level), as the cue
    angle and the object ball it meets first ({ angle, n, k: -1 }: there is no pocket to mark) */
@@ -4788,7 +4990,10 @@ const Career = (() => {
        bankWeight 0-1      how readily it plays banks and kicks
        hillNoise           the multiplier on both noises when either player is on the hill
        breakChoice         { power 0.8-1 of the full break, style 'power' | 'controlled' | 'soft' }
-       level               levelOf(knobs): the nearest of CPU_LEVELS, so cpuSearch works today */
+       level               levelOf(knobs): the nearest of CPU_LEVELS, the search's breadth
+       arch                the player's archetype (ARCH id) when p is an id or a card, else 'allround'
+     The whole record is what the sim's cpuProfile takes: the page plays it as start(kind,
+     { cpuProfile: aiProfileOf(id) }), archetype and numbers both reaching the search. */
   function aiProfileOf(p, diff) {
     const at = typeof p === 'number' ? attrsOf(p) : p && p.attrs ? p.attrs : p;
     const df = (DIFFS[diff || (S ? S.profile.difficulty : 'medium')] || DIFFS.medium).noise;
@@ -4804,6 +5009,7 @@ const Career = (() => {
       breakChoice: { power: r2(0.8 + at.brk / 500), style: at.brk >= 70 || at.agg >= 65 ? 'power' : at.safe >= 65 ? 'soft' : 'controlled' },
     };
     k.level = levelOf(k);
+    k.arch = (typeof p === 'number' && p !== HUMAN ? popAt(p).arch : p && typeof p.arch === 'string' ? p.arch : null) || 'allround';
     return k;
   }
   const LEVEL_BREADTH = { easy: 0.25, medium: 0.55, hard: 0.9 };
@@ -8458,6 +8664,10 @@ const SPIN_SAFE = 0.62;           /* the tip-dot circle on the english widget, a
 let game = newGame('8'), state = 'menu', cpuMode = false, cpuLevel = 'medium', tab = null;
 let aimAngle = 0, power = 0.5, markPower = 0.5, cueSpin = { x: 0, y: 0 };
 let pull = null, placeAt = null, stroke = null, cpuIt = null, cpuPlan = null, cpuAnim = 0, cpuSeed = 1;
+/* the CPU's personality (cpuProfile: the level's, or a career opponent's o.cpuProfile), and F8's
+   visible think time: the search's answer waits in cpuReady until cpuT0 + cpuThinkMs (a tap on
+   the table, cpuSkip, cuts the wait and the cue's swing short) */
+let cpuProf = cpuProfile('medium'), cpuReady = null, cpuT0 = 0, cpuSkip = false;
 let gest = null, paused = null, stats = newStats();
 /* fineAim: the fine-aim wheel is held (the canvas shows a loupe). aimAnim: the auto-aim swing. */
 let fineAim = false, aimAnim = null, wheelRoll = 0;
@@ -8476,7 +8686,7 @@ const felt = window.felt = {
   speed: 1, lastResult: null, lastShot: null, lastCpu: null,
   get state() { return state; }, get game() { return game; }, get cpu() { return cpuMode; }, get power() { return power; }, get aim() { return aimAngle; },
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
-  get cpuLevel() { return cpuLevel; }, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
+  get cpuLevel() { return cpuLevel; }, get cpuProfile() { return cpuProf; }, cpuSkip: () => { if (state === 'thinking' && !human()) cpuSkip = true; return cpuSkip; }, lastThink: null, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
   get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
   /* the aim feel (section 5 input): the sweep gain radius and tap reach in CSS px, and the tuning */
@@ -8515,14 +8725,18 @@ let caromSide = -1;
 const caromOpts = () => ({ race: settings.caromRace, cushions: settings.caromCush, side: caromSide = -caromSide });
 
 /* o: a career rack (6d) plays on its own terms instead of the settings: { level, table, pockets,
-   bumperTable, breaker (1: the CPU breaks), rules (the event's, locked), snooker ('compact' |
+   bumperTable, breaker (1: the CPU breaks), rules (the event's, locked), cpuProfile (the opponent's
+   personality: Career's aiProfileOf record or { level, arch }; its level stands in when o.level is
+   left out), hill (either player is one rack from the match: the profile's hill noise), snooker ('compact' |
    'full'), carom ({ race, cushions, side, event: true }) }; any other start ends the career
    match, which counts as a forfeit (careerAbandon), and a CPU game left mid-rack counts as a loss
    (abandonCpuGame, audit F5) */
 function start(kind, o = null) {
   abandonCpuGame();
   if (!o) careerAbandon();
-  cpuMode = o ? true : settings.cpu; cpuLevel = o ? o.level : settings.level; solo = null;
+  cpuMode = o ? true : settings.cpu; solo = null;
+  cpuProf = cpuProfile(o && o.cpuProfile ? o.cpuProfile : o ? o.level : settings.level, { hill: !!(o && o.hill) });
+  cpuLevel = o ? o.level || cpuProf.level : settings.level;
   /* the table size and pockets take effect here, between games; the table is repainted only
      when either changed (its art reads the geometry globals) */
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
@@ -8535,13 +8749,13 @@ function start(kind, o = null) {
   resetCall(); cpuCall = null; optBox.hidden = true;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
-  tab = null; cpuIt = null; cpuPlan = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
+  tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
   pull = null; stroke = null; paused = null; stats = newStats(); aimAnim = null;
   cancelGestures(); aimLock = null;
   hideOverlays();
   aimAngle = 0; handAimed = false; hint = null; placeAt = null; placeBack = null; move = null; picked = false;
   state = 'aim';
-  if (!human()) { state = 'thinking'; cpuPlan = null; felt.lastCpu = { seed: cpuSeed, level: cpuLevel }; cpuIt = cpuSearch(game, cpuSeed++, cpuLevel); }
+  if (!human()) cpuBegin();
   enterHand();
   keepAim();
   autoAim();
@@ -8960,17 +9174,14 @@ function nextTurn() {
   resetCall(); cpuCall = null; optBox.hidden = true;
   let chose = null;
   while (game.option && !(cpuMode ? game.option.who === 0 : true)) {
-    const o = game.option, c = cpuOption(game, cpuLevel);
+    const o = game.option, c = cpuOption(game, cpuProf);
     chose = { o, c };
     game = chooseOption(game, c);
   }
   if (game.option) { state = 'choose'; showOption(); return chose; }
   if (game.breakShot) randomOrient();
-  if (!human()) {
-    state = 'thinking'; cpuPlan = null;
-    felt.lastCpu = { seed: cpuSeed, level: cpuLevel };
-    cpuIt = cpuSearch(game, cpuSeed++, cpuLevel);
-  } else { state = 'aim'; enterHand(); }
+  if (!human()) cpuBegin();
+  else { state = 'aim'; enterHand(); }
   keepAim();
   autoAim();
   return chose;
@@ -9090,7 +9301,7 @@ function concedeFrame() {
   if (game.kind !== 'snooker' || game.winner !== null || !paused) return;
   const p = cpuMode ? 0 : game.turn;
   cancelGestures();
-  paused = null; tab = null; stroke = null; pull = null; cpuIt = null; cpuPlan = null; aimAnim = null;
+  paused = null; tab = null; stroke = null; pull = null; cpuIt = null; cpuPlan = null; cpuReady = null; aimAnim = null;
   game = concedeSnooker(game, p);
   const v = game.verdict;
   recordFrame(v);
@@ -9098,7 +9309,7 @@ function concedeFrame() {
   if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null;
-  if (!human()) { state = 'thinking'; cpuPlan = null; cpuIt = cpuSearch(game, cpuSeed++, cpuLevel); } else { state = 'aim'; enterHand(); }
+  if (!human()) cpuBegin(); else { state = 'aim'; enterHand(); }
   keepAim();
   autoAim();
   snookerWords(v, p, game.turn);
@@ -9159,7 +9370,7 @@ function resume() {
   if (!paused) return;
   const dt = performance.now() - paused.at;
   if (stroke) stroke.t0 += dt;
-  cpuAnim += dt;
+  cpuAnim += dt; cpuT0 += dt;
   state = paused.state; paused = null;
   hideOverlays();
   hud();
@@ -9207,25 +9418,37 @@ function frameBody(now) {
   camStep(dtMs);
   draw(now);
 }
-/* the CPU: search a slice per frame, then turn the cue onto the line, pull back, stroke */
+/* the CPU's turn begins: its search starts, one slice a frame (think) */
+function cpuBegin() {
+  state = 'thinking'; cpuPlan = null; cpuReady = null; cpuSkip = false; cpuT0 = performance.now();
+  felt.lastCpu = { seed: cpuSeed, level: cpuLevel, profile: cpuProf };
+  cpuIt = cpuSearch(game, cpuSeed++, cpuProf);
+}
+/* the CPU: search a slice per frame (12 ms of it, so a frame never stalls); then hold until its
+   think time is up (F8: cpuThinkMs, counted from the turn's start, so a long search waits no
+   more; a tap skips it, and felt.speed runs it faster), then turn the cue onto the line, pull
+   back, stroke */
 function think(now) {
   if (!cpuPlan) {
     const t0 = performance.now();
-    while (performance.now() - t0 < 12) {
+    while (!cpuReady && performance.now() - t0 < 12) {
       const r = cpuIt.next();
       if (r.done) {
-        cpuPlan = r.value; cpuAnim = now;
-        if (cpuPlan.place) game = placeCue(game, cpuPlan.place[0], cpuPlan.place[1]);
-        if (game.kind === 'bumper' && cpuPlan.ball != null) game.striker = cpuPlan.ball;
-        cpuPlan.from = aimAngle;
-        cueSpin = spinOf(cpuPlan.spin || 0);
-        hud();
-        break;
+        cpuReady = r.value;
+        cpuReady.hold = cpuThinkMs(game, cpuReady, cpuProf, cpuSeed);
+        felt.lastThink = { ms: cpuReady.hold, intent: cpuReady.intent || null, searchMs: Math.round(performance.now() - cpuT0) };
       }
     }
+    if (!cpuReady || (!cpuSkip && performance.now() - cpuT0 < cpuReady.hold / felt.speed)) return;
+    cpuPlan = cpuReady; cpuReady = null; cpuAnim = now;
+    if (cpuPlan.place) game = placeCue(game, cpuPlan.place[0], cpuPlan.place[1]);
+    if (game.kind === 'bumper' && cpuPlan.ball != null) game.striker = cpuPlan.ball;
+    cpuPlan.from = aimAngle;
+    cueSpin = spinOf(cpuPlan.spin || 0);
+    hud();
     return;
   }
-  const dur = 900 / felt.speed, u = clamp((now - cpuAnim) / dur, 0, 1);
+  const dur = (cpuSkip ? 250 : 900) / felt.speed, u = clamp((now - cpuAnim) / dur, 0, 1);
   let d = cpuPlan.angle - cpuPlan.from;
   d = Math.atan2(Math.sin(d), Math.cos(d));
   aimAngle = cpuPlan.from + d * (u < 0.6 ? 1 - (1 - u / 0.6) ** 3 : 1);
@@ -9338,6 +9561,7 @@ function endReplay() {
   Object.assign(lastPos, R.keep.lastPos);
   if (bus && R.keep.gain !== null) bus.gain.value = R.keep.gain;
   if (cpuPlan) cpuAnim += R.wall;
+  cpuT0 += R.wall;
   if (stroke) stroke.t0 += R.wall;
   replayBadge.hidden = true; replaySkip.hidden = true;
   document.documentElement.toggleAttribute('data-replay', false);
@@ -9600,6 +9824,8 @@ table.addEventListener('pointerdown', e => {
     if (g.mode !== 'grab' && g.mode !== 'ball' && state === 'aim') { aimAngle = g.a0; g.mode = 'dead'; }
     return;
   }
+  /* F8: a tap during the CPU's turn hurries it (the wait and the cue's swing; never the search) */
+  if (state === 'thinking' && !human() && !rp) cpuSkip = true;
   if (gest || wheelDrag || !human() || e.button > 0 || state !== 'aim') return;
   finishAutoAim();
   const mouse = e.pointerType === 'mouse';
@@ -10004,7 +10230,7 @@ const coachOn = () => !!solo && (solo.kind === 'lesson' || solo.kind === 'tutori
 /* a fresh turn on the current game: every gesture, move and swing of the last one dropped */
 function soloAim() {
   cancelGestures();
-  tab = null; cpuIt = null; cpuPlan = null; pull = null; stroke = null; aimAnim = null; aimLock = null;
+  tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; pull = null; stroke = null; aimAnim = null; aimLock = null;
   placeAt = null; placeBack = null; move = null; handAimed = false; hint = null; picked = false;
   state = 'aim';
   enterHand();
@@ -10720,7 +10946,7 @@ function quitToHome() {
   careerAbandon();   /* a career match left mid-way is a forfeit (6d, audit F5) */
   if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
-  tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; aimAnim = null;
+  tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; cpuReady = null; aimAnim = null;
   game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9', '10', 'straight', 'rotation'].includes(game.kind) ? game.kind : '8'));
   resetCall(); optBox.hidden = true;
   tutKeptKind = null;
@@ -11918,7 +12144,8 @@ const careerFoe = () => { const o = career.nm.opponent; return { name: o.name, f
 /* start(kind, o)'s terms for the rack in play */
 function careerTerms() {
   const nm = career.nm, r = nm.rules, k = career.kind, breaker = k === 'bumper' || k === 'carom' ? 0 : (nm.breaker + career.rack - 1) % 2;
-  return { level: nm.level, table: k === 'carom' ? 'carom' : r.table === '9' ? '9' : '7', pockets: r.pockets === 'generous' ? 'generous' : 'regulation', bumperTable: 'octagon',
+  const hill = career.units === 'racks' && career.score.some(x => x === career.need - 1);
+  return { level: nm.level, cpuProfile: nm.ai, hill, table: k === 'carom' ? 'carom' : r.table === '9' ? '9' : '7', pockets: r.pockets === 'generous' ? 'generous' : 'regulation', bumperTable: 'octagon',
     breaker, rules: careerRules(r), snooker: r.table === 'full' ? 'full' : 'compact', carom: { race: nm.race, cushions: 3, side: 1, event: true } };
 }
 const dropLive = () => { try { localStorage.removeItem(LIVE_KEY); } catch (e) { } };

@@ -11,7 +11,10 @@
    A7 (F11) a hidden page pauses the game and suspends the audio; nothing steps while hidden; back,
       the audio resumes and Resume carries on with no time jump.
    A8 (F14) the CPU's win plays no win sting (a quiet one of its own); a player's win still does.
-   A9 (F16) the last banner does not show through the pause menu (landscape). */
+   A9 (F16) the last banner does not show through the pause menu (landscape).
+
+   A10 (F8) the CPU's think time: it waits as cpuThinkMs says (the break briefly), the frame never
+      stalls meanwhile, a tap on the table skips the wait, and felt.speed runs it faster. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -79,6 +82,33 @@ const { check, done, open } = require('./lib.cjs');
   check('A3 daily shot: a first try quit mid-roll still counts; coming back the same day is practice',
     a3.first === true && ['stroke', 'rolling'].includes(a3.mid) && a3.again === false && a3.rec.last === '2026-03-10' && a3.rec.streak === 1, JSON.stringify(a3));
   await page.evaluate(() => felt.quitToHome());
+
+  /* A10 (F8): the CPU breaks at speed 1. It holds until its think time is up, counted from the
+     turn's start (before the fix the plan came the moment the search ended: a break waited no
+     time at all), every frame keeps coming, then a second break is skipped by a tap on the table,
+     and at speed 40 the wait shrinks to a fortieth */
+  const cpuTurn = (skip, speed) => page.evaluate(async ({ skip, speed }) => {
+    felt.quitToHome();
+    felt.speed = speed; felt.lastThink = null;
+    felt.start('8', { level: 'hard', table: '7', pockets: 'regulation', breaker: 1 });
+    const t0 = performance.now();
+    if (skip) await new Promise(r => setTimeout(r, 30));
+    if (skip) { const b = table.getBoundingClientRect(); table.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2, pointerId: 9, pointerType: 'touch', isPrimary: true })); }
+    let gap = 0, last = performance.now();
+    while (performance.now() - t0 < 8000 && felt.state === 'thinking' && !cpuPlan) {
+      await new Promise(r => requestAnimationFrame(r));
+      const n = performance.now(); gap = Math.max(gap, n - last); last = n;
+    }
+    const at = performance.now() - t0, think = felt.lastThink;
+    return { at, think, gap, plan: !!cpuPlan || felt.state !== 'thinking', st: felt.state };
+  }, { skip, speed });
+  const w1 = await cpuTurn(false, 1), w2 = await cpuTurn(true, 1), w3 = await cpuTurn(false, 40);
+  await page.evaluate(() => { felt.speed = 1; felt.quitToHome(); });
+  check('A10 F8 think time: the CPU\'s break waits its cpuThinkMs (brief: 0.35 to 1.3 s), from the turn\'s start, with no frame gap over 100 ms',
+    w1.plan && w1.think && w1.think.intent && w1.think.intent.type === 'break' && w1.think.ms >= 350 && w1.think.ms <= 1300 && w1.at >= w1.think.ms - 20 && w1.at < w1.think.ms + 400 && w1.gap < 100,
+    JSON.stringify(w1));
+  check('A10 F8 a tap on the table skips the wait; felt.speed 40 cuts it to a fortieth',
+    w2.plan && w2.think && w2.at < Math.min(300, w2.think.ms - 200) && w3.plan && w3.think && w3.at < w3.think.ms / 40 + 200, JSON.stringify({ w2, w3 }));
 
   /* A4: a stored last day far in the future */
   const a4 = await open('', { init: () => { localStorage.setItem('felt.daily.v1', '{"last":"2099-01-01","streak":500,"best":500,"made":true}'); } });

@@ -26,6 +26,7 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'trickHelpers', 'TUTORIALS', 'TUT_SOLS', 'tutById', 'tutBalls', 'tutNum', 'tutGame', 'tutJudge', 'tutSol', 'swapGroup', 'caromNo',
   'RULESETS', 'DEFAULT_RULESET', 'RULE_BASE', 'RULE_MODULES', 'POCKET_KINDS', 'CALL_MODES', 'CALL_DETAILS', 'CALL_DEFAULT', 'rulesetsFor', 'makeRules', 'makeCall', 'rulesOf', 'gameBallOf',
   'callScope', 'callNeed', 'callOpen', 'callResult', 'breakLegal', 'railBalls', 'spotAll', 'withCall', 'chooseOption', 'cpuOption', 'cpuValue', 'cpuChance', 'rerack', 'rackSpots', 'RACKS', 'groupOf',
+  'cpuProfile', 'cpuRecord', 'cpuThinkMs', 'CPU_ARCH', 'CPU_NEUTRAL', 'CPU_THINK', 'cpuBankLines', 'cpuComboLines', 'cpuLines', 'cpuIntent', 'cpuPotBall',
   'Career'];
 
 function regionSource() {

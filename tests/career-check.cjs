@@ -204,7 +204,12 @@ async function pullBar(T, frac) {
     await T.page.click('#cvCal');
     await still(T);
     const c0 = await ev(T, () => ({ page: felt.careerPage, rows: cvBody.querySelectorAll('.topic').length, bad: [...cvBody.querySelectorAll('.val.bad')].length, fee: [...cvBody.querySelectorAll('.val')].some(v => / cr$/.test(v.textContent)) }));
-    check(`${tag}: the calendar: events with their fees, the ineligible ones marked`, c0.page === 'calendar' && c0.rows > 3 && c0.bad > 0 && c0.fee, JSON.stringify(c0));
+    check(`${tag}: the calendar opens on Open to you: the events you can enter, with their fees, none ineligible (QA F7)`, c0.page === 'calendar' && c0.rows > 3 && c0.bad === 0 && c0.fee, JSON.stringify(c0));
+    /* All: the season, the ineligible ones marked */
+    await T.page.getByRole('button', { name: 'All', exact: true }).click();
+    await still(T);
+    const c1 = await ev(T, () => ({ rows: cvBody.querySelectorAll('.topic').length, bad: [...cvBody.querySelectorAll('.val.bad')].length }));
+    check(`${tag}: the calendar's All: the season, the ineligible ones marked`, c1.rows > c0.rows && c1.bad > 0, JSON.stringify(c1));
     const a2 = await a11y(T);
     check(`${tag}: the calendar: targets 44 px, text 4.5:1, fits`, !a2.small.length && !a2.low.length && fine(await fitOf(T)), JSON.stringify(a2));
     await T.shot('career-calendar-' + sfx);
@@ -317,6 +322,8 @@ async function pullBar(T, frac) {
     if (f0 && f0.ok) {
       await T.page.waitForTimeout(150);
       await T.page.click('#menuBtn');
+      await T.page.click('#exitBtn');   /* the first tap arms it (QA F6), the second forfeits */
+      check('Forfeit match: the first tap only asks again', await ev(T, () => !!felt.careerMatch && exitBtn.textContent.trim() === 'Tap again to forfeit'));
       await T.page.click('#exitBtn');
       await T.page.waitForTimeout(150);
       const f1x = await ev(T, opp => ({ st: Career.stats().all, h2h: Career.headToHead(opp), live: localStorage.getItem('felt.career.live.v1'), m: felt.careerMatch, state: felt.state }), f0.opp);

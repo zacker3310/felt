@@ -407,6 +407,7 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   check('How to play from a paused snooker game opens straight on its Snooker page', help.list && help.page && help.title === 'Snooker' && help.text > 300, JSON.stringify(help));
   check('How to play: text 4.5:1', (await lowContrast(page)).length === 0, JSON.stringify(await lowContrast(page)));
   await page.evaluate(() => { backToMenu(); });
+  await page.click('#concedeBtn');   /* the first tap arms it (QA F6), the second concedes */
   await page.click('#concedeBtn');
   await page.waitForTimeout(200);
   const over = await page.evaluate(() => ({ s: felt.state, w: felt.game.winner, why: overWhy.textContent, kind: overKind.textContent, rows: overStats.textContent, rec: felt.record.kinds.snooker }));

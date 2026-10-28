@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `25/25 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `26/26 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -94,6 +94,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
   `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
+- Home layout: the game cards have a real minimum (`--tile-min`, `--cc-min`), share out spare room, and the home
+  scrolls when they do not fit (small phones, text size Large/Larger; one card a row there). Forfeit match and
+  Concede frame take two taps (`armOrAct`). `qa-check` pins the QA pass (F1 to F10) with real touch and mouse input.
 - Shot moments: `shotMoments` (sim 1i) is the one classifier. The callout (page 6c), the game-over chips and
   the replay's gold offer (`notableOf`, run on the record's game `rec.g`) all read it; the callout names the
   moment, so the gold pill only says Replay. `moments-check` pins it.

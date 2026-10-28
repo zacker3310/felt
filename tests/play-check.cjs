@@ -362,7 +362,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     && won1.ls.kinds['8'].cpu.easy.w === won1.r.kinds['8'].cpu.easy.w && /vs Rookie/.test(won1.kind) && pc.p1 === 'Rookie (CPU)' && /vs Rookie/.test(pc.kick), JSON.stringify({ rec0, won1, pc }));
   await page.click('#overMenu');
   const home1 = await page.evaluate(() => ({ again: !againBtn.hidden && againBtn.getClientRects().length > 0, sum: againSum.textContent }));
-  check('home after a game: Play again shows the last setup in words', home1.again && home1.sum === '8-ball vs Rookie (CPU easy), 7 ft', JSON.stringify(home1));
+  check('home after a game: Play again shows the last setup in words', home1.again && home1.sum === '8-ball vs Rookie, 7\u00a0ft', JSON.stringify(home1));
   await page.click('#statsBtn');
   const st1 = await page.evaluate(() => ({ row: [...recTable.querySelectorAll('tbody tr')][0].textContent, kp: kpis.textContent }));
   check('stats sheet: the 8-ball row has the win against Rookie, the run of wins shows', /^8-ball\d+1-0/.test(st1.row) && /Win streak[1-9]/.test(st1.kp), JSON.stringify(st1));

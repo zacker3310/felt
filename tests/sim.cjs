@@ -1,5 +1,6 @@
 /* sim: loads the DOM-free sim region of index.html (between `// #region sim` and
-   `// #endregion sim`) into a Node vm context. Physics, rules and CPU suites run against
+   `// #endregion sim`), and the career engine right after it (`// #region career` ...
+   `// #endregion career`, which uses the sim's rng and CPU_LEVELS), into a Node vm context. Physics, rules and CPU suites run against
    exactly the code the page runs. Names not defined yet come back undefined. The region runs
    inside a function with the context's own builtins bound as locals: name lookups through a
    contextified global are about ten times slower, and the CPU suite simulates thousands of
@@ -22,13 +23,16 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'POOL_PHYS', 'SNOOKER_PHYS', 'physOf', 'SNOOKER_SIZES', 'SNOOKER_SIZE', 'SPOTS', 'D_R', 'JAW_ARCS', 'JAW_RAD', 'jawRadius', 'inD', 'isRed', 'snkValue', 'snkName', 'S_COLS', 'S_BLACK',
   'snookerRack', 'snookerGame', 'snookerOn', 'snookerSpot', 'snookerLeft', 'snookersNeeded', 'judgeSnooker', 'concedeSnooker', 'SNK_APEX', 'SNK_CPU', 'SNK_BAULK', 'SNK_D', 'SNK_BLACK_IN', 'POCKET_STYLES', 'CORNER_W', 'SIDE_W', 'cpuTargets', 'cpuSpots', 'cpuSafeties', 'cpuCalibrate',
   'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MOUTHS', 'CAROM_SIZE', 'CAROM_PHYS', 'C_CUE', 'C_RED', 'caromGame', 'caromCount', 'caromFree', 'caromTargets', 'judgeCarom', 'CPU_CAROM', 'suggestCarom', 'cMirror',
-  'trickHelpers', 'TUTORIALS', 'TUT_SOLS', 'tutById', 'tutBalls', 'tutNum', 'tutGame', 'tutJudge', 'tutSol', 'swapGroup', 'caromNo'];
+  'trickHelpers', 'TUTORIALS', 'TUT_SOLS', 'tutById', 'tutBalls', 'tutNum', 'tutGame', 'tutJudge', 'tutSol', 'swapGroup', 'caromNo',
+  'Career'];
 
 function regionSource() {
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const a = html.indexOf('// #region sim'), b = html.indexOf('// #endregion sim');
   if (a < 0 || b < a) throw new Error('sim region markers missing from index.html');
-  return html.slice(a, b);
+  const c = html.indexOf('// #region career'), d = html.indexOf('// #endregion career');
+  if (c < 0 || d < c) throw new Error('career region markers missing from index.html');
+  return html.slice(a, b) + '\n' + html.slice(c, d);
 }
 function loadSim() {
   const ctx = vm.createContext({});

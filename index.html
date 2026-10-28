@@ -7473,6 +7473,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 const dayStr = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const today = () => typeof felt.today === 'string' && DAY_RE.test(felt.today) ? felt.today : dayStr(new Date());
 const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+/* a 'YYYY-MM-DD' that names a real date ('2026-13-45' does not: Date.UTC would wrap it) */
+const realDay = s => { if (!DAY_RE.test(s)) return false; const [y, m, d] = s.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === d; };
 const dayWords = s => `${+s.slice(8)} ${MONTHS[+s.slice(5, 7) - 1]}`;
 /* five shots on each day (5 and the list's 14 share no factor): every shot in turn, never one twice running */
 const dailyTrick = (day = today()) => { const L = TRICKS.length; return TRICKS[(((dayNum(day) * 5) % L) + L) % L]; };
@@ -7481,7 +7483,7 @@ function loadDaily() {
   const d = { last: null, streak: 0, best: 0, made: false };
   try {
     const o = JSON.parse(localStorage.getItem(DAILY_KEY) || '{}') || {};
-    if (typeof o.last === 'string' && DAY_RE.test(o.last)) d.last = o.last;
+    if (typeof o.last === 'string' && realDay(o.last)) d.last = o.last;
     if (Number.isInteger(o.streak) && o.streak > 0 && d.last) d.streak = o.streak;
     if (Number.isInteger(o.best) && o.best > 0) d.best = o.best;
     d.best = Math.max(d.best, d.streak);

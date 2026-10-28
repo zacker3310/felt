@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `15/15 suites, N/N checks  ok` (about 4 min; CPU match games and play-check dominate) |
+| test | `npm test` | `17/17 suites, N/N checks  ok` (about 6 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -63,7 +63,11 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Three-cushion carom: `setTable('carom')` (sim 1k), 61.5 mm balls on its own cloth and rubber. No pockets:
   `POCKETS`, `POCKET_AIM`, `MOUTHS` are empty, so never assume six. Balls 70 (white), 71 (yellow), 72 (red);
   `game.striker` is the shooter's cue ball. Points are counted from `resultOf(tab).seq`; `carom-check` covers it.
-- `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame; never assume one step per millisecond.
+- `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame, the fraction carried to the next (`simSteps`), and
+  never stops asking for frames when one throws; never assume one step per millisecond.
+- `.buildloop/audit/T4-audit.md` is the audit: every finding, its owner stream and status. `audit-check` holds one
+  regression per audit fix; `stress-check` is the volume suite (thousands of shots on every table, hundreds of CPU
+  racks, storage round trips and corruption, rapid navigation and a table fuzz). Keep it near 90 s.
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
   `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.

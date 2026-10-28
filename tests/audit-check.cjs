@@ -4,7 +4,8 @@
    A1 the frame loop survives an exception thrown inside a frame (it once stopped for good).
    A2 the live roll keeps real time at any display rate (rounding per frame ran 144 Hz 4% slow).
    A3 the daily shot's first try counts when it is struck: quitting mid-roll no longer frees a retry.
-   A4 a daily record whose last day is in the future neither shows its streak nor blocks scoring. */
+   A4 a daily record whose last day is in the future neither shows its streak nor blocks scoring.
+   A5 a stored daily date that names no real day is dropped. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -87,6 +88,13 @@ const { check, done, open } = require('./lib.cjs');
   });
   check('A4 daily record from the future: no streak shown, and today\'s first try scores (a new streak of 1, the best kept)',
     r4.shown.now === 0 && r4.shown.tile === '' && r4.rec.last === '2026-03-10' && r4.rec.streak === 1 && r4.rec.best === 500, JSON.stringify(r4));
+  /* A5: an impossible stored date is dropped, not wrapped into a real one */
+  const a5 = await open('', { init: () => { localStorage.setItem('felt.daily.v1', '{"last":"2026-13-45","streak":3,"best":3}'); } });
+  const r5 = await a5.page.evaluate(() => felt.dailyRec);
+  check('A5 daily record with an impossible date (2026-13-45): read as no last day and no streak, the best kept',
+    r5.last === null && r5.streak === 0 && r5.best === 3, JSON.stringify(r5));
+  a4.errors.push(...a5.errors);
+  await a5.browser.close();
   check('no console errors', errors.length === 0 && a4.errors.length === 0, errors.concat(a4.errors).join(' | '));
   await a4.browser.close();
   await browser.close();

@@ -156,7 +156,7 @@ S.setTable('7');
   await page.click('#playC');
   const su = await page.evaluate(() => ({ title: setupTitle.textContent, race: [cr5, cr10, cr15].map(b => b.getAttribute('aria-pressed')), cush: [cc3, cc1].map(b => b.getAttribute('aria-pressed')),
     pool: !!tb7.getClientRects().length, carom: !!cr10.getClientRects().length }));
-  check('setup (three-cushion): race to 5 / 10 / 15 (10) and three or one cushion (three); no pool table options', su.title === 'Three-cushion' && su.race.join() === 'false,true,false' && su.cush.join() === 'true,false' && !su.pool && su.carom, JSON.stringify(su));
+  check('setup (three-cushion): race to 5 / 10 / 15 (10) and three or one cushion (three); no pool table options', su.title === 'Three-Cushion' && su.race.join() === 'false,true,false' && su.cush.join() === 'true,false' && !su.pool && su.carom, JSON.stringify(su));
   check('setup (three-cushion): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.click('#breakBtn');
   await page.waitForTimeout(300);

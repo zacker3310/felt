@@ -119,17 +119,17 @@ async function pullBar(T, frac) {
     await T.page.waitForTimeout(300);
     const fin = await ev(T, () => ({ last: felt.lastLesson, rec: felt.lessonRec, shown: lessonDone.classList.contains('show'), title: doneTitle.textContent, btns: [donePlay.textContent, doneHome.textContent], coach: coach.hidden }));
     check(`${tag}: a full pull on the bar strokes and shoots (the only thing that did) and pots the 1: "You're ready.", Play 8-ball / Home, stored done`,
-      ['stroke', 'rolling'].includes(fired.st) && !!fired.shot && fired.shot.power > 0.9 && fin.last.made && fin.shown && fin.title === 'You\'re ready.' && fin.btns.join() === 'Play 8-ball,Home' && fin.rec.done && fin.coach, JSON.stringify([fired, fin]));
+      ['stroke', 'rolling'].includes(fired.st) && !!fired.shot && fired.shot.power > 0.9 && fin.last.made && fin.shown && fin.title === 'You\'re ready.' && fin.btns.join() === 'Play 8-Ball,Home' && fin.rec.done && fin.coach, JSON.stringify([fired, fin]));
     check(`${tag}: the finish sheet: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
     await T.shot('lesson-done-' + sfx);
     if (sfx === 'p') {
       await T.page.click('#donePlay');
-      check('Play 8-ball opens 8-ball\'s setup', await ev(T, () => setupSheet.classList.contains('show') && setupTitle.textContent === '8-ball'));
+      check('Play 8-ball opens 8-ball\'s setup', await ev(T, () => setupSheet.classList.contains('show') && setupTitle.textContent === '8-Ball'));
       await T.page.click('#setupBack');
       check('done: the lesson row has left home', await ev(T, () => lessonBtn.hidden && !lessonBtn.getClientRects().length && careerBtn.getClientRects().length > 0));
       await T.page.reload(); await T.page.waitForFunction(() => window.booted === true);
       check('done persists across a reload: no row, no offer; How to play still has "Play the lesson"',
-        await ev(T, () => lessonBtn.hidden && !lessonOffer.classList.contains('show') && lessonAgain.textContent.trim() === 'Play the lesson'));
+        await ev(T, () => lessonBtn.hidden && !lessonOffer.classList.contains('show') && lessonAgain.textContent.trim() === 'Play the Lesson'));
       /* a miss: well off the line at step 1, a soft pull: the balls go back, "Close. Try again." */
       await T.page.click('#helpBtn');
       await T.page.click('#tabCtl');
@@ -217,7 +217,7 @@ async function pullBar(T, frac) {
     const ids = await ev(T, () => { const a = Career.availableEvents(); return { ok: a.filter(e => e.eligibility.ok && e.live && e.kind !== 'league').map(e => e.id), bad: a.find(e => !e.eligibility.ok).id }; });
     await T.page.click('#ev-' + ids.bad.replace(/\./g, '-'));
     await still(T);
-    const e1 = await ev(T, () => ({ page: felt.careerPage, enter: !!document.getElementById('cvEnter'), why: /Why you cannot enter/.test(cvBody.textContent), text: cvBody.textContent }));
+    const e1 = await ev(T, () => ({ page: felt.careerPage, enter: !!document.getElementById('cvEnter'), why: /Why You Cannot Enter/.test(cvBody.textContent), text: cvBody.textContent }));
     check('an ineligible event: no Enter, the reasons listed (its tier)', e1.page === 'event' && !e1.enter && e1.why && /tier \d+ and (up|below)/i.test(e1.text), JSON.stringify(e1).slice(0, 300));
     await T.page.click('#careerBack');
     await still(T);
@@ -239,7 +239,7 @@ async function pullBar(T, frac) {
     await still(T);
     const n0 = await ev(T, () => { const n = Career.nextMatch(); return { n, play: !!document.getElementById('cvPlay'), card: cvNext.textContent }; });
     check('advance: the next match card (opponent, rating and archetype, event, round, race, rules with the call mode, head to head) and Play',
-      n0.n && n0.play && n0.card.includes(n0.n.opponent.name) && n0.card.includes(n0.n.round) && n0.card.includes(n0.n.opponent.archName) && /First to \d+/.test(n0.card) && /call/.test(n0.card) && /Head to head/.test(n0.card), JSON.stringify(n0).slice(0, 400));
+      n0.n && n0.play && n0.card.includes(n0.n.opponent.name) && n0.card.includes(n0.n.round) && n0.card.includes(n0.n.opponent.archName) && /First to \d+/.test(n0.card) && /call/.test(n0.card) && /Head to Head/.test(n0.card), JSON.stringify(n0).slice(0, 400));
     const a3 = await a11y(T);
     check('the hub with a match due: targets 44 px, text 4.5:1, fits', !a3.small.length && !a3.low.length && fine(await fitOf(T)), JSON.stringify(a3));
     await T.shot('career-hub-match-' + sfx);
@@ -254,7 +254,7 @@ async function pullBar(T, frac) {
     await T.page.click('#menuBtn');
     await T.page.waitForTimeout(200);
     const q0 = await ev(T, () => ({ cn: !careerNow.hidden, name: cnName.textContent, restart: restartBtn.hidden && !restartBtn.getClientRects().length, exit: exitBtn.textContent.trim(), locked: lockNote ? !lockNote.hidden : null }));
-    check('pause in a career match: the opponent and score, no Restart, Quit reads Forfeit match', q0.cn && q0.name === p0.nm.opponent.name && q0.restart && q0.exit === 'Forfeit match', JSON.stringify(q0));
+    check('pause in a career match: the opponent and score, no Restart, Quit reads Forfeit match', q0.cn && q0.name === p0.nm.opponent.name && q0.restart && q0.exit === 'Forfeit Match', JSON.stringify(q0));
     const a4 = await a11y(T);
     check('the pause menu in a career match: targets 44 px, text 4.5:1', !a4.small.length && !a4.low.length, JSON.stringify(a4));
     await T.shot('career-pause-' + sfx);
@@ -349,7 +349,7 @@ async function pullBar(T, frac) {
     await ev(T, () => felt.quitToHome());
     await T.page.click('#statsBtn');
     const sk = await ev(T, () => [...careerKpis.querySelectorAll('div')].map(d => d.textContent));
-    check('stats: the career section shows the tier and matches won', /^Tier\d/.test(sk[0]) && /^Matches won1of 3/.test(sk[1]) && sk.length === 4, JSON.stringify(sk));
+    check('stats: the career section shows the tier and matches won', /^Tier\d/.test(sk[0]) && /^Matches Won1of 3/.test(sk[1]) && sk.length === 4, JSON.stringify(sk));
     await T.page.click('#statsBack');
     /* the ordinary game is untouched after a career match */
     await ev(T, () => { settings.cpu = false; felt.showSetup('8'); });

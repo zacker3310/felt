@@ -26,6 +26,8 @@ const IDS = ['8', '9', 'bumper', 'carom', 'snooker'];
 const TILE = { 8: '#play8', 9: '#play9', bumper: '#playB', carom: '#playC', snooker: '#playS' };
 const GO = { 8: '#tutGo8', 9: '#tutGo9', bumper: '#tutGoB', carom: '#tutGoC', snooker: '#tutGoS' };
 const WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker' };
+/* the same names as button titles (Title Case) */
+const TITLE = { 8: '8-Ball', 9: '9-Ball', bumper: 'Bumper Pool', carom: 'Three-Cushion', snooker: 'Snooker' };
 
 /* ---------- Node: the tutorials, their solutions and goals ---------- */
 function nodeChecks() {
@@ -167,7 +169,7 @@ async function portrait() {
       check('snooker: the link opens step 1 on the snooker table', await ev(T, () => !!felt.tut && felt.tut.id === 'snooker' && felt.tut.step === 0 && felt.table === 'snooker' && felt.game.kind === 'snooker'));
       await T.page.click('#menuBtn');
       const pm = await ev(T, () => ({ kind: soloKind.textContent, title: soloTitle.textContent, concede: !concedeBtn.hidden }));
-      check('the pause menu names the tutorial and the step; no Concede in a tutorial', pm.kind === 'Snooker tutorial, step 1 of 4' && pm.title === 'On a red' && !pm.concede, JSON.stringify(pm));
+      check('the pause menu names the tutorial and the step; no Concede in a tutorial', pm.kind === 'Snooker tutorial, step 1 of 4' && pm.title === 'On a Red' && !pm.concede, JSON.stringify(pm));
       await T.page.click('#exitBtn');
       check('quit: home, the coach gone', await ev(T, () => felt.state === 'menu' && coach.hidden && coachRing.hidden && felt.tut === null));
       break;
@@ -177,7 +179,7 @@ async function portrait() {
     const n = await ev(T, id => tutById(id).steps.length, id);
     const c0 = await coachClear(T);
     check(`${id}: the link starts step 1: its coach card on screen, off the controls and the ${id === 'bumper' || id === 'carom' ? 'ball to strike' : 'cue ball'}, a ring, Show me`,
-      coachOk(c0) && c0.ring && c0.step.startsWith(`${await ev(T, id => tutById(id).name, id)}, step 1 of ${n}:`) && c0.btn === 'Show me' && await ev(T, () => felt.tut.step === 0 && felt.state === 'aim' && !felt.game.mode), JSON.stringify(c0));
+      coachOk(c0) && c0.ring && c0.step.startsWith(`${await ev(T, id => tutById(id).name, id)}, step 1 of ${n}:`) && c0.btn === 'Show Me' && await ev(T, () => felt.tut.step === 0 && felt.state === 'aim' && !felt.game.mode), JSON.stringify(c0));
     await T.shot(`tut-${id}-1-p`);
     for (let i = 0; i < n; i++) {
       await ev(T, () => { felt.lastTut = null; });
@@ -226,8 +228,8 @@ async function portrait() {
     }
     const fin = await ev(T, () => ({ shown: tutDone.classList.contains('show'), title: tutDoneTitle.textContent, kick: tutDoneKick.textContent, btns: [tutPlay.textContent, tutHome.textContent], rec: felt.tutRec, coach: coach.hidden }));
     const name = await ev(T, id => tutById(id).name, id);
-    check(`${id}: the finish card ("Tutorial complete", "That's ${name}.", Play ${name} / Home), done stored`,
-      fin.shown && fin.kick === 'Tutorial complete' && fin.title === `That's ${name}.` && fin.btns.join() === `Play ${name},Home` && fin.rec.done[id] === true && fin.coach && JSON.parse(await ev(T, () => localStorage.getItem('felt.tutorials.v1'))).done[id] === true, JSON.stringify(fin));
+    check(`${id}: the finish card ("Tutorial complete", "That's ${name}.", Play ${TITLE[id]} / Home), done stored`,
+      fin.shown && fin.kick === 'Tutorial complete' && fin.title === `That's ${name}.` && fin.btns.join() === `Play ${TITLE[id]},Home` && fin.rec.done[id] === true && fin.coach && JSON.parse(await ev(T, () => localStorage.getItem('felt.tutorials.v1'))).done[id] === true, JSON.stringify(fin));
     if (id === '8') {
       check('the finish card: targets 44 px, text 4.5:1', (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
       await T.shot('tut-done-p');
@@ -235,7 +237,7 @@ async function portrait() {
     await T.page.click('#tutPlay');
     await T.page.waitForTimeout(250);
     const after = await ev(T, () => ({ setup: setupSheet.classList.contains('show'), title: setupTitle.textContent, link: tutLink.hidden && !tutLink.getClientRects().length }));
-    check(`${id}: Play opens its setup, and the setup link has gone now it is done`, after.setup && after.title === name && after.link, JSON.stringify(after));
+    check(`${id}: Play opens its setup, and the setup link has gone now it is done`, after.setup && after.title === TITLE[id] && after.link, JSON.stringify(after));
     await T.page.click('#setupBack');
   }
   check('every real-input step\'s live roll equals simulateShot byte for byte', liveAll);
@@ -244,7 +246,7 @@ async function portrait() {
   await T.page.click('#helpBtn');
   await T.page.click('#tab9');
   const rp = await ev(T, () => ({ text: tutGo9.textContent.trim(), lesson: lessonAgain.hidden }));
-  check('How to play, 9-ball: the tutorial is done, so its button says "Replay the 9-ball tutorial"; the lesson button is the Controls tab\'s', rp.text === 'Replay the 9-ball tutorial' && rp.lesson, JSON.stringify(rp));
+  check('How to play, 9-ball: the tutorial is done, so its button says "Replay the 9-ball tutorial"; the lesson button is the Controls tab\'s', rp.text === 'Replay the 9-Ball Tutorial' && rp.lesson, JSON.stringify(rp));
   await T.page.click('#tutGo9');
   await T.page.waitForTimeout(300);
   await ev(T, () => { felt.lastShot = null; });
@@ -327,7 +329,7 @@ async function portrait() {
   await T.page.waitForTimeout(250);
   const of = await ev(T, () => ({ shown: tutOffer.classList.contains('show'), title: tutOfferTitle.textContent, sub: tutOfferSub.textContent, btns: [tutOfferGo, tutOfferSkip, tutOfferNever].map(b => b.textContent), st: felt.state }));
   check('a first Break of 8-ball offers its tutorial ("First time playing 8-ball?", Show me / Skip / Don\'t ask again), no game yet',
-    of.shown && of.title === 'First time playing 8-ball?' && /one minute tutorial/.test(of.sub) && of.btns.join() === 'Show me,Skip,Don\'t ask again' && of.st === 'menu', JSON.stringify(of));
+    of.shown && of.title === 'First time playing 8-ball?' && /one minute tutorial/.test(of.sub) && of.btns.join() === 'Show Me,Skip,Don\'t Ask Again' && of.st === 'menu', JSON.stringify(of));
   check('the offer: targets 44 px, text 4.5:1', (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
   await T.shot('tut-offer-p');
   await T.page.click('#tutOfferSkip');
@@ -387,7 +389,7 @@ async function portrait() {
     await T.page.click('#helpBack');
   }
   check('How to play at 375x667: Controls keeps "Play the lesson", each game\'s page ends with "Play the <game> tutorial" (scrolled to, on screen); the sheet inside the screen\'s width; 44 px, 4.5:1',
-    tabs[0].text === 'Play the lesson' && tabs[0].lesson && tabs.slice(1).every((t, k) => t.shown && !t.lesson && t.text === `Play the ${WORD[IDS[k]]} tutorial`) && tabs.every(t => t.fits && t.reach && !t.small && !t.low), JSON.stringify(tabs));
+    tabs[0].text === 'Play the Lesson' && tabs[0].lesson && tabs.slice(1).every((t, k) => t.shown && !t.lesson && t.text === `Play the ${TITLE[IDS[k]]} Tutorial`) && tabs.every(t => t.fits && t.reach && !t.small && !t.low), JSON.stringify(tabs));
   check('no em dashes on the page', await ev(T, () => !document.documentElement.outerHTML.includes('\u2014')));
   check('portrait: no page errors', T.errors.length === 0, T.errors.join(' | '));
   await T.browser.close();

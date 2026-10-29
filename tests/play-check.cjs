@@ -345,7 +345,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#play8');
   const su = await page.evaluate(() => ({ shown: setupSheet.classList.contains('show'), home: menu.classList.contains('show'), title: setupTitle.textContent, names: getComputedStyle(nameRow).display, foes: [...levelSeg.querySelectorAll('b')].map(b => b.textContent), go: breakBtn.textContent }));
   check('setup: a game tile opens its setup sheet (8-ball, the CPU opponents Rookie, Regular, Hustler; no name fields against the CPU), Break to start',
-    su.shown && !su.home && su.title === '8-ball' && su.names === 'none' && su.foes.join() === 'Rookie,Regular,Hustler' && su.go === 'Break', JSON.stringify(su));
+    su.shown && !su.home && su.title === '8-Ball' && su.names === 'none' && su.foes.join() === 'Rookie,Regular,Hustler' && su.go === 'Break', JSON.stringify(su));
   await page.click('#lvEasy');
   const rec0 = await page.evaluate(() => felt.record);
   await page.click('#breakBtn');
@@ -365,7 +365,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   check('home after a game: no Play again; the 8-ball card names the setup it opens on', !home1.hero && home1.label === '8-ball vs Rookie (CPU easy), 7 ft', JSON.stringify(home1));
   await page.click('#statsBtn');
   const st1 = await page.evaluate(() => ({ row: [...recTable.querySelectorAll('tbody tr')][0].textContent, kp: kpis.textContent }));
-  check('stats sheet: the 8-ball row has the win against Rookie, the run of wins shows', /^8-ball\d+1-0/.test(st1.row) && /Win streak[1-9]/.test(st1.kp), JSON.stringify(st1));
+  check('stats sheet: the 8-ball row has the win against Rookie, the run of wins shows', /^8-ball\d+1-0/.test(st1.row) && /Win Streak[1-9]/.test(st1.kp), JSON.stringify(st1));
   await page.click('#statsBack');
   await page.click('#play8');
   const preset = await page.evaluate(() => [vsCpu, lvEasy].map(b => b.getAttribute('aria-pressed')).join());

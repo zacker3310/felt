@@ -184,6 +184,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - `setTable('7'|'9')` reassigns TL, TW and all table geometry: read them at call time, never cache.
 - Only the power bar shoots. No key and no table drag may fire a shot (play-check enforces it).
 - No em dashes.
+- Titles are Title Case, Apple style (HIG: cards, sheet and page titles, group heads, rows, buttons, choices); subtitles, notes, banners and sentences are sentence case. A title built from data goes through `titleCase()` (page 6a), so one name serves both ("8-Ball" as a title, "8-ball vs Rookie" in a line); `qa-check` scans every screen with lib's `badTitles`.
 
 ## Common mistakes
 

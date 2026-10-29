@@ -17,7 +17,7 @@
 const fs = require('fs');
 const { check, done, open, smallTargets, lowContrast, settled } = require('./lib.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
-const PAGES = [['prGame', 'Gameplay'], ['prCtl', 'Controls'], ['prGfx', 'Graphics'], ['prAud', 'Audio and haptics'], ['prA11y', 'Accessibility'], ['prAbout', 'About']];
+const PAGES = [['prGame', 'Gameplay'], ['prCtl', 'Controls'], ['prGfx', 'Graphics'], ['prAud', 'Audio and Haptics'], ['prA11y', 'Accessibility'], ['prAbout', 'About']];
 
 /* a full sv 2 save with nothing at its default */
 const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: false, table: '9', pockets: 'generous', autoAim: false, cloth: 'blue', bumperTable: 'rect',
@@ -114,7 +114,7 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.click('#prefsBtn');
   await p.click('#prGame');
   const rows = await p.evaluate(() => [...rulesRows.querySelectorAll('.prow .plab')].map(l => l.textContent));
-  check('Gameplay: a default-rules row for each game with a choice of rulesets (8, 9 and 10-ball), then the stalemate re-rack', rows.join('|') === '8-ball|9-ball|10-ball|House re-rack on a stalemate (8 and 9-ball)', JSON.stringify(rows));
+  check('Gameplay: a default-rules row for each game with a choice of rulesets (8, 9 and 10-ball), then the stalemate re-rack', rows.join('|') === '8-Ball|9-Ball|10-Ball|House Re-Rack on a Stalemate (8 and 9-Ball)', JSON.stringify(rows));
   await p.click('#prs8-wpa');
   await p.click('#prs10-house');
   await p.click('#prc25');

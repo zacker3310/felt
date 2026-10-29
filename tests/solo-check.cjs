@@ -193,7 +193,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await page.waitForTimeout(100);
   const pm = await page.evaluate(() => ({ stats: soloStats.textContent, kind: soloKind.textContent, title: soloTitle.textContent, newgame: getComputedStyle(document.querySelector('#menu .newgame')).display, btns: [resumeBtn, restartBtn, exitBtn].map(b => getComputedStyle(b).display), cards: getComputedStyle(gameNow).display }));
   check('pause in practice: the session (shots, pots, pot %), Resume, Restart and Exit; no player cards, no new-game part',
-    /Shots3/.test(pm.stats) && /Pots\d+/.test(pm.stats) && /Pot %\d+%/.test(pm.stats) && pm.kind === 'Practice' && pm.title === '9-ball rack' && pm.newgame === 'none' && pm.btns.every(d => d !== 'none') && pm.cards === 'none', JSON.stringify(pm));
+    /Shots3/.test(pm.stats) && /Pots\d+/.test(pm.stats) && /Pot %\d+%/.test(pm.stats) && pm.kind === 'Practice' && pm.title === '9-Ball Rack' && pm.newgame === 'none' && pm.btns.every(d => d !== 'none') && pm.cards === 'none', JSON.stringify(pm));
   check('pause in practice: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.tap('#exitBtn');
   check('Exit to menu: the full menu, no session', await page.evaluate(() => felt.state === 'menu' && felt.solo === null && getComputedStyle(document.querySelector('#menu .newgame')).display !== 'none'));
@@ -255,7 +255,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await page.tap('#trickRetry');
   await page.tap('#menuBtn');
   const tp = await page.evaluate(() => ({ title: soloTitle.textContent, goal: soloGoal.textContent, stats: soloStats.textContent }));
-  check('pause in a challenge: its title, goal and tries', tp.title === 'Stop shot' && /stop the cue ball/.test(tp.goal) && /Tries3/.test(tp.stats), JSON.stringify(tp));
+  check('pause in a challenge: its title, goal and tries', tp.title === 'Stop Shot' && /stop the cue ball/.test(tp.goal) && /Tries3/.test(tp.stats), JSON.stringify(tp));
   await page.tap('#restartBtn');
   check('Restart keeps the challenge and its tries', await page.evaluate(() => felt.state === 'aim' && felt.game.trick === 'stun' && felt.solo.attempts === 3));
 

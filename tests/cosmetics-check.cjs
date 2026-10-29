@@ -182,7 +182,7 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
       rows: cvBody.querySelectorAll('.topic').length, eqd: (document.getElementById('shop-cloth-midnight') || {}).textContent }));
     check('shop page: the note says what happens (career matches show it, Settings can wear it, fixed prices, nothing random), a heading per slot and a swatch per item',
       /career matches show/.test(sp.note) && /Settings, Graphics/.test(sp.note) && /nothing random/.test(sp.note) && !/do not change how the game looks/.test(sp.note)
-      && sp.heads.join() === 'Cues,Cloths,Chalk,Rails,Ball sets,Profile frames' && sp.sw === sp.rows && sp.rows === 32 && /Equipped/.test(sp.eqd), JSON.stringify(sp));
+      && sp.heads.join() === 'Cues,Cloths,Chalk,Rails,Ball Sets,Profile Frames' && sp.sw === sp.rows && sp.rows === 32 && /Equipped/.test(sp.eqd), JSON.stringify(sp));
     const sm = await smallTargets(t.page), lc = await lowContrast(t.page), fit = await ev(t, () => [cvSheet.scrollWidth, cvSheet.clientWidth]);
     check('shop page: targets 44 px, text 4.5:1, fits the width at 440', !sm.length && !lc.length && fit[0] <= fit[1] + 1, JSON.stringify({ sm, lc, fit }));
     /* the hub's card: the avatar in its frame (a ring of the frame's colour, pixels differ from no frame) */
@@ -263,25 +263,25 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
     await t.page.waitForTimeout(300);
     const root = await ev(t, () => ({ rows: [...statsKinds.querySelectorAll('.topic')].map(b => b.textContent), book: stBookSub.textContent, form: stFormSub.textContent, page: felt.statsPage, title: statsTitle.textContent }));
     check(`${vp.width}x${vp.height}: Stats lists every game with what was played (9-ball: 1 played, none vs CPU; 8-ball: 1 won of 1 vs CPU), the records book and the form`,
-      root.rows.length === 8 && /9-ball1 played, none vs CPU$/.test(root.rows[1]) && /8-ball1 played, 1 won of 1 vs CPU$/.test(root.rows[0]) && /3 records/.test(root.book) && /Last 1: W/.test(root.form) && root.page === null && root.title === 'Stats', JSON.stringify(root));
+      root.rows.length === 8 && /9-Ball1 played, none vs CPU$/.test(root.rows[1]) && /8-Ball1 played, 1 won of 1 vs CPU$/.test(root.rows[0]) && /3 records/.test(root.book) && /Last 1: W/.test(root.form) && root.page === null && root.title === 'Stats', JSON.stringify(root));
     const a0 = { s: await smallTargets(t.page), l: await lowContrast(t.page), f: await ev(t, () => [statsBody.scrollWidth, statsBody.clientWidth, statsBody.scrollHeight, statsBody.clientHeight]) };
     await t.page.click('#st-9');
     await t.page.waitForTimeout(450);
     const pg = await ev(t, () => ({ page: felt.statsPage, title: statsTitle.textContent, rows: Object.fromEntries([...statsPage.querySelectorAll('.stat')].map(r => [r.firstChild.firstChild.textContent, r.lastChild.textContent])) }));
     check(`${vp.width}x${vp.height}: the 9-ball page shows the scripted numbers with their denominators (played 1, potting 1 of 1, fouls 0 of 1, best run 1 ball dated, the longest pot)`,
-      pg.page === '9' && pg.title === '9-ball' && pg.rows.Played === '1' && pg.rows['Wins against the CPU'] === 'none yet' && pg.rows.Potting === '1 of 1, 100%' && pg.rows.Fouls === '0 of 1, 0%'
-      && pg.rows['Break success'] === 'none yet' && pg.rows['Best run'] === '1 ball28 Oct 2026' && pg.rows['Longest pot'] === `${sc.cm} cm28 Oct 2026`, JSON.stringify(pg));
+      pg.page === '9' && pg.title === '9-Ball' && pg.rows.Played === '1' && pg.rows['Wins Against the CPU'] === 'none yet' && pg.rows.Potting === '1 of 1, 100%' && pg.rows.Fouls === '0 of 1, 0%'
+      && pg.rows['Break Success'] === 'none yet' && pg.rows['Best Run'] === '1 ball28 Oct 2026' && pg.rows['Longest Pot'] === `${sc.cm} cm28 Oct 2026`, JSON.stringify(pg));
     const a1 = { s: await smallTargets(t.page), l: await lowContrast(t.page), f: await ev(t, () => [statsBody.scrollWidth, statsBody.clientWidth]) };
     await t.page.click('#statsBack'); await t.page.waitForTimeout(450);
     await t.page.click('#stBook'); await t.page.waitForTimeout(450);
     const bk = await ev(t, () => [...statsPage.querySelectorAll('.stat')].map(r => r.textContent));
     check(`${vp.width}x${vp.height}: the records book: the win streak, 9-ball's best run and longest pot, each dated`,
-      bk.length === 3 && /^Longest win streak against the CPU28 Oct 20261 game$/.test(bk[0]) && /^9-ball: best run28 Oct 20261 ball$/.test(bk[1]) && new RegExp(`^9-ball: longest pot28 Oct 2026${sc.cm} cm$`).test(bk[2]), JSON.stringify(bk));
+      bk.length === 3 && /^Longest Win Streak Against the CPU28 Oct 20261 game$/.test(bk[0]) && /^9-Ball: Best Run28 Oct 20261 ball$/.test(bk[1]) && new RegExp(`^9-Ball: Longest Pot28 Oct 2026${sc.cm} cm$`).test(bk[2]), JSON.stringify(bk));
     const a2 = { s: await smallTargets(t.page), l: await lowContrast(t.page) };
     await t.page.click('#statsBack'); await t.page.waitForTimeout(450);
     await t.page.click('#stForm'); await t.page.waitForTimeout(450);
     const fm = await ev(t, () => ({ chips: [...statsPage.querySelectorAll('.form i')].map(i => i.textContent).join(''), rows: [...statsPage.querySelectorAll('.stat')].map(r => r.textContent) }));
-    check(`${vp.width}x${vp.height}: the form: one W, the game by name, opponent and date`, fm.chips === 'W' && fm.rows.length === 1 && fm.rows[0] === '8-ball vs Hustler28 Oct 2026Won', JSON.stringify(fm));
+    check(`${vp.width}x${vp.height}: the form: one W, the game by name, opponent and date`, fm.chips === 'W' && fm.rows.length === 1 && fm.rows[0] === '8-Ball vs Hustler28 Oct 2026Won', JSON.stringify(fm));
     const a3 = { s: await smallTargets(t.page), l: await lowContrast(t.page) };
     await t.page.click('#statsBack'); await t.page.waitForTimeout(450);
     const back = await ev(t, () => felt.statsPage === null && statsSheet.classList.contains('show') && !statsList.hidden);

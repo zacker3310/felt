@@ -54,7 +54,7 @@ const artContrast = page => page.evaluate(() => {
   /* the header: three round icon buttons, 44 px, each named for a screen reader, no visible words */
   const hdr = await page.evaluate(() => [statsBtn, prefsBtn, helpBtn].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: r.width, h: r.height, round: parseFloat(getComputedStyle(b).borderTopLeftRadius) >= r.width / 2 - 0.5, text: b.textContent.trim() }; }));
   check('home header: Stats, Settings, How to play are 44 px round icon buttons with aria-labels',
-    hdr.map(h => h.l).join() === 'Stats,Settings,How to play' && hdr.every(h => h.w >= 44 && h.h >= 44 && h.round && h.text === ''), JSON.stringify(hdr));
+    hdr.map(h => h.l).join() === 'Stats,Settings,How to Play' && hdr.every(h => h.w >= 44 && h.h >= 44 && h.round && h.text === ''), JSON.stringify(hdr));
   /* the solo list: one grouped container, a row each at least 44 px, stacked */
   const rows = await page.evaluate(() => [pracBtn, trickBtn, dailyBtn].map(b => { const r = b.getBoundingClientRect(); return { t: Math.round(r.top), h: r.height, box: b.parentElement === soloRow }; }));
   check('home solo list: Practice, Trick shots, Daily shot in one list, each row 44 px or more', rows.every(r => r.h >= 44 && r.box) && rows[0].t < rows[1].t && rows[1].t < rows[2].t, JSON.stringify(rows));
@@ -89,7 +89,7 @@ const artContrast = page => page.evaluate(() => {
   await page.click('#helpBtn');
   const fitsNow = async () => (await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && helpSheet.contains(a.effect.target))), page.evaluate(() => (r => r.left >= 0 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5)(howSheet.getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth && howSheet.scrollWidth <= howSheet.clientWidth));
   const root = await page.evaluate(() => ({ list: !howList.hidden, rows: [...howList.querySelectorAll('.topic')].map(b => b.id), title: helpTitle.textContent, pages: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).length }));
-  check('how to play from home: the list of fifteen topics (the three More games and Called shots after snooker; cue elevation, More modes, Drills and the career after Solo modes), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo,tabCue,tabModes,tabDrills,tabCareer' && root.title === 'How to play' && root.pages === 0 && await fitsNow()
+  check('how to play from home: the list of fifteen topics (the three More games and Called shots after snooker; cue elevation, More modes, Drills and the career after Solo modes), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo,tabCue,tabModes,tabDrills,tabCareer' && root.title === 'How to Play' && root.pages === 0 && await fitsNow()
     && (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify(root));
   const tabs = [];
   for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo', 'tabCue', 'tabModes', 'tabDrills', 'tabCareer']) {
@@ -98,7 +98,7 @@ const artContrast = page => page.evaluate(() => {
     const t = tabs[tabs.length - 1];
     t.fits = await fitsNow(); t.small = (await smallTargets(page)).length; t.low = await lowContrast(page);
     await page.click('#helpBack');
-    t.back = await page.evaluate(() => helpSheet.classList.contains('show') && !howList.hidden && helpTitle.textContent === 'How to play');
+    t.back = await page.evaluate(() => helpSheet.classList.contains('show') && !howList.hidden && helpTitle.textContent === 'How to Play');
   }
   check('how to play: eleven topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, solo, cue elevation, More modes, Drills, career), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 11 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
   await page.click('#tabSnk');

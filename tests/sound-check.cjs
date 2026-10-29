@@ -1,19 +1,60 @@
-/* sound-check: the synthesised sound (section 2) and the haptics map (2h).
+/* sound-check: the recorded table sounds (section 2) and the haptics map (2h).
+   The takes: every file in SFX_FILES is in sounds/, loads and decodes in the page, and the page
+   decodes the whole set once the context is made; the service worker precaches each one; each is
+   credited in CREDITS.md (its source, author and CC0) and Settings > About shows the credits; a
+   ball take is a short clack (most of its energy at 1.5 to 6 kHz, 20 dB down within 30 ms and
+   no long ring), the roll's loop is dark and seamless; the payload stays small.
    Rendered offline through the page's own graph (soundRender, an OfflineAudioContext): a harder
-   ball hit peaks higher and is brighter, a soft glancing one quiet and dull; the cue, cushion, jaw,
-   bumper post, corner and side pockets and snooker's net each make their own sound; a harder
+   ball hit peaks higher and is brighter, a soft glancing one quiet and dull; the cue, cushion,
+   jaw, bumper post, corner and side pockets and snooker's net each make their own sound; a harder
    cushion is louder; the roll bed follows the speed and fades to nothing when the balls stop; the
    master and table-sound volumes scale the table's sounds (the UI's are not table sounds), sound
    off is silent. Live: a real roll lifts the roll bed and it falls to zero once the table settles,
-   sound off makes no nodes, a break and a flood of hits stay under the node cap. Haptics: a pot two
-   toggles, a foul a distinct double, a win three, a hard cushion one and a soft none, impacts never
-   faster than HAP_HIT, nothing in a replay; the power bar fires powerFull once per pull at 100%
-   (a sound and one tick), not below it. */
+   the roll path makes no nodes, sound off makes no nodes, a break and a flood of hits stay under
+   the node cap. Haptics: a pot two toggles, a foul a distinct double, a win three, a hard cushion
+   one and a soft none, impacts never faster than HAP_HIT, nothing in a replay; the power bar fires
+   powerFull once per pull at 100% (a sound and one tick), not below it. Sound off from the start:
+   a gesture makes no audio context and fetches no takes. */
 'use strict';
+const fs = require('fs');
+const path = require('path');
 const { check, done, open, settled } = require('./lib.cjs');
+const ROOT = path.resolve(__dirname, '..');
+
+/* a 16-bit mono WAV's samples and rate */
+function readWav(file) {
+  const b = fs.readFileSync(file);
+  let p = 12, sr = 0;
+  while (p + 8 <= b.length) {
+    const id = b.toString('ascii', p, p + 4), n = b.readUInt32LE(p + 4), d = p + 8;
+    if (id === 'fmt ') sr = b.readUInt32LE(d + 4);
+    else if (id === 'data') { const x = new Float64Array(n / 2); for (let i = 0; i < x.length; i++) x[i] = b.readInt16LE(d + i * 2) / 32768; return { x, sr }; }
+    p = d + n + (n & 1);
+  }
+  return { x: new Float64Array(0), sr };
+}
+/* a take's shape: the level in 2 ms windows, ms from the peak until it is 20 dB down, the share of
+   energy left after 60 ms, and the share in 1.5 to 6 kHz of the 20 ms from the peak (a DFT) */
+function shape({ x, sr }) {
+  const h = Math.round(sr * 0.002), env = [];
+  for (let i = 0; i + h <= x.length; i += h) { let e = 0; for (let k = i; k < i + h; k++) e += x[k] * x[k]; env.push(Math.sqrt(e / h)); }
+  const i0 = env.indexOf(Math.max(...env));
+  let t20 = env.length;
+  for (let i = i0; i < env.length; i++) if (env[i] < env[i0] / 10) { t20 = i; break; }
+  let all = 0, late = 0;
+  for (let i = 0; i < x.length; i++) { all += x[i] * x[i]; if (i > i0 * h + 0.06 * sr) late += x[i] * x[i]; }
+  const a = i0 * h, n = Math.round(sr * 0.02);
+  let band = 0, tot = 0;
+  for (let f = 100; f < sr / 2 && f < 12000; f += 100) {
+    let re = 0, im = 0;
+    for (let k = 0; k < n && a + k < x.length; k++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * k / n), v = x[a + k] * w; re += v * Math.cos(2 * Math.PI * f * k / sr); im -= v * Math.sin(2 * Math.PI * f * k / sr); }
+    const p2 = re * re + im * im; tot += p2; if (f >= 1500 && f <= 6000) band += p2;
+  }
+  return { t20: (t20 - i0) * 2, late: late / all, band: band / tot };
+}
 
 (async () => {
-  const { browser, page, errors } = await open('', { init: () => Object.defineProperty(HTMLInputElement.prototype, 'switch', { value: false, writable: true, configurable: true }) });
+  const { browser, page, errors, requests } = await open('', { init: () => Object.defineProperty(HTMLInputElement.prototype, 'switch', { value: false, writable: true, configurable: true }) });
   await page.evaluate(() => {
     /* peak, rms, and the share of energy in the first difference (a brightness measure), of a render */
     window.__an = (x, a = 0, b = 1e9) => {
@@ -24,6 +65,34 @@ const { check, done, open, settled } = require('./lib.cjs');
     };
     window.__r = async (ev, secs = 0.6, rolls = null) => __an(await soundRender(ev, secs, rolls));
   });
+
+  /* 0. the takes: on disk, credited, precached, decoded in the page */
+  const urls = await page.evaluate(() => sfxUrls());
+  const files = urls.map(u => path.join(ROOT, u)), missing = files.filter(f => !fs.existsSync(f));
+  const bytes = files.filter(f => fs.existsSync(f)).reduce((n, f) => n + fs.statSync(f).size, 0);
+  check('the takes: every file SFX_FILES names is in sounds/ (22), and nothing else is', urls.length === 22 && !missing.length && fs.readdirSync(path.join(ROOT, 'sounds')).length === urls.length, JSON.stringify({ n: urls.length, missing }));
+  check('the takes weigh under 600 KB together', bytes < 600 * 1024, `${(bytes / 1024).toFixed(1)} KB`);
+  const credits = fs.existsSync(path.join(ROOT, 'CREDITS.md')) ? fs.readFileSync(path.join(ROOT, 'CREDITS.md'), 'utf8') : '';
+  const uncredited = urls.map(u => path.basename(u)).filter(f => !credits.split('\n').some(l => l.includes('`' + f + '`') && /CC0/.test(l) && /https:\/\//.test(l)));
+  check('CREDITS.md credits every take: its file, the recording\'s link and author, CC0', credits && !uncredited.length, 'uncredited: ' + uncredited.join());
+  const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), unc = urls.filter(u => !sw.includes(`'./${u}'`));
+  check('sw.js precaches every take (offline needs no network)', !unc.length, 'missing: ' + unc.join());
+  const dec = await page.evaluate(async () => {
+    const O = new OfflineAudioContext(1, 1, 44100), out = [];
+    for (const u of sfxUrls()) {
+      try { const r = await fetch(u), b = await O.decodeAudioData(await r.arrayBuffer()); out.push({ u, ok: r.ok, s: b.duration, ch: b.numberOfChannels }); } catch (e) { out.push({ u, err: String(e) }); }
+    }
+    return out;
+  });
+  const bad = dec.filter(d => !d.ok || !(d.s > 0.03 && d.s < 1.2) || d.ch !== 1);
+  check('every take loads and decodes in the page (mono, 30 ms to 1.2 s)', dec.length === 22 && !bad.length, JSON.stringify(bad));
+  const shapes = urls.filter(u => /ball-/.test(u)).map(u => ({ u: path.basename(u), ...shape(readWav(path.join(ROOT, u))) }));
+  const ringy = shapes.filter(t => !(t.t20 <= 30 && t.late < 0.02 && t.band > 0.3));
+  check('a ball take is a short clack: 20 dB down within 30 ms, under 2% of its energy after 60 ms, mostly 1.5 to 6 kHz', !ringy.length, JSON.stringify(ringy.length ? ringy : shapes.map(t => [t.u, t.t20, +t.late.toFixed(3), +t.band.toFixed(2)])));
+  const rollShape = shape(readWav(path.join(ROOT, 'sounds/roll.wav'))), rw = readWav(path.join(ROOT, 'sounds/roll.wav')).x;
+  check('the roll loop is dark (no energy in 1.5 to 6 kHz to speak of) and seamless (its two ends meet)', rollShape.band < 0.05 && Math.abs(rw[0] - rw[rw.length - 1]) < 0.02, JSON.stringify({ band: rollShape.band, ends: [rw[0], rw[rw.length - 1]] }));
+  const about = await page.evaluate(() => { showPrefs('about'); const r = { shown: !ppAbout.hidden && sfxCredits.getClientRects().length > 0, rows: sfxCredits.querySelectorAll('p').length, text: sfxCredits.textContent }; backToMenu(); return r; });
+  check('Settings > About shows the sound credits, a row per kind of sound, naming the authors', about.shown && about.rows >= 5 && ['Za-Games', 'bsumusictech', 'craigsmith', 'Kenney', 'Yarmonics', 'Caitlin_100', 'csaszi', 'RossJuterbock'].every(a => about.text.includes(a)), JSON.stringify(about));
 
   /* 1. loudness and brightness scale with the impact */
   const ball = await page.evaluate(async () => ({ soft: await __r([['ball', 0.3, 0.02]]), mid: await __r([['ball', 2, 0.02]]), hard: await __r([['ball', 6, 0.02]]) }));
@@ -93,6 +162,17 @@ const { check, done, open, settled } = require('./lib.cjs');
     return { state: ac.state, rollMax, rollEnd: s.roll, rollGain: s.rollGain, nodesMax, peak: s.peak, cap: s.cap, made: s.made };
   });
   check('live roll: the roll bed rises while the balls run and is back to zero once they stop', live.state === 'running' && live.rollMax > 0.01 && live.rollEnd === 0 && live.rollGain < 1e-3, JSON.stringify(live));
+  const rp0 = await page.evaluate(() => {
+    const names = ['createBufferSource', 'createGain', 'createBiquadFilter', 'createOscillator', 'createBuffer'], keep = {};
+    let made = 0, moved = 0, last = rollTgt;
+    for (const n of names) { keep[n] = ac[n]; ac[n] = function () { made++; return keep[n].apply(this, arguments); }; }
+    try { for (let i = 0; i < 300; i++) { rollAt(ac.currentTime + i * 0.01, (i % 40) / 10); if (rollTgt !== last) { moved++; last = rollTgt; } soundFrame(); last = rollTgt; } }
+    finally { for (const n of names) delete ac[n]; }
+    rollAt(ac.currentTime, 0);
+    return { made, moved, own: names.filter(n => Object.prototype.hasOwnProperty.call(ac, n)), sfx: SFX && Object.fromEntries(Object.entries(SFX).map(([k, v]) => [k, Array.isArray(v) ? v.length : !!v])) };
+  });
+  check('the roll path (rollAt, soundFrame) moves the bed and makes no audio nodes', rp0.made === 0 && rp0.moved > 20 && !rp0.own.length, JSON.stringify(rp0));
+  check('live: the page decoded every take once the context was made (10 balls, 4 cues, 3 cushions, 3 pockets, the break, the roll)', rp0.sfx && rp0.sfx.ball === 10 && rp0.sfx.cue === 4 && rp0.sfx.rail === 3 && rp0.sfx.pocket === 3 && rp0.sfx.break === 1 && rp0.sfx.roll === true, JSON.stringify(rp0.sfx));
   check('live break: the voices stay under the node cap', live.made > 20 && live.peak <= live.cap && live.nodesMax <= live.cap, JSON.stringify(live));
   const flood = await page.evaluate(() => {
     felt.sound.reset();
@@ -150,6 +230,18 @@ const { check, done, open, settled } = require('./lib.cjs');
   const p1 = await pull(1.1, true), p2 = await pull(1.1, false), p3 = await pull(0.6, false);
   check('powerFull: a pull to the end fires once (one tick), however long it is held or wiggled there', p1.fulls === 1 && p1.ticks === 1 && p1.power >= 1, JSON.stringify(p1));
   check('powerFull: the next pull fires again; a pull short of 100% does not', p2.fulls === 1 && p3.fulls === 0 && p3.power < 1, JSON.stringify([p2, p3]));
+  /* 8. sound off from the start: a gesture makes no context and fetches nothing */
+  await page.evaluate(() => setSetting('sound', false));
+  const before = requests.length;
+  await page.reload();
+  await page.waitForFunction(() => window.booted === true, null, { timeout: 20000 });
+  await page.keyboard.press('Shift');
+  const offStart = await page.evaluate(async () => { audioOn(); felt.start('8'); sfx('ball', 5); await new Promise(r => setTimeout(r, 300)); return { ac: ac === null, muted }; });
+  const fetched = requests.slice(before).filter(u => /\/sounds\//.test(u));
+  check('sound off from the start: no audio context is made and no take is fetched', offStart.ac && offStart.muted && !fetched.length, JSON.stringify({ offStart, fetched }));
+  await page.evaluate(async () => { setSetting('sound', true); await new Promise(r => setTimeout(r, 400)); });
+  const onAgain = await page.evaluate(() => ({ ac: !!ac, sfx: !!SFX }));
+  check('turning sound on makes the context and loads the takes', onAgain.ac && onAgain.sfx, JSON.stringify(onAgain));
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
   done();

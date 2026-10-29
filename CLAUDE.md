@@ -8,7 +8,7 @@
 
 ## What this is
 
-felt: 8-ball, 9-ball, 10-ball, straight pool, rotation, bumper pool, carom and snooker in one offline `index.html` (2D canvas, no libraries, no network).
+felt: 8-ball, 9-ball, 10-ball, straight pool, rotation, bumper pool, carom and snooker in one offline `index.html` (2D canvas, no libraries, no network) plus its recorded sounds in `sounds/`.
 Two players on one device or against a CPU. The physics is puttX's hand-rolled, fixed-step,
 deterministic sim, extended with ball-ball contact, pockets and follow/draw. `SPEC.md` is the
 design, `TASKS.md` the queue, `.buildloop/` the artifact chain.
@@ -184,13 +184,21 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   room a short form leaves up to 50% (a ResizeObserver on the form's columns and `fitSetupRows` rerun it); the camera
   rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
   `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
-- Sound and haptics (sections 2, 2h): physically modelled, no files. `audioInit` computes each body's modal buffer once
-  (`BODIES`, `bodyBuf`: modes rung by a half-sine contact of length tau, plus a transient); a hit is buffer, low-pass,
-  gain (`hit`), loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the
-  pocket index, or `'post'` on a bumper post's `'rail'`). Beds: the roll (`rollAt`, from `soundFrame`'s own rAF, no
-  allocation) and the room tone. `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
-  offline (`node tools/sound-render.cjs <dir>` writes WAVs). Haptics map in 2h (`hapPlans`, impacts per `HAP_HIT`);
-  the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and `moments-check`).
+- Sound and haptics (sections 2, 2h): the table's sounds are real CC0 recordings in `sounds/` (`SFX_FILES`: 10 ball
+  clacks, 4 cue strikes, 3 cushions, 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
+  pinned GitHub-hosted sources by `node tools/make-sounds.cjs` and credited in `CREDITS.md` and Settings > About (Sound
+  Credits). A new or changed take: rebuild, keep it in `sw.js`'s precache (bump `VERSION`) and in `CREDITS.md`, never an
+  unlicensed file. `audioInit` builds the graph and `sfxLoad` fetches the files once and decodes them once per sample
+  rate (a hit before they are in is skipped; no fetch from file://; with sound off no context and no fetch). A hit is
+  `hit()`: a take picked by `sfxPick` (a hash of the impact, never the same take twice running), low-pass, gain, rate
+  +-3%, loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the pocket index,
+  or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket, snooker's net and bumper's cup are the cushion and
+  pocket takes played faster, brighter or cut short. Beds: the roll (the looped take under a low-pass, `rollAt`, from
+  `soundFrame`'s own rAF, no allocation) and the room tone. The UI cues stay small synthesised notes. A limiter and a
+  soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
+  offline (`node tools/sound-render.cjs <dir>` writes WAVs, a break and run among them). Haptics map in 2h (`hapPlans`,
+  impacts per `HAP_HIT`); the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and
+  `moments-check`).
 - Table look (section 4): the static table is baked once per layout/table/look (`drawTableImage` = `paintTable` plus,
   on the game screen and the camera's hi-res image only, `paintVignette`); the bed carries the lamp's pool
   (`paintClothLight`) and the cushions' shade (`paintCushionAO`). A frame's ball shadows are `drawCast` (a lamp `LAMP_H`

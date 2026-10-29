@@ -1,10 +1,11 @@
 /* felt service worker: makes the game installable and playable offline (airplane mode too).
-   Precaches the page, the manifest, the icons and the launch images. A navigation goes to the network first so a
-   new deploy reaches players, but gives up after NAV_TIMEOUT_MS and answers from the cache.
+   Precaches the page, the manifest, the icons, the table's sounds and the launch images. A
+   navigation goes to the network first so a new deploy reaches players, but gives up after
+   NAV_TIMEOUT_MS and answers from the cache.
    Every other same-origin GET is cache-first. Nothing beyond the origin is ever fetched or
    cached. Bump VERSION when the precache list changes; activate deletes every older cache. */
 'use strict';
-const VERSION = 'felt-v4';
+const VERSION = 'felt-v5';
 const NAV_TIMEOUT_MS = 2500;
 const PRECACHE = [
   './',
@@ -15,6 +16,29 @@ const PRECACHE = [
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon-32.png',
+  /* the table's recorded sounds (index.html section 2, SFX_FILES) */
+  './sounds/ball-1.wav',
+  './sounds/ball-2.wav',
+  './sounds/ball-3.wav',
+  './sounds/ball-4.wav',
+  './sounds/ball-5.wav',
+  './sounds/ball-6.wav',
+  './sounds/ball-7.wav',
+  './sounds/ball-8.wav',
+  './sounds/ball-9.wav',
+  './sounds/ball-10.wav',
+  './sounds/cue-1.wav',
+  './sounds/cue-2.wav',
+  './sounds/cue-3.wav',
+  './sounds/cue-4.wav',
+  './sounds/rail-1.wav',
+  './sounds/rail-2.wav',
+  './sounds/rail-3.wav',
+  './sounds/pocket-1.wav',
+  './sounds/pocket-2.wav',
+  './sounds/pocket-3.wav',
+  './sounds/break-1.wav',
+  './sounds/roll.wav',
   /* launch:begin */
   './icons/launch/launch-750x1334.png',
   './icons/launch/launch-1334x750.png',

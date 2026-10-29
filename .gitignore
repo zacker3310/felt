@@ -8,3 +8,6 @@ tests/shots/
 .buildloop/tla/logs/
 .buildloop/tla/verdict.json
 .buildloop/**/states/
+
+# tools/sound-render.cjs output (listening files)
+renders/

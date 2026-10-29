@@ -215,8 +215,14 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - 3D view (page 4o, `V3`): Settings > Graphics > Table View (`settings.view` 'top' default | '3d', plus `viewPitch` 8-70 deg
   and `viewDist` 0.45-3.2 m, clamped on load) and the `#viewBtn` 3D switch on the table. The player's camera, never an
   automatic one: behind the cue ball looking along the aim; a drag across turns the aim (rate by finger speed, `v3Rate`),
-  up and down tilts, a pinch moves it in or out. It moves only with the player's aim or on a cut (`v3Update`: a new turn,
-  the CPU's line shown, the cue ball put down elsewhere), never while the balls roll. While it is live (`V3.live`)
+  up and down tilts, a pinch moves it in or out. It moves with the player's aim or on a cut (`v3Update`: a new turn,
+  the CPU's line shown, the cue ball put down elsewhere), and at the strike as Settings > Graphics > After the Shot says
+  (`settings.viewAfter`): 'pull' (default) one eased move (`V3_OUT_MS`, orbit blend `v3Lerp`) to an overview framed through
+  the real projection (`v3Overview`: yaw within 45 deg of the shot, pitch 40-64, every pocket and cushion inside the box,
+  `V3_OV_MARGIN`), held still to the roll's end, then the turn's cut is a move back down (`V3_BACK_MS`) to the player's own
+  pitch/dist; 'top' draws the roll top-down (`V3.top2d`, the setting stays '3d'); 'stay' holds the aiming pose. Reduce
+  Motion: cuts. Never follows the balls. The room (`v3RoomTex`, painted and blurred once a context, `V3.roomMs`): floor
+  and wall cylinder (`V3_ROOM_R`), soft neighbour cards (`v3Cards`), this table's lamp (faded as the camera rises to it). While it is live (`V3.live`)
   `toScreen`/`toTable` go through its camera (`v3Screen`/`v3Table`, a ball's centre height), so taps, ball in hand and
   calls work unchanged, and `view.k` is the scale at the cue ball. WebGL 2 on `#t3d` over `#stage` (input stays on
   `#table`): `drawTableImage`'s art on the bed and rail-top planes (alpha cuts the holes), faces, posts, ray-traced balls

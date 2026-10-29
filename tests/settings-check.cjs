@@ -64,6 +64,20 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
     const tv2 = await t.page.evaluate(() => felt.settings);
     check('Table View: top-down by default, 3D stored and back after a reload, a bad value falls back (pitch default, distance clamped)', tv0 === 'top' && tv1.view === '3d' && tv1.stored === '3d' && tv1.pressed === 'true'
       && tv2.view === 'top' && tv2.viewPitch === 24 && tv2.viewDist === 3.2, JSON.stringify({ tv0, tv1, v: tv2.view, p: tv2.viewPitch, d: tv2.viewDist }));
+    /* After the Shot (4o): Pull Back by default, Top Down and Stay stored and back after a reload, a bad value back to Pull Back */
+    const va0 = await t.page.evaluate(() => { localStorage.removeItem('felt.settings'); return 1; });
+    await t.page.reload();
+    await t.page.waitForFunction(() => window.booted === true);
+    const va1 = await t.page.evaluate(() => { const d = felt.settings.viewAfter; showPrefs(); prefsPage('prGfx'); const r = { d, head: vaLab.textContent, opts: [vaPull, vaTop, vaStay].map(b => b.textContent), pressed: vaPull.getAttribute('aria-pressed') }; vaTop.click(); r.top = [felt.settings.viewAfter, vaTop.getAttribute('aria-pressed'), JSON.parse(localStorage.getItem('felt.settings')).viewAfter]; return r; });
+    await t.page.reload();
+    await t.page.waitForFunction(() => window.booted === true);
+    const va2 = await t.page.evaluate(() => { const top = felt.settings.viewAfter; setSetting('viewAfter', 'stay'); return { top, stay: JSON.parse(localStorage.getItem('felt.settings')).viewAfter }; });
+    await t.page.evaluate(() => localStorage.setItem('felt.settings', '{"sv":3,"view":"3d","viewAfter":"spin"}'));
+    await t.page.reload();
+    await t.page.waitForFunction(() => window.booted === true);
+    const va3 = await t.page.evaluate(() => felt.settings.viewAfter);
+    check('After the Shot: Pull Back by default, Pull Back, Top Down or Stay in Graphics, Top Down and Stay stored and back after a reload, a bad value back to Pull Back',
+      va0 === 1 && va1.d === 'pull' && va1.head === 'After the Shot' && va1.opts.join() === 'Pull Back,Top Down,Stay' && va1.pressed === 'true' && va1.top.join() === 'top,true,top' && va2.top === 'top' && va2.stay === 'stay' && va3 === 'pull', JSON.stringify({ va1, va2, va3 }));
     check('migration: no console errors', t.errors.length === 0, t.errors.join(' | '));
     await t.browser.close();
   }

@@ -1706,7 +1706,12 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <div class="group" role="group" aria-labelledby="tvLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="tvLab" aria-describedby="tvNote"><button id="tvTop" aria-pressed="true">Top Down</button><button id="tv3d" aria-pressed="false">3D</button></div></div>
       </div>
-      <p class="gfoot" id="tvNote">3D puts the camera behind the cue ball: drag across the table to aim, up and down to tilt, pinch to move in or out. It stays where you put it while the balls roll. The 3D button on the table switches too.</p>
+      <p class="gfoot" id="tvNote">3D puts the camera behind the cue ball: drag across the table to aim, up and down to tilt, pinch to move in or out. The 3D button on the table switches too.</p>
+      <h3 class="ghead" id="vaLab">After the Shot</h3>
+      <div class="group" role="group" aria-labelledby="vaLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="vaLab" aria-describedby="vaNote"><button id="vaPull" aria-pressed="true">Pull Back</button><button id="vaTop" aria-pressed="false">Top Down</button><button id="vaStay" aria-pressed="false">Stay</button></div></div>
+      </div>
+      <p class="gfoot" id="vaNote">In 3D, once the cue strikes. Pull Back rises smoothly to a view of the whole table, holds it while the balls roll, then comes back down behind the cue ball. Top Down shows the roll on the flat table. Stay keeps your aiming view. Your pitch and distance are always kept.</p>
       <h3 class="ghead" id="camLab">Camera</h3>
       <div class="group" role="group" aria-labelledby="camLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
@@ -7837,7 +7842,10 @@ let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
    V3.flat is set while it lays the top-down overlays on the bed, which keep the flat mapping. */
 const V3_PITCH = [8, 70], V3_DIST = [0.45, 3.2], V3_PITCH0 = 24, V3_DIST0 = 1.1;
 const V3 = { ok: null, gl: null, live: false, flat: false, soft: false, renderer: '', yaw: 0, px: NaN, py: NaN, seat: { shot: undefined, turn: -1, plan: null, set: false },
-  cuts: 0, k: 100, cam: null, box: null, scale: 1, ms: [], frames: 0, poses: [], lost: false };
+  cuts: 0, k: 100, cam: null, box: null, scale: 1, ms: [], frames: 0, poses: [], lost: false,
+  /* After the Shot (settings.viewAfter): mv the camera's move under way, ovOn the overview held (or wanted), ov
+     its framing, ovYaw the shot's direction, rolled the roll seen, top2d the roll shown top-down */
+  mv: null, ovOn: false, ov: null, ovYaw: 0, rolled: false, top2d: false, moves: 0, room: null, roomMs: 0 };
 function toScreen(x, y) {
   if (V3.live && !V3.flat) return v3Screen(x, y);
   const v = view;
@@ -7879,7 +7887,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29j';
+const BUILD = 'build 2026-10-29k';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -10117,7 +10125,7 @@ const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: tru
 const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
 const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
   'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
-  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls', 'view', 'viewPitch', 'viewDist'];
+  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls', 'view', 'viewPitch', 'viewDist', 'viewAfter'];
 /* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
    2 and 2 to 3 renamed nothing: the new keys simply take their defaults in loadSettings. */
 /* (migrateSettings, section 6) */
@@ -12532,7 +12540,7 @@ function loadSettings() {
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
     hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
-    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', view: 'top', viewPitch: V3_PITCH0, viewDist: V3_DIST0 };
+    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', view: 'top', viewPitch: V3_PITCH0, viewDist: V3_DIST0, viewAfter: 'pull' };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     let o = JSON.parse(raw || '{}') || {};
@@ -12548,6 +12556,7 @@ function loadSettings() {
     if (TEXT_SIZES.includes(o.text)) s.text = o.text;
     /* the table view (4o): top-down or 3D, and the 3D camera's pitch (degrees) and distance (metres), clamped */
     if (['top', '3d'].includes(o.view)) s.view = o.view;
+    if (['pull', 'top', 'stay'].includes(o.viewAfter)) s.viewAfter = o.viewAfter;
     if (typeof o.viewPitch === 'number' && Number.isFinite(o.viewPitch)) s.viewPitch = clamp(o.viewPitch, V3_PITCH[0], V3_PITCH[1]);
     if (typeof o.viewDist === 'number' && Number.isFinite(o.viewDist)) s.viewDist = clamp(o.viewDist, V3_DIST[0], V3_DIST[1]);
     for (const k of ['8', '9', '10']) if (rulesetsFor(k).some(r => r.id === o['rules' + k])) s['rules' + k] = o['rules' + k];
@@ -12651,6 +12660,7 @@ const SEGS = [
   ['replays', [[rpOn, true], [rpOff, false]]],
   ['text', TEXT_SIZES.map(n => [document.getElementById('ts' + n), n])],
   ['view', [[tvTop, 'top'], [tv3d, '3d']]],
+  ['viewAfter', [[vaPull, 'pull'], [vaTop, 'top'], [vaStay, 'stay']]],
 ];
 /* Gameplay's default rules: a row per game with a choice of rulesets, built from RULESETS
    (rulesetsFor), each button named by its ruleset ("felt rules", "WPA", "Obvious shots free") */
@@ -13592,8 +13602,13 @@ if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => 
    turn's start is a cut, never a move: behind the cue ball on the turn's aim (auto aim's line, where
    the swing will land). A cue ball in hand being dragged holds the camera still; let go, it cuts
    behind the ball's new spot. The CPU's turn: a cut behind its cue ball along its line when the line
-   is shown, then nothing while the cue swings onto it. While the balls roll it stays exactly where it
-   was. A replay (5r), the menu and the lesson are top-down.
+   is shown, then nothing while the cue swings onto it. After the strike, Settings > Graphics > After the
+   Shot (settings.viewAfter): Pull Back (the default) makes one move (an ease in and out, V3_OUT_MS) up
+   and back to an overview framed through the real projection (v3Overview: every pocket and cushion
+   inside the box), held still to the end of the roll, and the next turn's cut becomes a move back down
+   (V3_BACK_MS) to the player's own pitch and distance; Top Down draws the roll flat (V3.top2d, the
+   setting stays 3D); Stay keeps the aiming pose. Reduce Motion makes the moves cuts. Touches never
+   move it while the balls roll. A replay (5r), the menu and the lesson are top-down.
    Drawing: WebGL 2 (no context: the top-down view, and no button). The bed and the rail and rubber
    tops are drawTableImage's art painted once per table and look (landscape, RAIL_MAX, the posts
    left out) laid on two planes: the bed at 0 and the tops at the cushion's height, where the art's
@@ -13608,8 +13623,11 @@ if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => 
    A view only: it reads game, tab, orient and the aim, and never writes them. ---- */
 const V3_YAW_SLOW = 0.02 * Math.PI / 180, V3_YAW_FAST = 0.3 * Math.PI / 180, V3_YAW_MOUSE = 0.12 * Math.PI / 180;
 const V3_PITCH_PX = 0.25, V3_FY = 0.5, V3_AHEAD = 0.8, V3_FOV = [21, 24], V3_NEAR = 0.02, V3_SOFT_DPR = 1.25, V3_LIFT = LIFT_H;
+/* After the Shot: the moves' lengths (ms), the overview's margin (a fraction of the box a side), the yaws
+   it may turn from the shot's (degrees) and the pitches it tries (degrees) */
+const V3_OUT_MS = 800, V3_BACK_MS = 600, V3_OV_MARGIN = 0.07, V3_OV_YAW = [0, 15, -15, 30, -30, 45, -45], V3_OV_PITCH = [40, 48, 56, 64];
 /* the view is wanted (the setting) and has a place (a table in play, not a replay, not the lesson) */
-const v3Want = () => settings.view === '3d' && state !== 'menu' && !rp && !(solo && solo.kind === 'lesson') && felt.v3 !== false;
+const v3Want = () => settings.view === '3d' && state !== 'menu' && !rp && !(solo && solo.kind === 'lesson') && felt.v3 !== false && !V3.top2d;
 /* ---- GL ---- */
 const V3_SRC = {
   tex: [`#version 300 es
@@ -13689,6 +13707,11 @@ void main() {
   vc = c; gl_Position = p;
 }`, `#version 300 es
 precision highp float; in vec4 vc; out vec4 o; void main() { o = vec4(vc.rgb * vc.a, vc.a); }`],
+  room: [`#version 300 es
+in vec3 p; in vec2 uv; uniform mat4 M; out vec2 v;
+void main() { v = uv; gl_Position = M * vec4(p, 1.0); }`, `#version 300 es
+precision mediump float; in vec2 v; uniform sampler2D T; uniform vec4 tint; out vec4 o;
+void main() { o = texture(T, v) * tint; }`],
 };
 function v3Prog(gl, [vs, fs]) {
   const P = gl.createProgram();
@@ -13724,12 +13747,12 @@ function v3Init() {
     V3.quad = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-    V3.ovBuf = gl.createBuffer(); V3.cueBuf = null; V3.cueKey = '';
+    V3.ovBuf = gl.createBuffer(); V3.cardBuf = gl.createBuffer(); V3.cueBuf = null; V3.cueKey = ''; V3.room = null;
     V3.numTex = v3Atlas(gl, v3NumArt());
     V3.markTex = v3Atlas(gl, v3MarkArt());
     if (!V3.listening) {
       V3.listening = true;
-      t3d.addEventListener('webglcontextlost', e => { e.preventDefault(); V3.lost = true; V3.geo = null; });
+      t3d.addEventListener('webglcontextlost', e => { e.preventDefault(); V3.lost = true; V3.geo = null; V3.room = null; });
       t3d.addEventListener('webglcontextrestored', () => { V3.lost = false; V3.ok = null; V3.geo = null; });
     }
     V3.ok = true;
@@ -13867,12 +13890,11 @@ function v3Geo() {
       quad(a, b, h, -0.15, col(mixRgb(RW.base, 0.3)), col(mixRgb(RW.base, 0.9)), [(b[1] - a[1]) / L, (a[0] - b[0]) / L]);
     }
     const cx = TL / 2, cy = TW / 2;
-    /* the floor, 76 cm down: a warm pool under the lamp falling to the room's near black */
-    const fl = (r, c) => Array.from({ length: 24 }, (_, i) => [cx + r * Math.cos(i * Math.PI / 12), cy + r * Math.sin(i * Math.PI / 12), c]);
-    const rings = [fl(0.01, [0.1, 0.085, 0.07]), fl(1.6, [0.085, 0.075, 0.065]), fl(4, [0.05, 0.048, 0.047]), fl(9, [0.043, 0.043, 0.047])];
-    for (let r = 0; r + 1 < rings.length; r++) for (let i = 0; i < 24; i++) {
-      const A = rings[r][i], B = rings[r][(i + 1) % 24], C2 = rings[r + 1][(i + 1) % 24], D = rings[r + 1][i];
-      for (const q of [A, B, C2, A, C2, D]) faces.push(q[0], q[1], 0.76, 0, 0, -1, q[2][0], q[2][1], q[2][2], 1);
+    /* the body under the apron, set in, down to the floor (V3_FLOOR): the outline drawn in toward the middle */
+    const sx = Math.max(0.2, TL / 2 - 0.14) / (TL / 2 + RAIL), sy = Math.max(0.2, TW / 2 - 0.14) / (TW / 2 + RAIL), body = outline.map(q => [cx + (q[0] - cx) * sx, cy + (q[1] - cy) * sy]);
+    for (let i = 0; i < body.length; i++) {
+      const a = body[i], b = body[(i + 1) % body.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      quad(a, b, -0.15, -V3_FLOOR, col(mixRgb(RW.base, 0.72)), col(mixRgb(RW.base, 0.9)), [(b[1] - a[1]) / L, (a[0] - b[0]) / L]);
     }
     for (const [ea, pa, pb, eb] of CUSHION_POLYS) for (const [a, b] of MOUTHS.length ? [[pa, pb], [ea, pa], [pb, eb]] : [[pa, pb]]) {
       const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
@@ -13894,8 +13916,12 @@ function v3Geo() {
     }
     const fBuf = gl.createBuffer(), mesh = new Float32Array([...faces, ...posts]);
     gl.bindBuffer(gl.ARRAY_BUFFER, fBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
-    if (V3.geo) { gl.deleteTexture(V3.geo.tex); gl.deleteBuffer(V3.geo.pBuf); gl.deleteBuffer(V3.geo.fBuf); }
-    geo = { key, tex, pBuf, nBed: bed.length / 5, nTop: top.length / 5, fBuf, nFaces: faces.length / 10, nPosts: posts.length / 10, h, co, bounce: v3Col(`rgb(${CL.bounce})`) };
+    if (V3.geo) { gl.deleteTexture(V3.geo.tex); for (const b of [V3.geo.pBuf, V3.geo.fBuf, V3.geo.rBuf, V3.geo.lBuf]) gl.deleteBuffer(b); }
+    const room = v3RoomGeo(outline), rBuf = gl.createBuffer(), lBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, rBuf); gl.bufferData(gl.ARRAY_BUFFER, room.room, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, lBuf); gl.bufferData(gl.ARRAY_BUFFER, room.lamp, gl.STATIC_DRAW);
+    geo = { key, tex, pBuf, nBed: bed.length / 5, nTop: top.length / 5, fBuf, nFaces: faces.length / 10, nPosts: posts.length / 10, h, co, bounce: v3Col(`rgb(${CL.bounce})`),
+      rBuf, nFloor: room.nFloor, nWall: room.nWall, lBuf, nLamp: room.lamp.length / 10, lampZ: room.lampZ, near: room.near, foot: room.foot };
   } finally { RAIL = rk; view = was.view; dpr = was.dpr; heroNoPosts = false; V3.flat = false; }
   return (V3.geo = geo);
 }
@@ -13921,6 +13947,331 @@ function v3Cue() {
   V3.cueKey = key;
   return (V3.cueBuf = { b, n: out.length / 10 });
 }
+/* ---- the room: a pool hall at night, out of focus round the table ----
+   Everything is painted once (v3RoomTex, on the first 3D frame: V3.roomMs) on 2D canvases, blurred
+   there (halved and halved again, then doubled back up: no ctx.filter, which Safari lacks), and laid
+   on real geometry round the table, so it turns and slides as it should when the camera moves:
+   the floor (dark boards under the lamp's warm pool, the far boards blurrier than the near, falling
+   to black at the walls), the walls (a cylinder V3_ROOM_R out: wainscot, sconces, a back bar's glow,
+   a cue rack, soft bokeh, the top lost in the dark), the neighbouring tables (soft cards: the top
+   flat at the rail's height, the body and the shade turned to the camera, the lamp's glow, its pool
+   on the floor; faded when the camera comes close), this table's shadow on the floor, and this
+   table's lamp as geometry (a shade on two rods, LAMP_H up: faded out once the camera rises to it,
+   so it never stands between the camera and the bed). Low and warm, so the table stays the
+   brightest, sharpest thing. A view only, like the rest of 4o. */
+const V3_ROOM_R = 9, V3_ROOM_TOP = 5.5, V3_FLOOR = 0.76;
+/* a seeded random (mulberry32): the room paints the same every time */
+function v3Rng(seed) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const v3Canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+/* a soft blur: halved `levels` times, then doubled back up, smoothed each step */
+function v3Blur(cv, levels) {
+  const chain = [cv];
+  for (let i = 0; i < levels; i++) {
+    const a = chain[chain.length - 1], b = v3Canvas(Math.max(1, Math.ceil(a.width / 2)), Math.max(1, Math.ceil(a.height / 2))), g = b.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(a, 0, 0, b.width, b.height);
+    chain.push(b);
+  }
+  for (let i = chain.length - 2; i >= 0; i--) {
+    const t = i === 0 ? v3Canvas(cv.width, cv.height) : chain[i], g = t.getContext('2d');
+    g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+    g.clearRect(0, 0, t.width, t.height); g.drawImage(chain[i + 1], 0, 0, t.width, t.height);
+    chain[i] = t;
+  }
+  return chain[0];
+}
+/* a soft round light: a flat disc that falls off at its edge (the out-of-focus highlight) */
+function v3Bokeh(g, x, y, r, rgb, a) {
+  const gr = g.createRadialGradient(x, y, 0, x, y, r);
+  gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(0.62, `rgba(${rgb},${a * 0.85})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+}
+function v3RoundRect(g, x, y, w, h, r) {
+  g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+/* the floor: boards along the table, V3_ROOM_R each way from the middle; sharp near, blurred far, lit by the lamp */
+function v3PaintFloor(S) {
+  const K = S / (2 * V3_ROOM_R), A = v3Canvas(S, S), g = A.getContext('2d'), rnd = v3Rng(11), pw = 0.12 * K;
+  g.fillStyle = '#2a1c14'; g.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += pw) {
+    let x = -rnd() * 2 * K;
+    while (x < S) {
+      const L = (1.1 + rnd() * 1.6) * K, l = 0.8 + rnd() * 0.3, w = rnd();
+      g.fillStyle = `rgb(${Math.round(78 * l + w * 8)},${Math.round(52 * l + w * 4)},${Math.round(36 * l)})`;
+      g.fillRect(x, y, L, pw);
+      g.globalAlpha = 0.22; g.strokeStyle = '#1c120b'; g.lineWidth = 0.7;
+      for (let k = 0; k < 3; k++) {
+        const yy = y + rnd() * pw;
+        g.beginPath(); g.moveTo(x, yy); g.bezierCurveTo(x + L * 0.3, yy + (rnd() - 0.5) * pw * 0.6, x + L * 0.7, yy + (rnd() - 0.5) * pw * 0.6, x + L, yy + (rnd() - 0.5) * pw * 0.4); g.stroke();
+      }
+      g.globalAlpha = 1;
+      g.fillStyle = 'rgba(12,7,4,0.6)'; g.fillRect(x + L - 1, y, 1.2, pw);
+      x += L;
+    }
+    g.fillStyle = 'rgba(10,6,3,0.6)'; g.fillRect(0, y + pw - 1, S, 1.2);
+  }
+  /* farther, blurrier: two blurred copies over the sharp one, each through a ring that opens outward */
+  const ring = (cv, r0, r1) => {
+    const h = cv.getContext('2d'), gr = h.createRadialGradient(S / 2, S / 2, r0 * K, S / 2, S / 2, r1 * K);
+    gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, '#000');
+    h.globalCompositeOperation = 'destination-in'; h.fillStyle = gr; h.fillRect(0, 0, S, S); h.globalCompositeOperation = 'source-over';
+    return cv;
+  };
+  const B1 = ring(v3Blur(A, 1), 1.6, 3.2), B2 = ring(v3Blur(A, 3), 3.4, 6);
+  g.drawImage(B1, 0, 0); g.drawImage(B2, 0, 0);
+  /* the light: the lamp's pool round the table, warm, falling to near black at the walls */
+  const L = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, V3_ROOM_R * K);
+  L.addColorStop(0, 'rgb(176,158,136)'); L.addColorStop(0.17, 'rgb(124,108,92)'); L.addColorStop(0.36, 'rgb(62,54,48)'); L.addColorStop(0.7, 'rgb(28,25,23)'); L.addColorStop(1, 'rgb(10,9,9)');
+  g.globalCompositeOperation = 'multiply'; g.fillStyle = L; g.fillRect(0, 0, S, S); g.globalCompositeOperation = 'source-over';
+  return A;
+}
+/* the walls: a band W x H round the room, angle 0 (left) the table's +x, top V3_ROOM_TOP, bottom the floor */
+function v3PaintWall(W, H) {
+  const pad = Math.round(W / 12), cv = v3Canvas(W + 2 * pad, H), g = cv.getContext('2d'), rnd = v3Rng(23);
+  const Y = z => (V3_ROOM_TOP - z) / (V3_ROOM_TOP + V3_FLOOR) * H, X = deg => pad + deg / 360 * W, mPer = W / (2 * Math.PI * V3_ROOM_R);
+  const rep = f => { for (const o of [-W, 0, W]) { g.save(); g.translate(o, 0); f(); g.restore(); } };
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#050404'); bg.addColorStop(Y(2.8) / H, '#0d0a09'); bg.addColorStop(Y(1.6) / H, '#211813'); bg.addColorStop(Y(0.45) / H, '#140e0b');
+  bg.addColorStop(Y(0.4) / H, '#1c140f'); bg.addColorStop(Y(0.36) / H, '#0c0807'); bg.addColorStop(Y(-0.35) / H, '#060505'); bg.addColorStop(1, '#040303');
+  g.fillStyle = bg; g.fillRect(0, 0, cv.width, H);
+  /* wainscot panels */
+  g.fillStyle = 'rgba(0,0,0,0.25)';
+  for (let d = 0; d < 360; d += 6) rep(() => g.fillRect(X(d), Y(0.36), 1.5, Y(-0.7) - Y(0.36)));
+  /* the back bar, behind the table's foot (angle 0): shelves lit amber, bottles, a counter with a glow under its lip */
+  const bar0 = -22, bar1 = 22;
+  rep(() => {
+    const x0 = X(bar0), x1 = X(bar1);
+    const sh = g.createLinearGradient(0, Y(2.0), 0, Y(0.5));
+    sh.addColorStop(0, 'rgba(120,84,48,0.2)'); sh.addColorStop(0.5, 'rgba(176,122,66,0.55)'); sh.addColorStop(1, 'rgba(120,80,44,0.3)');
+    g.fillStyle = sh; g.fillRect(x0, Y(2.0), x1 - x0, Y(0.5) - Y(2.0));
+    for (const zs of [1.65, 1.2, 0.78]) {
+      g.fillStyle = 'rgba(30,20,14,0.9)'; g.fillRect(x0, Y(zs) - 1, x1 - x0, 2);
+      for (let x = x0 + 2; x < x1 - 2; x += 2 + rnd() * 3) {
+        const h = (0.18 + rnd() * 0.14) * H / (V3_ROOM_TOP + V3_FLOOR), c = [[92, 60, 34], [60, 72, 52], [120, 96, 70], [70, 46, 40], [140, 118, 86]][Math.floor(rnd() * 5)];
+        g.fillStyle = `rgba(${c.join(',')},0.9)`; g.fillRect(x, Y(zs) - 1 - h, 1.6, h);
+      }
+    }
+    g.fillStyle = '#140d09'; g.fillRect(x0 - 6, Y(0.32), x1 - x0 + 12, Y(-0.76) - Y(0.32));
+    g.fillStyle = 'rgba(190,130,70,0.5)'; g.fillRect(x0 - 6, Y(0.28), x1 - x0 + 12, 2);
+  });
+  /* cue racks on the side walls */
+  for (const d of [90, 270]) rep(() => {
+    const x0 = X(d) - 0.5 * mPer, w = 1.0 * mPer;
+    g.fillStyle = '#1a110c'; g.fillRect(x0, Y(1.75), w, Y(0.15) - Y(1.75));
+    for (let i = 0; i < 9; i++) { g.fillStyle = i % 3 ? 'rgba(200,170,120,0.55)' : 'rgba(120,84,56,0.7)'; g.fillRect(x0 + (i + 0.6) * w / 10, Y(1.68), 1.2, Y(0.2) - Y(1.68)); }
+  });
+  /* sconces: a warm wash up and down the wall */
+  for (let d = 15; d < 360; d += 30) {
+    if (d > 360 + bar0 - 12 || d < bar1 + 12 || Math.abs(d - 90) < 12 || Math.abs(d - 270) < 12) continue;
+    rep(() => {
+      const x = X(d), y = Y(1.9), gr = g.createRadialGradient(x, y, 0, x, y, 1.3 * mPer * 1.6);
+      gr.addColorStop(0, 'rgba(255,196,128,0.5)'); gr.addColorStop(0.35, 'rgba(200,140,84,0.18)'); gr.addColorStop(1, 'rgba(120,80,50,0)');
+      g.save(); g.translate(x, y); g.scale(0.7, 1.15); g.translate(-x, -y); g.fillStyle = gr; g.fillRect(x - 3 * mPer, y - 3 * mPer, 6 * mPer, 6 * mPer); g.restore();
+    });
+  }
+  let out = v3Blur(cv, 3);
+  const o = out.getContext('2d');
+  o.globalCompositeOperation = 'lighter';
+  /* the lights out of focus: the sconces' bulbs, the bar's bottles and lamps far off */
+  for (let d = 15; d < 360; d += 30) {
+    if (d > 360 + bar0 - 12 || d < bar1 + 12 || Math.abs(d - 90) < 12 || Math.abs(d - 270) < 12) continue;
+    for (const k of [-W, 0, W]) v3Bokeh(o, X(d) + k, Y(1.9), 0.16 * mPer * 2.4, '255,200,140', 0.35);
+  }
+  for (let i = 0; i < 26; i++) {
+    const d = bar0 + rnd() * (bar1 - bar0), z = 0.6 + rnd() * 1.3, r = (0.07 + rnd() * 0.1) * mPer * 2.4, c = ['255,190,120', '230,210,170', '255,160,96', '200,190,160'][Math.floor(rnd() * 4)];
+    for (const k of [-W, 0, W]) v3Bokeh(o, X(d) + k, Y(z), r, c, 0.12 + rnd() * 0.12);
+  }
+  for (let i = 0; i < 40; i++) {
+    const d = rnd() * 360, z = 0.9 + rnd() * 1.8, r = (0.08 + rnd() * 0.16) * mPer * 2.4;
+    for (const k of [-W, 0, W]) v3Bokeh(o, X(d) + k, Y(z), r, '255,206,150', 0.04 + rnd() * 0.07);
+  }
+  o.globalCompositeOperation = 'source-over';
+  out = v3Blur(out, 1);
+  const fin = v3Canvas(W, H);
+  fin.getContext('2d').drawImage(out, pad, 0, W, H, 0, 0, W, H);
+  return fin;
+}
+/* a neighbouring table from above: 3.4 x 2.3 m (2.5 x 1.4 and a margin the blur spreads into), lit by its own lamp */
+function v3PaintNTop() {
+  const K = 64, cv = v3Canvas(Math.round(3.4 * K), Math.round(2.3 * K)), g = cv.getContext('2d'), rnd = v3Rng(5), o = 0.45;
+  g.fillStyle = '#2c1a11'; v3RoundRect(g, o * K, o * K, 2.5 * K, 1.4 * K, 0.06 * K); g.fill();
+  g.fillStyle = '#2f7560'; g.fillRect((o + 0.13) * K, (o + 0.13) * K, 2.24 * K, 1.14 * K);
+  const L = g.createRadialGradient((o + 1.25) * K, (o + 0.7) * K, 0, (o + 1.25) * K, (o + 0.7) * K, 1.3 * K);
+  L.addColorStop(0, 'rgba(255,240,200,0.4)'); L.addColorStop(1, 'rgba(0,0,0,0.35)');
+  g.fillStyle = L; g.fillRect((o + 0.13) * K, (o + 0.13) * K, 2.24 * K, 1.14 * K);
+  for (let i = 0; i < 7; i++) { g.fillStyle = ['#d8d2c0', '#c9a43a', '#2d4a9a', '#a8342c', '#5a2e70', '#d07a2a', '#222'][i]; g.beginPath(); g.arc((o + 0.4 + rnd() * 1.7) * K, (o + 0.3 + rnd() * 0.8) * K, 0.035 * K, 0, 7); g.fill(); }
+  return v3Blur(cv, 4);
+}
+/* its body side on: 3.4 m wide, from 10 cm under the floor to 24 cm over the rail's top (a margin for the blur) */
+function v3PaintNBody() {
+  const K = 64, cv = v3Canvas(Math.round(3.4 * K), Math.round(1.1 * K)), g = cv.getContext('2d'), Z = z => (0.24 - z) * K, x0 = 0.45 * K;
+  g.fillStyle = '#3a2618'; g.fillRect(x0, Z(0.04), 2.5 * K, Z(-0.17) - Z(0.04));
+  g.fillStyle = 'rgba(160,120,80,0.6)'; g.fillRect(x0, Z(0.04), 2.5 * K, 2);
+  g.fillStyle = '#1e140e'; g.fillRect(x0 + 0.2 * K, Z(-0.17), 2.1 * K, Z(-0.45) - Z(-0.17));
+  g.fillStyle = '#170f0b'; for (const x of [0.3, 2.05]) g.fillRect(x0 + x * K, Z(-0.45), 0.15 * K, Z(-0.86) - Z(-0.45));
+  return v3Blur(cv, 4);
+}
+/* the neighbour's shade side on (1.9 x 0.45 m, the shade 1.4 x 0.17 in it), its lit lip; the underside glowing;
+   a round glow; this table's shadow */
+function v3PaintShade() {
+  const K = 64, cv = v3Canvas(Math.round(1.9 * K), Math.round(0.45 * K)), g = cv.getContext('2d'), y0 = 0.13 * K, y1 = 0.3 * K;
+  g.fillStyle = '#121110'; g.beginPath(); g.moveTo(0.3 * K, y0); g.lineTo(1.6 * K, y0); g.lineTo(1.65 * K, y1); g.lineTo(0.25 * K, y1); g.closePath(); g.fill();
+  g.fillStyle = 'rgba(255,214,150,0.9)'; g.fillRect(0.25 * K, y1 - 2, 1.4 * K, 3);
+  return v3Blur(cv, 3);
+}
+function v3PaintUnder() {
+  const cv = v3Canvas(128, 64), g = cv.getContext('2d');
+  g.fillStyle = 'rgb(255,226,176)'; v3RoundRect(g, 18, 18, 92, 28, 6); g.fill();
+  return v3Blur(cv, 3);
+}
+function v3PaintGlow() {
+  const S = 64, cv = v3Canvas(S, S), g = cv.getContext('2d'), gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.14)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  return cv;
+}
+function v3PaintShadow() {
+  const cv = v3Canvas(128, 64), g = cv.getContext('2d');
+  g.fillStyle = '#000'; v3RoundRect(g, 16, 14, 96, 36, 10); g.fill();
+  return v3Blur(cv, 3);
+}
+function v3Tex(gl, cv, premul, repeatS) {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, !!premul);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, repeatS ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+/* the room's textures, painted once a context (timed: V3.roomMs) */
+function v3RoomTex() {
+  if (V3.room) return V3.room;
+  const gl = V3.gl, t0 = performance.now(), soft = V3.soft;
+  V3.room = {
+    floor: v3Tex(gl, v3PaintFloor(soft ? 768 : 1024)), wall: v3Tex(gl, v3PaintWall(soft ? 1024 : 1536, soft ? 224 : 320), false, true),
+    top: v3Tex(gl, v3PaintNTop(), true), body: v3Tex(gl, v3PaintNBody(), true), shade: v3Tex(gl, v3PaintShade(), true), under: v3Tex(gl, v3PaintUnder(), true),
+    glow: v3Tex(gl, v3PaintGlow(), true), shadow: v3Tex(gl, v3PaintShadow(), true),
+  };
+  V3.roomMs = performance.now() - t0;
+  return V3.room;
+}
+/* the room's geometry for the table now set: the floor (a disc) and the wall (a cylinder) as [x, y, z, u, v]
+   in the render frame (z = -height), this table's lamp as mesh vertices, the neighbours' places, the shadow's size */
+function v3RoomGeo(outline) {
+  const cx = TL / 2, cy = TW / 2, N = 64, Rr = V3_ROOM_R, room = [];
+  for (let i = 0; i < N; i++) {
+    const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, P = a => [cx + Rr * Math.cos(a), cy + Rr * Math.sin(a)];
+    const p0 = P(a0), p1 = P(a1), uv = q => [(q[0] - cx) / (2 * Rr) + 0.5, (q[1] - cy) / (2 * Rr) + 0.5];
+    for (const q of [[cx, cy], p0, p1]) room.push(q[0], q[1], V3_FLOOR, ...uv(q));
+  }
+  const nFloor = room.length / 5;
+  for (let i = 0; i < N; i++) {
+    const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, u0 = i / N, u1 = (i + 1) / N;
+    const x0 = cx + Rr * Math.cos(a0), y0 = cy + Rr * Math.sin(a0), x1 = cx + Rr * Math.cos(a1), y1 = cy + Rr * Math.sin(a1);
+    const T0 = [x0, y0, -V3_ROOM_TOP, u0, 0], T1 = [x1, y1, -V3_ROOM_TOP, u1, 0], B0 = [x0, y0, V3_FLOOR, u0, 1], B1 = [x1, y1, V3_FLOOR, u1, 1];
+    for (const q of [T0, T1, B1, T0, B1, B0]) room.push(...q);
+  }
+  const nWall = room.length / 5 - nFloor;
+  /* the lamp: a shade (a frustum, its underside the diffuser) on two rods up into the dark */
+  const lamp = [], lw = clamp(TL * 0.62, 0.45, 2.3) / 2, ld = clamp(TW * 0.42, 0.3, 0.75) / 2, zb = LAMP_H - 0.06, zt = zb + 0.17, ins = 0.05;
+  const v = (x, y, z, c) => lamp.push(x, y, -z, 0, 0, -1, c[0], c[1], c[2], 1);
+  const quadL = (a, b, c2, d, ca, cb) => { v(...a, ca); v(...b, ca); v(...c2, cb); v(...a, ca); v(...c2, cb); v(...d, cb); };
+  const bot = [[cx - lw, cy - ld], [cx + lw, cy - ld], [cx + lw, cy + ld], [cx - lw, cy + ld]], tp = [[cx - lw + ins, cy - ld + ins], [cx + lw - ins, cy - ld + ins], [cx + lw - ins, cy + ld - ins], [cx - lw + ins, cy + ld - ins]];
+  const side = [0.17, 0.155, 0.13], dark = [0.05, 0.05, 0.048], diff = [0.72, 0.62, 0.48], diffE = [0.36, 0.3, 0.22];
+  for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; quadL([...tp[i], zt], [...tp[j], zt], [...bot[j], zb], [...bot[i], zb], dark, side); }
+  quadL([...tp[0], zt], [...tp[1], zt], [...tp[2], zt], [...tp[3], zt], dark, dark);
+  const e = 0.012;
+  /* the diffuser: brightest along its middle, dimmer to its long edges */
+  for (const [y0, y1, c0, c1] of [[cy - ld + e, cy, diffE, diff], [cy, cy + ld - e, diff, diffE]]) quadL([cx - lw + e, y0, zb + 0.01], [cx + lw - e, y0, zb + 0.01], [cx + lw - e, y1, zb + 0.01], [cx - lw + e, y1, zb + 0.01], c0, c1);
+  for (const x of [cx - lw * 0.6, cx + lw * 0.6]) {
+    const r = 0.006, rod = [[x - r, cy - r], [x + r, cy - r], [x + r, cy + r], [x - r, cy + r]], rc = [0.12, 0.115, 0.11];
+    for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; quadL([...rod[i], V3_ROOM_TOP], [...rod[j], V3_ROOM_TOP], [...rod[j], zt], [...rod[i], zt], dark, rc); }
+  }
+  /* the neighbours: across the room on a grid clear of this table and its players */
+  let hx = 0, hy = 0;
+  for (const q of outline) { hx = Math.max(hx, Math.abs(q[0] - cx)); hy = Math.max(hy, Math.abs(q[1] - cy)); }
+  const ox = Math.max(4.4, hx + 1.25 + 1.6), oy = Math.max(3.3, hy + 0.7 + 1.5), near = [];
+  for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) near.push([cx + i * ox, cy + j * oy]);
+  return { room: new Float32Array(room), nFloor, nWall, lamp: new Float32Array(lamp), lampZ: zb, near, foot: [hx, hy] };
+}
+/* the soft cards of a frame: [x, y, z, u, v] (render frame) quads, each with its texture, blend and tint */
+let v3Cd = new Float32Array(30 * 64), v3CdN = 0;
+function v3Cards(C, G) {
+  const R = V3.room, out = [];
+  v3CdN = 0;
+  const push = (tex, add, tint, P, d) => {
+    if (v3CdN + 30 > v3Cd.length) { const n = new Float32Array(v3Cd.length * 2); n.set(v3Cd); v3Cd = n; }
+    const uv = [[0, 0], [1, 0], [1, 1], [0, 1]], first = v3CdN / 5;
+    for (const k of [0, 1, 2, 0, 2, 3]) { v3Cd.set([P[k][0], P[k][1], P[k][2], uv[k][0], uv[k][1]], v3CdN); v3CdN += 5; }
+    out.push({ tex, add, tint, first, d });
+  };
+  const flat = (x, y, hx, hy, z) => [[x - hx, y - hy, -z], [x + hx, y - hy, -z], [x + hx, y + hy, -z], [x - hx, y + hy, -z]];
+  const E = C.E, stand = (x, y, w, z0, z1) => {
+    let rx = -(y - E[1]), ry = x - E[0];
+    const l = Math.hypot(rx, ry) || 1; rx *= w / 2 / l; ry *= w / 2 / l;
+    return [[x - rx, y - ry, -z1], [x + rx, y + ry, -z1], [x + rx, y + ry, -z0], [x - rx, y - ry, -z0]];
+  };
+  const face = (x, y, z, s) => { const P = [x, y, -z], r = C.r, u = C.u, q = (a, b) => [0, 1, 2].map(i => P[i] + (r[i] * a + u[i] * b) * s); return [q(-1, 1), q(1, 1), q(1, -1), q(-1, -1)]; };
+  /* on the floor: this table's shadow, the neighbours' pools */
+  push(R.shadow, false, [1, 1, 1, 0.82], flat(TL / 2, TW / 2, (G.foot[0] + 0.25) * 1.33, (G.foot[1] + 0.25) * 1.78, -V3_FLOOR + 0.002), 0);
+  for (const [x, y] of G.near) push(R.glow, true, [0.14, 0.115, 0.08, 0], flat(x, y, 2.0, 1.5, -V3_FLOOR + 0.003), 0);
+  const fl = out.length;
+  /* the neighbours, far to near, faded as the camera comes close */
+  const ns = G.near.map(([x, y]) => ({ x, y, d: Math.hypot(x - E[0], y - E[1], E[2]) })).sort((a, b) => b.d - a.d);
+  for (const n of ns) {
+    const f = smooth01((Math.hypot(n.x - E[0], n.y - E[1]) - 1.2) / 1.6);
+    if (f <= 0.01) continue;
+    const t = [f, f, f, f];
+    push(R.body, false, t, stand(n.x, n.y, 3.4, -V3_FLOOR - 0.1, 0.24), n.d);
+    push(R.top, false, t, flat(n.x, n.y, 1.7, 1.15, 0.035), n.d);
+    if (E[2] < LAMP_H - 0.06) push(R.under, false, t, flat(n.x, n.y, 1.1, 0.5, LAMP_H - 0.06), n.d);
+    push(R.shade, false, t, stand(n.x, n.y, 1.9, LAMP_H - 0.22, LAMP_H + 0.23), n.d);
+    push(R.glow, true, [0.32 * f, 0.26 * f, 0.18 * f, 0], face(n.x, n.y, LAMP_H - 0.1, 0.7), n.d);
+  }
+  return { list: out, floor: fl };
+}
+/* the room, drawn after the table's solid parts (so the depth test spares what the table hides) */
+function v3Room(C, G, attr, off) {
+  const gl = V3.gl, R = v3RoomTex(), pr = V3.prog.room;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniform1i(pr.u.T, 0); gl.activeTexture(gl.TEXTURE0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, G.rBuf); attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
+  gl.uniform4fv(pr.u.tint, [1, 1, 1, 1]);
+  gl.bindTexture(gl.TEXTURE_2D, R.floor); gl.drawArrays(gl.TRIANGLES, 0, G.nFloor);
+  gl.bindTexture(gl.TEXTURE_2D, R.wall); gl.drawArrays(gl.TRIANGLES, G.nFloor, G.nWall);
+  const cd = v3Cards(C, G);
+  gl.bindBuffer(gl.ARRAY_BUFFER, V3.cardBuf); gl.bufferData(gl.ARRAY_BUFFER, v3Cd.subarray(0, v3CdN), gl.STREAM_DRAW);
+  attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
+  gl.enable(gl.BLEND); gl.depthMask(false);
+  for (const c of cd.list) {
+    gl.blendFunc(gl.ONE, c.add ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+    gl.uniform4fv(pr.u.tint, c.tint); gl.bindTexture(gl.TEXTURE_2D, c.tex);
+    gl.drawArrays(gl.TRIANGLES, c.first, 6);
+  }
+  gl.disable(gl.BLEND); gl.depthMask(true);
+  off(pr);
+}
+/* this table's lamp, faded out as the camera rises to it (so it never hangs between the camera and the bed) */
+function v3Lamp(C, G, attr, off, lamp) {
+  const a = 1 - smooth01((C.E[2] - (G.lampZ - 0.3)) / 0.28);
+  V3.lampA = a;
+  if (a <= 0.01) return;
+  const gl = V3.gl, pr = V3.prog.mesh;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniformMatrix4fv(pr.u.W, false, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+  gl.uniform3fv(pr.u.L, lamp); gl.uniform3fv(pr.u.E, C.Er); gl.uniform1f(pr.u.lit, 0); gl.uniform1f(pr.u.alpha, a);
+  if (a < 0.999) { gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); }
+  gl.bindBuffer(gl.ARRAY_BUFFER, G.lBuf); attr(pr, 'p', 3, 10, 0); attr(pr, 'n', 3, 10, 3); attr(pr, 'c', 4, 10, 6);
+  gl.drawArrays(gl.TRIANGLES, 0, G.nLamp);
+  gl.disable(gl.BLEND);
+  off(pr);
+}
 /* ---- the camera ---- */
 const v3Sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], v3Dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const v3Cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
@@ -13941,24 +14292,120 @@ function v3Layout() {
   viewBtn.style.left = Math.round(Math.max(0, left - r.left + rk * 1.35)) + 'px';
   viewBtn.style.top = Math.round(clamp(top - r.top + (rk - 44) / 2, 0, Math.max(0, r.height - 44))) + 'px';
 }
-/* the camera's pose from the pivot (the cue ball), yaw (the aim), pitch and distance: eye and target
-   in table metres (z up), and in the render frame (z = -height: the top-down view's handedness) the
-   view and projection matrices. F, cx, cy: the focal length and the cue ball's place, CSS px. */
-function v3Pose() {
-  const B = V3.box || { left: 0, top: 0, width: 1, height: 1 }, W = B.width, H = B.height;
-  const p = clamp(settings.viewPitch, V3_PITCH[0], V3_PITCH[1]) * Math.PI / 180, d = clamp(settings.viewDist, V3_DIST[0], V3_DIST[1]), R = BALL_R;
-  const ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), hd = Math.cos(p) * d, hc = BALL_R * 1.42;
-  const E = [V3.px - ca * hd, V3.py - sa * hd, Math.max(R + Math.sin(p) * d, hc + 0.05)], A = V3_AHEAD * d * Math.cos(p), T = [V3.px + ca * A, V3.py + sa * A, R * (1 - V3_AHEAD)];
+/* the matrices for an eye E and a target T (table metres, z up) on a W x H CSS px box: in the render
+   frame (z = -height: the top-down view's handedness) the view and projection matrices. F, cx, cy:
+   the focal length and the principal point, CSS px. */
+function v3Mats(E, T, W, H) {
   const Er = [E[0], E[1], -E[2]], Tr = [T[0], T[1], -T[2]], f = v3Norm(v3Sub(Tr, Er)), r = v3Norm(v3Cross(f, [0, 0, -1])), u = v3Cross(r, f);
   const Vm = [r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0, -v3Dot(r, Er), -v3Dot(u, Er), v3Dot(f, Er), 1];
   const F = Math.min(W / (2 * Math.tan(V3_FOV[0] * Math.PI / 180)), H / (2 * Math.tan(V3_FOV[1] * Math.PI / 180))), cx = W / 2, cy = H * V3_FY, n = V3_NEAR, fa = 40;
   const Pm = [2 * F / W, 0, 0, 0, 0, 2 * F / H, 0, 0, 1 - 2 * cx / W, -(1 - 2 * cy / H), (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0];
   const M = new Array(16).fill(0);
   for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) for (let k = 0; k < 4; k++) M[j * 4 + i] += Pm[k * 4 + i] * Vm[j * 4 + k];
-  V3.cam = { E, T, Er, f, r, u, V: Vm, P: Pm, M, F, cx, cy, W, H, yaw: V3.yaw, pitch: p * 180 / Math.PI, dist: d };
-  V3.k = F / Math.max(0.05, v3Dot(v3Sub([V3.px, V3.py, -R], Er), f));
+  return { E, T, Er, f, r, u, V: Vm, P: Pm, M, F, cx, cy, W, H };
+}
+/* a pose as an orbit: the target T, and the eye dist from it along yaw (the direction it looks) at pitch
+   (radians, above the horizontal). The moves (After the Shot) blend two orbits, so the eye swings round
+   and up about a target that glides, never cutting through the table. */
+const v3OrbitOf = (E, T) => { const dx = E[0] - T[0], dy = E[1] - T[1], dz = E[2] - T[2], h = Math.hypot(dx, dy); return { T: T.slice(), yaw: Math.atan2(-dy, -dx), pitch: Math.atan2(dz, h), dist: Math.hypot(h, dz) }; };
+const v3EyeOf = o => { const c = Math.cos(o.pitch) * o.dist; return { E: [o.T[0] - Math.cos(o.yaw) * c, o.T[1] - Math.sin(o.yaw) * c, o.T[2] + Math.sin(o.pitch) * o.dist], T: o.T.slice() }; };
+function v3Lerp(a, b, u) {
+  const dy = Math.atan2(Math.sin(b.yaw - a.yaw), Math.cos(b.yaw - a.yaw));
+  return { T: a.T.map((v, i) => v + (b.T[i] - v) * u), yaw: a.yaw + dy * u, pitch: a.pitch + (b.pitch - a.pitch) * u, dist: a.dist * Math.pow(b.dist / a.dist, u) };
+}
+/* what the overview must show: the cushions' tops round the bed and every pocket's mouth */
+function v3OvPts() {
+  const h = BALL_R * 1.42, co = V3.geo ? V3.geo.co : 0.05, pts = [], c = [TL / 2, TW / 2];
+  for (const q of BED_LINES ? octagon(0) : [[0, 0], [TL, 0], [TL, TW], [0, TW]]) {
+    const dx = q[0] - c[0], dy = q[1] - c[1], l = Math.hypot(dx, dy) || 1;
+    pts.push([q[0], q[1], 0], [q[0] + dx / l * co * 1.42, q[1] + dy / l * co * 1.42, h]);
+  }
+  POCKETS.forEach((P, i) => { const r = POCKET_R[i]; for (const [ox, oy] of [[r, 0], [-r, 0], [0, r], [0, -r]]) pts.push([P[0] + ox, P[1] + oy, 0]); });
+  return pts;
+}
+/* the overview after a shot: from the shooter's side (the yaw near the shot's, within V3_OV_YAW), a
+   pitch from V3_OV_PITCH; for each the distance and target that fit those points' projections, through
+   the real camera, inside the box less V3_OV_MARGIN a side, centred (a few rounds of scale and shift);
+   the pair that shows the table largest wins, less a little for each degree turned and each degree up */
+function v3Overview(yaw0) {
+  const B = V3.box || { width: 1, height: 1 }, W = B.width, H = B.height, pts = v3OvPts(), m = V3_OV_MARGIN, D = Math.PI / 180;
+  const fit = (yaw, pitch) => {
+    let T = [TL / 2, TW / 2, 0], dist = 4, fill = 0, ok = false, gx = 1, gy = 1, gd = 1, last = null;
+    const fh = [Math.cos(yaw), Math.sin(yaw)];
+    for (let it = 0; it < 160 && !ok; it++) {
+      const q = v3EyeOf({ T, yaw, pitch, dist }), C = v3Mats(q.E, q.T, W, H);
+      let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, dm = 0, behind = false;
+      for (const P of pts) {
+        const w = v3Sub([P[0], P[1], -P[2]], C.Er), dd = v3Dot(w, C.f);
+        if (dd < 0.1) { behind = true; break; }
+        const sx = C.cx + C.F * v3Dot(w, C.r) / dd, sy = C.cy - C.F * v3Dot(w, C.u) / dd;
+        x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy); dm += dd;
+      }
+      if (behind) { dist *= 1.5; continue; }
+      dm /= pts.length;
+      const sc = Math.max((x1 - x0) / (W * (1 - 2 * m)), (y1 - y0) / (H * (1 - 2 * m))), ox = (x0 + x1) / 2 - C.cx, oy = (y0 + y1) / 2 - C.cy;
+      fill = (x1 - x0) * (y1 - y0) / (W * H);
+      ok = sc <= 1 && sc > 0.998 && Math.abs(ox) < 0.5 && Math.abs(oy) < 0.5;
+      if (ok) break;
+      /* a step that overshot (the sign flipped and grew) halves that step's gain from then on */
+      if (last) {
+        if (ox * last.ox < 0 && Math.abs(ox) > 0.5 * Math.abs(last.ox)) gx *= 0.5;
+        if (oy * last.oy < 0 && Math.abs(oy) > 0.5 * Math.abs(last.oy)) gy *= 0.5;
+        if ((sc - 1) * (last.sc - 1) < 0 && Math.abs(sc - 1) > 0.5 * Math.abs(last.sc - 1)) gd *= 0.5;
+      }
+      last = { ox, oy, sc };
+      const k = dm / C.F, sp = Math.max(0.2, Math.sin(pitch));
+      T = [T[0] + (C.r[0] * ox * gx - fh[0] * oy * gy / sp) * k, T[1] + (C.r[1] * ox * gx - fh[1] * oy * gy / sp) * k, 0];
+      dist = clamp(dist * Math.pow(sc * 1.0008, gd), 0.5, V3_ROOM_R * 0.6);
+    }
+    return { T, yaw, pitch, dist, fill, ok };
+  };
+  let best = null;
+  for (const dy of V3_OV_YAW) for (const pd of V3_OV_PITCH) {
+    const o = fit(yaw0 + dy * D, pd * D);
+    o.score = o.ok ? o.fill * (1 - 0.006 * Math.abs(dy)) * (1 - 0.004 * (pd - V3_OV_PITCH[0])) : -1 / o.dist;
+    if (!best || o.score > best.score) best = o;
+  }
+  return best;
+}
+/* the overview for this box, table and shot, worked out once */
+function v3OvPose() {
+  const B = V3.box || { width: 1, height: 1 }, key = [v3Key(), B.width, B.height, V3.ovYaw].join('|');
+  if (!V3.ov || V3.ov.key !== key) V3.ov = Object.assign(v3Overview(V3.ovYaw), { key });
+  return V3.ov;
+}
+/* the camera's pose: behind the pivot (the cue ball) on the yaw (the aim) at the player's pitch and
+   distance, or the overview, or a move between them (an ease in and out); V3.cam carries the
+   matrices, the phase ('aim', 'out', 'ov', 'back') and the move's progress mu */
+function v3Pose(now = performance.now()) {
+  const B = V3.box || { left: 0, top: 0, width: 1, height: 1 }, W = B.width, H = B.height;
+  const p = clamp(settings.viewPitch, V3_PITCH[0], V3_PITCH[1]) * Math.PI / 180, d = clamp(settings.viewDist, V3_DIST[0], V3_DIST[1]), R = BALL_R;
+  const ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), hd = Math.cos(p) * d, hc = BALL_R * 1.42;
+  let E = [V3.px - ca * hd, V3.py - sa * hd, Math.max(R + Math.sin(p) * d, hc + 0.05)], A = V3_AHEAD * d * Math.cos(p), T = [V3.px + ca * A, V3.py + sa * A, R * (1 - V3_AHEAD)];
+  let yaw = V3.yaw, phase = 'aim', u = 1;
+  if (V3.mv || V3.ovOn) {
+    const goal = V3.ovOn ? v3OvPose() : null, mv = V3.mv;
+    if (mv) {
+      u = clamp((now - mv.t0) / mv.ms, 0, 1);
+      if (u >= 1) V3.mv = null;
+      else { const o = v3Lerp(mv.from, goal || v3OrbitOf(E, T), 0.5 - 0.5 * Math.cos(Math.PI * u)), q = v3EyeOf(o); E = q.E; T = q.T; yaw = o.yaw; phase = goal ? 'out' : 'back'; }
+    }
+    if (!V3.mv && goal) { const q = v3EyeOf(goal); E = q.E; T = q.T; yaw = goal.yaw; phase = 'ov'; }
+  }
+  V3.cam = Object.assign(v3Mats(E, T, W, H), { yaw, phase, mu: u, pitch: clamp(settings.viewPitch, V3_PITCH[0], V3_PITCH[1]), dist: d });
+  V3.k = V3.cam.F / Math.max(0.05, v3Dot(v3Sub([V3.px, V3.py, -R], V3.cam.Er), V3.cam.f));
   return V3.cam;
 }
+/* a move to the overview (out) or back behind the cue ball; Reduce Motion, or no pose yet: a cut */
+function v3Go(out, now) {
+  const C = V3.cam;
+  V3.ovOn = out;
+  if (!C || reducedMotion()) { V3.mv = null; V3.cuts++; return; }
+  V3.mv = { from: v3OrbitOf(C.E, C.T), t0: now, ms: out ? V3_OUT_MS : V3_BACK_MS };
+  V3.moves++;
+}
+/* where the turn puts the camera: a cut, or from the overview a move back down */
+function v3Cut(now) { if (V3.ovOn) v3Go(false, now); else { V3.mv = null; V3.cuts++; } }
 /* table (x, y) at height z to page CSS px, and [x, y, depth]; null behind the eye */
 function v3Proj(x, y, z) {
   const C = V3.cam, B = V3.box;
@@ -13979,13 +14426,25 @@ function v3Unproj(sx, sy, z) {
 }
 function v3Screen(x, y) { const p = v3Proj(x, y, BALL_R); return p ? [p[0], p[1]] : [-1e5, -1e5]; }
 function v3Table(sx, sy) { return v3Unproj(sx, sy, BALL_R) || [-10, -10]; }
-/* once a frame (frameBody): live or not, and where the camera stands. It moves only on a cut (a new
-   turn, the CPU's line shown, a cue ball put down elsewhere) and with the player's aim. */
+/* once a frame (frameBody): live or not, and where the camera stands. It cuts on a new turn, the CPU's
+   line shown, a cue ball put down elsewhere, and moves with the player's aim. The strike (the roll's
+   first frame) does what After the Shot says: Pull Back a move up to the overview, held to the end of
+   the roll, and the turn's cut becomes a move back down; Top Down the flat table for the roll (the
+   setting stays 3D); Stay nothing. */
 function v3Update() {
+  const now = performance.now();
+  if (state === 'rolling') {
+    if (!V3.rolled) {
+      V3.rolled = true;
+      if (V3.live && settings.viewAfter === 'top') V3.top2d = true;
+      else if (V3.live && settings.viewAfter !== 'stay') { V3.ovYaw = V3.yaw; V3.ov = null; v3Go(true, now); }
+    }
+  } else { V3.rolled = false; V3.top2d = false; }
   const live = v3Want() && v3Init();
   if (live !== V3.live) {
     V3.live = live;
     t3d.hidden = !live;
+    V3.mv = null; V3.ovOn = false;
     if (live) V3.seat.set = false; else view = camView(cam.z, cam.x, cam.y);
     v3Layout();
   }
@@ -14004,10 +14463,10 @@ function v3Update() {
     } else if (state === 'thinking' && cpuPlan) {
       if (S.plan !== cpuPlan) { S.plan = cpuPlan; cut = cpuPlan.angle; }
     } else if (!S.set) cut = aimAngle;
-  } else if (!S.set && lastCue) { V3.px = lastCue.x; V3.py = lastCue.y; V3.yaw = lastCue.ang; S.set = true; V3.cuts++; }
-  if (cut !== null) { V3.px = c.x; V3.py = c.y; V3.yaw = cut; S.set = true; V3.cuts++; }
+  } else if (!S.set && lastCue) { V3.px = lastCue.x; V3.py = lastCue.y; V3.yaw = lastCue.ang; S.set = true; v3Cut(now); }
+  if (cut !== null) { V3.px = c.x; V3.py = c.y; V3.yaw = cut; S.set = true; v3Cut(now); }
   if (!S.set) { V3.px = TL / 4; V3.py = TW / 2; V3.yaw = 0; S.set = true; }
-  v3Pose();
+  v3Pose(now);
   /* the input's scale (tap reach, grab radius): CSS px per metre at the cue ball */
   view = { k: V3.k, portrait: viewBase.portrait, ox: viewBase.ox, oy: viewBase.oy, tray: null };
 }
@@ -14018,7 +14477,7 @@ function v3Btn() {
   if (viewBtn.getAttribute('aria-pressed') !== String(on)) viewBtn.setAttribute('aria-pressed', String(on));
 }
 /* the setting changed (applyPrefs): the next frame cuts to it */
-function v3Sync() { V3.seat.set = false; v3Btn(); }
+function v3Sync() { V3.seat.set = false; V3.mv = null; V3.ovOn = false; v3Btn(); }
 viewBtn.addEventListener('click', () => { audioOn(); setSetting('view', settings.view === '3d' ? 'top' : '3d'); });
 /* ---- input (section 5 calls these while the view is live) ---- */
 const v3Rate = v => V3_YAW_SLOW + (V3_YAW_FAST - V3_YAW_SLOW) * smooth01((v - V_SLOW) / (V_FAST - V_SLOW));
@@ -14226,7 +14685,7 @@ function v3Frame(now) {
   const G = v3Geo(), C = V3.cam || v3Pose();
   v3Overlays(now, aiming, c, ghost, ghostOk, dropping, list);
   gl.viewport(0, 0, t3d.width, t3d.height);
-  gl.clearColor(0.043, 0.043, 0.047, 1);
+  gl.clearColor(0.02, 0.016, 0.016, 1);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
   const attr = (pr, name, size, stride, off) => { const l = pr.a[name]; if (l === undefined || l < 0) return; gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, size, gl.FLOAT, false, stride * 4, off * 4); };
@@ -14250,6 +14709,8 @@ function v3Frame(now) {
   gl.uniform1f(pr.u.lit, 0); gl.drawArrays(gl.TRIANGLES, 0, G.nFaces);
   if (G.nPosts) { gl.uniform1f(pr.u.lit, 1); gl.drawArrays(gl.TRIANGLES, G.nFaces, G.nPosts); }
   off(pr);
+  /* the room round it */
+  v3Room(C, G, attr, off);
   /* where each ball is drawn: the carried ghost lifted, the settling cue ball, far to near */
   const R = BALL_R, drawn = list.map(b => ({ n: b.n, x: b.x, y: b.y, z: R + (b.n === 0 && sh ? V3_LIFT * sh : 0), a: 1 }));
   if (ghost && human()) drawn.push({ n: 0, x: placeAt[0], y: placeAt[1], z: R + V3_LIFT * bih.h, a: ghostOk ? 0.96 : 0.5, lift: bih.h });
@@ -14337,22 +14798,27 @@ function v3Frame(now) {
     off(pr);
     lastCue = { x: c.x, y: c.y, ang: aimAngle };
   } else if (state !== 'rolling') lastCue = null;
+  v3Lamp(C, G, attr, off, lamp);
   if (felt.v3Measure) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
   V3.frames++;
   V3.ms.push(performance.now() - t0);
   if (V3.ms.length > 600) V3.ms.shift();
-  V3.poses.push([V3.cam.E[0], V3.cam.E[1], V3.cam.E[2], V3.cam.T[0], V3.cam.T[1], state]);
+  V3.poses.push([V3.cam.E[0], V3.cam.E[1], V3.cam.E[2], V3.cam.T[0], V3.cam.T[1], state, V3.cam.phase, V3.cam.mu, now]);
   if (V3.poses.length > 2000) V3.poses.shift();
   V3.drawn = vis.map(o => ({ n: o.n, x: o.x, y: o.y, a: o.a }));
 }
 /* tests and diagnostics: the view's state, the camera, the mappings and the frame times */
-const v3Info = () => ({ live: V3.live, ok: V3.ok, soft: V3.soft, renderer: V3.renderer, scale: V3.scale, cuts: V3.cuts, frames: V3.frames, k: V3.k,
+const v3Info = () => ({ live: V3.live, ok: V3.ok, soft: V3.soft, renderer: V3.renderer, scale: V3.scale, cuts: V3.cuts, moves: V3.moves, frames: V3.frames, k: V3.k,
+  phase: V3.cam ? V3.cam.phase : null, moving: !!V3.mv, overview: V3.ovOn, top2d: V3.top2d, roomMs: V3.roomMs, lampA: V3.lampA,
   canvas: [t3d.width, t3d.height], box: V3.box && { ...V3.box }, overlay: v3OvN / 13,
-  cam: V3.cam && { E: V3.cam.E.slice(), T: V3.cam.T.slice(), yaw: V3.cam.yaw, pitch: V3.cam.pitch, dist: V3.cam.dist, F: V3.cam.F }, drawn: V3.drawn || [] });
+  cam: V3.cam && { E: V3.cam.E.slice(), T: V3.cam.T.slice(), yaw: V3.cam.yaw, pitch: V3.cam.pitch, dist: V3.cam.dist, F: V3.cam.F, phase: V3.cam.phase, mu: V3.cam.mu }, drawn: V3.drawn || [] });
 Object.defineProperty(felt, 'view3', { get: v3Info, enumerable: true });
 Object.assign(felt, {
   v3Proj: (x, y, z = BALL_R) => V3.live ? v3Proj(x, y, z) : null, v3Unproj: (sx, sy, z = BALL_R) => V3.live ? v3Unproj(sx, sy, z) : null,
   v3Ms: () => V3.ms.slice(), v3Poses: () => V3.poses.slice(), v3Clear: () => { V3.ms.length = 0; V3.poses.length = 0; }, v3Measure: false,
+  /* the overview held now (as the strike would, cut): its framing on any table without a shot */
+  v3Out: () => { if (!V3.live) return false; V3.ovYaw = V3.yaw; V3.ov = null; V3.mv = null; V3.ovOn = true; v3Pose(); return true; },
+  v3OvPts: () => v3OvPts(),
 });
 /* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
    (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the

@@ -7,9 +7,14 @@
       a tap on a ball aims at it; no table gesture ever shoots.
    3. ball in hand: the cue ball dragged in 3D lands where the finger's points meet the bed
       (unprojected), and a tap elsewhere never moves it; a called pocket by a tap on it in 3D.
-   4. the camera never moves by itself: every frame of a roll has the same pose; the next turn is
-      one cut behind the cue ball on its aim; the CPU's turn cuts once when its line shows and holds
-      while the cue swings; a replay plays top-down.
+   4. After the Shot. Pull Back (the default): the strike starts one smooth move (progress rising, no
+      frame's step a jump) to the overview within about a second, held exactly still to the end of the
+      roll, then one smooth move back down behind the cue ball at the player's own pitch and distance.
+      Stay: every frame of the roll has the aiming pose, one cut at the next turn. Top Down: the roll
+      drawn flat (no 3D frame), the setting still 3D, 3D again at the next turn. Reduce Motion: cuts.
+      The CPU's turn cuts once when its line shows, holds while the cue swings, and pulls back at its
+      strike; a replay plays top-down. The overview frames every pocket (the bed's corners on carom
+      and bumper) on every table, portrait and landscape.
    5. the physics: a shot in 3D ends exactly as simulateShot says and as the same shot top-down.
    6. every table renders (8-ball 7 ft and 9 ft, snooker 10 ft and 12 ft, bumper octagon and
       rectangle, carom): the canvas is drawn (not blank), every ball on the table drawn.
@@ -35,6 +40,31 @@ async function phone(opts = {}) {
   };
   t.ev = (f, a) => t.page.evaluate(f, a);
   return t;
+}
+/* the overview (After the Shot's Pull Back, held as the strike would hold it) on the table now set, from three
+   shot directions: every pocket's mouth (on carom and bumper the bed's corners) and the cushions' tops inside
+   the 3D view, and the table filling a fair part of it */
+async function framed(t, key, how) {
+  const r = await t.ev(() => {
+    const B = felt.view3.box, out = [], fills = [], yaws = [];
+    for (const a of [0, Math.PI * 0.6, -Math.PI * 0.25]) {
+      aimAngle = a; V3.yaw = a;
+      felt.v3Out();
+      const pts = felt.v3OvPts();
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      for (const p of pts) {
+        const s = felt.v3Proj(p[0], p[1], p[2]);
+        if (!s || s[0] < B.left || s[0] > B.left + B.width || s[1] < B.top || s[1] > B.top + B.height) out.push({ a, p, s });
+        if (s) { x0 = Math.min(x0, s[0]); x1 = Math.max(x1, s[0]); y0 = Math.min(y0, s[1]); y1 = Math.max(y1, s[1]); }
+      }
+      fills.push(Math.max((x1 - x0) / B.width, (y1 - y0) / B.height));
+      yaws.push(Math.abs(Math.atan2(Math.sin(felt.view3.cam.yaw - a), Math.cos(felt.view3.cam.yaw - a))) * 180 / Math.PI);
+    }
+    v3Sync();
+    return { out, fills, yaws, pockets: POCKETS.length };
+  });
+  check(`overview: ${key} ${how}, every ${r.pockets ? 'pocket' : 'bed corner'} and cushion inside the view from three shot directions (fills ${r.fills.map(f => (f * 100).toFixed(0) + '%').join(', ')}, turned ${r.yaws.map(y => y.toFixed(0)).join(', ')} deg)`,
+    r.out.length === 0 && r.fills.every(f => f > 0.8) && r.yaws.every(y => y <= 45.01), JSON.stringify(r).slice(0, 600));
 }
 const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0; const f = () => (++k >= n ? r() : requestAnimationFrame(f)); requestAnimationFrame(f); }), n);
 
@@ -177,24 +207,90 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   check('call: in 3D a tap on the 1 and then on the foot corner (as the camera shows it) calls the 1 there', onScreen && cs.call && cs.call.ball === 1 && cs.call.pocket === 5 && cs.ready, JSON.stringify({ cs, k5 }));
   check('call: no shot came of the taps', await t.ev(() => felt.state === 'aim' && felt.game.shots === 0));
 
-  /* ---- 4. the camera never moves by itself; 5. the physics ---- */
+  /* ---- 4. After the Shot; 5. the physics ---- */
+  /* Pull Back (the default): one smooth move up to the overview within about a second of the strike, held
+     still to the end of the roll, then one smooth move back down behind the cue ball, the player's pitch and
+     distance exactly as they were */
   const pre = await t.ev(() => {
-    felt.v3Clear();
+    felt.speed = 1; felt.v3Clear();
     const g = felt.game, rec = { balls: g.balls.map(x => ({ ...x })), ball: 0 }, angle = aimAngle, power = 0.55, spin = { x: 0.2, y: -0.3 };
     const want = simulateShot(rec.balls, { angle, power, spin, ball: 0 });
     window.__want = JSON.stringify(want.balls);
+    window.__pp = [felt.settings.viewPitch, felt.settings.viewDist];
     felt.shoot(angle, power, spin);
-    return { cam: felt.view3.cam, angle, power, spin, balls: rec.balls };
+    return { cam: felt.view3.cam, angle, power, spin, balls: rec.balls, after: felt.settings.viewAfter };
   });
   await settled(page);
-  const roll = await t.ev(() => {
-    const P = felt.v3Poses(), rolling = P.filter(p => p[5] === 'rolling'), first = rolling[0];
-    return { n: rolling.length, same: rolling.every(p => p.slice(0, 5).every((v, i) => v === first[i])), first, res: JSON.stringify(felt.lastResult.balls) === window.__want, after: felt.view3.cam, c: [felt.game.balls[0].x, felt.game.balls[0].y], aim: felt.aim, st: felt.state, human: human() };
+  await page.waitForFunction(() => !felt.view3.moving && felt.view3.phase === 'aim', null, { timeout: 5000 });
+  await frames(page, 2);
+  /* a pose's eye; the largest step between frames against the mean, through a run of poses */
+  const stepStats = P => { const d = []; for (let i = 1; i < P.length; i++) d.push(Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2])); const mean = d.reduce((a, b) => a + b, 0) / Math.max(1, d.length); return { n: d.length, max: Math.max(0, ...d), mean }; };
+  const pull = await t.ev(() => {
+    const P = felt.v3Poses(), i0 = P.findIndex(p => p[5] === 'rolling'), roll = P.filter(p => p[5] === 'rolling');
+    const out = P.filter(p => p[6] === 'out'), ov = roll.filter(p => p[6] === 'ov'), back = P.filter(p => p[6] === 'back');
+    const firstOv = P.findIndex(p => p[6] === 'ov'), lastRoll = P.length - 1 - [...P].reverse().findIndex(p => p[5] === 'rolling');
+    const c = felt.game.balls[0], v = felt.view3.cam;
+    return { n: roll.length, phases: [...new Set(roll.map(p => p[6]))], outRun: P.slice(Math.max(0, i0 - 1), firstOv + 1), out: out.map(p => p[7]), ovMs: P[firstOv][8] - P[i0][8], ovFrames: ov.length,
+      ovSame: ov.every(p => p.slice(0, 5).every((x, i) => x === ov[0][i])), ovToEnd: P.slice(firstOv, lastRoll + 1).every(p => p[6] === 'ov'),
+      backRun: P.slice(P.findIndex(p => p[6] === 'back') - 1, P.findIndex(p => p[6] === 'back') + back.length + 1), back: back.map(p => p[7]),
+      res: JSON.stringify(felt.lastResult.balls) === window.__want, st: felt.state, cam: v, c: [c.x, c.y], aim: felt.aim, pp: window.__pp, now: [felt.settings.viewPitch, felt.settings.viewDist] };
   });
-  check(`roll: the camera holds exactly still through every frame of the roll (${roll.n} frames, one pose)`, roll.n > 10 && roll.same && roll.first[0] === pre.cam.E[0] && roll.first[1] === pre.cam.E[1], JSON.stringify(roll.first));
-  check('physics: the live result in 3D is simulateShot\'s, byte for byte', roll.res);
-  const nextOk = roll.st === 'aim' ? Math.abs(Math.atan2(roll.after.T[1] - roll.c[1], roll.after.T[0] - roll.c[0]) - roll.aim) < 1e-6 && roll.after.yaw === roll.aim : true;
-  check('next turn: one cut behind the cue ball on the new aim', nextOk && roll.st !== 'rolling', JSON.stringify({ after: roll.after, c: roll.c, aim: roll.aim, st: roll.st }));
+  const so = stepStats(pull.outRun), sb = stepStats(pull.backRun), mono = a => a.every((u, i) => i === 0 || u >= a[i - 1]);
+  check(`Pull Back: the strike starts one smooth move up and back (${pull.out.length} frames, progress rising, largest step ${(so.max * 100).toFixed(1)} cm, under 3x the mean ${(so.mean * 100).toFixed(1)} cm, no cut), the overview reached in ${pull.ovMs.toFixed(0)} ms`,
+    pre.after === 'pull' && pull.out.length >= 10 && mono(pull.out) && so.max < 3 * so.mean + 1e-3 && so.max < 0.25 && pull.ovMs >= 600 && pull.ovMs < 1100, JSON.stringify({ so, out: pull.out.length, ms: pull.ovMs, after: pre.after }));
+  check(`Pull Back: the overview holds exactly still to the end of the roll (${pull.ovFrames} frames, one pose), the balls never followed`, pull.ovFrames > 10 && pull.ovSame && pull.ovToEnd && pull.phases.join() === 'out,ov', JSON.stringify(pull.phases));
+  check('physics: the live result in 3D is simulateShot\'s, byte for byte', pull.res);
+  const behindOk = (cam, c, aim) => Math.abs(Math.atan2(cam.T[1] - c[1], cam.T[0] - c[0]) - aim) < 1e-6 && cam.yaw === aim;
+  check(`Pull Back: the next turn eases back down in one smooth move (${pull.back.length} frames, largest step ${(sb.max * 100).toFixed(1)} cm, mean ${(sb.mean * 100).toFixed(1)}) behind the cue ball on the new aim, the pitch and distance the player chose exactly`,
+    pull.st === 'aim' && pull.back.length >= 8 && mono(pull.back) && sb.max < 3 * sb.mean + 1e-3 && behindOk(pull.cam, pull.c, pull.aim) && pull.cam.pitch === pull.pp[0] && pull.cam.dist === pull.pp[1] && pull.now[0] === pull.pp[0] && pull.now[1] === pull.pp[1],
+    JSON.stringify({ sb, cam: pull.cam, pp: pull.pp }));
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-after-pull.png') });
+  /* the same shot again under each other choice */
+  const again = (after, rm = false) => t.ev(([pre, after, rm]) => {
+    setSetting('viewAfter', after); setSetting('reduceMotion', rm); setSetting('rules10', '10-house'); felt.start('10');
+    const g = felt.game;
+    g.balls = pre.balls.map(x => ({ ...x })); Object.assign(g, { breakShot: false, inHand: null, pushAvail: false });
+    return 1;
+  }, [pre, after, rm]);
+  const fire = async () => {
+    await page.waitForFunction(() => !felt.view3.moving, null, { timeout: 5000 });
+    await frames(page, 2);
+    await t.ev(pre => { felt.v3Clear(); window.__cuts = felt.view3.cuts; window.__f0 = felt.view3.frames; felt.shoot(pre.angle, pre.power, pre.spin); }, pre);
+  };
+  /* Stay: the aiming pose held through every frame of the roll, a cut at the next turn */
+  await again('stay'); await fire();
+  await settled(page);
+  await frames(page, 2);
+  const stay = await t.ev(() => {
+    const P = felt.v3Poses(), rolling = P.filter(p => p[5] === 'rolling'), first = rolling[0];
+    return { n: rolling.length, same: rolling.every(p => p.slice(0, 5).every((v, i) => v === first[i]) && p[6] === 'aim'), back: P.some(p => p[6] === 'back'), cuts: felt.view3.cuts - window.__cuts, res: JSON.stringify(felt.lastResult.balls) === window.__want, cam: felt.view3.cam, c: [felt.game.balls[0].x, felt.game.balls[0].y], aim: felt.aim };
+  });
+  check(`Stay: the camera holds exactly still through every frame of the roll (${stay.n} frames, one pose), then one cut behind the cue ball`, stay.n > 10 && stay.same && !stay.back && stay.cuts === 1 && behindOk(stay.cam, stay.c, stay.aim) && stay.res, JSON.stringify(stay));
+  /* Top Down: the roll on the flat table (no 3D frame drawn), the setting still 3D, back in 3D at the next turn */
+  await again('top'); await fire();
+  await page.waitForFunction(() => felt.state === 'rolling', null, { timeout: 5000 });
+  await frames(page, 6);
+  const mid = await t.ev(() => ({ live: felt.view3.live, hidden: t3d.hidden, view: felt.settings.view, pressed: viewBtn.getAttribute('aria-pressed'), shown: !viewBtn.hidden, st: felt.state, flat: felt.toScreen(1, 0.5) }));
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-after-top.png') });
+  await settled(page);
+  await frames(page, 2);
+  const top = await t.ev(() => {
+    const P = felt.v3Poses();
+    return { rolled3d: P.filter(p => p[5] === 'rolling').length, live: felt.view3.live, res: JSON.stringify(felt.lastResult.balls) === window.__want, cam: felt.view3.cam, c: [felt.game.balls[0].x, felt.game.balls[0].y], aim: felt.aim, pp: [felt.settings.viewPitch, felt.settings.viewDist] };
+  });
+  check('Top Down: the roll is drawn on the flat table (the 3D canvas hidden, no 3D frame), the setting and the 3D button still 3D', mid.st === 'rolling' && !mid.live && mid.hidden && mid.view === '3d' && mid.pressed === 'true' && mid.shown && top.rolled3d === 0, JSON.stringify({ mid, rolled3d: top.rolled3d }));
+  check('Top Down: the shot ends as simulateShot says, byte for byte, and the next turn is 3D again behind the cue ball at the player\'s pitch and distance',
+    top.res && top.live && behindOk(top.cam, top.c, top.aim) && top.cam.pitch === pre.cam.pitch && top.cam.dist === pre.cam.dist && top.pp[0] === pull.pp[0] && top.pp[1] === pull.pp[1], JSON.stringify(top));
+  /* Reduce Motion: Pull Back's moves become cuts */
+  await again('pull', true); await fire();
+  await settled(page);
+  await frames(page, 2);
+  const rm = await t.ev(() => {
+    const P = felt.v3Poses(), roll = P.filter(p => p[5] === 'rolling');
+    return { n: roll.length, phases: [...new Set(P.map(p => p[6]))], allOv: roll.every(p => p[6] === 'ov' && p.slice(0, 5).every((v, i) => v === roll[0][i])), cuts: felt.view3.cuts - window.__cuts, res: JSON.stringify(felt.lastResult.balls) === window.__want, cam: felt.view3.cam, c: [felt.game.balls[0].x, felt.game.balls[0].y], aim: felt.aim };
+  });
+  check('Reduce Motion: Pull Back cuts to the overview at the strike and cuts back at the next turn (no move frames)', rm.n > 10 && rm.allOv && !rm.phases.includes('out') && !rm.phases.includes('back') && rm.cuts === 2 && rm.res && behindOk(rm.cam, rm.c, rm.aim), JSON.stringify(rm));
+  await t.ev(() => { setSetting('reduceMotion', false); setSetting('viewAfter', 'pull'); felt.speed = 4; });
   /* the same shot top-down */
   const flat = await t.ev(pre => {
     setSetting('view', 'top'); setSetting('rules10', '10-house'); felt.start('10');
@@ -217,6 +313,8 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   });
   check(`CPU: a cut behind its cue ball along its line, then held while the cue swings (${cpu.held} frames still)`, cpu.held >= 10 && Math.abs(cpu.yaw - cpu.angle) < 1e-9, JSON.stringify(cpu));
   await settled(page, 60000);
+  const cpuRoll = await t.ev(() => { const P = felt.v3Poses(), s = P.findIndex(p => p[5] === 'stroke'), r = P.findIndex(p => p[5] === 'rolling'); return { stroke: s >= 0 && P[s][6], first: r >= 0 && P[r][6], phases: [...new Set(P.filter(p => p[5] === 'rolling').map(p => p[6]))] }; });
+  check('CPU: its strike pulls back the same way (still through its stroke, then out to the overview)', cpuRoll.stroke === 'aim' && cpuRoll.first === 'out' && cpuRoll.phases.includes('ov'), JSON.stringify(cpuRoll));
   await t.ev(() => { setSetting('cpu', false); felt.speed = 4; });
   /* a replay plays top-down, and 3D comes back after it */
   await t.ev(() => { settings.autoAim = false; felt.start('8'); felt.shoot(0, 0.6, 0); });
@@ -246,6 +344,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     });
     check(`render: ${r.key} ${kind} draws (${(r.lit * 100).toFixed(0)}% lit, contrast sd ${r.sd.toFixed(0)}), every ball in front of the camera drawn (${r.drawn} of ${r.ahead})`, r.lit > 0.15 && r.sd > 12 && r.drawn === r.ahead && r.ahead > 0, JSON.stringify(r));
     if (SHOTS) await page.screenshot({ path: path.join(SHOTS, `v3-${r.key}.png`) });
+    await framed(t, r.key, 'portrait');
   }
   await t.ev(() => { setSetting('bumperTable', 'octagon'); setSetting('snookerTable', 'compact'); setSetting('table', '7'); });
 
@@ -290,6 +389,11 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   const after = await L.ev(() => ({ aim: felt.aim, st: felt.state, shot: felt.lastShot }));
   check('landscape: a drag across aims, nothing shot', after.aim > before && after.st === 'aim' && after.shot === null, JSON.stringify(after));
   if (SHOTS) await L.page.screenshot({ path: path.join(SHOTS, 'v3-landscape.png') });
+  for (const [kind, set] of kinds) {
+    await L.ev(([k, s]) => { for (const key of Object.keys(s)) setSetting(key, s[key]); felt.start(k); }, [kind, set]);
+    await frames(L.page, 3);
+    await framed(L, await L.ev(() => TABLE + (TABLE === 'snooker' ? SNOOKER_SIZE : TABLE === 'bumper' ? BUMPER_SHAPE : '')), 'landscape');
+  }
   const lc2 = await lowContrast(L.page);
   check('landscape: every text 4.5:1, every target 44 px', lc2.length === 0 && (await smallTargets(L.page)).length === 0, JSON.stringify(lc2));
   check('no console errors (landscape)', L.errors.length === 0, L.errors.slice(0, 3).join(' | '));

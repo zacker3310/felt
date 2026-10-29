@@ -1,7 +1,8 @@
 /* lib: what every suite shares. check() prints PASS/FAIL lines and done() prints the
    "N/M passed" trailer run-all parses. open() launches Chromium with software rendering,
    records console errors and network requests, and waits for boot (firstRun: true keeps the
-   first-run lesson offer and the tutorials' first-Break offers, which every other suite skips).
+   first-run lesson offer and the tutorials' first-Break offers, which every other suite skips;
+   motion: true keeps the 6m motion, which every other suite turns off).
    Taken from puttX. */
 'use strict';
 const URL = process.env.FELT_URL || 'http://127.0.0.1:4173/index.html';
@@ -16,7 +17,7 @@ function done() {
   console.log(`\n${p}/${results.length} passed`);
   process.exit(p === results.length ? 0 : 1);
 }
-async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init, firstRun = false } = {}) {
+async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init, firstRun = false, motion = false } = {}) {
   const pw = require('playwright-core');
   const browser = await pw.chromium.launch({
     executablePath: process.env.CHROMIUM || pw.chromium.executablePath(),
@@ -28,6 +29,9 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.lesson.v1')) localStorage.setItem('felt.lesson.v1', '{"v":1,"seen":true,"done":false}'); } catch (e) { } });
   /* likewise each game's tutorial offer on its first Break: as if turned down for every game */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.tutorials.v1')) localStorage.setItem('felt.tutorials.v1', '{"v":1,"done":{},"skipped":{"8":true,"9":true,"bumper":true,"carom":true,"snooker":true},"never":false}'); } catch (e) { } });
+  /* the page's motion (6m: the card-to-sheet morph, numbers rolling up) stays out of every suite
+     but the ones that ask for it, so they measure finished screens and final numbers */
+  if (!motion) await page.addInitScript(() => { window.feltNoMotion = true; });
   if (init) await page.addInitScript(init);
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

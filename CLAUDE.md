@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `30/30 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `31/31 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -198,6 +198,17 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   keep `drawShadow`. Ball in hand lifts while carried and settles in `SETTLE_MS` (`bih`, `liftStep`, `settleH`; visual
   only, Reduce Motion: none). The career hub's next match card opens on `cvBanner` (the hero's final still through
   `heroPrep(kind, args)`/`heroRunOn(ms, h)`/`heroDraw(t, h, cv)`, the career's look). Pinned by `look-check`.
+- Broadcast camera (page 4n, `bc`): Settings > Graphics Shot Camera (`settings.shotCam` 'broadcast' default | 'off').
+  After a shot is struck the view dissolves (`BC_EASE_MS`) into the hero's perspective renderer behind the cue ball,
+  drawing the LIVE `tab` each frame (a view only: never writes tab/game/orient), follows with an integer-pixel pan,
+  and eases back while frame() holds the rested table (`bcHeld`, state stays 'rolling', never stepped again) before
+  `rollDone()` settles. Its art: `bcTexture` once per table and look (primed in `start`), the camera's still parts built
+  in `BC_SLICE` ms slices (`bcBuild`, ahead of time by `bcWarm` when the aim holds still); keep blits unscaled and at whole
+  pixels (a scaled or fractional blit costs several times more). Off in solo sessions, replays (5r), Reduce Motion, and
+  with `felt.bcam` false (`tests/lib.cjs` sets it unless a suite opens with `camera: true`). Under it the 3b follow zoom
+  holds z = 1. A game won on a shot (`finish(true)`, `overRec`) replays that shot from `rec.track` at `BC_RATE` 0.6x
+  before the sheet (`finishShow`), the deciding ball dropping on the screen's clock (`HERO_DROP_MS`); a tap or key skips;
+  `#overReplay` (Replay Winning Shot) plays it again. `felt.broadcast` reports it. Pinned by `camera-check`.
 - Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
   tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`

@@ -136,7 +136,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     await settled(p);
     const ob = await p.evaluate(() => ({ st: felt.state, box: !optBox.hidden, btns: [...optBtns.children].map(b => b.textContent), opt: felt.game.option, foul: felt.game.verdict.foul }));
     if (!ob.foul) {
-      check('push: the opponent gets the option box: shoot it, or hand it back', ob.st === 'choose' && ob.box && ob.btns.join() === 'Shoot it,Hand it back' && ob.opt.who === 1 - pusher, JSON.stringify(ob));
+      check('push: the opponent gets the option box: shoot it, or hand it back', ob.st === 'choose' && ob.box && ob.btns.join() === 'Shoot It,Hand It Back' && ob.opt.who === 1 - pusher, JSON.stringify(ob));
       check('push: the option box keeps 44 px targets', (await smallTargets(p)).length === 0);
       const hb = await p.evaluate(() => { const r = optBtns.children[1].getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
       await tap(hb[0], hb[1]);
@@ -189,7 +189,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   check('more: 10-ball, straight pool and rotation are cards on home with the other games', ms.home && ms.tiles.join() === '10,straight,rotation', JSON.stringify(ms));
   await p.click('#playStr');
   const st = await p.evaluate(() => ({ title: setupTitle.textContent, race: !document.querySelector('#setupSheet .str').hidden, note: rulesNote.textContent }));
-  check('more: straight pool\'s setup has the race and the WPA rules note', st.title === 'Straight pool' && st.race && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));
+  check('more: straight pool\'s setup has the race and the WPA rules note', st.title === 'Straight Pool' && st.race && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));
   await p.click('#rc25');
   await p.click('#breakBtn');
   const sp = await p.evaluate(() => ({ kind: felt.game.kind, race: felt.game.race, n: felt.game.balls.filter(b => b.on).length, last: settings.last }));

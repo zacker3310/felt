@@ -13,9 +13,10 @@
        choices last made, so a game is two taps away again), every card opens its setup by touch
    F10 straight pool's Race to buttons are 44 px at 375x667
    home every game and mode card opens its own setup by a real tap; the setup remembers
-   and a CPU game left by closing the app: a one-time notice at the next boot. */
+   and a CPU game left by closing the app: a one-time notice at the next boot.
+   titles every title on every screen reached is Title Case (Apple's HIG): lib's badTitles. */
 'use strict';
-const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
+const { check, done, open, smallTargets, lowContrast, badTitles } = require('./lib.cjs');
 
 const SIZES = { '375x667': [375, 667], '393x852': [393, 852], '440x956': [440, 956], '956x440': [956, 440] };
 const phone = (w, h, o = {}) => open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 2, ...o });
@@ -131,7 +132,7 @@ const homeFit = page => page.evaluate(() => {
   check('F6: the armed pause menu: 44 px, 4.5:1', !a6.small.length && !a6.low.length, JSON.stringify(a6));
   await page.waitForTimeout(4300);
   const c2 = await ev(() => ({ txt: concedeBtn.textContent.trim(), arm: concedeBtn.classList.contains('arm') }));
-  check('F6: left alone, it disarms after a few seconds', !c2.arm && c2.txt === 'Concede frame', JSON.stringify(c2));
+  check('F6: left alone, it disarms after a few seconds', !c2.arm && c2.txt === 'Concede Frame', JSON.stringify(c2));
   await touchAt(page, '#concedeBtn'); await touchAt(page, '#concedeBtn');
   await page.waitForTimeout(200);
   check('F6: two taps concede the frame', await ev(() => felt.state === 'over' && felt.game.winner !== null));
@@ -141,18 +142,18 @@ const homeFit = page => page.evaluate(() => {
   await ev(() => { felt.tourneyCreate({ kind: '9', size: 4, fmt: 'single', race: 2, field: 'easy', seed: 4 }); felt.tourneyPlay(); felt.pause(); });
   await page.waitForTimeout(150);
   const q0 = await ev(() => ({ txt: exitBtn.textContent.trim(), flag: /M6 21V4/.test(exitBtn.querySelector('svg').innerHTML), home: /M4 11 12 4/.test(exitBtn.querySelector('svg').innerHTML) }));
-  check('F6: in a tournament match the pause menu says Forfeit match, with a flag (not the home icon)', q0.txt === 'Forfeit match' && q0.flag && !q0.home, JSON.stringify(q0));
+  check('F6: in a tournament match the pause menu says Forfeit match, with a flag (not the home icon)', q0.txt === 'Forfeit Match' && q0.flag && !q0.home, JSON.stringify(q0));
   await touchAt(page, '#exitBtn');
   const q1 = await ev(() => ({ mode: felt.mode, txt: exitBtn.textContent.trim(), done: felt.tourney && felt.tourney.done, menu: menu.classList.contains('show') }));
   check('F6: one tap on Forfeit match only arms it; the match and the tournament go on', q1.mode === 'tourney' && q1.txt === 'Tap again to forfeit' && !q1.done && q1.menu, JSON.stringify(q1));
   await touchAt(page, '#resumeBtn');
   await ev(() => felt.pause());
-  check('F6: resuming disarms it', await ev(() => exitBtn.textContent.trim() === 'Forfeit match' && !exitBtn.classList.contains('arm')));
+  check('F6: resuming disarms it', await ev(() => exitBtn.textContent.trim() === 'Forfeit Match' && !exitBtn.classList.contains('arm')));
   await touchAt(page, '#exitBtn'); await touchAt(page, '#exitBtn');
   check('F6: two taps forfeit the match', await ev(() => felt.mode === null && felt.state === 'menu'));
   await ev(() => { backToMenu(); felt.start('8'); felt.pause(); });
   const q2 = await ev(() => ({ txt: exitBtn.textContent.trim(), home: /M4 11 12 4/.test(exitBtn.querySelector('svg').innerHTML) }));
-  check('F6: an ordinary game: Quit to home with the home icon, one tap', q2.txt === 'Quit to home' && q2.home, JSON.stringify(q2));
+  check('F6: an ordinary game: Quit to home with the home icon, one tap', q2.txt === 'Quit to Home' && q2.home, JSON.stringify(q2));
   await touchAt(page, '#exitBtn');
   check('F6: Quit to home goes at once', await ev(() => felt.state === 'menu' && !felt.paused));
 
@@ -271,5 +272,47 @@ const homeFit = page => page.evaluate(() => {
   await touchAt(H2.page, '#playRot');
   check('home 440x956: a real tap on Rotation opens its setup', await H2.page.evaluate(() => setupSheet.classList.contains('show') && setupSheet.dataset.kind === 'rotation'));
   await H2.browser.close();
+
+  /* ---------- titles (build 2026-10-28d): Title Case, Apple style, on every screen reached ---------- */
+  const TT = await phone(393, 852);
+  const tp = TT.page, tev = (f, a) => tp.evaluate(f, a), flagged = [];
+  const scanAt = async where => { for (const b of await badTitles(tp)) flagged.push(where + ': ' + JSON.stringify(b.text) + ' (' + b.wrong.join(' ') + ')'); };
+  const SCREENS = [
+    ['home', () => backToMenu()],
+    ...['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'].map(k => ['setup ' + k, `showSetup('${k}')`]),
+    ['settings', () => showPrefs()], ...['game', 'ctl', 'gfx', 'aud', 'a11y', 'about'].map(p => ['settings ' + p, `showPrefs(); prefsPage('${p}')`]),
+    ['how to play', () => showHelp()], ...Object.keys({ ctl: 1, 8: 1, 9: 1, 10: 1, bumper: 1, carom: 1, snooker: 1, straight: 1, rotation: 1, call: 1, solo: 1, cue: 1, modes: 1, drills: 1, career: 1 }).map(k => ['how to play ' + k, `showHelp('${k}')`]),
+    ['stats', () => showStats()], ['stats book', () => { showStats(); statsGo('book'); }], ['stats form', () => { showStats(); statsGo('form'); }], ['stats 9-ball', () => { showStats(); statsGo('9'); }],
+    ['modes', () => showModes()], ['quick tournament', () => showModes('tsetup')], ['ai exhibition', () => showModes('exsetup')], ['party', () => showModes('psetup')],
+    ['tournament', () => { felt.tourneyCreate({ kind: '9', ruleset: '9-house', size: 4, fmt: 'single', race: 2, field: 'easy', seed: 11 }); showModes('tour'); }],
+    ['drills', () => showDrills()], ['a drill', () => { showDrills(); drillList.querySelector('.group button').click(); }],
+    ['trick shots', () => showTricks()], ['practice', () => { backToMenu(); pracBtn.click(); }],
+    ['careers', () => showCareer()], ['new career', () => { showCareer(); felt.careerGo('create'); }],
+    ['career hub', () => { Career.create({ name: 'Sam Rivers', start: 'pro' }, { seed: 7 }); for (let i = 0; i < 6; i++) Career.advance('week'); showCareer(); }],
+    ...['calendar', 'bracket', 'rankings', 'stats', 'records', 'sponsors', 'shop', 'rivals', 'news', 'practice', 'options', 'slots'].map(p => ['career ' + p, `showCareer(); felt.careerGo('${p}')`]),
+    ['career event', () => { showCareer(); felt.careerGo('calendar'); cvBody.querySelector('[id^="ev-"]').click(); }],
+    ['career player', () => { showCareer(); felt.careerGo('player', { id: 5 }); }],
+    ['pause', () => { backToMenu(); start('8'); pause(); }],
+    ['a rules choice', () => { resume(); game = Object.assign({}, game, { option: { kind: 'badBreak', who: 0, choices: ['take', 'rebreak', 'break'] } }); showOption(); }],
+    ['tournament won', async () => { optBox.hidden = true; game = Object.assign({}, game, { option: null }); backToMenu(); felt.tourneyCreate({ kind: '9', size: 4, fmt: 'single', race: 1, field: 'hard', seed: 3 }); for (let i = 0; i < 3 && felt.tourneyPlay(); i++) { felt.forceWin(0); await new Promise(r => setTimeout(r, 30)); } }],
+    ['career recap', () => { Career.retire(); showCareer(); felt.careerGo('recap'); }],
+  ];
+  for (const [where, go] of SCREENS) { await tev(typeof go === 'string' ? go : `(${go})()`); await tp.waitForTimeout(60); await scanAt(where); }
+  check('titles: on every screen reached (home, the eight setups, every Settings and How to play page, Stats, the modes, a tournament and its end, drills, trick shots, practice, the career\'s pages, the pause menu, a rules choice) no title has a word Title Case capitalizes in lower case',
+    !flagged.length, flagged.slice(0, 12).join(' | '));
+  const named = await tev(() => ({ home: [...document.querySelectorAll('#playRow .tt b, #modeRow .tt b, #soloRow .tt b')].map(b => b.textContent), help: tabModes.querySelector('b').textContent, quit: exitBtn.textContent.trim() }));
+  check('titles: the home reads 8-Ball, 9-Ball, 10-Ball, Straight Pool, Rotation, Snooker, Three-Cushion, Bumper Pool, Career, Quick Tournament, AI Exhibition, Party, Learn to Play, Practice, Drills, Trick Shots, Daily Shot',
+    named.home.join() === '8-Ball,9-Ball,10-Ball,Straight Pool,Rotation,Snooker,Three-Cushion,Bumper Pool,Career,Quick Tournament,AI Exhibition,Party,Learn to Play,Practice,Drills,Trick Shots,Daily Shot' && named.help === 'More Modes', JSON.stringify(named));
+  const sc = await tev(() => {
+    backToMenu(); showSetup('8');
+    const t = setupTitle.textContent;
+    showPrefs(); prefsPage('game');
+    return { t, name: KINDS['8'].name, rule: document.getElementById('prs8-house').textContent, ex: modeExSub.textContent,
+      tc: [titleCase('8-ball, felt rules'), titleCase('Tap again to forfeit.'), titleCase('race to 5'), titleCase('head-to-head record'), titleCase('WPA, push out')] };
+  });
+  check('titles: one name, two cases: the setup title says 8-Ball while the name in sentences stays 8-ball; subtitles stay sentence case; titleCase keeps felt, WPA, numbers, small words and sentences',
+    sc.t === '8-Ball' && sc.name === '8-ball' && sc.rule === 'felt Rules' && sc.ex === 'Watch two CPUs play' && sc.tc.join('|') === '8-Ball, felt Rules|Tap again to forfeit.|Race to 5|Head-to-Head Record|WPA, Push Out', JSON.stringify(sc));
+  check('titles: no page errors', !TT.errors.length, TT.errors.join(' | '));
+  await TT.browser.close();
   done();
 })().catch(e => { console.error(e); process.exit(1); });

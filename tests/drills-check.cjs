@@ -76,7 +76,7 @@ const badOf = (id, h) => id === 'power-ladder' ? [h[0], 0.9, 0, 0] : [h[0] + 1.3
   await P.click('#drillRow-cut-ladder');
   await P.waitForTimeout(450);
   const pg = await ev(T, () => ({ page: felt.drillPage, title: drillTitle.textContent, rules: drillRules.textContent, go: drillGo.textContent, hist: drillHist.hidden }));
-  check('a drill\'s page: its goal, scoring and medals, no history yet, Start pinned at the foot', pg.page === 'cut-ladder' && pg.title === 'Cut ladder' && /15, 30, 45/.test(pg.rules) && /Bronze at 60/.test(pg.rules) && pg.hist && /Start/.test(pg.go), JSON.stringify(pg));
+  check('a drill\'s page: its goal, scoring and medals, no history yet, Start pinned at the foot', pg.page === 'cut-ladder' && pg.title === 'Cut Ladder' && /15, 30, 45/.test(pg.rules) && /Bronze at 60/.test(pg.rules) && pg.hist && /Start/.test(pg.go), JSON.stringify(pg));
   const a1 = await a11y();
   check('the page: targets 44 px, text 4.5:1, fits', !a1.small.length && !a1.low.length && await fits(), JSON.stringify(a1));
   await shot('drills-page');
@@ -160,7 +160,7 @@ const badOf = (id, h) => id === 'power-ladder' ? [h[0], 0.9, 0, 0] : [h[0] + 1.3
   await P.waitForFunction(() => felt.state === 'aim', null, { timeout: 20000 });
   await P.click('#menuBtn');
   const pm = await ev(T, () => ({ kind: soloKind.textContent, title: soloTitle.textContent, stats: soloStats.textContent }));
-  check('the pause menu in a drill: the shot, the name, the shots and points so far', /Drill, shot 2 of 5/.test(pm.kind) && pm.title === 'Cut ladder' && /1\/5/.test(pm.stats), JSON.stringify(pm));
+  check('the pause menu in a drill: the shot, the name, the shots and points so far', /Drill, shot 2 of 5/.test(pm.kind) && pm.title === 'Cut Ladder' && /1\/5/.test(pm.stats), JSON.stringify(pm));
   await P.click('#restartBtn');
   check('Restart: the drill again from its first shot', await ev(T, () => felt.drillNow && felt.drillNow.i === 0 && felt.drillNow.scores.length === 0 && felt.state === 'aim'));
   await T.browser.close();

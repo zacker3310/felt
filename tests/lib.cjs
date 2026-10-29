@@ -72,5 +72,42 @@ const lowContrast = (page, min = 4.5) => page.evaluate(min => {
   }
   return out;
 }, min);
+/* visible titles with a word in lower case that Title Case (Apple's HIG) capitalizes: the home's
+   cards and sections, sheet titles and group heads, list rows, switches, segmented choices, field
+   labels, rule heads and button labels. Allowed in lower case: articles, and, but, or, nor and the
+   prepositions of three letters or fewer (not first, last or after a colon), the second part of a
+   hyphenated small word ("Head-to-Head"), words with a digit (14.1, 2x), units (ft, cr), "vs" and
+   the brand "felt". Kickers render in caps, and a heading that is a sentence (it ends . ? or !, or
+   is one of the result lines below, or is marked .prose) is sentence case and not looked at. */
+const TITLE_SEL = ['#menu .tt > b', '.sect', 'h1', '.sheet h2', 'h3.ghead', 'h3.fineHead', 'h3.cvHead', '.topic .tt > b', '.cvSw .tt > b',
+  '.tog > span', '.plab', '.seg > button', '.field > .label', '.rules li > div > b', '.pick .game b', '.foe > b', '.tcard b', 'label.prow .plab',
+  'button.big', 'button.ghost', 'button.quiet', 'button.act', 'button.cvBtn', 'button.cvMini', 'button.tool', 'button.cflag', 'button.lessonGo > span', '.howAct > button', '#exBar button',
+  '#optHead', '#optBtns button', '#coachBtn', '.kpis dt', '.cvFacts dt', '.cvLines li > span:first-child', '.stat > span', '.ccSum + .tt b'];
+const TITLE_SKIP = ['overText', 'matchTitle', 'hoTitle', 'trickHead', 'drillHead', 'tutDoneTitle', 'tutOfferTitle', 'offerTitle', 'doneTitle', 'mdEndT'];
+const badTitles = page => page.evaluate(([SEL, SKIP]) => {
+  const small = /^(a|an|the|and|but|or|nor|as|at|by|for|in|of|off|on|per|to|up|via)$/, keep = /^(felt|ft|mm|cr|x|pts|vs)$/;
+  const seen = new Set(), out = [];
+  const shown = e => { for (let x = e; x; x = x.parentElement) { const s = getComputedStyle(x); if (s.display === 'none' || s.visibility === 'hidden' || x.hidden) return false; } return e.getClientRects().length > 0; };
+  const own = e => [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join(' ').replace(/\s+/g, ' ').trim();
+  for (const e of document.querySelectorAll(SEL.join(','))) {
+    if (seen.has(e)) continue;
+    seen.add(e);
+    if (!shown(e) || e.closest('.prose, .kicker, .arm') || SKIP.some(id => e.id === id || (e.parentElement && e.parentElement.id === id))) continue;
+    const t = own(e);
+    if (!/[a-z]/.test(t) || /[.?!]["')]?$/.test(t)) continue;
+    const toks = t.split(' ').filter(w => /[A-Za-z0-9]/.test(w)), wrong = [];
+    toks.forEach((w, i) => {
+      const edge = i === 0 || i === toks.length - 1 || /:$/.test(toks[i - 1]);
+      w.split('-').forEach((p, j) => {
+        const c = p.replace(/^[^A-Za-z0-9]+/, ''), core = c.replace(/[^A-Za-z0-9']+$/, '').toLowerCase();
+        if (!/^[a-z]/.test(c) || /[0-9]/.test(c) || keep.test(core)) return;
+        if (small.test(core) && !(edge && j === 0)) return;
+        wrong.push(p);
+      });
+    });
+    if (wrong.length) out.push({ id: e.id || (e.closest('[id]') || {}).id || e.className, text: t, wrong });
+  }
+  return out;
+}, [TITLE_SEL, TITLE_SKIP]);
 
-module.exports = { URL, check, done, open, smallTargets, settled, lowContrast };
+module.exports = { URL, check, done, open, smallTargets, settled, lowContrast, badTitles };

@@ -439,8 +439,8 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
     await settled(page);
     const ch = await page.evaluate(() => ({ s: felt.state, o: felt.game.option, btns: [...optBtns.querySelectorAll('button')].map(b => [b.dataset.choice, b.textContent]), head: optHead.textContent, bar: snkBar.textContent, shots: felt.game.shots }));
     check(T + 'snookered after a foul: the option box offers Play it, Make them play again from here, Free ball: nominate; the scoreboard says FREE BALL',
-      ch.s === 'choose' && ch.o.kind === 'snkFree' && ch.btns.map(b => b[0]).join() === 'play,again,free' && ch.btns.map(b => b[1]).join('|') === 'Play it|Make them play again from here|Free ball: nominate'
-      && /Free ball/.test(ch.head) && /FREE BALL/.test(ch.bar), JSON.stringify(ch));
+      ch.s === 'choose' && ch.o.kind === 'snkFree' && ch.btns.map(b => b[0]).join() === 'play,again,free' && ch.btns.map(b => b[1]).join('|') === 'Play It|Make Them Play Again From Here|Free Ball: Nominate'
+      && /Free Ball/.test(ch.head) && /FREE BALL/.test(ch.bar), JSON.stringify(ch));
     check(T + 'the option box: inside the screen, targets 44 px, text 4.5:1', await boxIn() && !(await smallTargets(page)).length && !(await lowContrast(page)).length, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/free-offer-${vw}x${vh}.png` });
     await tapEl(page, '#optBtns button[data-choice="free"]');
@@ -475,7 +475,7 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
     await settled(page);
     const mi = await page.evaluate(() => ({ s: felt.state, o: felt.game.option, btns: [...optBtns.querySelectorAll('button')].map(b => b.textContent), head: optHead.textContent, moved: JSON.stringify(felt.game.balls) }));
     check(T + 'a miss with the red in view: Foul and a miss, with Put it back and they play again',
-      mi.s === 'choose' && mi.o.kind === 'snkMiss' && /Foul and a miss/.test(mi.head) && mi.btns.join('|') === 'Play it|Put it back and they play again|Make them play again from here' && mi.moved !== before, JSON.stringify(mi));
+      mi.s === 'choose' && mi.o.kind === 'snkMiss' && /Foul and a Miss/.test(mi.head) && mi.btns.join('|') === 'Play It|Put It Back and They Play Again|Make Them Play Again From Here' && mi.moved !== before, JSON.stringify(mi));
     check(T + 'the miss prompt: inside the screen, targets 44 px, text 4.5:1', await boxIn() && !(await smallTargets(page)).length && !(await lowContrast(page)).length);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/miss-${vw}x${vh}.png` });
     await tapEl(page, '#optBtns button[data-choice="replace"]');

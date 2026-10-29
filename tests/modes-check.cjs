@@ -73,7 +73,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   check('tournament: the other semi-final is settled by the model and marked simulated; the final waits', T0.res.filter(Boolean).length === 1 && T0.sim.filter(Boolean).length === 1 && T0.res[2] === null && !T0.done, JSON.stringify(T0));
   await ev(() => showModes('tour'));
   const br = await ev(() => ({ rows: [...mdBody.querySelectorAll('.bm')].map(d => ({ st: d.dataset.st, sim: d.dataset.sim === '1', text: d.textContent })), play: !!document.getElementById('mdPlay'), heads: [...mdBody.querySelectorAll('.cvHead')].map(h => h.textContent) }));
-  check('tournament page: the bracket by round (semi-finals, final), the simulated match labelled, Play match', br.rows.length === 3 && br.rows.some(r => r.sim && /simulated/.test(r.text)) && br.play && br.heads.includes('Semi-final') && br.heads.includes('Final'), JSON.stringify(br));
+  check('tournament page: the bracket by round (semi-finals, final), the simulated match labelled, Play match', br.rows.length === 3 && br.rows.some(r => r.sim && /simulated/.test(r.text)) && br.play && br.heads.includes('Semi-Final') && br.heads.includes('Final'), JSON.stringify(br));
   const tp = await ev(async () => {
     mdPlay.click();
     await new Promise(r => setTimeout(r, 100));
@@ -93,7 +93,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     return a;
   });
   check('tournament: a rack won shows the rack sheet (Rack 2, 1-0), Next rack starts it with the other player breaking', r1.rack && r1.title === 'Rack 2' && r1.score.join() === '1,0' && r1.next.rack === 2 && r1.next.b1 !== r1.b0 && !r1.next.sheet, JSON.stringify(r1));
-  check('tournament: the pause menu shows the opponent, the score, no Restart, and Quit says Forfeit match', r1.pause.card && r1.pause.score === '1-0' && r1.pause.restart && r1.pause.quit === 'Forfeit match' && r1.pause.name === tp.m.foe, JSON.stringify(r1.pause));
+  check('tournament: the pause menu shows the opponent, the score, no Restart, and Quit says Forfeit match', r1.pause.card && r1.pause.score === '1-0' && r1.pause.restart && r1.pause.quit === 'Forfeit Match' && r1.pause.name === tp.m.foe, JSON.stringify(r1.pause));
   const r2 = await ev(async () => {
     felt.forceWin(0);
     await new Promise(r => setTimeout(r, 50));
@@ -144,14 +144,14 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     for (const k of ['straight', 'rotation', 'snooker', 'carom']) {
       md.tf.kind = k; showModes('tsetup');
       await new Promise(r => setTimeout(r, 30));
-      out.push({ k, game: [...mdBody.querySelectorAll('.seg')][0].querySelectorAll('button').length, races: [...mdBody.querySelectorAll('.cvHead')].map(h => h.textContent).find(t => /Race to/.test(t)), sw: mdSheet.scrollWidth <= mdSheet.clientWidth });
+      out.push({ k, game: [...mdBody.querySelectorAll('.seg')][0].querySelectorAll('button').length, races: [...mdBody.querySelectorAll('.cvHead')].map(h => h.textContent).find(t => /Race to/i.test(t)), sw: mdSheet.scrollWidth <= mdSheet.clientWidth });
     }
     md.tf.kind = '9'; md.tf.race = 3;
     return out;
   });
   const sk = { small: (await smallTargets(page)).length, low: await lowContrast(page) };
   check('tournament setup: seven games (8, 9, 10, 14.1, rotation, snooker, carom); the race is in points for 14.1 and carom, frames for snooker, racks for rotation; fits, 44 px, 4.5:1',
-    setupKinds.every(s => s.game === 7 && s.sw) && /points/.test(setupKinds[0].races) && /racks/.test(setupKinds[1].races) && /frames/.test(setupKinds[2].races) && /points/.test(setupKinds[3].races) && !sk.small && !sk.low.length, JSON.stringify([setupKinds, sk]));
+    setupKinds.every(s => s.game === 7 && s.sw) && /points/i.test(setupKinds[0].races) && /racks/i.test(setupKinds[1].races) && /frames/i.test(setupKinds[2].races) && /points/i.test(setupKinds[3].races) && !sk.small && !sk.low.length, JSON.stringify([setupKinds, sk]));
   const kinds = [];
   for (const [kind, race] of [['straight', 25], ['rotation', 1], ['snooker', 1], ['carom', 5]]) {
     kinds.push(await ev(async ([kind, race]) => {

@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `27/27 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `28/28 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -182,6 +182,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   room a short form leaves up to 50% (a ResizeObserver on the form's columns and `fitSetupRows` rerun it); the camera
   rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
   `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
+- Sound and haptics (sections 2, 2h): physically modelled, no files. `audioInit` computes each body's modal buffer once
+  (`BODIES`, `bodyBuf`: modes rung by a half-sine contact of length tau, plus a transient); a hit is buffer, low-pass,
+  gain (`hit`), loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the
+  pocket index, or `'post'` on a bumper post's `'rail'`). Beds: the roll (`rollAt`, from `soundFrame`'s own rAF, no
+  allocation) and the room tone. `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
+  offline (`node tools/sound-render.cjs <dir>` writes WAVs). Haptics map in 2h (`hapPlans`, impacts per `HAP_HIT`);
+  the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and `moments-check`).
 - Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
   tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`

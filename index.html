@@ -2628,7 +2628,7 @@ const still = b => b.vx === 0 && b.vy === 0 && b.wx === 0 && b.wy === 0 && b.wz 
 function pot(tab, b, k, v) {
   b.on = false; b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0;
   tab.potted.push(b.n); tab.pocketOf[b.n] = k;
-  tab.hits.push(['pocket', v]);
+  tab.hits.push(['pocket', v, k]);   /* the pocket rides along for the page's sound (2) */
 }
 /* The cloth is pulled down over the radiused slate edge into the hole, so for POCKET_LIP
    around a hole the bed falls away. The slope is gentle (a moving ball rolls over it as if
@@ -4065,7 +4065,7 @@ function bumperStep(tab, b) {
     nx /= d; ny /= d;
     b.x = p[0] + nx * D; b.y = p[1] + ny * D;
     const v = rail(b, nx, ny);
-    if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['rail', v]); }
+    if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['rail', v, 'post']); }   /* a rail hit; 'post' for the sound */
   }
   const v = Math.hypot(b.vx, b.vy);
   for (let k = 0; k < POCKETS.length; k++) {
@@ -7290,29 +7290,146 @@ const Career = (() => {
 // #endregion career
 
 /* ============ 2. AUDIO ============ */
-/* Everything is synthesised: filtered noise and a few sine partials per hit, no files. Each voice
-   goes into `bus`; the master chain is bus gain, a compressor acting as a limiter, then a soft
-   clipper whose curve tops out below 1, so a break never clips. Intensity `v` is impact speed
-   in m/s (0 to about 9). No Math.random: the small differences between two hits come from a
-   hash of the impact speed (vary), so the same hit always sounds the same and no two differ. */
+/* Everything is synthesised, no files: physically modelled sound in two steps. At start-up
+   (audioInit, after iOS's first-touch unlock) each body's sound is computed once into a small
+   AudioBuffer by modal synthesis (bodyBuf): the body's resonant modes (frequency, level, decay,
+   and for rubber a pitch that falls as it relaxes) excited by its contact force. That force is a
+   half-sine pulse whose length tau sets how far up the spectrum a hit reaches (each mode is
+   weighed by 1 / (1 + (f tau / 0.7)^2)): a hard, short contact rings the high modes, a soft long
+   one only the low. Over it, the contact's own short noise transient. A few variants per body
+   (contact lengths, and a seed that moves every mode a little) are kept. A hit then plays one of
+   them through a low-pass (brightness) and a gain (loudness), both set by the impact speed, its
+   pitch moved a little per hit (playbackRate): three nodes a sound, so a break is cheap.
+   The bodies: two phenolic resin balls (modes 3 to 9 kHz, phenolic rings briefly), the leather
+   tip on the cue ball (a rounded "tock" round 0.5 to 2.5 kHz, a hint of the shaft), the rubber
+   cushion (a 120 to 250 Hz body that falls in pitch as the rubber gives, and the rail's soft
+   click), a pocket's jaw (harder), a bumper post (a rubbery bonk), the drop into a pocket's
+   leather, the knocks down the return, and snooker's net.
+   Each voice goes into `bus` (the table's through fxBus); the master chain is bus gain, a
+   compressor acting as a limiter, then a soft clipper whose curve tops out below 1, so a break
+   never clips. Under the hits, two beds that never stop once made: the roll (filtered noise,
+   its level and colour following the balls' total speed, rollAt; silent when nothing moves) and
+   the room tone (near silent, low, only in a game and off under 5% volume), both set from
+   soundFrame without allocating. A total node budget (NODE_CAP) caps what sounds at once.
+   Intensity `v` is impact speed in m/s (0 to about 9). No Math.random: the small differences
+   between two hits come from a hash of the impact speed (vary), so the same hit always sounds the
+   same and no two differ. */
 let ac = null, noiseBuf = null, bus = null, muted = false;
 /* the volumes (settings.vol, settings.volFx): bus carries the master volume times BUS_GAIN, and the
    table's sounds (FX_KINDS) go through fxBus into it, at their own volume; the UI's cues do not */
 let fxBus = null;
-const BUS_GAIN = 0.55, FX_KINDS = ['ball', 'cue', 'rail', 'jaw', 'pocket', 'brk', 'point'];
+const BUS_GAIN = 0.55, FX_KINDS = ['ball', 'cue', 'rail', 'jaw', 'post', 'pocket', 'brk', 'point'];
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
 /* per kind: most voices sounding at once, shortest gap between two (s). brk is the cluster layer
-   under a break (one at a time); tap and moment are the quiet UI sounds; point is carom's score,
-   two soft ivory clicks and a faint bell. */
-const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35],
-  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], lose: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3] };
-const voices = {}, crowd = {};
+   under a break (one at a time); tap, moment and full (the power bar at 100%) are the quiet UI
+   sounds; point is carom's score, two soft ivory clicks and a faint bell. */
+const VOICE = { ball: [6, 0.006], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], post: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35],
+  foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], lose: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3], full: [1, 0.2] };
+let voices = {}, crowd = {};
+/* the node budget: every node a voice makes is counted (made) and booked until its voice ends
+   (nodeLog, flat [end, count] pairs); a voice whose kind's typical cost (NODE_COST) would take the
+   live count past NODE_CAP is not played. nodePeak is the most ever live at once. */
+const NODE_CAP = 64, NODE_COST = { pocket: 24, brk: 9, win: 20, point: 10, foul: 8, lose: 8, moment: 8, jaw: 6 };
+let nodeLog = [], nodeMade = 0, nodePeak = 0;
+function nodesLive() {
+  const now = ac ? ac.currentTime : 0;
+  let n = 0, w = 0;
+  for (let i = 0; i < nodeLog.length; i += 2) if (nodeLog[i] > now) { nodeLog[w++] = nodeLog[i]; nodeLog[w++] = nodeLog[i + 1]; n += nodeLog[i + 1]; }
+  nodeLog.length = w;
+  return n;
+}
 /* the hash: a value in [-1, 1] for a seed, then the next seed. vary(x, r): x within +-r of itself. */
 let vseed = 1;
 const hash01 = n => { let h = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b); h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 const varyU = () => hash01(vseed++) * 2 - 1;
 const vary = (x, r) => x * (1 + varyU() * r);
-function audioInit(c) {
+const pick = n => Math.min(n - 1, Math.floor(hash01(vseed++) * n));
+/* the bodies. modes: [f Hz, level, decay s, glide (the pitch starts that much higher and falls to f
+   in about 25 ms: rubber stiffening as it is squeezed)]. taus: the contact lengths of the variants
+   (s), soft first. tr: the contact transient [level, decay s, low-pass Hz, high-pass Hz]. seeds:
+   variants of each. */
+const BODIES = {
+  ball: { dur: 0.07, taus: [0.42e-3, 0.26e-3, 0.15e-3], seeds: 3, tr: [0.55, 0.0004, 0, 2500],
+    modes: [[3080, 1, 0.02], [3960, 0.75, 0.016], [4720, 0.6, 0.013], [5530, 0.45, 0.01], [6350, 0.35, 0.008], [7240, 0.22, 0.006], [8900, 0.12, 0.004], [1150, 0.2, 0.005]] },
+  cue: { dur: 0.09, taus: [1.4e-3, 0.8e-3], seeds: 2, tr: [0.5, 0.002, 1800, 0],
+    modes: [[480, 1, 0.03, 0.15], [1130, 0.5, 0.018], [1640, 0.35, 0.014], [2450, 0.2, 0.008], [3300, 0.1, 0.005]] },
+  rail: { dur: 0.25, taus: [3e-3, 1.6e-3], seeds: 2, tr: [0.22, 0.003, 2600, 900],
+    modes: [[150, 1, 0.075, 0.45], [310, 0.4, 0.04, 0.3], [610, 0.18, 0.02], [1750, 0.06, 0.008]] },
+  jaw: { dur: 0.18, taus: [1.2e-3], seeds: 2, tr: [0.4, 0.002, 3500, 1200],
+    modes: [[205, 1, 0.05, 0.35], [430, 0.5, 0.03], [880, 0.3, 0.015], [2100, 0.12, 0.006]] },
+  post: { dur: 0.3, taus: [2.2e-3], seeds: 2, tr: [0.15, 0.002, 1500, 0],
+    modes: [[260, 1, 0.11, 0.6], [590, 0.45, 0.05, 0.3], [1220, 0.15, 0.02]] },
+  drop: { dur: 0.3, taus: [4e-3], seeds: 2, tr: [0.5, 0.03, 380, 0],
+    modes: [[88, 1, 0.12, 0.5], [190, 0.5, 0.06, 0.3], [420, 0.2, 0.025]] },
+  knock: { dur: 0.08, taus: [0.9e-3], seeds: 3, tr: [0.3, 0.004, 1600, 0],
+    modes: [[520, 1, 0.025], [1240, 0.5, 0.014], [2350, 0.25, 0.007]] },
+  net: { dur: 0.3, taus: [6e-3], seeds: 1, tr: [1, 0.09, 1400, 500],
+    modes: [[110, 0.6, 0.05, 0.3]] }
+};
+let BUF = null;
+/* one body's buffer: its modes rung by a half-sine force of length tau, plus the transient,
+   peak-normalised (the loudness is the hit's gain). Fixed generator, so the same every launch. */
+function bodyBuf(c, B, tau, seed) {
+  const sr = c.sampleRate, n = Math.max(1, Math.ceil(sr * B.dur)), buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let x = (Math.imul(seed + 1, 2654435761) >>> 0) || 1;
+  const rnd = () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 2147483648 - 1; };
+  const w = 2 * Math.PI / sr;
+  for (const [f0, a0, dk, gl = 0] of B.modes) {
+    const f = f0 * (1 + 0.012 * rnd()), a = a0 * (1 + 0.12 * rnd()) / (1 + (f * tau / 0.7) ** 2);
+    const ek = Math.exp(-1 / (sr * dk)), gk = Math.exp(-1 / (sr * 0.025));
+    let ph = 0, e = 1, g = gl;
+    for (let i = 0; i < n && e > 1e-4; i++) {
+      ph += w * f * (1 + g);
+      d[i] += a * e * Math.sin(ph);
+      e *= ek; g *= gk;
+    }
+  }
+  const [ta, td, lp, hp] = B.tr, kl = lp ? 1 - Math.exp(-w * Math.min(lp, 0.5 / tau)) : 1, kh = hp ? 1 - Math.exp(-w * hp) : 0;
+  const ek = Math.exp(-1 / (sr * td));
+  let yl = 0, yh = 0, e = 1;
+  for (let i = 0; i < n && e > 1e-4; i++) {
+    yl += kl * (rnd() - yl); yh += kh * (yl - yh);
+    d[i] += ta * e * (yl - yh);
+    e *= ek;
+  }
+  /* the force builds over the contact: a raised-cosine onset of length tau */
+  const m = Math.min(n, Math.ceil(tau * sr));
+  for (let i = 0; i < m; i++) d[i] *= (1 - Math.cos(Math.PI * i / m)) / 2;
+  let pk = 0;
+  for (let i = 0; i < n; i++) pk = Math.max(pk, Math.abs(d[i]));
+  if (pk > 0) for (let i = 0; i < n; i++) d[i] /= pk;
+  return buf;
+}
+/* every body's variants for context c, in BUF[kind][hardness * seeds + seed]. Live, they are built a
+   few at a time in tasks after the first touch (a long task there would stall a frame); a hit on a
+   body not built yet is skipped. sync (an offline render): all at once. */
+function bodyBufs(c, sync) {
+  const out = {}, jobs = [];
+  for (const [k, B] of Object.entries(BODIES)) {
+    out[k] = [];
+    B.taus.forEach((tau, h) => { for (let s = 0; s < B.seeds; s++) jobs.push([k, h * B.seeds + s, tau, h * 7 + s + k.length * 31]); });
+  }
+  const run = j => { out[j[0]][j[1]] = bodyBuf(c, BODIES[j[0]], j[2], j[3]); };
+  if (sync) jobs.forEach(run);
+  else {
+    const step = () => { const t0 = performance.now(); while (jobs.length && performance.now() - t0 < 4) run(jobs.shift()); if (jobs.length) setTimeout(step, 0); };
+    setTimeout(step, 0);
+  }
+  return out;
+}
+/* the beds: the roll (fxBus) and the room tone (bus), and their current targets */
+let rollG = null, rollF = null, roomG = null, rollTgt = 0, roomTgt = 0;
+const ROLL_LVL = 0.08, ROOM_LVL = 0.02;
+function bed(c, offset, type, freq, out) {
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  s.buffer = noiseBuf; s.loop = true;
+  f.type = type; f.frequency.value = freq; f.Q.value = 0.8;
+  g.gain.value = 0;
+  s.connect(f).connect(g).connect(out);
+  s.start(0, offset);
+  return [f, g];
+}
+function audioInit(c, sync = false) {
   ac = c;
   const sr = c.sampleRate;
   noiseBuf = c.createBuffer(1, sr, sr);
@@ -7320,6 +7437,7 @@ function audioInit(c) {
   /* white noise from a fixed generator (xorshift): the same buffer every launch */
   let x = 0x2545f491;
   for (let i = 0; i < d.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; d[i] = (x >>> 0) / 2147483648 - 1; }
+  BUF = bodyBufs(c, sync);
   const lim = c.createDynamicsCompressor();
   /* threshold high and knee hard: the node adds automatic make-up gain that grows as the threshold
      drops, which would flatten the hit dynamics. Here it only catches pile-ups (about +1.7 dB). */
@@ -7337,6 +7455,9 @@ function audioInit(c) {
   bus = c.createGain(); bus.gain.value = BUS_GAIN;
   bus.connect(lim).connect(pre).connect(clip).connect(c.destination);
   fxBus = c.createGain(); fxBus.connect(bus);
+  [rollF, rollG] = bed(c, 0.2, 'lowpass', 300, fxBus);
+  roomG = bed(c, 0.6, 'lowpass', 160, bus)[1];
+  rollTgt = 0; roomTgt = 0;
   audioLevels();
 }
 /* the master and table-sound volumes onto the graph (once there is one) */
@@ -7367,6 +7488,7 @@ function noise(t, out, type, freq, q, peak, decay, attack = 0.0008) {
   s.buffer = noiseBuf; f.type = type; f.frequency.value = freq; f.Q.value = q;
   s.connect(f).connect(g).connect(out);
   s.start(t, 0.35 + 0.35 * varyU()); s.stop(t + attack + decay + 0.02);
+  nodeMade += 3;
 }
 /* sine partial gliding from f0 to f1 */
 function partial(t, out, f0, f1, peak, decay, attack = 0.0005, type = 'sine') {
@@ -7376,72 +7498,76 @@ function partial(t, out, f0, f1, peak, decay, attack = 0.0005, type = 'sine') {
   if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + attack + decay);
   o.connect(g).connect(out);
   o.start(t); o.stop(t + attack + decay + 0.02);
+  nodeMade += 2;
 }
-/* ball on ball: two phenolic resins meeting. A sub-millisecond broadband click (the contact),
-   a resonant band of noise round 3-6 kHz (the shells ringing), three inharmonic sphere modes
-   (ratios 1, 1.53, 2.12) that ring a few tens of ms, and a short low knock that gives a hard hit
-   its weight. Pitch, brightness, ring and level all rise with the impact. s is 0..1. */
+/* one body hit: buffer -> low-pass (brightness) -> gain (loudness) -> out, pitch by rate. Its end. */
+function hit(t, buf, out, gain, rate, bright) {
+  if (!buf) return t;   /* not built yet (bodyBufs) */
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+  s.buffer = buf; s.playbackRate.value = rate;
+  f.type = 'lowpass'; f.frequency.value = Math.min(bright, ac.sampleRate * 0.45); f.Q.value = 0.5;
+  g.gain.value = gain;
+  s.connect(f).connect(g).connect(out);
+  s.start(t);
+  nodeMade += 3;
+  return t + buf.duration / rate;
+}
+/* a variant of a body: hardness h (0 soft .. 1 hard) picks the contact length, the hash the seed */
+function bodyOf(k, h) {
+  const B = BODIES[k], hi = Math.min(B.taus.length - 1, Math.floor(h * B.taus.length));
+  return BUF[k][hi * B.seeds + pick(B.seeds)];
+}
+/* ball on ball. s is 0..1 (approach speed / 6 m/s): louder, brighter and harder (a shorter
+   contact) with the speed; a soft or glancing touch (little approach speed) is quiet and dull. */
 function clack(t, s, out) {
-  const lvl = 0.03 + 0.97 * Math.pow(s, 0.9), f = vary(2700 + 1500 * s, 0.035), ring = 0.016 + 0.022 * s;
-  noise(t, out, 'highpass', 5200 + 1800 * s, 0.7, 0.32 * lvl, 0.0012 + 0.0008 * s, 0.0002);
-  noise(t, out, 'bandpass', vary(3400 + 2200 * s, 0.04), 3.2, 0.5 * lvl, 0.006 + 0.008 * s, 0.0003);
-  partial(t, out, f, f * 0.992, 0.36 * lvl, ring);
-  partial(t, out, f * vary(1.53, 0.01), f * 1.515, 0.17 * lvl, ring * 0.62);
-  partial(t, out, f * vary(2.12, 0.01), f * 2.1, 0.08 * lvl, ring * 0.4);
-  partial(t, out, vary(820 + 260 * s, 0.05), 700, 0.16 * lvl * s, 0.008, 0.0004);
+  const lvl = 0.03 + 0.97 * Math.pow(s, 0.9);
+  return hit(t, bodyOf('ball', s), out, 0.62 * lvl, vary(1, 0.03), 1100 + 15000 * Math.pow(s, 0.85));
 }
-/* cue tip on the cue ball: leather, so a soft rounded "tock" (low-passed noise and a falling
-   mid tone), with a hint of the shaft's wood on a firm stroke */
-function tock(t, s) {
-  const lvl = 0.1 + 0.55 * Math.pow(s, 0.8);
-  noise(t, bus, 'lowpass', 1300 + 900 * s, 0.9, 0.55 * lvl, 0.012 + 0.006 * s, 0.0015);
-  partial(t, bus, vary(470 + 120 * s, 0.03), 300, 0.42 * lvl, 0.03 + 0.012 * s, 0.0012);
-  partial(t, bus, vary(1650, 0.04), 1500, 0.08 * lvl * s, 0.012, 0.0008);
-  noise(t, bus, 'bandpass', 2600, 1.6, 0.1 * lvl * s, 0.004, 0.0004);
-}
-/* cushion or jaw: rubber, so a dull low thump with body (a falling 100-180 Hz tone, low-passed
-   noise), a rubbery mid and a little rail wood. A jaw is harder and a touch brighter. Soft hits
-   fall away fast (s^1.6). */
-function thump(t, s, hard) {
-  const lvl = 0.6 * Math.pow(s, 1.6), f = vary(hard ? 175 : 128, 0.06);
-  partial(t, bus, f, f * 0.6, 0.78 * lvl, 0.1 + 0.05 * s, 0.003);
-  partial(t, bus, f * 2.05, f * 1.4, 0.18 * lvl, 0.04, 0.002);
-  noise(t, bus, 'lowpass', 340 + 280 * s, 0.8, 0.4 * lvl, 0.05, 0.0015);
-  partial(t, bus, vary(hard ? 640 : 420, 0.05), hard ? 570 : 380, (hard ? 0.26 : 0.1) * lvl, hard ? 0.022 : 0.016);
-  noise(t, bus, 'bandpass', hard ? 1800 : 1100, 1.4, (hard ? 0.22 : 0.08) * lvl, hard ? 0.01 : 0.007);
-}
-/* the drop: a thud into the pocket's leather, then the ball rolling down the return (noise
-   through a low-pass that sweeps down, wobbled at a rolling rate) and rattling on the way (a few
-   muffled knocks at shrinking gaps), then a soft clack against the balls already there */
-function drop(t, s) {
-  const lvl = 0.4 + 0.4 * s;
-  partial(t, bus, vary(92, 0.05), 54, 0.7 * lvl, 0.15, 0.003);
-  noise(t, bus, 'lowpass', 300, 0.8, 0.42 * lvl, 0.07, 0.002);
-  noise(t, bus, 'bandpass', 820, 1.3, 0.14 * lvl, 0.022, 0.001);
-  const roll = vary(0.5, 0.15), t1 = t + 0.07, src = ac.createBufferSource(), lp = ac.createBiquadFilter();
-  const g = ac.createGain(), wob = ac.createOscillator(), depth = ac.createGain();
-  src.buffer = noiseBuf; src.loop = true;
-  lp.type = 'lowpass'; lp.Q.value = 2.2;
-  lp.frequency.setValueAtTime(1000, t1); lp.frequency.exponentialRampToValueAtTime(170, t1 + roll);
-  wob.frequency.setValueAtTime(vary(24, 0.1), t1); wob.frequency.linearRampToValueAtTime(13, t1 + roll);
-  /* the wobble rides on the gain, so it gets the same envelope or it would outlive the roll */
-  for (const [p, v] of [[g.gain, 0.26 * lvl], [depth.gain, 0.09 * lvl]]) {
-    p.setValueAtTime(0, t1); p.linearRampToValueAtTime(v, t1 + 0.05); p.setTargetAtTime(0, t1 + roll * 0.6, roll * 0.18);
+/* the drop into pocket k, s 0..1 by the ball's speed. A corner sends the ball round a longer
+   return (four knocks at shrinking gaps, a longer roll); a side pocket drops it straighter (three
+   quicker, higher knocks). Snooker's net (JAW_ARCS: only snooker has rounded jaws) catches it:
+   a soft thud and the net's swish, no return. Bumper pool's cup: a short drop and two knocks. */
+function drop(t, s, k) {
+  const lvl = 0.45 + 0.45 * s;
+  const kind = BUMPERS.length ? 'cup' : JAW_ARCS.length ? 'net' : (POCKETS[k] && Math.abs(POCKETS[k][0] - TL / 2) < TL * 0.1) ? 'side' : 'corner';
+  if (kind === 'net') {
+    hit(t, bodyOf('drop', 0), bus, 0.3 * lvl, vary(0.85, 0.04), 520);
+    return hit(t + 0.01, BUF.net[0], bus, 0.16 * lvl, vary(1, 0.05), 3000);
   }
-  wob.connect(depth).connect(g.gain);
-  src.connect(lp).connect(g).connect(bus);
-  src.start(t1, 0.1 + 0.1 * varyU()); wob.start(t1);
-  src.stop(t1 + roll + 0.25); wob.stop(t1 + roll + 0.25);
+  const side = kind === 'side', cup = kind === 'cup';
+  let end = hit(t, bodyOf('drop', 0), bus, 0.6 * lvl, vary(cup ? 1.2 : side ? 1.08 : 1, 0.04), 900);
   const muff = ac.createBiquadFilter();
-  muff.type = 'lowpass'; muff.frequency.value = 1500; muff.connect(bus);
-  /* the rattle: wood and leather knocks, each quieter and sooner than the last */
-  let at = t1 + 0.05, gap = vary(0.09, 0.2);
-  for (let i = 0; i < 3; i++) {
-    partial(at, muff, vary(520, 0.12), 430, 0.12 * lvl * (1 - i * 0.25), 0.02, 0.001);
-    noise(at, muff, 'bandpass', vary(1200, 0.1), 2, 0.08 * lvl * (1 - i * 0.25), 0.012, 0.0008);
+  muff.type = 'lowpass'; muff.frequency.value = side ? 1900 : 1500; muff.connect(bus);
+  nodeMade++;
+  let roll = 0, t1 = t + 0.07;
+  if (!cup) {
+    /* down the return: noise through a low-pass that sweeps down, wobbled at a rolling rate */
+    roll = vary(side ? 0.38 : 0.6, 0.15);
+    const src = ac.createBufferSource(), lp = ac.createBiquadFilter(), g = ac.createGain(), wob = ac.createOscillator(), depth = ac.createGain();
+    src.buffer = noiseBuf; src.loop = true;
+    lp.type = 'lowpass'; lp.Q.value = 2.2;
+    lp.frequency.setValueAtTime(side ? 1200 : 1000, t1); lp.frequency.exponentialRampToValueAtTime(170, t1 + roll);
+    wob.frequency.setValueAtTime(vary(24, 0.1), t1); wob.frequency.linearRampToValueAtTime(13, t1 + roll);
+    /* the wobble rides on the gain, so it gets the same envelope or it would outlive the roll */
+    for (const [p, v] of [[g.gain, 0.22 * lvl], [depth.gain, 0.08 * lvl]]) {
+      p.setValueAtTime(0, t1); p.linearRampToValueAtTime(v, t1 + 0.05); p.setTargetAtTime(0, t1 + roll * 0.6, roll * 0.18);
+    }
+    wob.connect(depth).connect(g.gain);
+    src.connect(lp).connect(g).connect(bus);
+    src.start(t1, 0.1 + 0.1 * varyU()); wob.start(t1);
+    src.stop(t1 + roll + 0.25); wob.stop(t1 + roll + 0.25);
+    nodeMade += 5;
+  }
+  /* the rattle: the ball knocking on the return's wood and iron, each quieter and sooner */
+  const knocks = cup ? 2 : side ? 3 : 4;
+  let at = t1 + 0.04, gap = vary(side ? 0.075 : 0.1, 0.2);
+  for (let i = 0; i < knocks; i++) {
+    end = Math.max(end, hit(at, bodyOf('knock', 0), muff, 0.2 * lvl * (1 - i * 0.2), vary(side ? 1.15 : 1, 0.08), 2600));
     at += gap; gap *= 0.7;
   }
-  clack(t1 + roll + vary(0.04, 0.3), 0.12, muff);
+  /* then a soft clack against the balls already there */
+  if (!cup) end = Math.max(end, clack(t1 + roll + vary(0.04, 0.3), 0.12, muff));
+  return Math.max(end, t1 + roll + 0.25);
 }
 /* the break: under a burst of hard ball contacts, one low "crack" and the rumble of the rack
    spreading, kept under the clacks (they are capped per kind, and this is one voice) */
@@ -7456,42 +7582,58 @@ function note(t, f, peak, decay) {
   partial(t, bus, f, f, peak, decay, 0.01);
   partial(t, bus, f * 2, f * 2, peak * 0.15, decay * 0.5, 0.01);
 }
-/* schedule one sound at time t. Per-kind voice cap and minimum gap, and a crowd factor that
-   ducks hits of the same kind arriving close together, so a break is a crack and a scatter. */
-function sfxAt(kind, v, t) {
+/* schedule one sound at time t. x is the hit's extra (sim 1d): a pocket's index, or 'post' on a
+   bumper table's 'rail' hit. Per-kind voice cap and minimum gap, the node budget, and a crowd
+   factor that ducks hits of the same kind arriving close together, so a break is a crack and a
+   scatter. */
+function sfxAt(kind, v, t, x) {
+  if (kind === 'rail' && x === 'post') kind = 'post';
   const lim = VOICE[kind];
   if (!Number.isFinite(v)) v = 1;   /* a kind without an intensity plays at full */
-  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw') && v < 0.1))) return;
+  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw' || kind === 'post') && v < 0.1))) return;
   const live = (voices[kind] || []).filter(e => e > t);
   if (live.length >= lim[0]) return;
   const c = crowd[kind] || { t: -1, e: 0 };
   if (t - c.t < lim[1]) return;
+  if (nodesLive() + (NODE_COST[kind] || 6) > NODE_CAP) return;
   c.e = c.e * Math.exp(-(t - c.t) / 0.06) + 1; c.t = t; crowd[kind] = c;
   vseed = Math.round((v || 0) * 1e4) * 7 + kind.length;
-  const duck = 1 / Math.sqrt(c.e), main = bus;
+  const duck = 1 / Math.sqrt(c.e), main = bus, m0 = nodeMade;
   if (fxBus && FX_KINDS.includes(kind)) bus = fxBus;   /* the table's sounds at their own volume */
-  try { sfxVoice(kind, v, t, duck, live, c.e); } finally { bus = main; }
+  let end = t;
+  try { end = sfxVoice(kind, v, t, duck, x, c.e); } finally { bus = main; }
+  live.push(end); voices[kind] = live;
+  nodeLog.push(end + 0.05, nodeMade - m0);
+  nodePeak = Math.max(nodePeak, nodesLive());
 }
-function sfxVoice(kind, v, t, duck, live, crowded) {
+/* the voice itself; returns when it ends */
+function sfxVoice(kind, v, t, duck, x, crowded) {
   let end = t + 0.06;
   if (kind === 'ball') {
     const s = clamp(v / 6, 0, 1);
-    clack(t, s * duck, bus);
+    end = clack(t, s * duck, bus);
     /* three or more hard contacts inside ~60 ms: the rack is breaking */
     if (v > 2.5 && crowded >= 2.6) sfxAt('brk', v, t);
   } else if (kind === 'brk') {
     burst(t, clamp(v / 8, 0, 1));
     end = t + 0.3;
   } else if (kind === 'cue') {
-    tock(t, clamp(v / 7, 0, 1));
-  } else if (kind === 'rail' || kind === 'jaw') {
-    const s = clamp(v / 5, 0, 1) * duck, hard = kind === 'jaw';
-    thump(t, s, hard);
-    if (hard) thump(t + vary(0.032, 0.25), s * 0.6, true);
-    end = t + 0.18;
+    const s = clamp(v / 7, 0, 1), lvl = 0.1 + 0.55 * Math.pow(s, 0.8);
+    end = hit(t, bodyOf('cue', s), bus, 0.6 * lvl, vary(1, 0.03), 1500 + 6000 * s);
+  } else if (kind === 'rail') {
+    const s = clamp(v / 5, 0, 1) * duck;
+    end = hit(t, bodyOf('rail', s), bus, 0.6 * Math.pow(s, 1.6), vary(1, 0.05), 600 + 5000 * s);
+  } else if (kind === 'jaw') {
+    /* the jaw's facing is harder rubber on a narrower nose: brighter, and a second knock as the
+       ball meets the far point */
+    const s = clamp(v / 5, 0, 1) * duck, lvl = 0.6 * Math.pow(s, 1.6);
+    hit(t, bodyOf('jaw', s), bus, 0.9 * lvl, vary(1, 0.05), 900 + 6000 * s);
+    end = hit(t + vary(0.032, 0.25), bodyOf('jaw', s), bus, 0.5 * lvl, vary(1.04, 0.05), 900 + 4000 * s);
+  } else if (kind === 'post') {
+    const s = clamp(v / 4, 0, 1) * duck;
+    end = hit(t, bodyOf('post', s), bus, 0.55 * Math.pow(s, 1.3), vary(1, 0.05), 900 + 5000 * s);
   } else if (kind === 'pocket') {
-    drop(t, clamp(v == null ? 1 : v, 0, 1));
-    end = t + 0.9;
+    end = drop(t, clamp(v / 2.5, 0, 1), x);
   } else if (kind === 'foul') {
     note(t, 349.23, 0.11, 0.2); note(t + 0.15, 261.63, 0.11, 0.34);
     end = t + 0.5;
@@ -7500,6 +7642,10 @@ function sfxVoice(kind, v, t, duck, live, crowded) {
   } else if (kind === 'tap') {
     partial(t, bus, 2100, 1900, 0.022, 0.012, 0.001);
     noise(t, bus, 'bandpass', 3800, 2, 0.012, 0.004, 0.0004);
+  } else if (kind === 'full') {
+    /* the power bar reached 100%: one soft, high tick */
+    partial(t, bus, 2600, 2450, 0.018, 0.01, 0.0008);
+    noise(t, bus, 'bandpass', 5200, 2.5, 0.01, 0.003, 0.0003);
   } else if (kind === 'moment') {
     note(t, 783.99, 0.05, 0.4); note(t + 0.08, 1174.66, 0.04, 0.5);
     end = t + 0.6;
@@ -7517,12 +7663,55 @@ function sfxVoice(kind, v, t, duck, live, crowded) {
     note(t, 392, 0.055, 0.45); note(t + 0.16, 311.13, 0.045, 0.7);
     end = t + 0.9;
   }
-  live.push(end); voices[kind] = live;
+  return end;
 }
-function sfx(kind, v) {
+function sfx(kind, v, x) {
   buzz(kind, v);
   if (!ac || muted || ac.state !== 'running') return;
-  sfxAt(kind, v, ac.currentTime + 0.005);
+  sfxAt(kind, v, ac.currentTime + 0.005, x);
+}
+/* the roll bed at time t for a total ball speed S (m/s): level and colour rise with it, up to
+   about 4 m/s; nothing moving, it fades to silence. Only a real change is scheduled. */
+function rollAt(t, S) {
+  if (!rollG) return;
+  const k = clamp(S / 4, 0, 1), g = muted ? 0 : ROLL_LVL * Math.pow(k, 1.3);
+  if (g === rollTgt || (g > 0 && Math.abs(g - rollTgt) < rollTgt * 0.08)) return;
+  rollTgt = g;
+  rollG.gain.setTargetAtTime(g, t, 0.05);
+  rollF.frequency.setTargetAtTime(180 + 620 * k, t, 0.05);
+}
+/* once a frame: the roll from the table on screen (a replay's or the live roll), the room tone in
+   a game. Reads only; allocates nothing. */
+function soundFrame() {
+  if (!ac || !rollG || ac.state !== 'running') return;
+  const T = rp ? rp.tab : state === 'rolling' ? tab : null;
+  let S = 0;
+  if (T) for (let i = 0; i < T.balls.length; i++) { const b = T.balls[i]; if (b.on) S += Math.hypot(b.vx, b.vy); }
+  rollAt(ac.currentTime, S);
+  const room = !muted && settings.vol >= 5 && state !== 'menu' ? ROOM_LVL : 0;
+  if (room !== roomTgt) { roomTgt = room; roomG.gain.setTargetAtTime(room, ac.currentTime, 0.8); }
+}
+function soundLoop() {
+  try { soundFrame(); } catch (e) { /* never stop asking for frames */ }
+  requestAnimationFrame(soundLoop);
+}
+requestAnimationFrame(soundLoop);
+/* render sounds offline (tests, and the owner's listening files): events [kind, v, t, x] and roll
+   points [t, S] into a fresh OfflineAudioContext with the same graph, settings and muting.
+   Everything is scheduled synchronously with the live graph set aside, then put back. Resolves to
+   the mono samples. */
+async function soundRender(events, secs = 1, rolls = null, sr = 48000) {
+  const O = window.OfflineAudioContext || window.webkitOfflineAudioContext, off = new O(1, Math.ceil(secs * sr), sr);
+  const keep = [ac, noiseBuf, bus, fxBus, BUF, rollG, rollF, roomG, rollTgt, roomTgt, voices, crowd, nodeLog, nodeMade, nodePeak];
+  voices = {}; crowd = {}; nodeLog = [];
+  try {
+    audioInit(off, true);
+    if (!muted) for (const e of events) sfxAt(e[0], e[1], e[2] || 0, e[3]);
+    if (rolls) for (const [t, S] of rolls) rollAt(t, S);
+  } finally {
+    [ac, noiseBuf, bus, fxBus, BUF, rollG, rollF, roomG, rollTgt, roomTgt, voices, crowd, nodeLog, nodeMade, nodePeak] = keep;
+  }
+  return (await off.startRendering()).getChannelData(0);
 }
 
 /* ---- 2h. haptics. iOS Safari has no navigator.vibrate, but since iOS 18 toggling a switch
@@ -7530,32 +7719,49 @@ function sfx(kind, v) {
    toggles it, even from script. #hapTick is that label: display none (so never focusable, never
    in the accessibility tree), aria-hidden, its input tabindex -1, and its clicks stop there so no
    page handler sees them. Where the switch is not a thing and vibrate is (Android), a short
-   vibration instead. Nothing fires before the first gesture on the page, nor with Haptics off
-   (settings.haptics), and ticks are at least HAP_GAP ms apart. Kinds: a ball-ball contact over
-   HAP_BALL m/s one tick, a pot two, a carom point two (with its two clicks), a foul one, a win
-   three. ---- */
-const HAP_GAP = 60, HAP_BALL = 0.8, HAP_SWITCH = 'switch' in document.createElement('input');
-let hapArmed = false, hapLast = -1e9, hapCount = 0;
-const hapPlans = { pocket: [0, 90], point: [0, 110], foul: [0], win: [0, 130, 260], lose: [0] };
+   vibration instead (its length the tick's weight). Nothing fires before the first gesture on the
+   page, nor with Haptics off (settings.haptics), and ticks are at least HAP_GAP ms apart.
+   The map: a pot is a firm tick (two toggles 70 ms apart, felt as one), a foul a distinct double,
+   a win a short triple, the power bar reaching 100% one crisp tick (powerFull), a carom point two;
+   impacts only when hard (a cushion, jaw or post over HAP_RAIL m/s, a ball contact over HAP_BALL),
+   light, and at most one per HAP_HIT ms, so a break never machine-guns. ---- */
+const HAP_GAP = 60, HAP_HIT = 140, HAP_BALL = 1.5, HAP_RAIL = 2, HAP_SWITCH = 'switch' in document.createElement('input');
+let hapArmed = false, hapLast = -1e9, hapHit = -1e9, hapCount = 0;
+const hapPlans = { pocket: [0, 70], point: [0, 110], foul: [0, 190], win: [0, 130, 260], lose: [0], full: [0] };
 for (const e of ['pointerdown', 'keydown', 'touchend']) addEventListener(e, () => { hapArmed = true; }, { capture: true, passive: true });
 hapTick.addEventListener('click', e => e.stopPropagation());
 hapTick.firstElementChild.addEventListener('click', e => e.stopPropagation());
-/* one tick now, if allowed; true when it fired */
-function hapNow() {
+/* one tick now, if allowed; true when it fired. ms: the vibration where there is no switch. */
+function hapNow(ms = 12) {
   if (!hapArmed || !(typeof settings === 'object' && settings.haptics)) return false;
   const t = performance.now();
   if (t - hapLast < HAP_GAP) return false;
   hapLast = t; hapCount++;
-  if (!HAP_SWITCH && typeof navigator.vibrate === 'function') { try { navigator.vibrate(10); } catch (e) { } }
+  if (!HAP_SWITCH && typeof navigator.vibrate === 'function') { try { navigator.vibrate(ms); } catch (e) { } }
   else hapTick.click();
   return true;
 }
 function buzz(kind, v) {
   if (felt.replaying) return;   /* a replay is a look back: no ticks */
-  if (kind === 'ball') { if (v >= HAP_BALL) hapNow(); return; }
+  if (kind === 'ball' || kind === 'rail' || kind === 'jaw' || kind === 'post') {
+    if (!(v >= (kind === 'ball' ? HAP_BALL : HAP_RAIL))) return;
+    const t = performance.now();
+    if (t - hapHit >= HAP_HIT && hapNow(6)) hapHit = t;
+    return;
+  }
   const plan = hapPlans[kind];
   if (!plan) return;
-  for (const ms of plan) if (ms) setTimeout(hapNow, ms); else hapNow();
+  const ms = kind === 'pocket' ? 18 : 12;
+  for (const at of plan) if (at) setTimeout(() => hapNow(ms), at); else hapNow(ms);
+}
+/* the power bar at 100% (called by the bar's code as the pull reaches full): a soft tick in the
+   ear and one in the hand, once per pull (the pull object is the pull's identity) */
+let pfPull = null, pfCount = 0;
+function powerFull() {
+  if (!pull || pull === pfPull) return false;
+  pfPull = pull; pfCount++;
+  sfx('full', 1);
+  return true;
 }
 
 /* ============ 3. VIEW ============ */
@@ -10552,7 +10758,7 @@ function frameBody(now) {
     for (let i = 0; i < steps && live; i++) live = stepTable(tab);
     tab.balls.forEach((b, i) => { if (before[i][2]) rollBall(b.n, b.x - before[i][0], b.y - before[i][1]); });
     onHits(tab.hits, now);
-    for (const h of tab.hits) sfx(h[0], h[1]);
+    for (const h of tab.hits) sfx(h[0], h[1], h[2]);
     tab.hits.length = 0;
     tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
     if (!live) { const res = resultOf(tab), was = game.turn; settle(); offerReplay(res); partyHandoff(was); }
@@ -10737,7 +10943,7 @@ function replayStep(now, dtMs) {
     for (let i = 0; i < n && live; i++) live = stepTable(T);
     T.balls.forEach((b, i) => { if (before[i][2]) rollBall(b.n, b.x - before[i][0], b.y - before[i][1]); });
     onHits(T.hits, now, T);
-    for (const h of T.hits) sfx(h[0], h[1]);
+    for (const h of T.hits) sfx(h[0], h[1], h[2]);
     T.hits.length = 0;
     T.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, T.pocketOf[b.n], [before[i][0], before[i][1]], now); });
     if (!live) R.end = true;
@@ -11130,7 +11336,7 @@ powerBar.addEventListener('pointermove', e => {
   const [pos, lo, , cross, c0, c1] = barPos(e), d = pos - g.pos0;
   if (g.armed && (cross < c0 - OFF_TABLE || cross > c1 + OFF_TABLE || pos < lo - OFF_TABLE)) { cancelPull(g); return; }
   if (!g.armed && d >= g.arm) { g.armed = true; pull = { kind: 'bar' }; say(PULL_HINT); }
-  if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); hudControls(); }
+  if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); if (power >= 1) powerFull(); hudControls(); }
 });
 function endBar(e, cancel) {
   const g = gest;
@@ -11394,6 +11600,7 @@ function stepKeyPull(now) {
   if (state !== 'aim' || !human()) { cancelKeyPull(); return; }
   const u = clamp((now - k.t0) / (KEY_PULL_MS * Math.max(0.35, k.to)), 0, 1);
   power = k.to * u;
+  if (power >= 1) powerFull();
   hudControls();
   if (u >= 1) { keyPull = null; commit(k.to); }
 }
@@ -13533,6 +13740,10 @@ function showPrefs(name) {
 Object.defineProperty(felt, 'prefsPage', { get: () => prefsAt });
 /* the audio graph's gains (master: the bus, fx: the table's sounds), once there is a graph */
 Object.defineProperty(felt, 'audio', { get: () => (ac && bus ? { master: +bus.gain.value.toFixed(4), fx: +fxBus.gain.value.toFixed(4), state: ac.state } : null) });
+/* the sound engine (2): nodes live now, the most at once, made so far, the cap; the roll and room beds' targets and
+   levels; powerFull's count. felt.sound.render is soundRender. */
+Object.defineProperty(felt, 'sound', { get: () => ({ nodes: ac ? nodesLive() : 0, peak: nodePeak, made: nodeMade, cap: NODE_CAP, roll: rollTgt, rollGain: rollG ? rollG.gain.value : 0, room: roomTgt,
+  fulls: pfCount, render: soundRender, reset: () => { nodePeak = 0; nodeMade = 0; } }) });
 setupBack.addEventListener('click', () => backToMenu());
 /* a career or tournament rack is never taken again (audit F5); an exhibition or a party plays on its own terms again */
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (modeOpts) start(game.kind, modeOpts); else if (!career && !tmatch) start(game.kind); });

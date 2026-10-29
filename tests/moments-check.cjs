@@ -6,7 +6,7 @@
    callout (off the cue ball, taking no input) and a straight pot raises none; a winning run out
    shows on the game-over sheet with both players' numbers, whose buttons work and whose text and
    targets pass; the haptic switch never fires before a gesture or with Haptics off, ticks at
-   most once per HAP_GAP, never moves focus or changes the game; every sfx kind plays without
+   most once per HAP_GAP (impacts per HAP_HIT), never moves focus or changes the game; every sfx kind plays without
    throwing. */
 'use strict';
 const { check, done, open, settled, smallTargets, lowContrast } = require('./lib.cjs');
@@ -239,18 +239,18 @@ check('run out: the 8 to win at the end of a visit of seven; break and run when 
     for (let i = 0; i < 25; i++) sfx('ball', 4);
     const burst = __taps - t0;
     sfx('ball', 0.3);
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 160));
     sfx('ball', 4);
     const later = __taps - t0;
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 160));
     const p0 = __taps; sfx('pocket', 1); await new Promise(r => setTimeout(r, 200)); const pocket = __taps - p0;
     const w0 = __taps; sfx('win', 1); await new Promise(r => setTimeout(r, 400)); const win = __taps - w0;
-    const f0 = __taps; sfx('foul', 1); await new Promise(r => setTimeout(r, 100)); const foul = __taps - f0;
+    const f0 = __taps; sfx('foul', 1); await new Promise(r => setTimeout(r, 300)); const foul = __taps - f0;
     const after = { el: document.activeElement.id, game: JSON.stringify(felt.game), state: felt.state, scroll: [scrollX, scrollY] };
     return { burst, later, pocket, win, foul, same: JSON.stringify(before) === JSON.stringify(after), el: after.el, checked: hapTick.firstElementChild.checked, count: felt.haptics.count };
   });
-  check('haptics: a burst of hard contacts ticks once (rate limited), a soft one never, the next after the gap', h.burst === 1 && h.later === 2, JSON.stringify(h));
-  check('haptics: a pot two ticks, a win three, a foul one', h.pocket === 2 && h.win === 3 && h.foul === 1, JSON.stringify(h));
+  check('haptics: a burst of hard contacts ticks once (rate limited, HAP_HIT), a soft one never, the next after the gap', h.burst === 1 && h.later === 2, JSON.stringify(h));
+  check('haptics: a pot two ticks, a win three, a foul a double', h.pocket === 2 && h.win === 3 && h.foul === 2, JSON.stringify(h));
   check('haptics: the switch clicks never move focus, scroll or touch the game', h.same && h.el === 'spinPad', JSON.stringify(h));
   const rpl = await hp.evaluate(async () => {
     const t = __taps; rp = { fake: true };

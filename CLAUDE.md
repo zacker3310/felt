@@ -178,7 +178,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   real `strike`/`stepTable` (`HERO_SHOTS` per table via `heroKey`, `heroSetup`; re-solve with `node tools/hero-solver.cjs`
   after any cloth, strike or rack change). Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
   in a task after the sheet opens, then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
-  final still). `felt.hero` reports it. Pinned by `hero-check` (final frame = `simulateShot`, frames, contrast, layout).
+  final still). `felt.hero` reports it. Its height is `heroFit()` (portrait phone): 30% of the sheet, growing into the
+  room a short form leaves up to 50% (a ResizeObserver on the form's columns and `fitSetupRows` rerun it); the camera
+  rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
+  `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
 - Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
   tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`

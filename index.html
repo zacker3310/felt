@@ -521,6 +521,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .heroTxt .kicker { margin: 0 0 2px; color: rgba(255, 255, 255, .86); }
 .heroTxt .title { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.12; color: #fff; overflow-wrap: anywhere; }
 #setupSub { margin: 4px 0 0; font-size: 15px; line-height: 1.3; color: rgba(235, 235, 245, .82); }
+/* short headings and lines on the setup sheets wrap balanced, never one word alone on the last line */
+#setupSub, .heroTxt .title, :is(#setupSheet, #modesSheet, #careerSheet, #drillSheet) :is(h2, h3, .title, .sub) { text-wrap: balance; }
 /* the groups: inset, rounded, hairlines between rows inset to the words; a group with nothing to
    show is not drawn */
 .sgrp { container-type: inline-size; margin: 12px 0 0; overflow: hidden; border-radius: 16px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
@@ -12483,7 +12485,7 @@ function showSetup(kind) {
   setupKind = kind;
   const k = KINDS[kind];
   setupSheet.dataset.kind = kind;
-  setupTitle.textContent = titleCase(k.name); setupSub.textContent = k.sub;
+  setupTitle.textContent = titleCase(k.name); setupSub.textContent = noWidow(k.sub);
   setupBall.className = 'ball ' + k.ball; setupBall.textContent = k.num;
   breakBtn.textContent = kind === 'bumper' ? 'Play' : 'Break';
   for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'carom' || kind === 'snooker';
@@ -12514,6 +12516,7 @@ function fitSetupRows() {
     if (over(f)) f.classList.add('wrap2');
   }
   /* a form that fits whole has nothing under the foot to fade */
+  heroFit();
   setFoot.classList.toggle('whole', setupScroll.scrollHeight <= setupScroll.clientHeight);
 }
 /* Break (or Play again): the setup is remembered, and the game starts on it */
@@ -12702,7 +12705,7 @@ function caromArt(balls, wide) {
    motion: the final still, no animation. Hidden (the sheet closed, the page in the background):
    no frames. felt.hero reports it, felt.heroMeasure makes each frame flush its pixels so its time
    is the real cost. ---- */
-const HERO_CUE_MS = 600, HERO_ROLL_MS = 2500, HERO_SUB = 6, HERO_DPR = 2, HERO_ZOOM = 1.14;
+const HERO_CUE_MS = 560, HERO_ROLL_MS = 2340, HERO_SUB = 6, HERO_DPR = 2, HERO_ZOOM = 1.14;
 let heroNoPosts = false;   /* drawTableImage leaves bumper pool's posts out: the hero stands its own */
 const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, job: null };
 /* the hero's table for kind from the settings (paintRack's), and the game's back exactly */
@@ -12794,22 +12797,22 @@ function heroProj(C, x, y, z) {
 /* where each game is seen from: behind the shot at the pocket games and snooker (a little to the
    side, looking up the table past the rack), from an end at carom and bumper pool. Fitted so the
    table fills the canvas above the words (box: the top band left clear of the title) */
-function heroCamera(d, W, H, box) {
-  const g = d.geo, L = g.TL, b = d.balls.find(o => o.n === d.shot.ball), kind = d.kind;
+function heroCamera(d, W, H, box, tall) {
+  const g = d.geo, L = g.TL, b = d.balls.find(o => o.n === d.shot.ball), kind = d.kind, up = 1 + 0.55 * tall;
   let E, T;
-  if (kind === 'carom') { T = [L * 0.56, g.TW * 0.56, 0]; E = [-0.16 * L, -0.3 * L, 0.36 * L]; }
-  else if (kind === 'bumper') { T = [L * 0.56, g.TW * 0.5, 0]; E = [-0.62 * L, g.TW * 0.6, 0.78 * L]; }
+  if (kind === 'carom') { T = [L * (0.56 - 0.06 * tall), g.TW * 0.56, 0]; E = [-0.16 * L * (1 + 0.5 * tall), -0.3 * L * (1 + 0.3 * tall), 0.36 * L * up]; }
+  else if (kind === 'bumper') { T = [L * 0.56, g.TW * 0.5, 0]; E = [-0.62 * L * (1 + 0.15 * tall), g.TW * 0.6, 0.78 * L * up]; }
   else {
-    const a = d.shot.angle * 0.55, back = 0.9 * L, ca = Math.cos(a), sa = Math.sin(a);
-    T = [L * 0.66, g.TW / 2 + (b.y - g.TW / 2) * 0.25, 0];
-    E = [b.x - ca * back, b.y - sa * back + (b.y < g.TW / 2 ? 1 : -1) * 0.04 * L, 0.54 * L];
+    const a = d.shot.angle * 0.55, back = 0.9 * L * (1 + 0.2 * tall), ca = Math.cos(a), sa = Math.sin(a);
+    T = [L * (0.66 - 0.08 * tall), g.TW / 2 + (b.y - g.TW / 2) * 0.25, 0];
+    E = [b.x - ca * back, b.y - sa * back + (b.y < g.TW / 2 ? 1 : -1) * 0.04 * L, 0.54 * L * up];
   }
   const C = heroCam(E, T, kind === 'bumper' ? 0 : 0.035 * (kind === 'carom' ? -1 : 1));
   /* fit: the rail's outline at its top, a little cropped at the near corners (it runs under the words) */
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const [x, y] of g.outline) { const p = heroProj(C, x, y, g.h); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
   /* the near rail may run off the bottom: fit the width, and the far end inside the box's top */
-  const F = Math.min(box.w / (x1 - x0), box.h / ((y1 - y0) * 0.86)) * (kind === 'carom' ? 1.3 : 1.06);
+  const F = Math.min(box.w / (x1 - x0), box.h / ((y1 - y0) * (0.86 + 0.14 * tall))) * (kind === 'carom' ? 1.3 - 0.3 * tall : 1.06 - 0.06 * tall);
   C.F = F; C.cx = box.x + box.w / 2 - F * (x0 + x1) / 2; C.cy = box.y - F * y0;
   return C;
 }
@@ -12869,7 +12872,11 @@ const heroURange = (T, pts) => { const us = pts.map(([x, y]) => (x * T.c + y * T
 function heroPath(x, C, pts, z) { pts.forEach(([a, b], i) => { const p = heroProj(C, a, b, z); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.closePath(); }
 const mixRgb = (hex, k, to = [0, 0, 0]) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`; };
 function heroStill(d, W, H) {
-  const g = d.geo, box = { x: W * 0.04, y: H * 0.13, w: W * 0.92, h: H * 0.62 }, C = heroCamera(d, W, H, box);
+  /* a taller hero (spare room on a short form, hero.fit) sees more of the table: the camera
+     rises and draws back, and the fit takes the whole table down to the words */
+  const txt = heroTxtH(W), tall = clamp((H / W - 0.66) / 0.5, 0, 1), top = H * (0.13 - 0.03 * tall);
+  const box = { x: W * 0.04, y: top, w: W * 0.92, h: H * 0.62 + (H - 0.8 * txt - top - H * 0.62) * tall };
+  const g = d.geo, C = heroCamera(d, W, H, box, tall);
   const tex = heroTexture(d), T = heroTurned(tex, g, C.yaw), bg = document.createElement('canvas'), fg = document.createElement('canvas');
   bg.width = fg.width = W; bg.height = fg.height = H;
   const x = bg.getContext('2d'), RW = railLook(), hC = g.h;
@@ -13038,7 +13045,31 @@ function heroCue(x, C, g, d, t, Z, z) {
   }
   x.globalAlpha = 1;
 }
+/* the words' block on the hero, in canvas px */
+const heroTxtH = W => { const t = document.querySelector('#setupHero .heroTxt'); return t && setupHeroArt.clientWidth ? t.offsetHeight * W / setupHeroArt.clientWidth : 0; };
+/* a line that wraps never leaves one word alone on its last line: the last two words held
+   together (text-wrap: balance does better where the browser has it; this is its fallback) */
+const noWidow = t => t.replace(/ (\S+)$/, '\u00a0$1');
 /* ---- the controller ---- */
+/* the hero takes the room a short form leaves (portrait phone): between 30% and 50% of the sheet,
+   as tall as the form and Break allow; a form that needs the room keeps the CSS 30% exactly.
+   Run whenever the form's size may change (fitSetupRows, and a ResizeObserver on its columns). */
+const HERO_MIN = 0.3, HERO_MAX = 0.5;
+function heroFit() {
+  const el = setupHero;
+  if (!setupSheet.classList.contains('show')) return;
+  const phone = matchMedia('(max-width: 600px), (max-height: 500px)').matches, side = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+  let want = '';
+  if (phone && !side) {
+    const S = el.parentElement.getBoundingClientRect().height, sc = setupScroll, r = sc.getBoundingClientRect(), k = el.offsetHeight / (el.getBoundingClientRect().height || 1);
+    let bottom = r.top;
+    for (const c of sc.children) if (c.getClientRects().length) bottom = Math.max(bottom, c.getBoundingClientRect().bottom);
+    const content = bottom - r.top + sc.scrollTop / k + parseFloat(getComputedStyle(sc).paddingBottom) / k;
+    const spare = S - setFoot.getBoundingClientRect().height - content - 1;
+    if (spare > HERO_MIN * S + 8) want = Math.round(Math.min(spare, HERO_MAX * S) * k) + 'px';
+  }
+  if (el.style.height !== want) { el.style.height = want; if (hero.data) heroShow(setupKind); }
+}
 function heroSize() {
   const w = setupHeroArt.clientWidth, h = setupHeroArt.clientHeight, dp = Math.min(HERO_DPR, pixelRatio());
   return [Math.max(1, Math.round(w * dp)), Math.max(1, Math.round(h * dp))];
@@ -13053,10 +13084,10 @@ function heroShow(kind, replay) {
   if (!d0 || d0.kind !== kind || d0.args.join() !== args) { hero.data = heroPrep(kind); hero.run = null; replay = true; }
   hero.kind = kind;
   if (replay) { heroStop(); hero.state = 'idle'; }
-  const d = hero.data, artKey = [d.key, lookSig(), W, H].join('|');
+  const d = hero.data, artKey = [d.key, lookSig(), W, H, Math.round(heroTxtH(W))].join('|');
   if (!replay && hero.art && hero.art.key === artKey && !hero.job) return;
   if (!hero.art || hero.art.key !== artKey || !hero.run || !hero.run.done) {
-    setupHeroArt.classList.add('wait');
+    if (hero.state === 'idle') setupHeroArt.classList.add('wait');
     const job = hero.job = {};
     setTimeout(() => {
       if (hero.job !== job || hero.data !== d) return;
@@ -13118,6 +13149,8 @@ function heroInfo() {
     final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null, simT: r && r.S };
 }
 setupHeroArt.addEventListener('click', heroReplay);
+/* the form grows or shrinks (the CPU's cards, a folded choice, the text size): the hero follows */
+if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => heroFit()); for (const c of setupScroll.children) ro.observe(c); }
 
 /* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
    (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the

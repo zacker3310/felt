@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* hero-check: the setup hero (page 4m, sim 1n), in a real browser at 393x852 (dpr 3).
    For each of the eight games:
-   1. the hero canvas is there, full bleed, 30-36% of the height, not blank (pixel variance) and
+   1. the hero canvas is there, full bleed, 30-50% of the height, taking the room a short form
+      leaves (no band over 24 px above Break unless at its 50% cap), not blank (pixel variance) and
       unlike every other game's;
    2. the shot plays out and settles within 4 s of the sheet opening, then asks for no frame;
    3. the last frame is the sim's: the rest positions equal simulateShot's for the stored inputs,
@@ -52,8 +53,13 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const b = await ev(() => ({ frames: felt.hero.frames, raf: felt.hero.raf, state: felt.hero.state }));
     const sim = await ev(k => __simFinal(k), kind);
     sigs[kind] = a.sig;
-    check(`${kind}: the hero is full bleed, ${(a.box[3] / a.vh * 100).toFixed(1)}% of the height (30-36%), and not blank (variance ${a.sig.varc.toFixed(0)})`,
-      a.box[0] === 0 && Math.abs(a.box[2] - a.vw) < 0.5 && a.box[3] >= 0.3 * a.vh - 0.5 && a.box[3] <= 0.36 * a.vh && a.sig.varc > 200);
+    check(`${kind}: the hero is full bleed, ${(a.box[3] / a.vh * 100).toFixed(1)}% of the height (30-50%), and not blank (variance ${a.sig.varc.toFixed(0)})`,
+      a.box[0] === 0 && Math.abs(a.box[2] - a.vw) < 0.5 && a.box[3] >= 0.3 * a.vh - 0.5 && a.box[3] <= 0.5 * a.vh + 0.5 && a.sig.varc > 200);
+    /* the empty band between the form's last line and Break */
+    const band = await ev(() => { let b = 0; for (const c of setupScroll.children) if (c.getClientRects().length) b = Math.max(b, c.getBoundingClientRect().bottom);
+      const pad = parseFloat(getComputedStyle(setupScroll).paddingBottom); return { band: Math.round(breakBtn.getBoundingClientRect().top - b - pad), h: setupHero.getBoundingClientRect().height, vh: innerHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight }; });
+    check(`${kind}: the hero takes the spare room (band above Break ${band.band} px: 24 px or less, or the hero at its 50% cap; the form never scrolled by it)`,
+      (band.band <= 24 || band.h >= 0.5 * band.vh - 0.5 || band.h <= 0.3 * band.vh + 0.5 && band.sh > band.ch) && !(band.h > 0.3 * band.vh + 0.5 && band.sh > band.ch), JSON.stringify(band));
     check(`${kind}: the shot settles within 4 s of opening (${settleMs} ms), then no frame is asked for`, ok && b.state === 'done' && !b.raf && b.frames === a.h.frames && mid.state === 'play', JSON.stringify({ settleMs, mid: mid.state, b }));
     const same = JSON.stringify(sim.balls) === JSON.stringify(a.h.final);
     /* Node's sim on the same table */
@@ -159,9 +165,22 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
   /* the back button, the fit, Break */
   const lay = await ev(() => { setSetting('cpu', false); showSetup('8'); fitSetupRows();
     const r = setupBack.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), bb = breakBtn.getBoundingClientRect();
-    return { w: r.width, h: r.height, top: setupBack.contains(t), fit: setupScroll.scrollHeight <= setupScroll.clientHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, brk: [bb.top, bb.bottom, bb.height], vh: innerHeight }; });
+    return { w: r.width, h: r.height, top: setupBack.contains(t), hero: setupHero.getBoundingClientRect().height, fit: setupScroll.scrollHeight <= setupScroll.clientHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, brk: [bb.top, bb.bottom, bb.height], vh: innerHeight }; });
   check('the back button over the hero: 44 px and on top', lay.w >= 44 && lay.h >= 44 && lay.top, JSON.stringify(lay));
-  check('8-Ball for two players fits whole at 393x852, Break pinned and wholly in view', lay.fit && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
+  check('8-Ball for two players fits whole at 393x852 under a hero of exactly 30%, Break pinned and wholly in view', lay.fit && Math.abs(lay.hero - 0.3 * lay.vh) < 0.5 && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
+  /* the CPU's cards make the snooker form taller: the hero gives the room back, then takes it again */
+  const opp = await ev(async () => { backToMenu(); setSetting('cpu', false); showSetup('snooker'); await new Promise(r => setTimeout(r, 300)); const h0 = setupHero.getBoundingClientRect().height;
+    vsCpu.click(); await new Promise(r => setTimeout(r, 300)); const h1 = setupHero.getBoundingClientRect().height, fit1 = setupScroll.scrollHeight <= setupScroll.clientHeight;
+    vs2p.click(); await new Promise(r => setTimeout(r, 300)); const h2 = setupHero.getBoundingClientRect().height;
+    return { h0, h1, h2, fit1, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight }; });
+  check('Snooker: Opponent CPU adds the cards, the hero shrinks for them (the form still whole); Two Players gives the room back', opp.h1 < opp.h0 && opp.fit1 && opp.h2 === opp.h0, JSON.stringify(opp));
+  await ev(() => { backToMenu(); setSetting('cpu', false); showSetup('8'); });
+  /* balanced lines: the game's line never ends on one word alone */
+  const wid = await ev(() => ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom'].map(k => { showSetup(k); const r = document.createRange(); r.selectNodeContents(setupSub); const rs = [...r.getClientRects()];
+    const lines = [...new Set(rs.map(x => Math.round(x.top)))].length; const t = setupSub.textContent, last = t.slice(t.lastIndexOf(' ') + 1); return { k, lines, ok: lines < 2 || /\u00a0/.test(t) || last.includes('\u00a0'), wrap: getComputedStyle(setupSub).textWrap }; }));
+  check('the game\'s line wraps balanced (text-wrap: balance), its last two words held together', wid.every(w => w.ok && /balance/.test(w.wrap)), JSON.stringify(wid));
+  await ev(() => { backToMenu(); showSetup('8'); fitSetupRows(); });
+  await page.waitForTimeout(200);
   await page.touchscreen.tap(196, (lay.brk[0] + lay.brk[1]) / 2);
   await page.waitForTimeout(300);
   check('a real tap on Break starts the game', await ev(() => !setupSheet.classList.contains('show') && felt.game.kind === '8' && felt.state !== 'menu'));

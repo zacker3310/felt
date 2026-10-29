@@ -11417,7 +11417,7 @@ powerBar.addEventListener('pointermove', e => {
   const [pos, lo, , cross, c0, c1] = barPos(e), d = pos - g.pos0;
   if (g.armed && (cross < c0 - OFF_TABLE || cross > c1 + OFF_TABLE || pos < lo - OFF_TABLE)) { cancelPull(g); return; }
   if (!g.armed && d >= g.arm) { g.armed = true; pull = { kind: 'bar' }; say(PULL_HINT); }
-  if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); if (power >= 1) powerFull(); hudControls(); }
+  if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); hudControls(); }   /* at 100% powerTick (6m) calls powerFull once */
 });
 function endBar(e, cancel) {
   const g = gest;
@@ -11681,7 +11681,6 @@ function stepKeyPull(now) {
   if (state !== 'aim' || !human()) { cancelKeyPull(); return; }
   const u = clamp((now - k.t0) / (KEY_PULL_MS * Math.max(0.35, k.to)), 0, 1);
   power = k.to * u;
-  if (power >= 1) powerFull();
   hudControls();
   if (u >= 1) { keyPull = null; commit(k.to); }
 }

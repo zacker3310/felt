@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `26/26 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `27/27 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -173,8 +173,14 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   Space on the focused power bar drives the bar only with `keyShoot` (audit F7): it still shoots through `commit`.
   Ball marks (`marks`) draw on the table (`drawMark`) and on every DOM ball dot (`dotEl`, its `.cb` badge): build any
   new dot list with `dotEl`/`fillDots`, and put `settings.marks` in any cache key over dots.
-- Setup sheets pin their primary action. The game setup is a scrolling form (`#setupScroll`: header, the line beside a
-  table thumbnail, the tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
+- Setup hero (page 4m, sim 1n): the game setup opens under `#setupHero`, the game's table in hand-written perspective
+  (drawTableImage's art laid on the bed and rail planes in constant-depth bands) playing its signature shot through the
+  real `strike`/`stepTable` (`HERO_SHOTS` per table via `heroKey`, `heroSetup`; re-solve with `node tools/hero-solver.cjs`
+  after any cloth, strike or rack change). Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
+  in a task after the sheet opens, then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
+  final still). `felt.hero` reports it. Pinned by `hero-check` (final frame = `simulateShot`, frames, contrast, layout).
+- Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
+  tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`
   (sticky `.cvAct.pin`), a drill with `.howAct`: a new setup page puts its action there, never inline at the end.
   `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852 and 440x956, text sizes, landscape).

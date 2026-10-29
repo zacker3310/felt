@@ -28,6 +28,7 @@ const NAMES = ['SIM_DT', 'BALL_R', 'TL', 'TW', 'MAX_V', 'HEAD_X', 'FOOT', 'MAX_S
   'ringRulesets', 'playersOf', 'nextOf', 'callScope', 'callNeed', 'callOpen', 'callResult', 'breakLegal', 'railBalls', 'spotAll', 'withCall', 'chooseOption', 'cpuOption', 'cpuValue', 'cpuChance', 'rerack', 'rackSpots', 'RACKS', 'groupOf',
   'cpuProfile', 'cpuRecord', 'cpuThinkMs', 'CPU_ARCH', 'CPU_NEUTRAL', 'CPU_THINK', 'cpuBankLines', 'cpuComboLines', 'cpuLines', 'cpuIntent', 'cpuPotBall',
   'DRILL_LIB', 'DRILL_TIERS', 'drillById', 'drillHelpers', 'drillShot', 'drillBalls', 'drillGame', 'drillJudge', 'drillOver', 'drillTotal', 'drillTier', 'drillRun', 'nearOf',
+  'HERO_SHOTS', 'heroKey', 'heroBall', 'heroSetup',
   'Career'];
 
 function regionSource() {

@@ -494,26 +494,38 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #setupSheet .sheet.setup { max-width: 480px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); display: flex; flex-direction: column;
   overflow: hidden; padding: 0; border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
-.setScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; padding: 16px var(--pr) 12px var(--pl); }
+.setScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; padding: 4px var(--pr) 6px var(--pl); }
+#setupSheet .colA > .tutLink { margin-top: 6px; }
 .setScroll > * { min-width: 0; }
 .setFoot { position: relative; z-index: 1; flex: none; padding: 4px var(--pr) max(16px, var(--sab)) var(--pl); background: var(--page); }
+.setFoot.whole::before { display: none; }
 .setFoot::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px; background: linear-gradient(rgba(11, 11, 12, 0), var(--page)); pointer-events: none; }
 #breakBtn { display: block; width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 16px; border-radius: 999px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
-#setupSheet .shead { margin: 0 0 8px -4px; gap: 12px; }
-#setupSheet .shead .title { font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
-#setupSheet .shead .kicker { color: var(--label-2); }
-#setupSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
-#setupSheet .back:hover { background: #26262a; }
-/* the game's line, and its table beside it (a thumbnail, the whole table) */
-.intro { display: flex; align-items: flex-start; gap: 12px; }
-#setupSub { flex: 1; min-width: 0; margin: 0; font-size: 15px; line-height: 1.35; color: var(--label-2); }
-#setupArt { flex: none; display: block; width: 112px; aspect-ratio: 1.82 / 1; border-radius: 10px; background: var(--cell); }
-#setupSheet[data-kind="bumper"] #setupArt { width: 92px; aspect-ratio: 1.5 / 1; }
+/* the hero (4m): the game's table in a low perspective, its signature shot played by the sim,
+   full bleed across the top of the sheet and fixed above the form, the back button and the
+   game's ball over it, the kicker, the title and the game's line on its lower edge over a dark
+   fade into the page (4.5:1 for every word, measured). The canvas fills it; a tap replays. */
+#setupSheet .hero { position: relative; flex: none; display: flex; flex-direction: column; justify-content: flex-end; height: 262px; min-height: 0; overflow: hidden;
+  background: var(--page); padding: calc(var(--sat, 0px) + 64px) var(--pr) 10px var(--pl); }
+#setupHeroArt { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; transition: opacity .28s ease-out; }
+#setupHeroArt.wait { opacity: 0; transition: none; }
+[data-motion="reduce"] #setupHeroArt { transition: none; }
+@media (prefers-reduced-motion: reduce) { #setupHeroArt { transition: none; } }
+#setupSheet .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(rgba(11, 11, 12, .5), rgba(11, 11, 12, 0) calc(var(--sat, 0px) + 76px)),
+    linear-gradient(rgba(11, 11, 12, 0) calc(100% - 160px), rgba(11, 11, 12, .32) calc(100% - 134px), rgba(11, 11, 12, .62) calc(100% - 114px), rgba(11, 11, 12, .75) calc(100% - 98px), rgba(11, 11, 12, .84) calc(100% - 64px), rgba(11, 11, 12, .95) calc(100% - 26px), var(--page)); }
+#setupSheet .hero .back { position: absolute; top: calc(var(--sat, 0px) + 10px); left: var(--pl); z-index: 1; border: 0; background: rgba(18, 18, 20, .72); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .2); color: #fff; }
+#setupSheet .hero .back:hover { background: rgba(38, 38, 42, .85); }
+#setupSheet .hero .ball { position: absolute; top: calc(var(--sat, 0px) + 12px); right: var(--pr); z-index: 1; width: 40px; height: 40px; font-size: 13px; }
+.heroTxt { position: relative; z-index: 1; pointer-events: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+.heroTxt .kicker { margin: 0 0 2px; color: rgba(255, 255, 255, .86); }
+.heroTxt .title { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.12; color: #fff; overflow-wrap: anywhere; }
+#setupSub { margin: 4px 0 0; font-size: 15px; line-height: 1.3; color: rgba(235, 235, 245, .82); }
 /* the groups: inset, rounded, hairlines between rows inset to the words; a group with nothing to
    show is not drawn */
-.sgrp { container-type: inline-size; margin: 20px 0 0; overflow: hidden; border-radius: 16px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.sgrp { container-type: inline-size; margin: 12px 0 0; overflow: hidden; border-radius: 16px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
 .sgrp:not(:has(> :not([hidden]))) { display: none; }
-#setupSheet .field { position: relative; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; min-height: 54px; margin: 0; padding: 3px 3px 3px 14px; }
+#setupSheet .field { position: relative; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; min-height: 50px; margin: 0; padding: 3px 3px 3px 14px; }
 .sgrp > :not([hidden]) ~ :not([hidden])::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
 #setupSheet .field .label { font-size: 16px; line-height: 1.25; color: var(--label); }
 #setupSheet .seg { padding: 2px; gap: 2px; border: 0; border-radius: 10px; background: #0b0b0c; }
@@ -521,7 +533,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #setupSheet .seg button[aria-pressed="true"] { background: #3a3a40; color: var(--label); box-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
 /* a long choice ("Re-Rack (House)"), or any choice in a narrow group (large text): the label
    over a full-width segmented row */
-#setupSheet .field:is(.stack, .fold) { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 3px 3px; }
+#setupSheet .field:is(.stack, .fold) { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 8px 3px 3px; }
 #setupSheet .field:is(.stack, .fold) .label { padding-left: 10px; }
 #setupSheet .field.wrap2 .seg button { padding: 4px 6px; white-space: normal; line-height: 1.15; text-overflow: clip; }
 @container (max-width: 330px) {
@@ -545,7 +557,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .names input::placeholder { color: rgba(235, 235, 245, .6); }
 .names input:focus { outline: 2px solid rgba(235, 235, 245, .6); outline-offset: -2px; }
 /* the fine print: after the groups, quiet */
-#setupSheet .rnote { margin: 12px 14px 0; font-size: 13px; line-height: 1.4; color: var(--label-2); }
+#setupSheet .rnote { margin: 8px 14px 0; font-size: 13px; line-height: 1.35; color: var(--label-2); }
 #setupSheet .rnote:empty { display: none; }
 /* on its side: two columns (who plays on the left, the table and rules on the right) */
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
@@ -558,7 +570,15 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 @media (max-width: 600px), (max-height: 500px) {
   #setupSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
   #setupSheet .sheet.setup { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  .setScroll { padding-top: calc(var(--sat) + 10px); }
+  #setupSheet .hero { height: 30%; min-height: min-content; }
+}
+/* on its side: the hero a panel down the left, the form and Break on the right */
+@media (orientation: landscape) and (max-height: 500px) {
+  #setupSheet .sheet.setup { display: grid; grid-template-columns: minmax(0, 41fr) minmax(0, 59fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #setupSheet .hero { grid-row: 1 / 3; grid-column: 1; height: auto; padding-right: 16px; }
+  #setupSheet .setScroll { grid-column: 2; display: block; padding-left: 16px; }
+  #setupSheet .setFoot { grid-column: 2; padding-left: 16px; }
+  #setupSheet .colB > .sgrp:first-child { margin-top: 14px; }
 }
 /* the text sizes (the sheet is zoomed): the sheet keeps the screen's height */
 [data-text="115"] #setupSheet .sheet.setup { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
@@ -1440,11 +1460,14 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
      primary action, Break, always on screen above the home indicator -->
 <div class="overlay" id="setupSheet" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
   <div class="sheet setup">
+    <div class="hero" id="setupHero">
+      <canvas id="setupHeroArt" aria-hidden="true"></canvas>
+      <button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <span class="ball b8" id="setupBall" aria-hidden="true">8</span>
+      <div class="heroTxt"><p class="kicker">New game</p><h2 class="title" id="setupTitle">8-Ball</h2><p class="sub" id="setupSub"></p></div>
+    </div>
     <div class="setScroll" id="setupScroll">
     <div class="colA">
-    <div class="shead"><button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
-      <div class="htxt"><p class="kicker">New game</p><h2 class="title" id="setupTitle">8-Ball</h2></div><span class="ball b8" id="setupBall" aria-hidden="true">8</span></div>
-    <div class="intro"><p class="sub" id="setupSub"></p><canvas class="art" id="setupArt" aria-hidden="true"></canvas></div>
     <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">Play the 8-Ball Tutorial</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
     <div class="sgrp" role="group" aria-label="Players">
       <div class="field"><span class="label" id="oppLab">Opponent</span>
@@ -1490,7 +1513,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <p class="note rnote" id="rulesNote"></p>
     </div>
     </div>
-    <div class="setFoot"><button class="big cta" id="breakBtn">Break</button></div>
+    <div class="setFoot" id="setFoot"><button class="big cta" id="breakBtn">Break</button></div>
   </div>
 </div>
 
@@ -5552,6 +5575,54 @@ function drillRun(d, shots) {
   }
   return { js, total: drillTotal(d, js) };
 }
+
+/* ---- 1n. the setup hero: each game's signature shot (page 4m plays it on the setup sheet) ----
+   The break at the pocket games (a ball or more down, the cue ball and the game ball up), a red
+   off the break at snooker, a three-cushion point at carom, and at bumper pool the marked red
+   banked round the posts into the far cup. Played by this sim (strike and stepTable) on the
+   game's own table, so the picture is the physics. HERO_SHOTS holds the inputs per table, keyed
+   by heroKey: c, where the struck ball stands (table fractions; absent: where the rack puts it),
+   a the angle, p the power, s the spin [side, vertical]. They come from tools/hero-solver.cjs:
+   re-solve after any change to the cloth, the strike or a rack (it prints this table). */
+const HERO_SHOTS = {
+  '8|7|regulation': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
+  '8|7|generous': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
+  '8|9|regulation': { c: [0.25, 0.5], a: 0.002618, p: 1, s: [0, 0] },
+  '8|9|generous': { c: [0.25, 0.42], a: 0.064122, p: 1, s: [0, -0.25] },
+  '9|7|regulation': { c: [0.25, 0.5], a: -0.002618, p: 0.88, s: [0, 0] },
+  '9|7|generous': { c: [0.25, 0.5], a: -0.002618, p: 0.88, s: [0, 0] },
+  '9|9|regulation': { c: [0.21, 0.74], a: -0.223905, p: 1, s: [0, 0] },
+  '9|9|generous': { c: [0.25, 0.34], a: 0.145565, p: 1, s: [0, 0] },
+  '10|7|regulation': { c: [0.21, 0.42], a: 0.058268, p: 0.88, s: [0, 0.2] },
+  '10|7|generous': { c: [0.21, 0.42], a: 0.058268, p: 0.88, s: [0, 0.2] },
+  '10|9|regulation': { c: [0.21, 0.58], a: -0.092265, p: 0.94, s: [0, 0] },
+  '10|9|generous': { c: [0.21, 0.58], a: -0.092265, p: 0.94, s: [0, 0] },
+  'straight|7|regulation': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
+  'straight|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
+  'straight|9|regulation': { c: [0.21, 0.66], a: -0.160168, p: 0.94, s: [0, 0] },
+  'straight|9|generous': { c: [0.21, 0.66], a: -0.165404, p: 1, s: [0, 0.2] },
+  'rotation|7|regulation': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
+  'rotation|7|generous': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
+  'rotation|9|regulation': { c: [0.25, 0.5], a: 0.002618, p: 1, s: [0, 0] },
+  'rotation|9|generous': { c: [0.25, 0.42], a: 0.064122, p: 1, s: [0, -0.25] },
+  'snooker|compact': { c: [0.196414, 0.429792], a: 0.017483, p: 1, s: [0, -0.3] },
+  'snooker|full': { c: [0.198095, 0.570208], a: -0.007422, p: 1, s: [0, -0.3] },
+  'bumper|octagon': { a: -2.670354, p: 0.7, s: [0, 0] },
+  'bumper|rect': { a: -2.225295, p: 0.45, s: [0, 0] },
+  'carom': { a: -2.801253, p: 0.9, s: [0.5, 0.2] },
+};
+const heroKey = kind => POCKET_KINDS.includes(kind) ? `${kind}|${TABLE}|${POCKETS_STYLE}` : kind === 'snooker' ? 'snooker|' + SNOOKER_SIZE : kind === 'bumper' ? 'bumper|' + BUMPER_SHAPE : 'carom';
+/* the struck ball: the cue ball, carom's white, bumper pool's marked red */
+const heroBall = kind => kind === 'bumper' ? B_MARK[0] : kind === 'carom' ? C_CUE[0] : 0;
+/* the layout and the shot on the current table (the caller sets the game's table first):
+   { balls, shot: { ball, angle, power, spin } }. A table with no stored shot breaks straight
+   up the table at the foot spot (bumper pool: at the far cup) */
+function heroSetup(kind, sh = HERO_SHOTS[heroKey(kind)]) {
+  const n = heroBall(kind), balls = newGame(kind).balls.map(b => Object.assign({}, b)), b = balls.find(o => o.n === n);
+  if (sh && sh.c) { b.x = sh.c[0] * TL; b.y = sh.c[1] * TW; }
+  const T = kind === 'bumper' ? POCKETS[1] : FOOT, angle = sh ? sh.a : Math.atan2(T[1] - b.y, T[0] - b.x);
+  return { balls, shot: { ball: n, angle, power: sh ? sh.p : 0.9, spin: sh ? { x: sh.s[0], y: sh.s[1] } : 0 } };
+}
 // #endregion sim
 
 // #region career
@@ -7536,7 +7607,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29b';
+const BUILD = 'build 2026-10-29c';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -8477,6 +8548,7 @@ function paintBumperTable(g, co, L, px, K, rnd) {
     sh.addColorStop(0, 'rgba(255,240,220,0)'); sh.addColorStop(0.6, 'rgba(255,240,220,0)'); sh.addColorStop(1, 'rgba(255,240,220,0.18)');
     g.strokeStyle = sh; g.lineWidth = Math.max(px, 0.0012); circle(g, P[0], P[1], r - g.lineWidth / 2); g.stroke();
   });
+  if (heroNoPosts) return;
   if (BED_LINES) paintMushrooms(g, L, px); else paintPosts(g, L, px);
 }
 /* the four rubbers' lit noses: a band along each nose shaded by how squarely it faces the lamp,
@@ -9706,6 +9778,7 @@ const felt = window.felt = {
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
   get cpuLevel() { return cpuLevel; }, get cpuProfile() { return cpuProf; }, cpuSkip: () => { if (state === 'thinking' && !human()) cpuSkip = true; return cpuSkip; }, lastThink: null, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
+  get hero() { return heroInfo(); }, heroMeasure: false, heroReplay: () => heroReplay(),
   get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
   /* the aim feel (section 5 input): the sweep gain radius and tap reach in CSS px, and the tuning */
   get sweepR() { return sweepR(); }, get tapReach() { return tapReach(); },
@@ -12425,6 +12498,7 @@ function showSetup(kind) {
   openSheet(setupSheet, breakBtn);
   setupScroll.scrollTop = 0;
   fitSetupRows();
+  heroShow(kind, true);
   paintArt();
 }
 /* a choice whose words would crowd its segment beside the label ("WPA, Push Out" on a small
@@ -12439,6 +12513,8 @@ function fitSetupRows() {
     if (over(f)) f.classList.add('fold');
     if (over(f)) f.classList.add('wrap2');
   }
+  /* a form that fits whole has nothing under the foot to fade */
+  setFoot.classList.toggle('whole', setupScroll.scrollHeight <= setupScroll.clientHeight);
 }
 /* Break (or Play again): the setup is remembered, and the game starts on it */
 function playSetup(kind) {
@@ -12502,10 +12578,10 @@ function quitToHome() {
 const GEO = { setTable, setPockets };
 const artTilt = n => rotate(rotate(IDENT, [0, 0, 1], (n * 2.39) % 6.28), [1, 0.2, 0], 0.32);
 function paintArt() {
+  if (setupSheet.classList.contains('show') && hero.data) heroShow(setupKind);
   if (state !== 'menu' || paused) return;
   const words = b => b.querySelector('.tt').offsetHeight;
   const list = [...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)]);
-  if (setupSheet.classList.contains('show')) list.push([setupArt, setupKind, 'fit', 0]);
   for (const [cv, kind, mode, low] of list) paintRack(cv, kind, mode, low);
 }
 /* the home's pictures cover their card (no letterbox), zoomed in on the rack and placed where the
@@ -12603,6 +12679,445 @@ function caromArt(balls, wide) {
   const at = wide ? { 70: [0.522, 0.445], 71: [0.549, 0.478], 72: [0.495, 0.472] } : { 70: [0.497, 0.6], 71: [0.532, 0.66], 72: [0.52, 0.42] };
   for (const b of balls) if (at[b.n]) { b.x = TL * at[b.n][0]; b.y = TW * at[b.n][1]; }
 }
+
+/* ---- 4m. the setup hero ----
+   The top of the game setup: the game's own table (its geometry, cloth, rails, pockets or cups,
+   posts, marks and ball set, as look() has them) seen low from behind the shot, and its signature
+   shot (sim 1n, HERO_SHOTS) played by the sim: strike and stepTable on that table, so every frame
+   is the physics and the last one is simulateShot's result exactly. Hand-written perspective:
+   a pinhole camera (eye, look-at, roll, focal length fitted to the canvas) over the table plane.
+   The flat art is drawTableImage's, painted once per table and look, turned so the camera looks
+   along its rows, then laid on the bed (z 0) and on the cushion and rail tops (z h) in bands of
+   constant depth: along a band the plane maps linearly, so each band is one affine drawImage. The
+   cushion noses and the near apron are faces between the two; balls are drawBall's spheres at
+   their projected size (depth of field by scale alone), each over a contact shadow flattened to
+   the bed; the posts stand; the cue is a tapered shaft in the look's colours. The still parts are
+   painted once (bg, and fg: the near rail, which hides a ball against it); a frame is bg, the
+   moving parts, fg and the vignette, under a slow pull-back (a 2D zoom on the camera's image).
+   Timeline: the cue draws back and strikes (HERO_CUE_MS), then the roll plays in HERO_ROLL_MS on a
+   clock that starts near real time and speeds up as the balls slow (the sim's own seconds, warped),
+   ending on the rest positions; then no frame is asked for until a tap replays it. The sim runs in
+   slices inside the cue's frames, each slice on the hero's table and the game's put back before it
+   returns (the geometry swap paintRack does), so nothing else ever sees the hero's table. Reduce
+   motion: the final still, no animation. Hidden (the sheet closed, the page in the background):
+   no frames. felt.hero reports it, felt.heroMeasure makes each frame flush its pixels so its time
+   is the real cost. ---- */
+const HERO_CUE_MS = 600, HERO_ROLL_MS = 2500, HERO_SUB = 6, HERO_DPR = 2, HERO_ZOOM = 1.14;
+let heroNoPosts = false;   /* drawTableImage leaves bumper pool's posts out: the hero stands its own */
+const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, job: null };
+/* the hero's table for kind from the settings (paintRack's), and the game's back exactly */
+const heroArgs = kind => kind === 'snooker' ? ['snooker', settings.snookerTable, settings.pockets]
+  : [kind === 'bumper' || kind === 'carom' ? kind : settings.table, settings.bumperTable, settings.pockets];
+function heroOn(args) {
+  const keep = { table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE };
+  GEO.setTable(args[0], args[1]); GEO.setPockets(args[2]);
+  return keep;
+}
+function heroOff(k) {
+  GEO.setTable(k.table, k.table === 'snooker' ? k.snk : k.shape); POOL_TABLE = k.pool; BUMPER_SHAPE = k.shape; SNOOKER_SIZE = k.snk; GEO.setPockets(k.pockets);
+}
+/* the rail's outer edge as a polygon (railPath's), on the table now set */
+function heroOutline(co) {
+  if (BED_LINES) return octagon(RAIL);
+  const r = !MOUTHS.length ? Math.min(0.045, RAIL) : Math.min(pocketShape(0, co).rc + capGap(co), RAIL + co);
+  const x0 = -RAIL, y0 = -RAIL, x1 = TL + RAIL, y1 = TW + RAIL, out = [];
+  for (const [cx, cy, a0] of [[x1 - r, y0 + r, -Math.PI / 2], [x1 - r, y1 - r, 0], [x0 + r, y1 - r, Math.PI / 2], [x0 + r, y0 + r, Math.PI]])
+    for (let i = 0; i <= 6; i++) { const a = a0 + i * Math.PI / 12; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); }
+  return out;
+}
+/* what the hero needs of kind's table, its layout and its shot (the table set only inside) */
+function heroPrep(kind) {
+  const args = heroArgs(kind), keep = heroOn(args), rk = RAIL;
+  try {
+    RAIL = RAIL_MAX;
+    const co = cushionDepth(), H = heroSetup(kind);
+    const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
+    const geo = { TL, TW, R: BALL_R, rail: RAIL, co, h: BALL_R * 1.42, noses, polys: CUSHION_POLYS.map(q => q.map(p => p.slice())), outline: heroOutline(co),
+      mouths: MOUTHS.length, pockets: POCKETS.map(p => p.slice()), pr: POCKET_R.slice(), posts: BUMPERS.map(p => p.slice()), postR: BUMPER_R };
+    return { kind, args, key: heroKey(kind), geo, balls: H.balls, shot: H.shot };
+  } finally { RAIL = rk; heroOff(keep); }
+}
+/* the roll, recorded: positions every HERO_SUB steps, each ball's turn (rolled from its path as
+   frame() rolls the table's) and where it went down. Sliced: heroRunOn runs it for ms at most. */
+function heroRunStart(d) {
+  const tab = strike(newTable(d.balls, d.shot.ball), d.shot.angle, d.shot.power, d.shot.spin), n = tab.balls.length;
+  const m = tab.balls.map(b => artTilt(b.n));
+  const run = { tab, n, m, pos: [], on: [], rot: [], pots: {}, moveT: 0, done: false, final: null };
+  heroSample(run);
+  return run;
+}
+function heroSample(run) {
+  const B = run.tab.balls, n = run.n, p = new Float64Array(2 * n), on = new Uint8Array(n), rot = new Float32Array(9 * n), last = run.pos[run.pos.length - 1], lastOn = run.on[run.on.length - 1];
+  let moved = false;
+  for (let i = 0; i < n; i++) {
+    const b = B[i];
+    p[2 * i] = b.x; p[2 * i + 1] = b.y; on[i] = b.on ? 1 : 0;
+    if (last) {
+      const dx = b.x - last[2 * i], dy = b.y - last[2 * i + 1];
+      if (dx || dy) moved = true;
+      const d = Math.hypot(dx, dy);
+      if (b.on && d > 0) run.m[i] = rotate(run.m[i], [-dy, dx, 0], d / BALL_R);
+      if (lastOn[i] && !b.on) run.pots[i] = { t: run.tab.t, k: run.tab.pocketOf[b.n], at: [last[2 * i], last[2 * i + 1]] };
+    }
+    rot.set(run.m[i], 9 * i);
+  }
+  if (moved) run.moveT = run.tab.t;
+  run.pos.push(p); run.on.push(on); run.rot.push(rot);
+}
+function heroRunOn(ms) {
+  const d = hero.data, run = hero.run;
+  if (!run || run.done) return;
+  const keep = heroOn(d.args), t0 = performance.now();
+  try {
+    for (;;) {
+      let go = true;
+      for (let k = 0; k < HERO_SUB && go; k++) go = stepTable(run.tab);
+      heroSample(run);
+      if (!go) { run.done = true; run.final = resultOf(run.tab); run.S = Math.max(0.4, run.moveT); break; }
+      if (performance.now() - t0 > ms) break;
+    }
+  } finally { heroOff(keep); }
+}
+/* ---- the camera: eye E, look-at T (metres, z up), roll; F and the centre fitted to the canvas ---- */
+const v3 = { sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm: a => { const l = Math.hypot(a[0], a[1], a[2]); return [a[0] / l, a[1] / l, a[2] / l]; } };
+function heroCam(E, T, roll) {
+  const f = v3.norm(v3.sub(T, E)), r0 = v3.norm(v3.cross([0, 0, 1], f)), u0 = v3.cross(f, r0), c = Math.cos(roll), s = Math.sin(roll);
+  const r = [r0[0] * c + u0[0] * s, r0[1] * c + u0[1] * s, r0[2] * c + u0[2] * s], u = [u0[0] * c - r0[0] * s, u0[1] * c - r0[1] * s, u0[2] * c - r0[2] * s];
+  return { E, f, r, u, F: 1, cx: 0, cy: 0, yaw: Math.atan2(f[1], f[0]) };
+}
+/* [screen x, screen y, depth] of world (x, y, z) */
+function heroProj(C, x, y, z) {
+  const dx = x - C.E[0], dy = y - C.E[1], dz = z - C.E[2], d = dx * C.f[0] + dy * C.f[1] + dz * C.f[2];
+  return [C.cx + C.F * (dx * C.r[0] + dy * C.r[1] + dz * C.r[2]) / d, C.cy - C.F * (dx * C.u[0] + dy * C.u[1] + dz * C.u[2]) / d, d];
+}
+/* where each game is seen from: behind the shot at the pocket games and snooker (a little to the
+   side, looking up the table past the rack), from an end at carom and bumper pool. Fitted so the
+   table fills the canvas above the words (box: the top band left clear of the title) */
+function heroCamera(d, W, H, box) {
+  const g = d.geo, L = g.TL, b = d.balls.find(o => o.n === d.shot.ball), kind = d.kind;
+  let E, T;
+  if (kind === 'carom') { T = [L * 0.56, g.TW * 0.56, 0]; E = [-0.16 * L, -0.3 * L, 0.36 * L]; }
+  else if (kind === 'bumper') { T = [L * 0.56, g.TW * 0.5, 0]; E = [-0.62 * L, g.TW * 0.6, 0.78 * L]; }
+  else {
+    const a = d.shot.angle * 0.55, back = 0.9 * L, ca = Math.cos(a), sa = Math.sin(a);
+    T = [L * 0.66, g.TW / 2 + (b.y - g.TW / 2) * 0.25, 0];
+    E = [b.x - ca * back, b.y - sa * back + (b.y < g.TW / 2 ? 1 : -1) * 0.04 * L, 0.54 * L];
+  }
+  const C = heroCam(E, T, kind === 'bumper' ? 0 : 0.035 * (kind === 'carom' ? -1 : 1));
+  /* fit: the rail's outline at its top, a little cropped at the near corners (it runs under the words) */
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (const [x, y] of g.outline) { const p = heroProj(C, x, y, g.h); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  /* the near rail may run off the bottom: fit the width, and the far end inside the box's top */
+  const F = Math.min(box.w / (x1 - x0), box.h / ((y1 - y0) * 0.86)) * (kind === 'carom' ? 1.3 : 1.06);
+  C.F = F; C.cx = box.x + box.w / 2 - F * (x0 + x1) / 2; C.cy = box.y - F * y0;
+  return C;
+}
+/* ---- the still parts: the table art turned to the camera's yaw, laid on the planes ---- */
+function heroTexture(d) {
+  const key = [d.args.join(), lookSig()].join('|');
+  if (hero.tex && hero.tex.key === key) return hero.tex;
+  const g = d.geo, keep = heroOn(d.args), was = { view, dpr, RAIL };
+  try {
+    RAIL = RAIL_MAX; dpr = 1; heroNoPosts = true;
+    const ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)), w = Math.ceil((g.TL + 2 * ext) * K), h = Math.ceil((g.TW + 2 * ext) * K);
+    view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null };
+    const img = drawTableImage(w, h);
+    hero.tex = { key, img, K, ox: ext * K, oy: ext * K, rot: null };
+  } finally { view = was.view; dpr = was.dpr; RAIL = was.RAIL; heroNoPosts = false; heroOff(keep); }
+  return hero.tex;
+}
+/* the art turned by -yaw: its columns (u) run along the camera's ground direction, so a band of
+   constant depth is a column range. World (x, y) is at u = (x cos + y sin) K - u0, v = (-x sin + y cos) K - v0 */
+function heroTurned(tex, g, yaw) {
+  if (tex.rot && tex.rot.yaw === yaw) return tex.rot;
+  const c = Math.cos(yaw), s = Math.sin(yaw), K = tex.K, ext = g.rail + 0.02, us = [], vs = [];
+  for (const [x, y] of [[-ext, -ext], [g.TL + ext, -ext], [g.TL + ext, g.TW + ext], [-ext, g.TW + ext]]) { us.push((x * c + y * s) * K); vs.push((-x * s + y * c) * K); }
+  const u0 = Math.floor(Math.min(...us)), v0 = Math.floor(Math.min(...vs)), cv = document.createElement('canvas');
+  cv.width = Math.ceil(Math.max(...us)) - u0 + 1; cv.height = Math.ceil(Math.max(...vs)) - v0 + 1;
+  const x = cv.getContext('2d');
+  x.setTransform(c, -s, s, c, -u0, -v0);
+  x.drawImage(tex.img, -tex.ox, -tex.oy);
+  return (tex.rot = { yaw, c, s, K, u0, v0, img: cv });
+}
+/* lay the turned art on the plane z = h, inside whatever clip g has: bands of BAND device px,
+   far to near, each one drawImage under the affine that is exact along its middle */
+function heroPlane(x, C, T, h, uLo, uHi) {
+  const BAND = 1.6, at = (u, v) => { const U = (u + T.u0) / T.K, V = (v + T.v0) / T.K; return heroProj(C, U * T.c - V * T.s, U * T.s + V * T.c, h); };
+  /* the camera's own column, where the plane's lateral line is straight ahead */
+  const vc = (-C.E[0] * T.s + C.E[1] * T.c) * T.K - T.v0, Hh = T.img.height;
+  /* never behind the eye: a point must be 5 cm ahead */
+  const depthAt = u => at(u, vc)[2];
+  let u = uHi;
+  while (u > uLo) {
+    if (depthAt(u) < 0.05) break;
+    const p = at(u, vc), q = at(u - 1, vc), per = Math.max(1e-3, Math.hypot(p[0] - q[0], p[1] - q[1]));
+    const u0 = Math.max(uLo, u - BAND / per), um = (u + u0) / 2;
+    if (depthAt(u0) < 0.05) break;
+    const a = at(u, vc), b = at(u0, vc), m = at(um, vc), m2 = at(um, vc + 64);
+    const ju = [(a[0] - b[0]) / (u - u0), (a[1] - b[1]) / (u - u0)], jv = [(m2[0] - m[0]) / 64, (m2[1] - m[1]) / 64];
+    x.setTransform(ju[0], ju[1], jv[0], jv[1], m[0] - ju[0] * um - jv[0] * vc, m[1] - ju[1] * um - jv[1] * vc);
+    /* a hair over the far neighbour, so no seam shows between bands */
+    const ext = 0.7 / per;
+    x.drawImage(T.img, u0, 0, u - u0 + ext, Hh, u0, 0, u - u0 + ext, Hh);
+    u = u0;
+  }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+}
+/* the turned art's column range over a world polygon */
+const heroURange = (T, pts) => { const us = pts.map(([x, y]) => (x * T.c + y * T.s) * T.K - T.u0); return [Math.max(0, Math.min(...us) - 2), Math.min(T.img.width, Math.max(...us) + 2)]; };
+function heroPath(x, C, pts, z) { pts.forEach(([a, b], i) => { const p = heroProj(C, a, b, z); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.closePath(); }
+const mixRgb = (hex, k, to = [0, 0, 0]) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`; };
+function heroStill(d, W, H) {
+  const g = d.geo, box = { x: W * 0.04, y: H * 0.13, w: W * 0.92, h: H * 0.62 }, C = heroCamera(d, W, H, box);
+  const tex = heroTexture(d), T = heroTurned(tex, g, C.yaw), bg = document.createElement('canvas'), fg = document.createElement('canvas');
+  bg.width = fg.width = W; bg.height = fg.height = H;
+  const x = bg.getContext('2d'), RW = railLook(), hC = g.h;
+  /* the room: near black, warmer where the lamp falls */
+  x.fillStyle = '#0b0b0c'; x.fillRect(0, 0, W, H);
+  const mid = heroProj(C, g.TL / 2, g.TW / 2, 0);
+  let gr = x.createRadialGradient(mid[0], mid[1], 0, mid[0], mid[1], Math.max(W, H) * 0.75);
+  gr.addColorStop(0, 'rgba(255,236,205,0.10)'); gr.addColorStop(1, 'rgba(255,236,205,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  /* the bed (and everything at z 0) */
+  const [uA, uB] = heroURange(T, g.outline);
+  x.save(); x.beginPath(); heroPath(x, C, g.outline, 0); x.clip(); heroPlane(x, C, T, 0, uA, uB); x.restore();
+  /* the apron: the rail's outer faces that face the eye, from its top down 15 cm, far first */
+  const faces = [], O = g.outline;
+  for (let i = 0; i < O.length; i++) {
+    const a = O[i], b = O[(i + 1) % O.length], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, nx = b[1] - a[1], ny = a[0] - b[0];
+    if (nx * (C.E[0] - mx) + ny * (C.E[1] - my) > 0) faces.push({ a, b, z0: hC, z1: -0.15, d: heroProj(C, mx, my, 0)[2], fill: 'apron' });
+  }
+  /* the cushions' noses (and the jaws' facings at a pocket table), lit from above */
+  const cx = g.TL / 2, cy = g.TW / 2;
+  for (const [ea, pa, pb, eb] of g.polys) for (const [a, b] of g.mouths ? [[pa, pb], [ea, pa], [pb, eb]] : [[pa, pb]]) {
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    let nx = b[1] - a[1], ny = a[0] - b[0];
+    if (nx * (cx - mx) + ny * (cy - my) < 0) { nx = -nx; ny = -ny; }
+    if (nx * (C.E[0] - mx) + ny * (C.E[1] - my) > 0) faces.push({ a, b, z0: hC, z1: 0, d: heroProj(C, mx, my, 0)[2], fill: 'nose' });
+  }
+  faces.sort((p, q) => q.d - p.d);
+  for (const f of faces) {
+    const t0 = heroProj(C, f.a[0], f.a[1], f.z0), t1 = heroProj(C, f.b[0], f.b[1], f.z0), b1 = heroProj(C, f.b[0], f.b[1], f.z1), b0 = heroProj(C, f.a[0], f.a[1], f.z1);
+    x.beginPath(); x.moveTo(t0[0], t0[1]); x.lineTo(t1[0], t1[1]); x.lineTo(b1[0], b1[1]); x.lineTo(b0[0], b0[1]); x.closePath();
+    gr = x.createLinearGradient(0, Math.min(t0[1], t1[1]), 0, Math.max(b0[1], b1[1]));
+    if (f.fill === 'apron') { gr.addColorStop(0, mixRgb(RW.base, 0.25)); gr.addColorStop(0.12, mixRgb(RW.base, 0.5)); gr.addColorStop(1, mixRgb(RW.base, 0.88)); }
+    else { gr.addColorStop(0, mixRgb(CL.cushion, 0.05, [255, 255, 255])); gr.addColorStop(0.35, mixRgb(CL.cushion, 0.3)); gr.addColorStop(1, mixRgb(CL.cushion, 0.62)); }
+    x.fillStyle = gr; x.fill();
+  }
+  /* the rubber and rail tops, at their height */
+  x.save(); x.beginPath(); heroPath(x, C, g.outline, hC); heroPath(x, C, g.noses, hC); x.clip('evenodd'); heroPlane(x, C, T, hC, uA, uB); x.restore();
+  /* the lamp's pool on the bed */
+  const lamp = heroProj(C, g.TL * 0.55, g.TW / 2, 0), lr = Math.hypot(...[0, 1].map(i => heroProj(C, g.TL, g.TW / 2, 0)[i] - lamp[i])) * 1.1;
+  x.globalCompositeOperation = 'lighter';
+  gr = x.createRadialGradient(lamp[0], lamp[1], 0, lamp[0], lamp[1], Math.max(lr, W * 0.4));
+  gr.addColorStop(0, `rgba(${CL.lamp},0.07)`); gr.addColorStop(0.6, `rgba(${CL.lamp},0.025)`); gr.addColorStop(1, `rgba(${CL.lamp},0)`);
+  x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  x.globalCompositeOperation = 'source-over';
+  /* fg: the rail and rubber nearer than the nearest nose, which a ball against them sits behind */
+  const nd = Math.min(...g.noses.map(([a, b]) => (a * T.c + b * T.s) * T.K - T.u0)), y = fg.getContext('2d');
+  y.save(); y.beginPath(); heroPath(y, C, g.outline, hC); heroPath(y, C, g.noses, hC); y.clip('evenodd'); heroPlane(y, C, T, hC, uA, nd); y.restore();
+  /* the vignette: corners and edges falling away */
+  const vg = document.createElement('canvas'); vg.width = W; vg.height = H;
+  const z = vg.getContext('2d');
+  gr = z.createRadialGradient(W / 2, H * 0.42, Math.min(W, H) * 0.35, W / 2, H * 0.42, Math.hypot(W, H) * 0.62);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)');
+  z.fillStyle = gr; z.fillRect(0, 0, W, H);
+  return { C, bg, fg, vg, W, H };
+}
+/* every ball sprite (ballSprites, a quarter pixel apart) a frame of the shot can ask for, made
+   now rather than in a frame */
+function heroSprites(d, A) {
+  const C = A.C, g = d.geo, ds = g.outline.map(([x, y]) => heroProj(C, x, y, g.R)[2]);
+  const lo = C.F * g.R / Math.max(...ds) * 0.9, hi = C.F * g.R / Math.min(...ds) * HERO_ZOOM * 1.05;
+  for (let q = Math.floor(lo * 4); q <= Math.ceil(hi * 4); q++) ballSprites(q / 4);
+}
+/* ---- a frame ---- */
+const heroEaseIO = u => u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
+/* the sim's seconds at playback fraction u: near real time at the strike, faster as they slow */
+function heroSimT(run, u) {
+  const S = run.S, a = clamp(0.62 * HERO_ROLL_MS / 1000 / S, 0.06, 1);
+  return S * (a * u + (1 - a) * u ** 2.4);
+}
+function heroDraw(t) {
+  const d = hero.data, run = hero.run, A = hero.art, cv = setupHeroArt, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
+  const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));
+  const c0 = d.balls.find(b => b.n === d.shot.ball), fc = heroProj(C, c0.x, c0.y, g.R), F0 = heroProj(C, g.TL * 0.6, g.TW / 2, 0);
+  const fx = (fc[0] + F0[0]) / 2, fy = (fc[1] + F0[1]) / 2, Z = p => [fx + (p[0] - fx) * z, fy + (p[1] - fy) * z, p[2]];
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.drawImage(A.bg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
+  /* where every ball is: the rack before the strike, the recorded roll after, the rest at the end */
+  const n = d.balls.length, list = [];
+  let s = -1;
+  if (t >= HERO_CUE_MS && run && run.done) s = still ? Infinity : heroSimT(run, (t - HERO_CUE_MS) / HERO_ROLL_MS);
+  const dt = HERO_SUB * SIM_DT, nS = run ? run.pos.length : 0;
+  for (let i = 0; i < n; i++) {
+    let bx, by, on = true, m, fade = 1;
+    if (s < 0) { bx = d.balls[i].x; by = d.balls[i].y; m = artTilt(d.balls[i].n); }
+    else if (s === Infinity) { const b = run.final.balls[i]; bx = b.x; by = b.y; on = b.on; m = run.rot[nS - 1].subarray(9 * i, 9 * i + 9); }
+    else {
+      const f = Math.min(nS - 1, s / dt), k = Math.floor(f), k1 = Math.min(nS - 1, k + 1), w = f - k, P = run.pos[k], Q = run.pos[k1];
+      on = !!run.on[k1]; bx = P[2 * i] + (Q[2 * i] - P[2 * i]) * w; by = P[2 * i + 1] + (Q[2 * i + 1] - P[2 * i + 1]) * w; m = run.rot[k].subarray(9 * i, 9 * i + 9);
+      /* down: it runs on to the drop's middle and sinks out of sight over 0.18 s of the sim */
+      const pt = run.pots[i];
+      if (!on && pt && s - pt.t < 0.18 && g.pockets[pt.k]) {
+        const u = (s - pt.t) / 0.18, P2 = g.pockets[pt.k];
+        bx = pt.at[0] + (P2[0] - pt.at[0]) * Math.min(1, u * 2); by = pt.at[1] + (P2[1] - pt.at[1]) * Math.min(1, u * 2); fade = 1 - u; on = true;
+      }
+    }
+    if (!on) continue;
+    const p = Z(heroProj(C, bx, by, g.R)), q = Z(heroProj(C, bx, by, 0));
+    list.push({ ball: d.balls[i].n, p, q, m, fade, d: p[2] });
+  }
+  for (const [px, py] of g.posts) { const p = Z(heroProj(C, px, py, 0)); list.push({ post: true, x: px, y: py, d: p[2] }); }
+  list.sort((a, b) => b.d - a.d);
+  artCtx = x;
+  try {
+    /* contact shadows, flattened to the bed by how low the eye looks at it */
+    for (const o of list) {
+      if (o.post) continue;
+      const r = C.F * g.R / o.d * z, sq = clamp((C.E[2] - 0) / Math.hypot(...v3.sub(C.E, [0, 0, 0])) * 1.1, 0.28, 1);
+      x.setTransform(1, 0, 0, sq, o.q[0], o.q[1]);
+      drawShadow(0, 0, r, 0.9 * o.fade);
+    }
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    for (const o of list) {
+      if (o.post) { heroPost(x, C, g, o.x, o.y, Z, z); continue; }
+      const r = C.F * g.R / o.d * z, ax = [];
+      for (let j = 0; j < 3; j++) { const w = [o.m[j], o.m[3 + j], o.m[6 + j]]; ax.push([v3.dot(w, C.r), -v3.dot(w, C.u), -v3.dot(w, C.f)]); }
+      drawBall(o.ball, o.p[0], o.p[1], r, ax, o.fade, 1 - o.fade);
+    }
+  } finally { artCtx = null; }
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.drawImage(A.fg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
+  if (!still) heroCue(x, C, g, d, t, Z, z);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.drawImage(A.vg, 0, 0);
+}
+/* a bumper pool post: a black rubber ring round a turned nickel cap, standing on the bed */
+function heroPost(x, C, g, px, py, Z, z) {
+  const hp = 0.052, b = Z(heroProj(C, px, py, 0)), t = Z(heroProj(C, px, py, hp)), r = C.F * g.postR / b[2] * z, rt = C.F * g.postR / t[2] * z;
+  const sq = clamp(Math.abs(b[1] - Z(heroProj(C, px + C.f[0] * g.postR, py + C.f[1] * g.postR, 0))[1]) / Math.max(1e-6, r), 0.15, 1);
+  let gr = x.createLinearGradient(b[0] - r, 0, b[0] + r, 0);
+  gr.addColorStop(0, '#050505'); gr.addColorStop(0.3, '#2b2b2e'); gr.addColorStop(0.45, '#4a4a4f'); gr.addColorStop(0.7, '#141416'); gr.addColorStop(1, '#030303');
+  x.fillStyle = gr;
+  x.beginPath(); x.moveTo(t[0] - rt, t[1]); x.lineTo(b[0] - r, b[1]); x.ellipse(b[0], b[1], r, r * sq, 0, Math.PI, 0, true); x.lineTo(t[0] + rt, t[1]); x.closePath(); x.fill();
+  gr = x.createRadialGradient(t[0] - rt * 0.3, t[1] - rt * sq * 0.4, 0, t[0], t[1], rt);
+  gr.addColorStop(0, '#f4f2ec'); gr.addColorStop(0.45, '#a9a6a0'); gr.addColorStop(1, '#4a4844');
+  x.fillStyle = gr; x.beginPath(); x.ellipse(t[0], t[1], rt * 0.82, rt * sq * 0.82, 0, 0, Math.PI * 2); x.fill();
+  x.strokeStyle = '#0b0b0c'; x.lineWidth = Math.max(1, rt * 0.18); x.beginPath(); x.ellipse(t[0], t[1], rt * 0.91, rt * sq * 0.91, 0, 0, Math.PI * 2); x.stroke();
+}
+/* the cue: draws back, strikes at HERO_CUE_MS, follows through, then lifts away and fades */
+function heroCue(x, C, g, d, t, Z, z) {
+  const T0 = HERO_CUE_MS, b = d.balls.find(o => o.n === d.shot.ball), a = d.shot.angle, dx = Math.cos(a), dy = Math.sin(a);
+  let gap, alpha = 1;
+  if (t < 0.66 * T0) gap = 0.03 + 0.2 * heroEaseIO(t / (0.66 * T0));
+  else if (t < 0.74 * T0) gap = 0.23;
+  else if (t < T0) { const u = (t - 0.74 * T0) / (0.26 * T0); gap = 0.23 * (1 - u * u); }
+  else { const u = (t - T0) / 420; if (u >= 1) return; gap = -0.05 * Math.min(1, u * 3) - 0.1 * Math.max(0, u - 0.33); alpha = 1 - ease(0.25, 1, u); }
+  const [cue, tip] = cueLook(), len = 1.45, el = 0.1, R = g.R;
+  /* along the cue from the tip (s = 0) to the butt (s = len): position and radius */
+  const at = s => { const k = gap + R + s * Math.cos(el); return [b.x - dx * k, b.y - dy * k, R + s * Math.sin(el)]; };
+  const rad = s => 0.0064 + (0.0145 - 0.0064) * (s / len) ** 1.3;
+  const parts = [[0, 0.006, tip], [0.006, 0.02, '#f2efe6'], [0.02, 0.98, [cue.shaft[0], cue.shaft[1]]], [0.98, 1.0, cue.metal], [1.0, 1.06, cue.joint], [1.06, 1.2, cue.fore], [1.2, 1.36, cue.wrap], [1.36, 1.44, cue.sleeve], [1.44, len, cue.cap]];
+  x.globalAlpha = alpha;
+  for (const [s0, s1, col] of parts) {
+    /* cut at the eye: nothing nearer than 8 cm */
+    let p0 = at(s0), p1 = at(s1);
+    const d0 = v3.dot(v3.sub(p0, C.E), C.f), d1 = v3.dot(v3.sub(p1, C.E), C.f);
+    if (d0 < 0.08) continue;
+    let e1 = s1;
+    if (d1 < 0.08) { e1 = s0 + (s1 - s0) * (d0 - 0.08) / (d0 - d1); p1 = at(e1); }
+    const A = Z(heroProj(C, ...p0)), B = Z(heroProj(C, ...p1)), ra = C.F * rad(s0) / A[2] * z, rb = C.F * rad(e1) / B[2] * z;
+    const ux = B[0] - A[0], uy = B[1] - A[1], ul = Math.hypot(ux, uy) || 1, nx = -uy / ul, ny = ux / ul;
+    x.beginPath(); x.moveTo(A[0] + nx * ra, A[1] + ny * ra); x.lineTo(B[0] + nx * rb, B[1] + ny * rb); x.lineTo(B[0] - nx * rb, B[1] - ny * rb); x.lineTo(A[0] - nx * ra, A[1] - ny * ra); x.closePath();
+    const m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], rm = (ra + rb) / 2, gr = x.createLinearGradient(m[0] + nx * rm, m[1] + ny * rm, m[0] - nx * rm, m[1] - ny * rm);
+    const base = Array.isArray(col) ? col[0] : col;
+    gr.addColorStop(0, mixRgb(base, 0.55)); gr.addColorStop(0.3, base); gr.addColorStop(0.42, mixRgb(base, 0.35, [255, 255, 255])); gr.addColorStop(0.6, Array.isArray(col) ? col[1] : base); gr.addColorStop(1, mixRgb(base, 0.6));
+    x.fillStyle = gr; x.fill();
+  }
+  x.globalAlpha = 1;
+}
+/* ---- the controller ---- */
+function heroSize() {
+  const w = setupHeroArt.clientWidth, h = setupHeroArt.clientHeight, dp = Math.min(HERO_DPR, pixelRatio());
+  return [Math.max(1, Math.round(w * dp)), Math.max(1, Math.round(h * dp))];
+}
+/* the setup opened (or its table, look or size changed): replay from the start when the table
+   or the game changed, else redraw where it is. The sheet never waits for the hero: what is not
+   built yet (the art for this table and look, the still parts, the roll) is built in a task of
+   its own after the sheet is up, the canvas fading in once it has its first frame. */
+function heroShow(kind, replay) {
+  if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth) return;
+  const d0 = hero.data, args = heroArgs(kind).join(), [W, H] = heroSize();
+  if (!d0 || d0.kind !== kind || d0.args.join() !== args) { hero.data = heroPrep(kind); hero.run = null; replay = true; }
+  hero.kind = kind;
+  if (replay) { heroStop(); hero.state = 'idle'; }
+  const d = hero.data, artKey = [d.key, lookSig(), W, H].join('|');
+  if (!replay && hero.art && hero.art.key === artKey && !hero.job) return;
+  if (!hero.art || hero.art.key !== artKey || !hero.run || !hero.run.done) {
+    setupHeroArt.classList.add('wait');
+    const job = hero.job = {};
+    setTimeout(() => {
+      if (hero.job !== job || hero.data !== d) return;
+      hero.job = null;
+      if (setupHeroArt.width !== W || setupHeroArt.height !== H) { setupHeroArt.width = W; setupHeroArt.height = H; }
+      if (!hero.art || hero.art.key !== artKey) {
+        useCloth();
+        const A = heroStill(d, W, H);
+        /* paint them now, not in the first frame that draws them */
+        for (const c of [A.bg, A.fg, A.vg]) c.getContext('2d').getImageData(0, 0, 1, 1);
+        heroSprites(d, A);
+        A.key = artKey; hero.art = A;
+      }
+      if (!hero.run) hero.run = heroRunStart(d);
+      heroRunOn(Infinity);
+      heroGo();
+      setupHeroArt.classList.remove('wait');
+    }, 0);
+    return;
+  }
+  heroGo();
+}
+/* draw: the still (reduced motion), the shot from the start, on from where it was, or its end */
+function heroGo() {
+  if (reducedMotion()) { heroStop(); hero.state = 'still'; heroFrame(HERO_CUE_MS + HERO_ROLL_MS); return; }
+  if (hero.state === 'idle') { hero.t0 = performance.now(); hero.state = 'play'; heroFrame(0); heroLoop(); }
+  else if (hero.state === 'paused') { hero.state = 'play'; hero.t0 = performance.now() - hero.held; heroLoop(); }
+  else heroFrame(hero.state === 'play' ? performance.now() - hero.t0 : HERO_CUE_MS + HERO_ROLL_MS);
+}
+function heroFrame(t) {
+  const t1 = performance.now();
+  heroDraw(Math.max(0, t));
+  if (felt.heroMeasure) setupHeroArt.getContext('2d').getImageData(0, 0, 1, 1);
+  hero.frames++;
+  if (hero.ms.length < 4000) hero.ms.push(performance.now() - t1);
+}
+function heroLoop() { if (!hero.raf) hero.raf = requestAnimationFrame(heroTick); }
+function heroStop() { if (hero.raf) cancelAnimationFrame(hero.raf); hero.raf = 0; }
+function heroTick(now) {
+  hero.raf = 0;
+  if (hero.state !== 'play') return;
+  /* hidden: no frames; the shot goes on from here when the sheet is back */
+  if (!setupSheet.classList.contains('show') || document.hidden) { hero.state = 'paused'; hero.held = now - hero.t0; return; }
+  const t = now - hero.t0, end = HERO_CUE_MS + HERO_ROLL_MS;
+  if (t >= end) { hero.state = 'done'; heroFrame(end); hero.doneAt = performance.now(); return; }
+  heroFrame(t);
+  heroLoop();
+}
+function heroReplay() {
+  if (!hero.data || reducedMotion() || hero.job) return;
+  heroShow(hero.kind, true);
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && hero.state === 'paused' && setupSheet.classList.contains('show')) heroGo(); });
+/* what felt.hero reports */
+function heroInfo() {
+  const r = hero.run;
+  return { state: hero.state, kind: hero.kind, key: hero.data && hero.data.key, frames: hero.frames, raf: !!hero.raf, ms: hero.ms.slice(), doneAt: hero.doneAt,
+    shot: hero.data && hero.data.shot, start: hero.data && hero.data.balls.map(b => ({ n: b.n, x: b.x, y: b.y })),
+    final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null, simT: r && r.S };
+}
+setupHeroArt.addEventListener('click', heroReplay);
 
 /* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
    (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the

@@ -1,10 +1,10 @@
 /* felt service worker: makes the game installable and playable offline (airplane mode too).
-   Precaches the page, the manifest and the icons. A navigation goes to the network first so a
+   Precaches the page, the manifest, the icons and the launch images. A navigation goes to the network first so a
    new deploy reaches players, but gives up after NAV_TIMEOUT_MS and answers from the cache.
    Every other same-origin GET is cache-first. Nothing beyond the origin is ever fetched or
    cached. Bump VERSION when the precache list changes; activate deletes every older cache. */
 'use strict';
-const VERSION = 'felt-v3';
+const VERSION = 'felt-v4';
 const NAV_TIMEOUT_MS = 2500;
 const PRECACHE = [
   './',
@@ -15,6 +15,32 @@ const PRECACHE = [
   './icons/icon-maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon-32.png',
+  /* launch:begin */
+  './icons/launch/launch-750x1334.png',
+  './icons/launch/launch-1334x750.png',
+  './icons/launch/launch-1242x2208.png',
+  './icons/launch/launch-2208x1242.png',
+  './icons/launch/launch-1125x2436.png',
+  './icons/launch/launch-2436x1125.png',
+  './icons/launch/launch-828x1792.png',
+  './icons/launch/launch-1792x828.png',
+  './icons/launch/launch-1242x2688.png',
+  './icons/launch/launch-2688x1242.png',
+  './icons/launch/launch-1170x2532.png',
+  './icons/launch/launch-2532x1170.png',
+  './icons/launch/launch-1284x2778.png',
+  './icons/launch/launch-2778x1284.png',
+  './icons/launch/launch-1179x2556.png',
+  './icons/launch/launch-2556x1179.png',
+  './icons/launch/launch-1290x2796.png',
+  './icons/launch/launch-2796x1290.png',
+  './icons/launch/launch-1206x2622.png',
+  './icons/launch/launch-2622x1206.png',
+  './icons/launch/launch-1260x2736.png',
+  './icons/launch/launch-2736x1260.png',
+  './icons/launch/launch-1320x2868.png',
+  './icons/launch/launch-2868x1320.png',
+  /* launch:end */
 ];
 
 self.addEventListener('install', e => {

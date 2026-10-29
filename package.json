@@ -9,6 +9,7 @@
     "test": "node tests/run-all.cjs",
     "lint": "node tests/lint.cjs",
     "icons": "node tools/make-icons.cjs",
+    "launch": "node tools/make-launch.cjs",
     "serve": "python3 -m http.server 4173"
   },
   "devDependencies": {

@@ -11,12 +11,41 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="felt">
+<meta name="color-scheme" content="dark">
+<!-- the launch images (tools/make-launch.cjs, npm run launch): the home's first frame, the
+     wordmark on the home's colour, for every current iPhone upright and on its side -->
+<!-- launch:begin -->
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/launch/launch-750x1334.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="icons/launch/launch-1334x750.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1242x2208.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2208x1242.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1125x2436.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2436x1125.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/launch/launch-828x1792.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)" href="icons/launch/launch-1792x828.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1242x2688.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2688x1242.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1170x2532.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2532x1170.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1284x2778.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2778x1284.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1179x2556.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2556x1179.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1290x2796.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2796x1290.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1206x2622.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2622x1206.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1260x2736.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2736x1260.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1320x2868.png">
+<link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2868x1320.png">
+<!-- launch:end -->
 <script>/* offline + installable: register the service worker over http(s) only (file:// skips it) */
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 <title>felt</title>
 <style>
 /* Palette: near-black panels, one signal red used for the turn marker, the foul banner, the hot
-   end of the power bar and the primary button. Every text pair is measured at 4.5:1 or better
+   end of the power bar and an armed destructive button (the primary button is a white capsule). Every text pair is measured at 4.5:1 or better
    (boot-check walks the page and fails anything lower); graphics at 3:1. */
 :root {
   --bg: #0f0f10; --panel: #1b1b1d; --panel-2: #26262a; --panel-3: #303036; --line: #3a3a41;
@@ -274,7 +303,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #leftNote p { margin: 0; flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; }
 #leftNote b { display: block; font-size: 15px; }
 #leftNote span { display: block; margin-top: 2px; color: #c7c7cc; }
-#leftOk { flex: none; min-width: 56px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 14px; background: var(--cream); color: #141414; font-size: 15px; font-weight: 700; }
+#leftOk { flex: none; min-width: 56px; padding: 0 16px; font-size: 15px; }
 
 /* the hidden attribute always hides: a rule that sets an element's display (#callPill's flex)
    must not bring it back (QA F5) */
@@ -304,12 +333,27 @@ h1 i { font-style: normal; color: var(--signal); }
 .seg button[aria-pressed="true"] { background: var(--panel-3); color: var(--text); box-shadow: inset 0 0 0 1px #55555e, 0 1px 2px rgba(0, 0, 0, .4); }
 .sect { margin: 22px 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.big { min-height: 56px; border-radius: 14px; border: 0; background: var(--signal); color: #fff; font-size: 17px; font-weight: 700; }
-.big:hover { background: var(--signal-dk); }
 .big small { display: block; font-size: 12px; font-weight: 500; opacity: .92; }
-.ghost { min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); font-size: 16px; font-weight: 600; }
-.ghost:hover { background: var(--panel-3); }
 .ghost small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+/* ---- one button style app-wide (the owner's direction). Primary: a neutral white capsule, a
+   near-black label, weight 600, 50 px, full radius (Break, Play, Resume, Rematch, Next Rack,
+   Start Tournament, Watch, Start, Start Career, Start Drill...). Secondary: a dark grey capsule.
+   Destructive (Forfeit Match, Concede Frame, Delete Career, End Tournament, Retire, Withdraw): red
+   words on the dark capsule, a red fill once armed (QA F6). Every label 4.5:1 or better: near-black
+   on white 18:1, white on dark grey 13:1, #ff8a7a on dark grey 6.2:1, white on the red fill 5.4:1. ---- */
+:root { --btn-pri: #ffffff; --btn-pri-hi: #e8e8ec; --btn-pri-ink: #0b0b0c; --btn-sec: #2c2c30; --btn-sec-hi: #38383d; --btn-sec-ink: #f5f5f7;
+  --btn-warn-ink: #ff8a7a; --btn-warn-fill: #c0392b; }
+.big, .cvBtn, .howAct button, #leftOk { min-height: 50px; border: 0; border-radius: 999px; background: var(--btn-pri); color: var(--btn-pri-ink); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.big:hover, .cvBtn:hover, .howAct button:hover, #leftOk:hover { background: var(--btn-pri-hi); filter: none; }
+.ghost, .cvBtn.alt, .cvMini { min-height: 50px; border: 0; border-radius: 999px; background: var(--btn-sec); color: var(--btn-sec-ink); font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.ghost:hover, .cvBtn.alt:hover, .cvMini:hover { background: var(--btn-sec-hi); filter: none; }
+.cvMini { min-height: 44px; font-size: 15px; }
+.cvMini.go { background: var(--btn-pri); color: var(--btn-pri-ink); }
+.cvMini.go:hover { background: var(--btn-pri-hi); }
+.cvBtn.warn, .cvMini.warn, .act.warn, #concedeBtn, #exitBtn[data-forfeit], #rackQuit { background: var(--btn-sec); color: var(--btn-warn-ink); }
+.act.warn svg, #concedeBtn svg, #exitBtn[data-forfeit] svg { color: var(--btn-warn-ink); }
+:is(.big, .cvBtn, .howAct button, .ghost, .cvMini, .act):active { transform: scale(.97); transition: transform .12s ease-out; }
+@media (prefers-reduced-motion: reduce) { :is(.big, .cvBtn, .howAct button, .ghost, .cvMini, .act):active { transform: none; } }
 /* the practice picker's cards: each with its ball */
 .game { min-height: 64px; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel-2); text-align: left; }
 .game:hover { background: var(--panel-3); border-color: #5a5a62; }
@@ -434,7 +478,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #dailyBtn[data-daily="streak"] .flame, #dailyBtn[data-daily="done"] .tick { display: block; }
 /* opening: a short staggered rise (none with reduced motion) */
 @keyframes homeIn { from { opacity: 0; transform: translateY(10px); } }
-#menu.show:not([data-paused]) .newgame > * { animation: homeIn .22s cubic-bezier(.2, .8, .2, 1) both; }
+/* the wordmark stands still: it is already on the launch image (the first frame matches it) */
+#menu.show:not([data-paused]) .newgame > :not(.brand) { animation: homeIn .22s cubic-bezier(.2, .8, .2, 1) both; }
 #menu.show:not([data-paused]) .newgame > :is(#playLab, #playRow) { animation-delay: .025s; }
 #menu.show:not([data-paused]) .newgame > :is(#modeLab, #modeRow) { animation-delay: .05s; }
 #menu.show:not([data-paused]) .newgame > :is(#soloLab, .solos) { animation-delay: .075s; }
@@ -459,13 +504,13 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #resumeBtn[hidden], .act[hidden] { display: none; }
 #resumeBtn svg { width: 20px; height: 20px; }
 .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
-.act { min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--line);
-  background: var(--panel-2); color: var(--text); font-size: 15px; font-weight: 600; white-space: nowrap; }
-.act:hover { background: var(--panel-3); }
+.act { min-height: 50px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border-radius: 999px; border: 0;
+  background: var(--btn-sec); color: var(--btn-sec-ink); font-size: 15px; font-weight: 600; white-space: nowrap; }
+.act:hover { background: var(--btn-sec-hi); }
 .act svg { width: 19px; height: 19px; flex: none; color: var(--muted); }
 /* armed (QA F6): the second tap acts; the words may take two lines */
-.act.arm, .ghost.arm { border-color: #ff8a7a; background: #3a1f1d; color: #ffd0c9; white-space: normal; line-height: 1.2; }
-.act.arm svg { color: #ff8a7a; }
+.act.arm, .ghost.arm, #exitBtn[data-forfeit].arm, #concedeBtn.arm, #rackQuit.arm { background: var(--btn-warn-fill); color: #fff; white-space: normal; line-height: 1.2; }
+.act.arm svg, #exitBtn[data-forfeit].arm svg, #concedeBtn.arm svg { color: #fff; }
 
 /* ---- the sheets: setup, settings, stats, how to play. A back button, a title, the rest ---- */
 .shead { display: flex; align-items: center; gap: 12px; margin: -4px 0 12px -4px; }
@@ -480,7 +525,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .field[hidden] { display: none; }
 .field .label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .note { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
-.cta { width: 100%; margin-top: 18px; min-height: 58px; font-size: 18px; }
+.cta { width: 100%; margin-top: 18px; min-height: 50px; font-size: 17px; }
 /* ---- the game setup: a navigation page in the iOS manner. The form scrolls (the header, the
    game's line beside a thumbnail of its table, the tutorial's row, then the choices as inset
    grouped rows: Opponent and names; Table and Pockets; Rules and Stalemate; the rules' fine
@@ -702,11 +747,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* the page's action, pinned at the foot */
 .howAct { position: sticky; bottom: 0; z-index: 1; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(18px, var(--sab)) var(--pl);
   background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 22px); }
-.howAct button { width: 100%; min-height: 52px; margin: 0; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #07110b; font-size: 17px; font-weight: 600;
-  transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), filter .15s; }
+.howAct button { width: 100%; margin: 0; padding: 0 16px;
+  transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
 .howAct button[hidden] { display: none; }
 .howAct button svg { color: currentColor; }
-.howAct button:hover { filter: brightness(1.06); }
 .howAct button:active { transform: scale(.98); transition-duration: .12s; }
 /* push and pop: the page comes in from the right, the list back from the left */
 .how .push { animation: pushIn .4s cubic-bezier(.22, .9, .28, 1) both; }
@@ -720,7 +764,7 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   .howTop { padding-top: 12px; padding-bottom: 4px; }
   :is(#helpSheet, #prefsSheet, #statsSheet) .shead .title { font-size: 24px; }
   .howAct { padding-top: 16px; padding-bottom: max(12px, var(--sab)); }
-  .howAct button { min-height: 46px; font-size: 16px; }
+  .howAct button { font-size: 16px; }
   .how .rules li { padding-top: 10px; padding-bottom: 11px; }
 }
 @media (max-height: 500px) {
@@ -838,11 +882,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #over[data-mood="quiet"] #overText { font-weight: 600; }
 #over .stats .dots { display: flex; flex-wrap: wrap; gap: 3px; }
 #over .row { grid-area: btns; }
-#over .big, #over .ghost { min-height: 52px; border-radius: 14px; font-size: 17px; font-weight: 600; }
-#rematch { background: var(--accent); color: #08100b; }
-#rematch:hover { background: var(--accent); filter: brightness(1.06); }
-#overMenu { border: 0; background: rgba(255, 255, 255, .1); color: var(--label); }
-#overMenu:hover { background: rgba(255, 255, 255, .14); }
+#over .big, #over .ghost { min-height: 50px; }
 @media (prefers-reduced-motion: reduce) {
   #over.show .ovArt .ball, #over.show .ovArt .gleam { animation: none; }
 }
@@ -855,13 +895,13 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   .ovArt { width: 64px; height: 64px; }
   .ovArt .ball { width: 34px; height: 34px; font-size: 11px; }
   #over .stats th, #over .stats td { padding: 6px 12px; }
-  #over .big, #over .ghost { min-height: 48px; }
+  #over .big, #over .ghost { min-height: 50px; }
 }
 @media (max-height: 520px) and (max-width: 599px) {
   #over .sheet { padding: 16px 18px; }
   #over .stats { margin: 12px 0; }
   #over .stats th, #over .stats td { padding: 5px 10px; }
-  #over .big, #over .ghost { min-height: 48px; }
+  #over .big, #over .ghost { min-height: 50px; }
 }
 
 /* ---- shot callouts: a short word over the top of the table for a notable shot (a bank, a
@@ -910,7 +950,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .tool[aria-pressed]::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px currentColor; vertical-align: 1px; }
 .tool[aria-pressed="true"]::before { background: currentColor; }
 #editDone { position: absolute; z-index: 2; left: 50%; top: 6px; transform: translateX(-50%); pointer-events: auto; text-align: center;
-  background: var(--cream); border-color: var(--cream); color: #141414; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+  background: var(--btn-pri); border-color: var(--btn-pri); color: var(--btn-pri-ink); border-radius: 999px; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
 /* the pause menu in a solo session: what it is and its numbers (Resume and the actions follow) */
 #soloNow { margin: 0 0 14px; }
 #soloNow[hidden] { display: none; }
@@ -947,7 +987,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #trickRes[data-ok="false"] .title { color: var(--illegal); }
 #trickWhy { margin-bottom: 12px; }
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.btns .big, .btns .ghost { min-height: 48px; }
+.btns .big, .btns .ghost { min-height: 50px; }
 @media (min-width: 600px) { #trickRes .sheet { max-width: 600px; } .btns { grid-template-columns: repeat(4, 1fr); } }
 /* ---- 5d: drills. The list and each drill's page in How to play's manner (an inset grouped list,
    a page pushed per drill, the accent capsule pinned at the foot), full screen on a phone held
@@ -1118,16 +1158,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .cvAct.pin { position: sticky; bottom: 0; z-index: 1; margin: auto calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(16px, var(--sab)) var(--pl);
   background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 24px); }
 .cvBody:has(> .cvAct.pin:last-child) { padding-bottom: 0; }
-.cvBtn { width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #07110b; font-size: 17px; font-weight: 600; }
-.cvBtn:hover { filter: brightness(1.06); }
+.cvBtn { width: 100%; margin: 0; padding: 0 16px; }
 .cvAct.two .cvBtn { padding: 0 4px; letter-spacing: -.02em; }   /* two side by side: a Title Case label ("Advance a Week") keeps to one line at 375 px */
-.cvBtn.alt { background: #2c2c30; color: var(--label); }
-.cvBtn.warn { background: #2c2c30; color: var(--warn); }
-.cvBtn:disabled { background: #2c2c30; color: var(--label-2); filter: none; cursor: default; }
-.cvMini { flex: none; min-width: 64px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 999px; background: #2c2c30; color: var(--label); font-size: 15px; font-weight: 600; }
-.cvMini.go { background: var(--accent); color: #07110b; }
-.cvMini.warn { color: var(--warn); }
-.cvMini:disabled { background: #2c2c30; color: var(--label-2); cursor: default; }
+.cvBtn:disabled, .cvMini:disabled { background: var(--btn-sec); color: var(--label-2); filter: none; cursor: default; }
+.cvMini { flex: none; min-width: 64px; padding: 0 14px; }
+#cvRetire .tt > b { color: var(--btn-warn-ink); }
 /* segments over the page colour */
 .cv .seg { margin: 8px 0 0; background: var(--cell); border-color: #2a2a2e; }
 .cv .seg button { color: var(--label-2); }
@@ -1301,7 +1336,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #optSub:empty { display: none; }
 #optBtns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
 #optBtns button { min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel-2); font-size: 14px; font-weight: 600; }
-#optBtns button:first-child { background: var(--cream); border-color: var(--cream); color: #141414; }
+#optBtns button:first-child { background: var(--btn-pri); border-color: var(--btn-pri); color: var(--btn-pri-ink); }
 /* snooker's free ball: the colours to nominate, the box at the table's foot so they stay in sight */
 #optBox.pick { top: auto; bottom: 10px; transform: translateX(-50%); }
 #optBtns button.col, #optBtns button.col:first-child { display: inline-flex; align-items: center; gap: 8px; min-width: 44px; padding: 0 14px 0 10px; background: var(--panel-2); border-color: var(--line); color: inherit; }
@@ -1333,6 +1368,52 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .hoBoard li + li { border-top: 1px solid var(--line); }
 .hoBoard li b { font-variant-numeric: tabular-nums; }
 .hoBoard li.up { font-weight: 700; }
+
+/* ---- motion (6m): the card-to-sheet morph, interactive sheets, the numbers, the power bar's feel.
+   The morph's pieces are fixed layers moved by transforms only (FLIP): a backdrop and a panel
+   painted behind the sheet while its own backgrounds stand aside (.morphing), the card's art or
+   face growing into the hero or the page, the title flying into the sheet's title. .keep holds an
+   overlay on screen (not shown, not touchable) while a sheet comes over it or goes off it. ---- */
+.overlay.keep { display: grid; grid-template-columns: minmax(0, 1fr); pointer-events: none; }
+.overlay.morphing, .overlay.morphing > .sheet, #setupSheet.morphing .hero { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+.mPiece, .mLayer, .mTitle, .mGhost { position: fixed; left: 0; top: 0; margin: 0; pointer-events: none; transform-origin: 0 0; will-change: transform, opacity; }
+.mLayer { overflow: hidden; }
+.mLayer > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mLayer canvas, .heroCopy { object-fit: cover; display: block; }
+.mTitle { z-index: 70; white-space: nowrap; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
+.mGhost { z-index: 69; }
+.mHide { visibility: hidden !important; }
+.heroCopy { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* a sheet pulled down or a page swiped back: it follows the finger, nothing else moves it */
+.overlay.dragging > .sheet, .overlay.dragging .edgeMove { animation: none !important; transition: none !important; }
+/* pulled down, a full-screen sheet shows its edge: rounded top corners and a shadow over the home */
+.overlay.pulling > .sheet { border-top-left-radius: 28px !important; border-top-right-radius: 28px !important; box-shadow: 0 0 0 .5px rgba(255, 255, 255, .14), 0 -14px 44px rgba(0, 0, 0, .6) !important; }
+.edgeMove { will-change: transform; }
+.overlay.dragging .edgeMove { box-shadow: -12px 0 32px rgba(0, 0, 0, .35); }
+/* every score, race, stat, timer and counter: tabular figures, so a number never jiggles as it
+   changes (or rolls up, numRoll) */
+.pchip .num, .pchip .of, #snkBar, #snkBar b, .board .side b, .hoBoard li b, #careerNow .score b, #cnRace, .kpis dd, .soloStats dd, .cvFacts dd, .rec, #over .stats,
+.bm b, .how .stat b, .how .plab b, .ccSum, .acc, #powerLab, .dshots li, .cv .topic .val, .cv .topic .rk, .dmedal, .tcard .no, .stars, #elevVal, #elevTag, .foe .wl,
+.pc .meta, #exBar, .cal b, #callSub, .cvMeter, #drillSheet .topic .val, .diag { font-variant-numeric: tabular-nums; }
+/* the power bar: the fill follows the finger exactly (never smoothed) and empties at once on
+   release; an afterglow of it (::before, at --drain) eases away behind, so the bar drains smoothly
+   while its real fill (what the suites measure) is already empty. A crisp tick lights its end the
+   moment it reaches 100%. */
+#powerFill { will-change: width, height; }
+#powerBar::before { content: ""; position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; }
+[data-layout="portrait"] #powerBar::before { width: var(--drain, 0%); height: 100%; transform-origin: 0 50%; background: linear-gradient(90deg, #cfc6b2, var(--cream)); }
+[data-layout="wide"] #powerBar::before { width: 100%; height: var(--drain, 0%); transform-origin: 50% 0; background: linear-gradient(180deg, #cfc6b2, var(--cream)); }
+[data-layout="portrait"] #powerBar.drain::before { animation: drainX .3s cubic-bezier(.2, .8, .2, 1) both; }
+[data-layout="wide"] #powerBar.drain::before { animation: drainY .3s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes drainX { from { opacity: .9; transform: scaleX(1); } to { opacity: 0; transform: scaleX(0); } }
+@keyframes drainY { from { opacity: .9; transform: scaleY(1); } to { opacity: 0; transform: scaleY(0); } }
+#powerBar::after { content: ""; position: absolute; pointer-events: none; opacity: 0; background: #fff; }
+[data-layout="portrait"] #powerBar::after { top: 3px; bottom: 3px; right: 2px; width: 3px; border-radius: 2px; }
+[data-layout="wide"] #powerBar::after { left: 3px; right: 3px; bottom: 2px; height: 3px; border-radius: 2px; }
+#powerBar.full::after { opacity: 1; animation: fullTick .34s cubic-bezier(.2, .8, .2, 1); }
+#powerBar.full #powerFill { filter: brightness(1.08); }
+@keyframes fullTick { from { box-shadow: 0 0 0 0 rgba(255, 255, 255, .7); } 40% { box-shadow: 0 0 0 5px rgba(255, 255, 255, .28); } to { box-shadow: 0 0 0 7px rgba(255, 255, 255, 0); } }
+@media (prefers-reduced-motion: reduce) { #powerBar.drain::before { animation: none; opacity: 0; } #powerBar.full::after { animation: none; } }
 </style>
 </head>
 <body>
@@ -12628,6 +12709,7 @@ function openSheet(el, focus) {
   if (!leftNote.hidden) hideLeftNote();
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
+  if (mo.src && mo.src.sheet !== el) mo.src = null;   /* only the sheet a card opened goes back into it (6m) */
   el.scrollTop = 0;
   if (byKeys && focus) focus.focus({ preventScroll: true });
 }
@@ -12707,7 +12789,7 @@ function showSetup(kind) {
   openSheet(setupSheet, breakBtn);
   setupScroll.scrollTop = 0;
   fitSetupRows();
-  heroShow(kind, true);
+  if (!morphHolds(() => heroShow(kind, true))) heroShow(kind, true);   /* after the card's morph lands (6m) */
   paintArt();
 }
 /* a choice whose words would crowd its segment beside the label ("WPA, Push Out" on a small
@@ -13312,7 +13394,7 @@ function heroSize() {
    built yet (the art for this table and look, the still parts, the roll) is built in a task of
    its own after the sheet is up, the canvas fading in once it has its first frame. */
 function heroShow(kind, replay) {
-  if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth) return;
+  if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth || mo.hold) return;   /* a card is still morphing in (6m) */
   const d0 = hero.data, args = heroArgs(kind).join(), [W, H] = heroSize();
   if (!d0 || d0.kind !== kind || d0.args.join() !== args) { hero.data = heroPrep(kind); hero.run = null; replay = true; }
   hero.kind = kind;
@@ -13700,7 +13782,7 @@ function showHelp(kind) {
   openSheet(helpSheet, helpBack);
 }
 
-for (const b of playRow.querySelectorAll('.tile')) b.addEventListener('click', () => showSetup(b.dataset.kind));
+for (const b of playRow.querySelectorAll('.tile')) b.addEventListener('click', () => morphOpen(b, setupSheet, () => showSetup(b.dataset.kind)));   /* the card becomes the hero (6m) */
 concedeBtn.addEventListener('click', () => armOrAct(concedeBtn, 'Tap again to concede', () => { audioOn(); concedeFrame(); }));
 breakBtn.addEventListener('click', () => { if (!maybeOfferTut(setupKind)) playSetup(setupKind); });   /* a first Break may offer the tutorial (6d) */
 for (const [i, el] of [[0, name1], [1, name2]]) {
@@ -13744,7 +13826,7 @@ Object.defineProperty(felt, 'audio', { get: () => (ac && bus ? { master: +bus.ga
    levels; powerFull's count. felt.sound.render is soundRender. */
 Object.defineProperty(felt, 'sound', { get: () => ({ nodes: ac ? nodesLive() : 0, peak: nodePeak, made: nodeMade, cap: NODE_CAP, roll: rollTgt, rollGain: rollG ? rollG.gain.value : 0, room: roomTgt,
   fulls: pfCount, render: soundRender, reset: () => { nodePeak = 0; nodeMade = 0; } }) });
-setupBack.addEventListener('click', () => backToMenu());
+setupBack.addEventListener('click', () => morphClose(setupSheet));   /* the hero goes back into its card (6m) */
 /* a career or tournament rack is never taken again (audit F5); an exhibition or a party plays on its own terms again */
 restartBtn.addEventListener('click', () => { audioOn(); if (solo) restartSolo(); else if (modeOpts) start(game.kind, modeOpts); else if (!career && !tmatch) start(game.kind); });
 /* Quit to home goes at once; Forfeit match (a career or tournament match) asks for a second tap */
@@ -13857,7 +13939,7 @@ function hudChip() {
     if (box.dataset.key !== key) {
       box.dataset.key = key;
       const els = c.balls.map(n => dotEl(n));
-      if (c.num) { const t = document.createElement('span'); t.className = 'num' + (c.col ? ' c' + c.col : ''); t.textContent = c.num; els.push(t); }
+      if (c.num) { const t = document.createElement('span'); t.className = 'num' + (c.col ? ' c' + c.col : ''); numRoll(t, 'chip' + p, c.num); els.push(t); }
       if (c.of) { const t = document.createElement('span'); t.className = 'of'; t.textContent = c.of; els.push(t); }
       box.replaceChildren(...els);
     }
@@ -13932,7 +14014,7 @@ function hudSnooker() {
     const sp = document.createElement('span');
     if (k) { const e = document.createElement('i'); e.className = 'k'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
     for (const n of ds || []) sp.appendChild(dotEl(n));
-    if (val) { const e = document.createElement('b'); e.textContent = val; if (warn || cls) e.className = warn ? 'warn' : cls; sp.appendChild(e); }
+    if (val) { const e = document.createElement('b'); if (k === 'Break') numRoll(e, 'snkBreak', val); else e.textContent = val; if (warn || cls) e.className = warn ? 'warn' : cls; sp.appendChild(e); }
     return sp;
   }));
 }
@@ -13953,6 +14035,7 @@ function hudControls() {
   powerMark.style.left = vert ? '' : `calc(${markPower * 100}% - 1px)`;
   powerMark.style.top = vert ? `calc(${markPower * 100}% - 1px)` : '';
   powerBar.classList.toggle('live', live);
+  powerTick(live);
   fineWheel.classList.toggle('off', !(state === 'aim' && human()) || !!rp);
   powerBar.classList.toggle('rp', !!rp);   /* a replay (5r): the bar is off and says so */
   const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? (callReady() ? 'Pull to shoot' : 'Call your shot') : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'choose' ? 'Your choice' : '';
@@ -14791,16 +14874,16 @@ function avatarEl(card, cls = '') {
   return a;
 }
 function boardOf(box, score, need, them) {
-  const side = (who, n) => {
+  const side = (who, n, i) => {
     const d = document.createElement('div'), s = document.createElement('small'), b = document.createElement('b'), p = document.createElement('span');
-    d.className = 'side'; s.textContent = who; b.textContent = String(n); p.className = 'pips';
+    d.className = 'side'; s.textContent = who; numRoll(b, box.id + i, String(n)); p.className = 'pips';
     if (need <= 15) for (let i = 0; i < need; i++) { const e = document.createElement('i'); if (i < n) e.className = 'on'; p.appendChild(e); }
     d.append(s, b, p);
     return d;
   };
   const vs = document.createElement('span');
   vs.className = 'vs'; vs.textContent = 'vs';
-  box.replaceChildren(side('You', score[0]), vs, side(them, score[1]));
+  box.replaceChildren(side('You', score[0], 0), vs, side(them, score[1], 1));
   box.setAttribute('aria-label', `You ${score[0]}, ${them} ${score[1]}, race to ${need}`);
 }
 const leadWords = (first, a, b) => a > b ? `You lead ${a}-${b}.` : b > a ? `${first} leads ${b}-${a}.` : `All square at ${a}-${b}.`;
@@ -14935,7 +15018,7 @@ function cvGo(p, args) { cv.stack.push(Object.assign({ p }, args || {})); cvRend
 function cvBack() {
   if (cv.stack.length > 1) { cv.stack.pop(); cvRender('pop'); return; }
   cv.msg = '';
-  backToMenu();
+  morphClose(careerSheet);
 }
 /* the career sheet: the hub of the active career, else the careers */
 function showCareer(page, args) {
@@ -15432,7 +15515,7 @@ function careerStats() {
     return d;
   }));
 }
-careerBtn.addEventListener('click', () => { audioOn(); showCareer(); });
+careerBtn.addEventListener('click', () => { audioOn(); morphOpen(careerBtn, careerSheet, () => showCareer()); });
 careerBack.addEventListener('click', () => cvBack());
 rackGo.addEventListener('click', () => { audioOn(); if (career) careerRack(); else if (tmatch) tourneyRack(); });
 rackQuit.addEventListener('click', () => armOrAct(rackQuit, 'Tap again to forfeit', () => { const t = !!tmatch; quitToHome(); if (t) showModes('tour'); else showCareer(); }));
@@ -15731,7 +15814,7 @@ function showHandoff(p, first) {
   hoSub.textContent = (why + what + ball).trim();
   hoBoard.replaceChildren(...party.names.map((nm, i) => {
     const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('b');
-    a.textContent = nm + (i === p ? ' (to shoot)' : ''); b.textContent = partyScore(i);
+    a.textContent = nm + (i === p ? ' (to shoot)' : ''); numRoll(b, 'ho' + i, String(partyScore(i)));
     if (i === p) li.className = 'up';
     li.append(a, b);
     return li;
@@ -15784,7 +15867,7 @@ function showModes(page) {
   mdRender();
 }
 function mdGo(p) { md.stack.push({ p }); md.end = false; mdRender('push'); }
-function mdBack() { if (md.stack.length > 1) { md.stack.pop(); md.end = false; mdRender('pop'); } else backToMenu(); }
+function mdBack() { if (md.stack.length > 1) { md.stack.pop(); md.end = false; mdRender('pop'); } else morphClose(modesSheet); }
 function mdRender(anim) {
   const t = md.stack[md.stack.length - 1] || { p: 'root' };
   mdBody.replaceChildren(...(MD_PAGES[t.p] || MD_PAGES.root)().filter(Boolean));
@@ -15934,9 +16017,9 @@ MD_PAGES.psetup = () => {
   ];
 };
 /* the home's mode cards: each opens its own setup (the tournament under way, if there is one) */
-modeTour.addEventListener('click', () => { audioOn(); showModes(tour ? 'tour' : 'tsetup'); });
-modeEx.addEventListener('click', () => { audioOn(); showModes('exsetup'); });
-modeParty.addEventListener('click', () => { audioOn(); showModes('psetup'); });
+modeTour.addEventListener('click', () => { audioOn(); morphOpen(modeTour, modesSheet, () => showModes(tour ? 'tour' : 'tsetup')); });
+modeEx.addEventListener('click', () => { audioOn(); morphOpen(modeEx, modesSheet, () => showModes('exsetup')); });
+modeParty.addEventListener('click', () => { audioOn(); morphOpen(modeParty, modesSheet, () => showModes('psetup')); });
 /* the tournament card's line: the one under way, or what it is */
 function syncModesHome() {
   let t = null;
@@ -15956,6 +16039,422 @@ Object.defineProperties(felt, {
   mode: { get: () => tmatch ? 'tourney' : exhib ? 'exhibit' : party ? 'party' : null },
   partyState: { get: () => party && { names: party.names.slice(), n: party.n, wins: party.wins.slice() } },
 });
+
+/* ---- 6m. motion: the card-to-sheet morph, interactive sheets, the numbers' roll and the power
+   bar's tick. Visual only: nothing here changes a game, a setting or what a pull yields.
+   The morph (FLIP on cloned layers, transforms and opacity only): a home card is measured, its
+   sheet opens at once as it always did (showSetup and friends stay synchronous), then fixed
+   layers between the home and the sheet carry the card into the sheet: a backdrop and a panel
+   in the sheet's own colours, the card's art (a game card) or face (a mode card) growing into
+   the hero or the page on a spring, and the game's name flying into the setup's title. The
+   sheet's backgrounds stand aside meanwhile (.morphing) and its content fades in over them.
+   The hero (4m) waits for the landing (mo.hold): the art the card brought stays under it until
+   its first frame is up. Back runs it the other way, into the card. Reduce Motion: a cross-fade.
+   Sheets follow a finger: pulled down from the top of their content (or by the header) they
+   dismiss past a quarter of their height or on a flick, else spring back; a push page swipes
+   back from the left edge. Only touches that start on a sheet are looked at: the table and the
+   power bar never see a difference.
+   A test page sets window.feltNoMotion (tests/lib.cjs, unless a suite asks for motion): sheets
+   then open and close at once and numbers land at once, so the suites measure finished screens. ---- */
+const MORPH_MS = 380, FADE_MS = 200, ROLL_MS = 250, EDGE_PX = 24, SLOP = 8;
+const motionOn = () => !window.feltNoMotion;
+const mo = { pow: 0, busy: null, hold: false, after: null, src: null, runs: 0, last: null, heroAt: 0, rolls: 0, fulls: 0, drags: [] };
+/* a spring with a hair of overshoot, settled at the end, as a linear() easing where it is understood */
+const SPRING = (() => {
+  const fb = 'cubic-bezier(.2, .9, .25, 1.04)';
+  try { if (!window.CSS || !window.CSS.supports('transition-timing-function', 'linear(0, 1)')) return fb; } catch (e) { return fb; }
+  const z = 0.78, w = 8.4, wd = w * Math.sqrt(1 - z * z), pts = [];
+  for (let i = 0; i <= 40; i++) {
+    const t = i / 40;
+    pts.push(i === 40 ? 1 : +(1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t))).toFixed(4));
+  }
+  return `linear(${pts.join(', ')})`;
+})();
+/* the sheet's own entrance (sheetIn) and the home's stagger (homeIn) are done at once under a morph */
+function finishAnims(el) {
+  try { for (const a of el.getAnimations({ subtree: true })) if (a.animationName) a.finish(); } catch (e) { }
+}
+function mEl(cls, r, style) {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.setAttribute('aria-hidden', 'true');
+  Object.assign(d.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }, style || {});
+  return d;
+}
+function canvasCopy(src) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, src.width); c.height = Math.max(1, src.height);
+  try { c.getContext('2d').drawImage(src, 0, 0); } catch (e) { }
+  return c;
+}
+/* the card's face without its art (a clone on the screen, ids gone): its words fade where they are */
+function cardGhost(card, r, hideTitle) {
+  const g = card.cloneNode(true);
+  for (const e of [g, ...g.querySelectorAll('[id]')]) e.removeAttribute('id');
+  g.classList.add('mGhost');
+  g.setAttribute('aria-hidden', 'true');
+  g.tabIndex = -1;
+  Object.assign(g.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', minHeight: '0', aspectRatio: 'auto',
+    background: 'transparent', boxShadow: 'none', transform: 'none', transition: 'none', animation: 'none' });
+  const b = hideTitle && g.querySelector('.tt > b');
+  if (b) b.style.visibility = 'hidden';
+  document.body.appendChild(g);
+  return g;
+}
+const radii = (a, b, c) => `${a}px ${a}px ${c}px ${c}px / ${b}px ${b}px ${c}px ${c}px`;
+const fromTo = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+/* run a set of animations as one morph; end() (or a new morph) finishes it at once */
+function morphRun(info, anims, cleanup) {
+  mo.runs++;
+  mo.last = Object.assign(info, { t0: performance.now(), t1: 0 });
+  let over = false;
+  const end = () => {
+    if (over) return;
+    over = true;
+    for (const a of anims) { try { a.cancel(); } catch (e) { } }
+    cleanup();
+    info.t1 = performance.now();
+    if (mo.busy === busy) mo.busy = null;
+  };
+  const busy = mo.busy = { end, info };
+  const longest = anims.reduce((m, a) => { const t = a.effect.getComputedTiming().endTime; return t > m[0] ? [t, a] : m; }, [-1, null])[1];
+  if (longest) longest.onfinish = end; else end();
+}
+/* a card on the home opens its sheet: open() shows it at once, then the card flies into it */
+function morphOpen(card, sheet, open) {
+  if (mo.busy) mo.busy.end();
+  const can = motionOn() && card && card.isConnected && card.getClientRects().length && menu.classList.contains('show') && !menu.hasAttribute('data-paused');
+  if (!can) { open(); return; }
+  const fade = reducedMotion(), r0 = card.getBoundingClientRect(), art = card.querySelector('canvas.art'), tb = card.querySelector('.tt > b');
+  const tb0 = tb && tb.getBoundingClientRect(), tbFont = tb ? parseFloat(getComputedStyle(tb).fontSize) : 0;
+  const isSetup = sheet === setupSheet;
+  mo.hold = isSetup && !fade;
+  mo.after = null;
+  open();
+  const held = () => { mo.hold = false; mo.heroAt = performance.now(); const f = mo.after; mo.after = null; if (f) f(); };
+  if (!sheet.classList.contains('show')) { held(); return; }
+  mo.src = { sheet, card };
+  menu.classList.add('keep');
+  finishAnims(sheet);
+  if (fade) {
+    const a = sheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-out' });
+    morphRun({ type: 'fade', dir: 'open', from: card.id, to: sheet.id }, [a], () => menu.classList.remove('keep'));
+    return;
+  }
+  const panel = sheet.querySelector(':scope > .sheet'), csOv = getComputedStyle(sheet), csP = getComputedStyle(panel);
+  /* the colours now, as strings: a computed style is live, and .morphing is about to clear them */
+  const ovBg = csOv.backgroundColor, pBg = csP.backgroundColor, pRads = csP.borderRadius;
+  const pr = panel.getBoundingClientRect(), rad = parseFloat(csP.borderTopLeftRadius) || 0, rad0 = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 22;
+  const hr = isSetup ? setupHero.getBoundingClientRect() : pr;
+  const tr = isSetup ? setupTitle.getBoundingClientRect() : null, trFont = isSetup ? parseFloat(getComputedStyle(setupTitle).fontSize) : 0;
+  const gradient = isSetup ? getComputedStyle(setupHero, '::after').backgroundImage : 'none';
+  sheet.classList.add('morphing');
+  if (isSetup) setupHeroArt.classList.add('wait');
+  const dim = mEl('mPiece', { left: 0, top: 0, width: innerWidth, height: innerHeight }, { background: ovBg });
+  const pan = mEl('mPiece', pr, { background: pBg, borderRadius: pRads });
+  const layer = mEl('mLayer', hr);
+  let pic = null, page = null;
+  if (isSetup) {
+    pic = art ? canvasCopy(art) : document.createElement('canvas');
+    pic.style.objectFit = 'fill';
+    const grad = document.createElement('div');
+    grad.style.backgroundImage = gradient;
+    layer.append(pic, grad);
+    grad.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'both' });
+  } else {
+    const face = document.createElement('div'), cs = getComputedStyle(card);
+    face.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
+    page = document.createElement('div');
+    page.style.background = pBg;
+    layer.append(face, page);
+  }
+  for (const e of [dim, pan, layer]) document.body.insertBefore(e, sheet);
+  const ghost = cardGhost(card, r0, isSetup);
+  card.classList.add('mHide');
+  const sx = r0.width / hr.width, sy = r0.height / hr.height, endR = isSetup ? radii(rad, rad, 0) : radii(rad, rad, rad);
+  const anims = [
+    layer.animate([{ transform: fromTo(r0, hr), borderRadius: radii(rad0 / sx, rad0 / sy, rad0 / sy) }, { transform: 'none', borderRadius: endR }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }),
+    dim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.8, easing: 'ease-out', fill: 'both' }),
+    pan.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, easing: 'ease-out', fill: 'both' }),
+    panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.75, delay: isSetup ? 60 : 120, easing: 'ease-out', fill: 'both' }),
+    ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'both' }),
+  ];
+  if (page) anims.push(page.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.2, easing: 'ease-in-out', fill: 'both' }));
+  let title = null;
+  if (isSetup && tb0 && tbFont && trFont) {
+    title = mEl('mTitle', { left: tr.left, top: tr.top, width: tr.width, height: tr.height });
+    const ts = getComputedStyle(setupTitle);
+    Object.assign(title.style, { width: 'auto', height: 'auto', font: ts.font, letterSpacing: ts.letterSpacing, lineHeight: ts.lineHeight });
+    title.textContent = setupTitle.textContent;
+    document.body.appendChild(title);
+    setupTitle.style.opacity = '0';
+    const k = tbFont / trFont;
+    anims.push(title.animate([{ transform: `translate(${tb0.left - tr.left}px, ${tb0.top - tr.top}px) scale(${k})` }, { transform: 'none' }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }));
+  }
+  morphRun({ type: 'morph', dir: 'open', from: card.id, to: sheet.id }, anims, () => {
+    for (const e of [dim, pan, layer, ghost, title]) if (e) e.remove();
+    card.classList.remove('mHide');
+    sheet.classList.remove('morphing');
+    menu.classList.remove('keep');
+    if (isSetup) {
+      setupTitle.style.opacity = '';
+      /* the card's art stays under the hero until the hero's first frame has faded in over it */
+      if (pic && sheet.classList.contains('show')) heroUnder(pic);
+      held();
+      if (!hero.job) setupHeroArt.classList.remove('wait');
+    }
+  });
+}
+/* while the hero builds: the art the card brought, under its canvas (and under its fade) */
+function heroUnder(pic) {
+  for (const c of setupHero.querySelectorAll('.heroCopy')) c.remove();
+  pic.className = 'heroCopy';
+  pic.removeAttribute('style');
+  setupHero.insertBefore(pic, setupHeroArt);
+  const t0 = performance.now();
+  let seen = 0;
+  const look = now => {
+    if (!pic.isConnected) return;
+    const up = !hero.job && !setupHeroArt.classList.contains('wait');
+    if (up && !seen) seen = now;
+    if (!setupSheet.classList.contains('show') || (seen && now - seen > 360) || now - t0 > 4000) { pic.remove(); return; }
+    requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+}
+/* a morph holding the hero: the sheet's code hands it what to do on landing */
+function morphHolds(fn) { if (!mo.hold) return false; mo.after = fn; return true; }
+/* Back from a sheet a card opened: home, and the sheet flies back into its card */
+function morphClose(sheet) {
+  if (mo.busy) mo.busy.end();
+  const card = mo.src && mo.src.sheet === sheet ? mo.src.card : null;
+  mo.src = null;
+  const can = motionOn() && card && card.isConnected && sheet.classList.contains('show') && !paused && state === 'menu';
+  if (!can) { backToMenu(); return; }
+  const fade = reducedMotion(), isSetup = sheet === setupSheet, panel = sheet.querySelector(':scope > .sheet');
+  const csOv = getComputedStyle(sheet), csP = getComputedStyle(panel), pr = panel.getBoundingClientRect(), rad = parseFloat(csP.borderTopLeftRadius) || 0;
+  const ovBg = csOv.backgroundColor, pBg = csP.backgroundColor, pRads = csP.borderRadius;
+  const hr = isSetup ? setupHero.getBoundingClientRect() : pr, tr = isSetup ? setupTitle.getBoundingClientRect() : null, trFont = isSetup ? parseFloat(getComputedStyle(setupTitle).fontSize) : 0;
+  const gradient = isSetup ? getComputedStyle(setupHero, '::after').backgroundImage : 'none';
+  const snap = isSetup && !setupHeroArt.classList.contains('wait') && setupHeroArt.width > 1 ? canvasCopy(setupHeroArt) : null;
+  backToMenu();
+  finishAnims(menu);
+  sheet.classList.add('keep');
+  if (fade) {
+    const a = sheet.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, easing: 'ease-out', fill: 'both' });
+    morphRun({ type: 'fade', dir: 'close', from: sheet.id, to: card.id }, [a], () => sheet.classList.remove('keep'));
+    return;
+  }
+  const r1 = card.getBoundingClientRect(), art = card.querySelector('canvas.art'), tb = card.querySelector('.tt > b');
+  const tb1 = tb && tb.getBoundingClientRect(), tbFont = tb ? parseFloat(getComputedStyle(tb).fontSize) : 0, rad1 = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 22;
+  sheet.classList.add('morphing');
+  const dim = mEl('mPiece', { left: 0, top: 0, width: innerWidth, height: innerHeight }, { background: ovBg });
+  const pan = mEl('mPiece', pr, { background: pBg, borderRadius: pRads });
+  const layer = mEl('mLayer', r1), anims = [];
+  if (isSetup) {
+    const under = snap || (art ? canvasCopy(art) : document.createElement('canvas')), top = art ? canvasCopy(art) : document.createElement('canvas'), grad = document.createElement('div');
+    under.style.objectFit = top.style.objectFit = 'fill';
+    grad.style.backgroundImage = gradient;
+    layer.append(under, grad, top);
+    anims.push(top.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }),
+      grad.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, easing: 'ease-out', fill: 'both' }));
+  } else {
+    const face = document.createElement('div'), page = document.createElement('div'), cs = getComputedStyle(card);
+    face.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
+    page.style.background = pBg;
+    layer.append(face, page);
+    anims.push(page.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }));
+  }
+  for (const e of [dim, pan, layer]) document.body.insertBefore(e, sheet);
+  const ghost = cardGhost(card, r1, isSetup);
+  card.classList.add('mHide');
+  const sx = r1.width / hr.width, sy = r1.height / hr.height, startR = isSetup ? radii(rad / sx, rad / sy, 0) : radii(rad / sx, rad / sy, rad / sy);
+  anims.push(
+    layer.animate([{ transform: fromTo(hr, r1), borderRadius: startR }, { transform: 'none', borderRadius: radii(rad1, rad1, rad1) }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }),
+    dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.8, easing: 'ease-in-out', fill: 'both' }),
+    pan.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, easing: 'ease-in', fill: 'both' }),
+    sheet.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'both' }),
+    ghost.animate([{ opacity: 0, offset: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1, offset: 1 }], { duration: MORPH_MS, easing: 'linear', fill: 'both' }));
+  let title = null;
+  if (isSetup && tb1 && tbFont && trFont) {
+    title = mEl('mTitle', { left: tb1.left, top: tb1.top, width: tb1.width, height: tb1.height });
+    const ts = getComputedStyle(tb);
+    Object.assign(title.style, { width: 'auto', height: 'auto', font: ts.font, letterSpacing: ts.letterSpacing, lineHeight: ts.lineHeight });
+    title.textContent = tb.textContent;
+    document.body.appendChild(title);
+    anims.push(title.animate([{ transform: `translate(${tr.left - tb1.left}px, ${tr.top - tb1.top}px) scale(${trFont / tbFont})` }, { transform: 'none' }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }));
+  }
+  morphRun({ type: 'morph', dir: 'close', from: sheet.id, to: card.id }, anims, () => {
+    for (const e of [dim, pan, layer, ghost, title]) if (e) e.remove();
+    card.classList.remove('mHide');
+    sheet.classList.remove('morphing', 'keep');
+  });
+}
+
+/* ---- interactive sheets: pull down to dismiss, swipe back from the left edge ---- */
+const DRAG_SHEETS = () => [...SHEETS(), prac, tricks];
+/* a sheet with a push page: its back button, while a page is pushed */
+const EDGE_BACK = () => [[helpSheet, helpBack, () => !!helpPage], [prefsSheet, prefsBack, () => !!prefsAt], [statsSheet, statsBack, () => !!statsAt],
+  [careerSheet, careerBack, () => cv.stack.length > 1], [modesSheet, modesBack, () => md.stack.length > 1], [drillSheet, drillBack, () => !!drillPage]];
+let sg = null;
+/* every scrolling box from the touch up to the overlay is at its top */
+function atTop(el, ov) {
+  for (let e = el; e; e = e.parentElement) { if (e.scrollTop > 0) return false; if (e === ov) break; }
+  return true;
+}
+/* a pull past the top gives less and less (iOS's rubber band); down it follows, a little heavier as it goes */
+const rubber = (x, d) => (1 - 1 / (x * 0.55 / d + 1)) * d;
+function sgVel(axis) {
+  const p = sg.pts, a = p[0], b = p[p.length - 1], dt = b[0] - a[0];
+  return dt > 0 ? (b[axis] - a[axis]) / dt : 0;
+}
+function sgBegin(mode) {
+  const { ov, panel } = sg;
+  sg.mode = mode;
+  ov.classList.add('dragging');
+  if (mode === 'drag') {
+    ov.classList.add('pulling');
+    sg.bg = getComputedStyle(ov).backgroundColor;
+    sg.dim = mEl('mPiece', { left: 0, top: 0, width: innerWidth, height: innerHeight }, { background: sg.bg });
+    document.body.insertBefore(sg.dim, ov);
+    ov.style.background = 'transparent';
+    if (!menu.classList.contains('show')) { sg.keep = true; menu.classList.add('keep'); }
+  } else {
+    sg.items = [...panel.children].filter(c => !c.classList.contains('howTop') && c.getClientRects().length);
+    for (const c of sg.items) c.classList.add('edgeMove');
+  }
+}
+function sgMove(dx, dy) {
+  if (sg.mode === 'drag') {
+    const H = sg.H, y = dy >= 0 ? dy * (1 - 0.12 * Math.min(1, dy / H)) : -rubber(-dy, H);
+    sg.y = y;
+    sg.panel.style.transform = `translateY(${y}px)`;
+    sg.dim.style.opacity = String(1 - 0.9 * Math.min(1, Math.max(0, y) / H));
+  } else {
+    const x = dx >= 0 ? dx : -rubber(-dx, sg.W);
+    sg.x = x;
+    for (const c of sg.items) c.style.transform = `translateX(${x}px)`;
+  }
+}
+function sgClean(g) {
+  g.ov.classList.remove('dragging', 'pulling');
+  g.panel.style.transform = '';
+  g.ov.style.background = '';
+  if (g.dim) g.dim.remove();
+  if (g.keep) menu.classList.remove('keep');
+  for (const c of g.items || []) { c.style.transform = ''; c.classList.remove('edgeMove'); }
+}
+function sgEnd() {
+  const g = sg;
+  g.mode === 'drag' ? sgDragEnd(g) : sgEdgeEnd(g);
+}
+function sgDragEnd(g) {
+  const v = sgVel(2), y = g.y || 0, go = y > g.H * 0.25 || (v > 0.5 && y > 12);
+  g.mode = 'settle';
+  mo.drags.push(go ? 'dismiss' : 'spring');
+  const to = go ? g.H + 40 : 0, ms = go ? Math.max(180, Math.min(340, (g.H - y) / Math.max(v, 1.4))) : 420;
+  const a = g.panel.animate([{ transform: `translateY(${y}px)` }, { transform: `translateY(${to}px)` }], { duration: ms, easing: go ? 'cubic-bezier(.2, .8, .3, 1)' : SPRING, fill: 'forwards' });
+  g.dim.animate([{ opacity: g.dim.style.opacity || 1 }, { opacity: go ? 0 : 1 }], { duration: ms, easing: 'ease-out', fill: 'forwards' });
+  a.onfinish = () => {
+    a.cancel();
+    sgClean(g);
+    if (sg === g) sg = null;
+    if (go && g.ov.classList.contains('show')) { backToMenu(); finishAnims(menu); }
+  };
+}
+function sgEdgeEnd(g) {
+  const v = sgVel(1), x = g.x || 0, go = x > g.W * 0.35 || (v > 0.5 && x > 20);
+  g.mode = 'settle';
+  mo.drags.push(go ? 'back' : 'edge-spring');
+  const to = go ? g.W : 0, ms = go ? Math.max(140, Math.min(260, (g.W - x) / Math.max(v, 1.4))) : 380;
+  const anims = g.items.map(c => c.animate([{ transform: `translateX(${x}px)` }, { transform: `translateX(${to}px)` }], { duration: ms, easing: go ? 'cubic-bezier(.2, .8, .3, 1)' : SPRING, fill: 'forwards' }));
+  const done = () => {
+    for (const a of anims) a.cancel();
+    sgClean(g);
+    if (sg === g) sg = null;
+    if (go && g.ov.classList.contains('show')) g.back.click();
+  };
+  if (anims.length) anims[0].onfinish = done; else done();
+}
+document.addEventListener('touchstart', e => {
+  if (sg && sg.mode === 'settle') return;
+  sg = null;
+  if (e.touches.length !== 1 || mo.busy || !e.target.closest) return;
+  const ov = e.target.closest('.overlay.show');
+  if (!ov || !DRAG_SHEETS().includes(ov) || e.target.closest('input, select, textarea, [role="slider"]')) return;
+  const panel = ov.querySelector(':scope > .sheet');
+  if (!panel) return;
+  const t = e.touches[0], pr = panel.getBoundingClientRect(), eb = EDGE_BACK().find(x => x[0] === ov);
+  sg = { ov, panel, x0: t.clientX, y0: t.clientY, mode: null, H: Math.min(pr.height, innerHeight), W: pr.width,
+    top: atTop(e.target, ov), head: !!e.target.closest('.howTop, .hero, .shead'),
+    back: eb && eb[2]() && t.clientX - Math.max(0, pr.left) <= EDGE_PX ? eb[1] : null, pts: [[e.timeStamp, t.clientX, t.clientY]] };
+}, { passive: true });
+document.addEventListener('touchmove', e => {
+  if (!sg || sg.mode === 'settle' || sg.mode === 'none') return;
+  if (e.touches.length !== 1) { if (sg.mode) sgEnd(); else sg = null; return; }
+  const t = e.touches[0], dx = t.clientX - sg.x0, dy = t.clientY - sg.y0;
+  sg.pts.push([e.timeStamp, t.clientX, t.clientY]);
+  while (sg.pts.length > 2 && e.timeStamp - sg.pts[0][0] > 100) sg.pts.shift();
+  if (!sg.mode) {
+    if (Math.hypot(dx, dy) < SLOP) return;
+    if (sg.back && dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2) sgBegin('edge');
+    else if (dy > 0 && Math.abs(dy) > Math.abs(dx) && (sg.head || (sg.top && atTop(e.target, sg.ov)))) sgBegin('drag');
+    else { sg.mode = 'none'; return; }
+  }
+  if (e.cancelable) e.preventDefault();
+  sgMove(dx, dy);
+}, { passive: false });
+const sgUp = e => {
+  if (!sg || !sg.mode || sg.mode === 'none' || sg.mode === 'settle') { if (sg && sg.mode !== 'settle') sg = null; return; }
+  if (e.cancelable) e.preventDefault();   /* no click after a drag */
+  sgEnd();
+};
+document.addEventListener('touchend', sgUp, { passive: false });
+document.addEventListener('touchcancel', sgUp, { passive: false });
+
+/* ---- numbers: a score that goes up rolls up to it (ROLL_MS, an ease-out) in the HUD's chips,
+   snooker's break, the boards between racks and the party's handoff. A number that falls, or
+   the first one shown, is set at once; so is every number under Reduce Motion. data-v holds
+   the final text from the start. ---- */
+const numMem = new Map();
+function numRoll(el, key, text) {
+  const s = String(text), m = s.match(/^(\d+)(\D.*)?$/), v = m ? +m[1] : NaN, was = numMem.get(key);
+  numMem.set(key, { v, s });
+  el.textContent = s;
+  el.dataset.v = s;
+  if (!m || !was || !(v > was.v) || !motionOn() || reducedMotion()) return;
+  const from = was.v, suf = m[2] || '', t0 = performance.now();
+  el.textContent = was.s;
+  el.classList.add('rolling');
+  mo.rolls++;
+  const step = now => {
+    if (!el.isConnected || el.dataset.v !== s) return;
+    const u = Math.min(1, (now - t0) / ROLL_MS), n = Math.round(from + (v - from) * (1 - (1 - u) ** 3));
+    el.textContent = u >= 1 ? s : n === from ? was.s : n + suf;
+    if (u < 1) requestAnimationFrame(step); else el.classList.remove('rolling');
+  };
+  requestAnimationFrame(step);
+}
+/* ---- the power bar at 100%: a crisp tick at its end (CSS, .full) and, once per pull, the
+   powerFull() hook another part of the page may define for a sound and a haptic. A function
+   declaration or window.powerFull both count. ---- */
+function powerTick(live) {
+  /* released: the afterglow drains from where the fill stood */
+  if (live) mo.pow = power;
+  else if (mo.pow > 0) {
+    powerBar.style.setProperty('--drain', (mo.pow * 100).toFixed(1) + '%');
+    powerBar.classList.remove('drain'); void powerBar.offsetWidth; powerBar.classList.add('drain');
+    mo.pow = 0;
+  }
+  const full = !!(live && pull && pull.kind !== 'cpu' && power >= 1);
+  if (powerBar.classList.contains('full') !== full) powerBar.classList.toggle('full', full);
+  if (!full || pull.fullHit) return;
+  pull.fullHit = true;
+  mo.fulls++;
+  if (typeof window.powerFull === 'function') { try { window.powerFull(); } catch (e) { } }
+}
+Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo.busy, hold: mo.hold, runs: mo.runs, last: mo.last && Object.assign({}, mo.last), heroAt: mo.heroAt,
+  rolls: mo.rolls, fulls: mo.fulls, drags: mo.drags.slice(), dragging: !!(sg && sg.mode && sg.mode !== 'none'), spring: SPRING }) });
 
 /* ============ 7. BOOT ============ */
 /* the career engine (1z) keeps its slots in localStorage; booting it copies the old ladder's

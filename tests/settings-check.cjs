@@ -8,7 +8,7 @@
    3. Gameplay: the default rules per game (built from RULESETS) start a game on them; races;
       locked by an event (rules off limits).
    4. Controls: left-handed and the power bar at the edge move the controls; a bar shot still plays.
-   5. Graphics: replays off offers none; Shot Camera defaults to Broadcast and keeps a choice; reduce motion is honoured by the page and the canvas.
+   5. Graphics: replays off offers none; reduce motion is honoured by the page and the canvas.
    6. Audio: the master and table-sound volumes set the audio graph's gains.
    7. Accessibility: ball marks paint an upright badge (light on solids, dark on stripes); the
       high-contrast aim line is 4.5:1 or better on every cloth; text size grows the sheets and still
@@ -172,19 +172,6 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.evaluate(() => setSetting('replays', true));
   const yr = await offerAfter();
   check('Graphics: Replays Never offers no Replay pill after a shot; Offer does', !nr.offer && !nr.shown && nr.last && yr.offer && yr.shown, JSON.stringify({ nr, yr }));
-  /* Shot Camera (page 4n): Broadcast by default, a stored choice kept, anything else back to the default */
-  const sc = await p.evaluate(() => {
-    const def = loadSettings().shotCam;
-    setSetting('shotCam', 'off');
-    const kept = loadSettings().shotCam, pressed = scOff.getAttribute('aria-pressed');
-    const raw = JSON.parse(localStorage.getItem('felt.settings'));
-    localStorage.setItem('felt.settings', JSON.stringify(Object.assign({}, raw, { shotCam: 'drone' })));
-    const bad = loadSettings().shotCam;
-    localStorage.setItem('felt.settings', JSON.stringify(raw));
-    setSetting('shotCam', 'broadcast');
-    return { def, kept, pressed, bad, now: settings.shotCam, back: scBroad.getAttribute('aria-pressed') };
-  });
-  check('Graphics: Shot Camera is Broadcast by default, Off is stored and kept, an unknown value reads as Broadcast', sc.def === 'broadcast' && sc.kept === 'off' && sc.pressed === 'true' && sc.bad === 'broadcast' && sc.now === 'broadcast' && sc.back === 'true', JSON.stringify(sc));
   const mo = await p.evaluate(async () => {
     const before = reducedMotion();
     setSetting('reduceMotion', true);

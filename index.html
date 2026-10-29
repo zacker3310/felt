@@ -883,8 +883,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #over .stats .dots { display: flex; flex-wrap: wrap; gap: 3px; }
 #over .row { grid-area: btns; }
 #over .big, #over .ghost { min-height: 50px; }
-#overReplay { grid-column: 1 / -1; }
-#overReplay[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   #over.show .ovArt .ball, #over.show .ovArt .gleam { animation: none; }
 }
@@ -1692,16 +1690,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h3 class="ghead" id="lookLab">Look</h3>
       <div class="group" role="group" aria-labelledby="lookLab" id="lookRows"></div>
       <p class="gfoot" id="lookNote"></p>
-      <h3 class="ghead" id="scLab">Shot Camera</h3>
-      <div class="group" role="group" aria-labelledby="scLab">
-        <div class="prow"><div class="seg" role="group" aria-labelledby="scLab" aria-describedby="scNote"><button id="scBroad" aria-pressed="true">Broadcast</button><button id="scOff" aria-pressed="false">Off</button></div></div>
-      </div>
-      <p class="gfoot" id="scNote">Broadcast follows each shot from a low camera behind the cue ball, back to the whole table before the next aim, and replays the winning shot. Off keeps the table top-down. Reduce Motion turns it off.</p>
       <h3 class="ghead" id="camLab">Camera</h3>
       <div class="group" role="group" aria-labelledby="camLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
       </div>
-      <p class="gfoot" id="camNote">Follow moves in a little on the action while the balls roll, and close on replays. Aiming always shows the whole table. With Shot Camera on Broadcast, Follow applies to replays only.</p>
+      <p class="gfoot" id="camNote">Follow moves in a little on the action while the balls roll, and close on replays. Aiming always shows the whole table.</p>
       <h3 class="ghead" id="rpLab">Replays</h3>
       <div class="group" role="group" aria-labelledby="rpLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="rpLab"><button id="rpOn" aria-pressed="true">Offer</button><button id="rpOff" aria-pressed="false">Never</button></div></div>
@@ -2271,7 +2264,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     </div>
     <ul class="notes" id="overNotes" aria-label="Shots of the game"></ul>
     <table class="stats" id="overStats"></table>
-    <div class="row"><button class="ghost" id="overReplay" hidden>Replay Winning Shot</button><button class="big" id="rematch">Rematch</button><button class="ghost" id="overMenu">Menu</button></div>
+    <div class="row"><button class="big" id="rematch">Rematch</button><button class="ghost" id="overMenu">Menu</button></div>
   </div>
 </div>
 <label id="hapTick" aria-hidden="true"><input type="checkbox" switch tabindex="-1" aria-hidden="true"></label>
@@ -7906,7 +7899,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29e';
+const BUILD = 'build 2026-10-29f';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -8117,14 +8110,12 @@ function spring(p, v, to, w, dt) {
 /* once a frame (frame()): move the camera toward where the shot, the replay or the turn wants it */
 function camStep(dtMs) {
   if (state === 'menu') { if (paused) return; camHiRes(); }
-  /* not while the broadcast camera builds and eases in (4n): those frames are full; it catches up after */
-  if (camPred && !camPred.done && bc.phase !== 'build' && bc.phase !== 'in') camPredStep(camPred, bc.phase === 'off' ? 4 : 3);
+  if (camPred && !camPred.done) camPredStep(camPred, 4);
   if (camPred && camPred.done && !camPred.plan) camPred.plan = camPlan(camPred.tr, CAM_LIVE);
   let want = null;
   if (cam.pin) want = cam.pin;
   else if (settings.camera === 'off') want = null;
   else if (rp) want = rp.plan ? camAt(rp.plan, rp.camT) : null;
-  else if (bc.phase !== 'off') want = null;   /* the broadcast camera has the shot (4n): z = 1 underneath */
   else if ((state === 'rolling' || state === 'stroke') && tab && camPred && camPred.plan && camPred.rec === felt.lastShot) want = camAt(camPred.plan, tab.t);
   else if (state === 'rolling' || state === 'stroke') want = [1, cam.x, cam.y];
   if (cam.pin || !want) {
@@ -9884,9 +9875,6 @@ function draw(now) {
   if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
   prevState = state;
   if (!tab && game.shots === 0) trayList = [];
-  /* the broadcast camera (4n): all of the stage, or over the top-down table as it eases */
-  const bcB = bcBlend();
-  if (bcB >= 1 || (bcB > 0 && bcSnapped())) { bcPaint(bcB, now); return; }
   const T = shownTab(), balls = T ? T.balls : game.balls, rb = BALL_R * view.k * dpr;
   if (tableImg && lookKey !== lookSig()) { const keep = view; view = viewBase; tableImg = drawTableImage(); view = keep; }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -9947,7 +9935,6 @@ function draw(now) {
   ctx.restore();
   if (zoomed) ctx.restore();
   drawLoupe(now, gi);
-  if (bcB > 0) { bcSnap(); bcPaint(bcB, now); }
 }
 /* the cue may run off the table but not into the controls: clip to the stage layout() fits the
    table into, or the whole canvas without one */
@@ -10148,7 +10135,7 @@ const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: tru
 const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
 const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
   'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
-  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls', 'shotCam'];
+  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls'];
 /* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
    2 and 2 to 3 renamed nothing: the new keys simply take their defaults in loadSettings. */
 /* (migrateSettings, section 6) */
@@ -10193,8 +10180,6 @@ const felt = window.felt = {
   get cpuLevel() { return cpuLevel; }, get cpuProfile() { return cpuProf; }, cpuSkip: () => { if (state === 'thinking' && !human()) cpuSkip = true; return cpuSkip; }, lastThink: null, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
   get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
   get hero() { return heroInfo(); }, heroMeasure: false, heroReplay: () => heroReplay(),
-  /* the broadcast camera (4n): its state, and the tests' switch (lib.cjs sets FELT_NO_BCAM unless a suite asks for it) */
-  get broadcast() { return bcInfo(); }, bcam: !window.FELT_NO_BCAM, bcMeasure: false,
   get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
   /* the aim feel (section 5 input): the sweep gain radius and tap reach in CSS px, and the tuning */
   get sweepR() { return sweepR(); }, get tapReach() { return tapReach(); },
@@ -10270,7 +10255,6 @@ function start(kind, o = null) {
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
-  bcOff(); bcHeld = null; overRec = null; bcPrime();
   pull = null; stroke = null; paused = null; stats = newStats(playersOf(game)); aimAnim = null;
   cancelGestures(); aimLock = null;
   hideOverlays();
@@ -10321,7 +10305,6 @@ function shoot() {
   tab = strike(newTable(game.balls, cueN()), ex.angle, ex.power, ex.spin);
   simAcc = 0;
   state = 'rolling';
-  bcShot(felt.lastShot);
   say('');
   hud();
 }
@@ -10458,23 +10441,13 @@ function finishAutoAim() {
   aimAngle = aimAnim.from + aimAnim.d; aimAnim = null;
   keepAim();
 }
-/* the game's end. fromShot: it ended on a shot (settle), whose record (overRec) the broadcast
-   camera plays again first (4n) and the sheet's Replay Winning Shot replays */
-let overRec = null;
-function finish(fromShot = false) {
+function finish() {
   state = 'over'; stroke = null; pull = null; gest = null; paused = null;
   move = null; placeBack = null; placeAt = null; hint = null;
   recordGame();
   if (party && game.winner !== null && !game.mode) party.wins[game.winner]++;   /* a party's racks won (6f) */
   handoff.classList.remove('show');   /* a rack won (or forced) with a handoff up: the result, not "Pass to" */
-  const rec = felt.lastShot;
-  overRec = fromShot && !game.mode && !tutOn() && rec && rec.balls && rec.geo === geoSig() ? rec : null;
-  if (overRec && bcWinAuto() && bcWinStart(overRec, finishShow)) { hud(); return; }
-  finishShow();
-}
-/* the result: a career rack between racks or the match (6d), a tournament rack likewise (6f), else the sheet */
-function finishShow() {
-  if (state !== 'over') return;
+  /* a career rack: between racks, or the match result (6d); a tournament rack likewise (6f) */
   if (!careerRackOver() && !tourneyRackOver()) showOver();
   /* the win sting for a player's win; the CPU's is quiet (audit F14), as the sheet's mood is */
   sfx(cpuMode && game.winner === 1 ? 'lose' : 'win', 1);
@@ -10503,7 +10476,7 @@ function settle() {
   stats.potted[shooter].push(...v.potted);
   noteShot(before, r, shooter);
   if (game.kind === 'snooker') recordFrame(v);
-  if (game.winner !== null) { say(overLine(game)); finish(true); return; }
+  if (game.winner !== null) { say(overLine(game)); finish(); return; }
   cueSpin = { x: 0, y: 0 }; power = markPower;
   placeAt = null; placeBack = null; move = null; aimLock = null; handAimed = false; hint = null; picked = false;
   /* a choice the rules give (5c): the CPU answers at once, a player in the option box */
@@ -10965,17 +10938,13 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 function frameBody(now) {
-  const now0 = performance.now();
   if (document.hidden) { frame.last = undefined; return; }   /* hidden: nothing steps (F11) */
   const dtMs = clamp(now - (frame.last || now), 0, 50);   /* never backwards, at most 50 ms */
   frame.last = now;
   stepKeyPull(now);
   if (state === 'stroke' && !rp && now - stroke.t0 >= STROKE_MS / felt.speed) shoot();
   if (rp) replayStep(now, dtMs);   /* a replay (5r) holds the live game where it is */
-  else if (state === 'rolling' && tab && bcHeld === tab) {
-    /* the balls are still: the broadcast camera (4n) eases back before the turn, the table never stepped again */
-    if (bc.phase !== 'out' || bc.u <= 0) { bcHeld = null; bcOff(); rollDone(); }
-  } else if (state === 'rolling' && tab) {
+  else if (state === 'rolling' && tab) {
     const before = tab.balls.map(b => [b.x, b.y, b.on]);
     const steps = simSteps(dtMs);   /* real time, whatever the step and the frame rate */
     let live = true;
@@ -10985,19 +10954,14 @@ function frameBody(now) {
     for (const h of tab.hits) sfx(h[0], h[1], h[2]);
     tab.hits.length = 0;
     tab.balls.forEach((b, i) => { if (before[i][2] && !b.on) onPot(b.n, tab.pocketOf[b.n], [before[i][0], before[i][1]], now); });
-    if (!live && !bcRollEnd()) rollDone();
+    if (!live) { const res = resultOf(tab), was = game.turn; settle(); offerReplay(res); partyHandoff(was); }
   } else if (state === 'thinking') think(now);
   stepAutoAim(now);
   stepPlaceBack(now);
   stepOffer();
   camStep(dtMs);
-  bcStep(dtMs);
   draw(now);
-  /* the whole frame's work while the broadcast camera is up (camera-check's budget) */
-  if (bc.phase !== 'off' && bc.fms.length < 4000) { bc.fms.push(performance.now() - now0); bc.fph.push(bc.phase); }
 }
-/* the balls are at rest: the shot is settled and the next turn set up */
-function rollDone() { const res = resultOf(tab), was = game.turn; settle(); offerReplay(res); partyHandoff(was); }
 /* the CPU's turn begins: its search starts, one slice a frame (think) */
 function cpuBegin() {
   if (exhib) cpuProf = exhib.prof[game.turn];   /* an exhibition: each player plays their own personality */
@@ -12575,7 +12539,7 @@ function loadSettings() {
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
     hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
-    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', shotCam: 'broadcast' };
+    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic' };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     let o = JSON.parse(raw || '{}') || {};
@@ -12589,7 +12553,6 @@ function loadSettings() {
     for (const k of ['replays', 'reduceMotion', 'marks', 'hcAim', 'keyShoot']) if (typeof o[k] === 'boolean') s[k] = o[k];
     for (const k of ['vol', 'volFx']) if (typeof o[k] === 'number' && Number.isFinite(o[k])) s[k] = clamp(Math.round(o[k] / 5) * 5, 0, 100);
     if (TEXT_SIZES.includes(o.text)) s.text = o.text;
-    if (['broadcast', 'off'].includes(o.shotCam)) s.shotCam = o.shotCam;
     for (const k of ['8', '9', '10']) if (rulesetsFor(k).some(r => r.id === o['rules' + k])) s['rules' + k] = o['rules' + k];
     if (RACES_141.includes(o.race141)) s.race141 = o.race141;
     if (typeof o.stalemate === 'boolean') s.stalemate = o.stalemate;
@@ -12673,7 +12636,6 @@ const SEGS = [
   ['snookerTable', [[stCompact, 'compact'], [stFull, 'full']]],
   ['snookerFrames', [[sf1, 1], [sf3, 3]]],
   ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
-  ['shotCam', [[scBroad, 'broadcast'], [scOff, 'off']]],
   ['rules8', [[rs8House, '8-house'], [rs8Wpa, '8-wpa']]],
   ['rules9', [[rs9House, '9-house'], [rs9Wpa, '9-wpa']]],
   ['rules10', [[rs10Wpa, '10-wpa'], [rs10House, '10-house']]],
@@ -13171,16 +13133,12 @@ function heroPrep(kind, args = heroArgs(kind)) {
   const keep = heroOn(args), rk = RAIL;
   try {
     RAIL = RAIL_MAX;
-    const geo = heroGeo(), H = heroSetup(kind);
+    const co = cushionDepth(), H = heroSetup(kind);
+    const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
+    const geo = { TL, TW, R: BALL_R, rail: RAIL, co, h: BALL_R * 1.42, noses, polys: CUSHION_POLYS.map(q => q.map(p => p.slice())), outline: heroOutline(co),
+      mouths: MOUTHS.length, pockets: POCKETS.map(p => p.slice()), pr: POCKET_R.slice(), posts: BUMPERS.map(p => p.slice()), postR: BUMPER_R };
     return { kind, args, key: heroKey(kind), geo, balls: H.balls, shot: H.shot };
   } finally { RAIL = rk; heroOff(keep); }
-}
-/* the table now set as the hero draws it (the caller sets RAIL; the broadcast camera, 4n, shares it) */
-function heroGeo() {
-  const co = cushionDepth();
-  const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
-  return { TL, TW, R: BALL_R, rail: RAIL, co, h: BALL_R * 1.42, noses, polys: CUSHION_POLYS.map(q => q.map(p => p.slice())), outline: heroOutline(co),
-    mouths: MOUTHS.length, pockets: POCKETS.map(p => p.slice()), pr: POCKET_R.slice(), posts: BUMPERS.map(p => p.slice()), postR: BUMPER_R };
 }
 /* the roll, recorded: positions every HERO_SUB steps, each ball's turn (rolled from its path as
    frame() rolls the table's) and where it went down. Sliced: heroRunOn runs it for ms at most. */
@@ -13287,10 +13245,8 @@ function heroTurned(tex, g, yaw) {
 }
 /* lay the turned art on the plane z = h, inside whatever clip g has: bands of BAND device px,
    far to near, each one drawImage under the affine that is exact along its middle */
-function heroPlane(x, C, T, h, uLo, uHi) { const it = heroBands(x, C, T, h, uLo, uHi); while (!it.next().done); }
-/* heroPlane a band at a time (a yield after each), for a build in slices (4n); BAND device px each */
-function* heroBands(x, C, T, h, uLo, uHi, BAND = 1.6, minU = 0) {
-  const at = (u, v) => { const U = (u + T.u0) / T.K, V = (v + T.v0) / T.K; return heroProj(C, U * T.c - V * T.s, U * T.s + V * T.c, h); };
+function heroPlane(x, C, T, h, uLo, uHi) {
+  const BAND = 1.6, at = (u, v) => { const U = (u + T.u0) / T.K, V = (v + T.v0) / T.K; return heroProj(C, U * T.c - V * T.s, U * T.s + V * T.c, h); };
   /* the camera's own column, where the plane's lateral line is straight ahead */
   const vc = (-C.E[0] * T.s + C.E[1] * T.c) * T.K - T.v0, Hh = T.img.height;
   /* never behind the eye: a point must be 5 cm ahead */
@@ -13299,7 +13255,7 @@ function* heroBands(x, C, T, h, uLo, uHi, BAND = 1.6, minU = 0) {
   while (u > uLo) {
     if (depthAt(u) < 0.05) break;
     const p = at(u, vc), q = at(u - 1, vc), per = Math.max(1e-3, Math.hypot(p[0] - q[0], p[1] - q[1]));
-    const u0 = Math.max(uLo, u - Math.max(minU, BAND / per)), um = (u + u0) / 2;
+    const u0 = Math.max(uLo, u - BAND / per), um = (u + u0) / 2;
     if (depthAt(u0) < 0.05) break;
     const a = at(u, vc), b = at(u0, vc), m = at(um, vc), m2 = at(um, vc + 64);
     const ju = [(a[0] - b[0]) / (u - u0), (a[1] - b[1]) / (u - u0)], jv = [(m2[0] - m[0]) / 64, (m2[1] - m[1]) / 64];
@@ -13308,7 +13264,6 @@ function* heroBands(x, C, T, h, uLo, uHi, BAND = 1.6, minU = 0) {
     const ext = 0.7 / per;
     x.drawImage(T.img, u0, 0, u - u0 + ext, Hh, u0, 0, u - u0 + ext, Hh);
     u = u0;
-    yield;
   }
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
@@ -13622,458 +13577,6 @@ function heroInfo() {
 setupHeroArt.addEventListener('click', heroReplay);
 /* the form grows or shrinks (the CPU's cards, a folded choice, the text size): the hero follows */
 if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => heroFit()); for (const c of setupScroll.children) ro.observe(c); }
-
-/* ---- 4n. the broadcast camera ----
-   Settings > Graphics, Shot Camera (settings.shotCam: 'broadcast', the default, or 'off'). After a
-   shot is struck the view eases (BC_EASE_MS) from the top-down table into a low "TV" camera behind
-   the shot, follows the roll, and eases back to the top-down table when every ball has stopped,
-   before aiming resumes. It is the hero's perspective renderer (4m: heroCam and heroProj, the
-   table art turned to the camera and laid on the bed and the rail tops in bands, drawBall's
-   spheres over flattened contact shadows) pointed from behind the cue ball along the stroke, and
-   it draws the LIVE table (tab) every frame. A view only: it reads tab, game and orient and never
-   writes them, so the physics, simulateShot and the live roll's byte-for-byte agreement are
-   untouched. The table art (bcTexture) is painted once per table and look (primed as a game
-   starts); the still parts for a shot's camera (bg: the room, the bed, the faces and the rail
-   tops; ov: the near rail and the vignette) are built in slices of BC_SLICE ms inside the first
-   frames of the roll (bcBuild), and the ease starts when they are up, inside 500 ms of the strike.
-   The camera then follows the balls in motion with a slow pan and a slight zoom on its image (a
-   spring on page time). When the balls stop, frame() keeps the turn (state stays 'rolling', so
-   every input is still ignored, as it is while the balls roll) while the view eases back, then
-   settles the shot as before.
-   Never: in a solo session (practice, drills, trick shots, the daily shot, the lesson, the
-   tutorials: they need the top-down view), during a shot replay (5r), with Reduce Motion, with
-   the setting Off, or with felt.bcam false (tests/lib.cjs sets that unless a suite opens with
-   camera: true). The follow camera (3b, settings.camera) yields to it: under a shot the broadcast
-   camera takes, the top-down view holds z = 1, so the ease back lands on the whole table; Follow
-   still moves in on shot replays and on every shot when Shot Camera is Off.
-   The winning shot: a game that ends on a shot (a real win, any game, career, tournament and party
-   racks included; never a forced win, a concession or a forfeit) plays that shot again through the
-   same camera before the result sheet (finish()): at BC_RATE (0.6x) from its record (shotRecord's
-   prediction, rec.track), the deciding ball dropping into its pocket on the screen's clock (the
-   hero's drop, HERO_DROP_MS), BC_WIN_MIN to BC_WIN_MAX ms long, then the result sheet (or the
-   career's or the tournament's) as before. A tap or a key skips it; Reduce Motion and Shot Camera
-   Off leave it out. The game-over sheet's Replay Winning Shot plays it again: the sheet steps
-   aside and comes back. felt.broadcast reports it all; felt.bcMeasure flushes each camera frame's
-   pixels so its time is the real cost. ---- */
-const BC_EASE_MS = 350, BC_DPR = 3, BC_SLICE = 8, BC_BAND = 4, BC_WARM_MS = 250, BC_RATE = 0.6, BC_WIN_MIN = 2500, BC_WIN_MAX = 4000, BC_HOLD_MS = 1100, BC_PAN = 0.06;
-const bc = { phase: 'off', u: 0, shot: null, art: null, job: null, tex: null, geo: null, win: null, after: null, last: null,
-  z: 1, vz: 0, fx: 0, fy: 0, vx: 0, vy: 0, drops: {}, on: {}, t0: 0, enterMs: null, frames: 0, ms: [], fms: [], fph: [], lp: 0, wins: 0, eatId: null, eatUntil: 0 };
-/* the camera may take this shot */
-const bcOn = () => settings.shotCam === 'broadcast' && felt.bcam !== false && !reducedMotion() && !game.mode && !solo && !rp;
-/* the live table's geometry as the hero sees it (heroGeo, at the full rail), kept per table */
-function bcGeo() {
-  const key = [TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, BALL_R].join();
-  if (bc.geo && bc.geo.key === key) return bc.geo;
-  const rk = RAIL;
-  try { RAIL = RAIL_MAX; bc.geo = Object.assign(heroGeo(), { key }); } finally { RAIL = rk; }
-  return bc.geo;
-}
-/* the table art the camera lays down: drawTableImage's, flat, once per table and look */
-function bcTexture(g) {
-  const key = [g.key, lookSig()].join('|');
-  if (bc.tex && bc.tex.key === key) return bc.tex;
-  const was = { view, dpr, RAIL };
-  try {
-    RAIL = RAIL_MAX; dpr = 1; heroNoPosts = true;
-    const ext = g.rail + 0.02, K = Math.min(640, 2000 / (g.TL + 2 * ext)), w = Math.ceil((g.TL + 2 * ext) * K), h = Math.ceil((g.TW + 2 * ext) * K);
-    view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null };
-    bc.tex = { key, img: drawTableImage(w, h), K, ox: ext * K, oy: ext * K, rot: null };
-    bc.tex.img.getContext('2d').getImageData(0, 0, 1, 1);   /* painted now, not at its first use in a shot's frame */
-  } finally { view = was.view; dpr = was.dpr; RAIL = was.RAIL; heroNoPosts = false; }
-  return bc.tex;
-}
-/* a game starts: paint its art now (a task of its own), not in the first shot's frames */
-function bcPrime() {
-  setTimeout(() => { try { if (bcOn() && state !== 'menu') { useCloth(); bcTexture(bcGeo()); } } catch (e) { console.error(e); } }, 0);
-}
-/* where the camera stands for a stroke at angle a from the cue ball (cx, cy): behind and above
-   it, looking along the shot toward a point ahead pulled a little toward the table's middle. The
-   focal length puts the table's width across the frame at that point's depth, and never so long
-   that the cue ball leaves the bottom of the frame. W, H: the image, device px. */
-function bcCamera(g, cx, cy, a, W, H) {
-  const tall = clamp((H / W - 0.7) / 0.9, 0, 1), S = (g.TL + g.TW) / 2, dx = Math.cos(a), dy = Math.sin(a);
-  const back = S * (0.5 + 0.2 * tall), up = S * (0.36 + 0.5 * tall), ahead = S * 0.55;
-  const ax = cx + dx * ahead, ay = cy + dy * ahead, T = [ax + (g.TL / 2 - ax) * 0.3, ay + (g.TW / 2 - ay) * 0.3, 0];
-  const C = heroCam([cx - dx * back, cy - dy * back, up], T, 0);
-  const dT = v3.dot(v3.sub(T, C.E), C.f), span = (g.TW + 2 * g.rail) * (1.05 - 0.15 * tall);
-  C.cx = W / 2; C.cy = H * (0.4 - 0.08 * tall); C.F = 1;
-  const c = heroProj(Object.assign({}, C, { cx: 0, cy: 0 }), cx, cy, g.R);
-  C.F = Math.min(W * dT / span, c[1] > 0 ? (H * 0.88 - C.cy) / c[1] : Infinity);
-  return C;
-}
-/* a world polygon at height z as a path, cut at 6 cm in front of the eye (the camera may stand
-   over the table, with part of it behind) */
-function bcPath(x, C, pts, z) {
-  const near = 0.06, P = pts.map(([a, b]) => ({ w: [a, b, z], d: v3.dot(v3.sub([a, b, z], C.E), C.f) })), out = [];
-  for (let i = 0; i < P.length; i++) {
-    const A = P[i], B = P[(i + 1) % P.length];
-    if (A.d >= near) out.push(A.w);
-    if ((A.d >= near) !== (B.d >= near)) { const t = (near - A.d) / (B.d - A.d); out.push([A.w[0] + (B.w[0] - A.w[0]) * t, A.w[1] + (B.w[1] - A.w[1]) * t, z]); }
-  }
-  out.forEach((w, i) => { const p = heroProj(C, w[0], w[1], w[2]); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); });
-  if (out.length) x.closePath();
-}
-/* heroTurned's art turned to the camera's yaw, in strips of the result (one turn of the whole
-   art is the build's biggest single step) */
-function* bcTurned(tex, g, yaw) {
-  if (tex.rot && tex.rot.yaw === yaw) return tex.rot;
-  const c = Math.cos(yaw), s = Math.sin(yaw), K = tex.K, ext = g.rail + 0.02, us = [], vs = [];
-  for (const [x, y] of [[-ext, -ext], [g.TL + ext, -ext], [g.TL + ext, g.TW + ext], [-ext, g.TW + ext]]) { us.push((x * c + y * s) * K); vs.push((-x * s + y * c) * K); }
-  const u0 = Math.floor(Math.min(...us)), v0 = Math.floor(Math.min(...vs)), cv = document.createElement('canvas');
-  cv.width = Math.ceil(Math.max(...us)) - u0 + 1; cv.height = Math.ceil(Math.max(...vs)) - v0 + 1;
-  yield;
-  const x = cv.getContext('2d'), N = 16, h = Math.ceil(cv.height / N);
-  for (let i = 0; i < N; i++) {
-    x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.beginPath(); x.rect(0, i * h, cv.width, h); x.clip();
-    x.setTransform(c, -s, s, c, -u0, -v0); x.drawImage(tex.img, -tex.ox, -tex.oy); x.restore();
-    x.getImageData(0, 0, 1, 1);
-    yield 'turn';
-  }
-  return (tex.rot = { yaw, c, s, K, u0, v0, img: cv });
-}
-/* a canvas paints its drawImage calls lazily, at its first use: flushed every few bands, so the
-   cost stays in the build's slices and never lands on the first frame that shows it */
-function* bcFlushed(x, it) {
-  for (let n = 1; ; n++) {
-    if (it.next().done) { x.getImageData(0, 0, 1, 1); return; }
-    if (n % 16 === 0) x.getImageData(0, 0, 1, 1);
-    yield 'band';
-  }
-}
-/* a fill of the whole image, a strip at a time (each flushed) */
-function* bcFill(x, W, H, style) {
-  const N = 8, h = Math.ceil(H / N);
-  x.fillStyle = style;
-  for (let i = 0; i < N; i++) { x.fillRect(0, i * h, W, h); x.getImageData(0, 0, 1, 1); yield 'fill'; }
-}
-/* the still parts for camera C (heroStill's, in slices: each yield is a point the frame may stop) */
-function* bcBuild(g, C, W, H, key) {
-  const tex = bcTexture(g);
-  yield;
-  const T = yield* bcTurned(tex, g, C.yaw);
-  const bg = document.createElement('canvas'), ov = document.createElement('canvas');
-  bg.width = W; bg.height = H;
-  yield;
-  ov.width = W; ov.height = H;
-  yield;
-  /* bg is opaque (its blits are several times cheaper) */
-  const x = bg.getContext('2d', { alpha: false }), RW = railLook(), hC = g.h, near = 0.06, dep = (px, py, pz) => v3.dot(v3.sub([px, py, pz], C.E), C.f);
-  /* the room: the opaque canvas's own black (the hero's warm glow is under the table here: left out) */
-  let gr;
-  const [uA, uB] = heroURange(T, g.outline);
-  x.save(); x.beginPath(); bcPath(x, C, g.outline, 0); x.clip();
-  yield* bcFlushed(x, heroBands(x, C, T, 0, uA, uB, BC_BAND, 0.75));
-  x.restore();
-  /* the apron and the cushion noses that face the eye, far first */
-  const faces = [], O = g.outline, cx = g.TL / 2, cy = g.TW / 2;
-  for (let i = 0; i < O.length; i++) {
-    const a = O[i], b = O[(i + 1) % O.length], mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, nx = b[1] - a[1], ny = a[0] - b[0];
-    if (nx * (C.E[0] - mx) + ny * (C.E[1] - my) > 0) faces.push({ a, b, z0: hC, z1: -0.15, d: dep(mx, my, 0), fill: 'apron' });
-  }
-  for (const [ea, pa, pb, eb] of g.polys) for (const [a, b] of g.mouths ? [[pa, pb], [ea, pa], [pb, eb]] : [[pa, pb]]) {
-    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-    let nx = b[1] - a[1], ny = a[0] - b[0];
-    if (nx * (cx - mx) + ny * (cy - my) < 0) { nx = -nx; ny = -ny; }
-    if (nx * (C.E[0] - mx) + ny * (C.E[1] - my) > 0) faces.push({ a, b, z0: hC, z1: 0, d: dep(mx, my, 0), fill: 'nose' });
-  }
-  faces.sort((p, q) => q.d - p.d);
-  for (const f of faces) {
-    if (Math.min(dep(f.a[0], f.a[1], f.z0), dep(f.b[0], f.b[1], f.z0), dep(f.a[0], f.a[1], f.z1), dep(f.b[0], f.b[1], f.z1)) < near) continue;
-    const t0 = heroProj(C, f.a[0], f.a[1], f.z0), t1 = heroProj(C, f.b[0], f.b[1], f.z0), b1 = heroProj(C, f.b[0], f.b[1], f.z1), b0 = heroProj(C, f.a[0], f.a[1], f.z1);
-    x.beginPath(); x.moveTo(t0[0], t0[1]); x.lineTo(t1[0], t1[1]); x.lineTo(b1[0], b1[1]); x.lineTo(b0[0], b0[1]); x.closePath();
-    gr = x.createLinearGradient(0, Math.min(t0[1], t1[1]), 0, Math.max(b0[1], b1[1], Math.min(t0[1], t1[1]) + 1));
-    if (f.fill === 'apron') { gr.addColorStop(0, mixRgb(RW.base, 0.25)); gr.addColorStop(0.12, mixRgb(RW.base, 0.5)); gr.addColorStop(1, mixRgb(RW.base, 0.88)); }
-    else { gr.addColorStop(0, mixRgb(CL.cushion, 0.05, [255, 255, 255])); gr.addColorStop(0.35, mixRgb(CL.cushion, 0.3)); gr.addColorStop(1, mixRgb(CL.cushion, 0.62)); }
-    x.fillStyle = gr; x.fill();
-  }
-  x.getImageData(0, 0, 1, 1);
-  yield;
-  x.save(); x.beginPath(); bcPath(x, C, g.outline, hC); bcPath(x, C, g.noses, hC); x.clip('evenodd');
-  yield* bcFlushed(x, heroBands(x, C, T, hC, uA, uB, BC_BAND, 0.75));
-  x.restore();
-  /* (the hero's lamp pool is left out here: a whole-image pass for a 7% glow) */
-  /* ov: the rail and rubber nearer than the nearest nose (a ball against them sits behind), then the vignette */
-  const nd = Math.min(...g.noses.map(([a, b]) => (a * T.c + b * T.s) * T.K - T.u0)), y = ov.getContext('2d');
-  y.save(); y.beginPath(); bcPath(y, C, g.outline, hC); bcPath(y, C, g.noses, hC); y.clip('evenodd');
-  yield* bcFlushed(y, heroBands(y, C, T, hC, uA, nd, BC_BAND, 0.75));
-  y.restore();
-  yield;
-  gr = y.createRadialGradient(W / 2, H * 0.45, Math.min(W, H) * 0.4, W / 2, H * 0.45, Math.hypot(W, H) * 0.62);
-  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.5)');
-  yield* bcFill(y, W, H, gr);
-  return { key, C, g, bg, ov, W, H };
-}
-/* the image's place on the canvas: the stage, device px (s: canvas px per image px) */
-function bcFrameBox() {
-  const st = stage.getBoundingClientRect(), d = Math.min(BC_DPR, dpr);
-  return { left: st.left, top: st.top, W: Math.max(16, Math.round(st.width * d)), H: Math.max(16, Math.round(st.height * d)), s: dpr / d };
-}
-/* the art for a stroke ({ x, y, angle } of the cue ball), built or found */
-function bcArtFor(sh) {
-  const B = bcFrameBox(), g = bcGeo(), key = [g.key, lookSig(), B.W, B.H, sh.x, sh.y, sh.angle].join('|');
-  bc.box = B;
-  if (bc.art && bc.art.key === key) { bc.job = null; return true; }
-  if (bc.job && bc.job.key === key) return false;   /* already under way (built ahead, bcWarm) */
-  useCloth();
-  /* the image overhangs the frame by BC_PAN a side, the room the follow pans in */
-  const C = bcCamera(g, sh.x, sh.y, sh.angle, B.W, B.H), mx = Math.round(B.W * BC_PAN), my = Math.round(B.H * BC_PAN);
-  C.cx += mx; C.cy += my;
-  bc.job = { key, it: bcBuild(g, C, B.W + 2 * mx, B.H + 2 * my, key), C, g, mx, my, dc: v3.dot(v3.sub([sh.x, sh.y, g.R], C.E), C.f) };
-  return false;
-}
-/* run the build for up to ms; true once the art is up. The sprites every frame can ask for are
-   made last, a few at a time. */
-function bcJobRun(ms) {
-  const J = bc.job;
-  if (!J) return !!bc.art;
-  const t0 = performance.now();
-  while (performance.now() - t0 < ms) {
-    if (!J.art) {
-      const r = J.it.next();
-      if (r.done) {
-        J.art = Object.assign(r.value, { mx: J.mx, my: J.my });
-        /* the sprites for the balls where they lie (others are made as a frame first asks) */
-        const C = J.C, g = J.g, s = bc.box.s;
-        J.sizes = [...new Set(game.balls.filter(b => b.on).map(b => bcR(C.F * g.R / Math.max(0.12, v3.dot(v3.sub([b.x, b.y, g.R], C.E), C.f)) * s)))];
-      }
-      continue;
-    }
-    if (J.sizes.length) { ballSprites(J.sizes.pop()); continue; }
-    bc.art = J.art; bc.job = null;
-    return true;
-  }
-  return false;
-}
-/* a shot struck (shoot()): the camera takes it when it may */
-function bcShot(rec) {
-  bcOff();
-  if (!bcOn() || !tab) return;
-  const c = rec.balls.find(b => b.n === rec.ball);
-  if (!c) return;
-  bc.shot = { tab, x: c.x, y: c.y, angle: rec.angle };
-  bc.phase = 'build'; bc.mode = 'live'; bc.u = 0; bc.t0 = performance.now(); bc.enterMs = null; bc.drops = {}; bc.on = {};
-  bcFollowReset();
-  bcArtFor(bc.shot);
-}
-function bcOff() {
-  bc.phase = 'off'; bc.mode = null; bc.snapFor = null; bc.u = 0; bc.shot = null; bc.job = null; bc.win = null; bc.after = null; bc.game = null;
-}
-function bcFollowReset() { bc.fx = bc.fy = bc.vx = bc.vy = 0; }
-/* the table frame() holds still while the camera eases back (the turn waits; it is never stepped again) */
-let bcHeld = null;
-/* the balls have stopped (frame()): true while the camera is easing back, the turn held. A winning
-   shot keeps the camera for its replay (finish()). */
-function bcRollEnd() {
-  if (bc.phase === 'off' || !bc.shot || bc.shot.tab !== tab) { bcOff(); return false; }
-  if (bc.phase === 'build') { bcOff(); return false; }
-  if (bcWinAuto() && judge(game, resultOf(tab)).winner !== null) return false;
-  bc.phase = 'out'; bcHeld = tab;
-  return true;
-}
-/* between shots: the art for the shot about to be played, built ahead in small slices once the aim
-   has held still for BC_WARM_MS (a player's aim, the CPU's planned line), so a shot struck on that
-   line goes into the camera at once; a shot on another line builds its own (the cold path) */
-function bcWarm() {
-  if (!bcOn() || tab || (state !== 'aim' && state !== 'thinking' && state !== 'stroke')) { bc.warm = null; return; }
-  const c = cueBall(), a = state === 'thinking' ? cpuPlan && cpuPlan.angle : aimAngle;
-  if (!c || !c.on || typeof a !== 'number' || move || placeAt) { bc.warm = null; return; }
-  const sig = [c.x, c.y, a].join(), now = performance.now();
-  if (!bc.warm || bc.warm.sig !== sig) { bc.warm = { sig, t: now }; return; }
-  if (now - bc.warm.t < BC_WARM_MS && state !== 'stroke') return;
-  if (!bc.job || bc.job.sh !== sig) { if (bcArtFor({ x: c.x, y: c.y, angle: a })) return; bc.job.sh = sig; }
-  bcJobRun(state === 'stroke' ? BC_SLICE : 3);
-}
-/* frame(): the camera's clock, once a frame after the physics */
-function bcStep(dtMs) {
-  if (paused) return;
-  if (bc.phase === 'off') { bcWarm(); return; }
-  const P = bc.phase, du = dtMs * felt.speed / BC_EASE_MS;
-  if (bc.mode === 'win') { if (state !== 'over' || bc.game !== game) { bcOff(); return; } }
-  else if (!bc.shot || bc.shot.tab !== tab || !bcOn()) { bcOff(); return; }
-  if (P === 'build') { if (bcJobRun(BC_SLICE)) { bc.phase = 'in'; bc.enterMs = performance.now() - bc.t0; } return; }
-  if (P === 'in') { bc.u = Math.min(1, bc.u + du); if (bc.u >= 1) bc.phase = 'on'; }
-  else if (P === 'out') { bc.u = Math.max(0, bc.u - du); if (bc.u <= 0 && bc.mode === 'win') bcOff(); }
-  else if (P === 'win') {
-    const W = bc.win;
-    if (!W.ready) { if (!bcJobRun(BC_SLICE)) return; W.ready = true; bcFollowReset(); }
-    bc.u = Math.min(1, bc.u + du);
-    W.t += dtMs * felt.speed;
-    if (W.t >= W.dur) bcWinEnd();
-  }
-}
-/* the follow: a slow pan toward the balls in motion, on the image (whole device pixels: a blit
-   at a fraction of a pixel or scaled costs several times one that is not) */
-function bcFollow(items, dtMs) {
-  const A = bc.art;
-  let n = 0, sx = 0, sy = 0;
-  for (const o of items) if (o.moving) { sx += o.p[0]; sy += o.p[1]; n++; }
-  const tx = n ? clamp((A.W / 2 - sx / n) * 0.45, -A.mx, A.mx) : bc.fx, ty = n ? clamp((A.C.cy - sy / n) * 0.45, -A.my, A.my) : bc.fy;
-  const dt = Math.min(50, dtMs) / 1000 * felt.speed, w = 3.2;
-  [bc.fx, bc.vx] = spring(bc.fx, bc.vx, tx, w, dt);
-  [bc.fy, bc.vy] = spring(bc.fy, bc.vy, ty, w, dt);
-  bc.fx = clamp(bc.fx, -A.mx, A.mx); bc.fy = clamp(bc.fy, -A.my, A.my);
-}
-/* how much of the frame is the camera's (0: top-down, 1: all perspective) */
-const bcBlend = () => bc.art && (bc.phase === 'in' || bc.phase === 'on' || bc.phase === 'out' || (bc.phase === 'win' && bc.win.ready)) ? heroEaseIO(bc.u) : 0;
-/* the balls as the camera sees them now: the live table's, or the winning replay's */
-function bcBalls() {
-  const A = bc.art, C = A.C, g = A.g, now = performance.now(), out = [];
-  const add = (n, x, y, m, moving, drop) => {
-    let bz = g.R, fade = 1, d = null, bx = x, by = y;
-    if (drop) {
-      const P2 = g.pockets[drop.k], u = drop.u, e = 1 - (1 - u) * (1 - u);
-      bx = drop.at[0] + (P2[0] - drop.at[0]) * e; by = drop.at[1] + (P2[1] - drop.at[1]) * e;
-      bz = g.R * (1 - 2.6 * u * u); fade = 1 - u * u; d = { k: drop.k, u };
-    }
-    const p = heroProj(C, bx, by, bz);
-    if (p[2] < 0.12) return;
-    out.push({ n, p, q: heroProj(C, bx, by, 0), rd: d ? heroProj(C, bx, by, g.R)[2] : p[2], m, moving, fade, drop: d });
-  };
-  if (bc.mode === 'win' && bc.win) {
-    const W = bc.win, tr = W.tr, F = tr.frames, N = F.length, s = (W.off + W.t) * BC_RATE / 1000, f = clamp(s / CAM_DT, 0, N - 1), k = Math.floor(f), k1 = Math.min(N - 1, k + 1), w = f - k;
-    /* the balls' turn, rolled sample by sample up to now */
-    for (; W.si < k; W.si++) {
-      const P = F[W.si], Q = F[W.si + 1];
-      W.rec.balls.forEach((b, i) => { if (Q[3 * i + 2] >= 0) { const dx = Q[3 * i] - P[3 * i], dy = Q[3 * i + 1] - P[3 * i + 1], dd = Math.hypot(dx, dy); if (dd > 0) W.orient[b.n] = rotate(W.orient[b.n] || IDENT, [-dy, dx, 0], dd / g.R); } });
-    }
-    W.rec.balls.forEach((b, i) => {
-      const P = F[k], Q = F[k1];
-      if (Q[3 * i + 2] >= 0) { add(b.n, P[3 * i] + (Q[3 * i] - P[3 * i]) * w, P[3 * i + 1] + (Q[3 * i + 1] - P[3 * i + 1]) * w, W.orient[b.n] || IDENT, Q[3 * i + 2] > 0.05); return; }
-      const pt = tr.pots.find(o => o.i === i);
-      if (!pt || !g.pockets[pt.k]) return;
-      const u = (W.off + W.t - pt.t / BC_RATE * 1000) / HERO_DROP_MS;
-      if (u < 0 || u >= 1) return;
-      let j = Math.min(N - 1, Math.floor(pt.t / CAM_DT));
-      while (j > 0 && F[j][3 * i + 2] < 0) j--;
-      add(b.n, 0, 0, W.orient[b.n] || IDENT, true, { k: pt.k, u, at: [F[j][3 * i], F[j][3 * i + 1]] });
-    });
-  } else if (tab) {
-    for (const b of tab.balls) {
-      if (b.on) { bc.on[b.n] = [b.x, b.y]; add(b.n, b.x, b.y, orient[b.n] || IDENT, Math.hypot(b.vx, b.vy) > 0.05); continue; }
-      if (bc.on[b.n]) { bc.drops[b.n] = { k: tab.pocketOf[b.n], at: bc.on[b.n], t: now }; delete bc.on[b.n]; }
-      const D = bc.drops[b.n];
-      if (!D || !g.pockets[D.k]) continue;
-      const u = (now - D.t) * felt.speed / HERO_DROP_MS;
-      if (u < 1) add(b.n, 0, 0, orient[b.n] || IDENT, true, { k: D.k, u, at: D.at });
-    }
-  }
-  return out;
-}
-/* the ease is a dissolve over a still of the top-down table (the frame it starts on), so an easing
-   frame never pays for both views: the top-down is drawn once, kept, and the camera's frame laid
-   over it at blend B */
-const bcSnapped = () => !!bc.snap && bc.snapFor === bc.phase + bc.mode;
-function bcSnap() {
-  if (!bc.snap) bc.snap = document.createElement('canvas');
-  const S = bc.snap;
-  if (S.width !== table.width || S.height !== table.height) { S.width = table.width; S.height = table.height; }
-  const x = S.getContext('2d', { alpha: false });   /* opaque: it blits several times faster */
-  x.fillStyle = '#000'; x.fillRect(0, 0, S.width, S.height); x.drawImage(table, 0, 0);
-  bc.snapFor = bc.phase + bc.mode;
-}
-/* a ball's radius on the camera's frame, rounded so a handful of sprites (ballSprites) serve every
-   depth: to half a pixel while small, to a whole one from 12 px */
-const bcR = r => r < 12 ? Math.round(r * 2) / 2 : Math.round(r);
-/* draw(): the camera's frame over the stage, at blend B */
-function bcPaint(B, now) {
-  const t1 = performance.now(), A = bc.art, C = A.C, g = A.g, box = bc.box, items = bcBalls(), dtMs = bc.lp ? clamp(now - bc.lp, 0, 50) : 16;
-  bc.lp = now;
-  bcFollow(items, dtMs);
-  /* the ease reads as a move: the image settles from a little closer as it comes in */
-  /* the ease reads as a move: the image rises a little into place as it comes in */
-  const s = box.s, k = s, d = dpr, ox = Math.round(box.left * d - s * A.mx + s * bc.fx), oy = Math.round(box.top * d - s * A.my + s * bc.fy + 40 * d * (1 - B));
-  const at = p => [ox + k * p[0], oy + k * p[1], p[2]];
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.beginPath(); ctx.rect(box.left * d, box.top * d, box.W * s, box.H * s); ctx.clip();
-  if (B < 1 && bcSnapped()) ctx.drawImage(bc.snap, 0, 0);
-  ctx.globalAlpha = B;
-  ctx.drawImage(A.bg, ox, oy, A.W * k, A.H * k);
-  const list = items.map(o => Object.assign(o, { P: at(o.p), Q: at(o.q), d: o.p[2] }));
-  for (const [px, py] of g.posts) list.push({ post: true, x: px, y: py, d: heroProj(C, px, py, 0)[2] });
-  list.sort((a, b) => b.d - a.d);
-  const sq = clamp(-C.f[2] * 1.6, 0.28, 1);
-  for (const o of list) {
-    if (o.post) continue;
-    const r = bcR(C.F * g.R / o.rd * k);
-    ctx.setTransform(1, 0, 0, sq, o.Q[0], o.Q[1]);
-    drawShadow(0, 0, r, 0.9 * B * (o.drop ? Math.max(0, 1 - 2.5 * o.drop.u) : o.fade));
-  }
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  for (const o of list) {
-    if (o.post) { ctx.globalAlpha = B; heroPost(ctx, C, g, o.x, o.y, at, k); continue; }
-    const r = bcR(C.F * g.R / o.rd * k), ax = [];
-    for (let j = 0; j < 3; j++) { const w = [o.m[j], o.m[3 + j], o.m[6 + j]]; ax.push([v3.dot(w, C.r), -v3.dot(w, C.u), -v3.dot(w, C.f)]); }
-    if (o.drop) {
-      const P2 = g.pockets[o.drop.k], rr = g.pr[o.drop.k] + g.R * (1 - o.drop.u);
-      ctx.save(); ctx.beginPath();
-      for (let j = 0; j <= 24; j++) { const a = j / 24 * 2 * Math.PI, w = at(heroProj(C, P2[0] + rr * Math.cos(a), P2[1] + rr * Math.sin(a), 0)); j ? ctx.lineTo(w[0], w[1]) : ctx.moveTo(w[0], w[1]); }
-      ctx.clip(); drawBall(o.n, o.P[0], o.P[1], r, ax, B * (1 - o.drop.u ** 1.4), Math.min(1, 1.6 * o.drop.u)); ctx.restore();
-    } else drawBall(o.n, o.P[0], o.P[1], r, ax, B * o.fade, 1 - o.fade);
-  }
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = B;
-  ctx.drawImage(A.ov, ox, oy, A.W * k, A.H * k);
-  ctx.restore();
-  bc.drawn = list.filter(o => !o.post).map(o => ({ n: o.n, x: o.P[0] / d, y: o.P[1] / d, drop: o.drop ? o.drop.u : null }));
-  bc.frames++;
-  if (felt.bcMeasure) ctx.getImageData(0, 0, 1, 1);
-  if (bc.ms.length < 4000) bc.ms.push(performance.now() - t1);
-}
-/* ---- the winning shot ---- */
-const bcWinAuto = () => settings.shotCam === 'broadcast' && felt.bcam !== false && !reducedMotion() && !game.mode && !solo;
-/* play rec (a shot record, 5r) through the camera; after() when it ends or is skipped. False when
-   it cannot (no record, or the table has changed since) */
-function bcWinStart(rec, after) {
-  if (!rec || !rec.balls || rec.geo !== geoSig()) return false;
-  if (!rec.track) { const P = camPred && camPred.rec === rec ? camPred : camPredict(rec); while (!camPredStep(P, 1000)); }
-  const tr = rec.track, cue = rec.ball || 0, c = rec.balls.find(b => b.n === cue);
-  if (!c) return false;
-  const gb = rec.g ? gameBallOf(rec.g) : null, pots = tr.pots.filter(p => p.n !== cue), dec = pots.find(p => p.n === gb) || pots[pots.length - 1] || null;
-  /* the deciding moment on the replay's clock (ms), the start moved on when it would come too late */
-  const key = (dec ? dec.t : Math.min(tr.end, 2.4)) / BC_RATE * 1000, off = Math.max(0, key + BC_HOLD_MS - BC_WIN_MAX);
-  const dur = clamp(key - off + BC_HOLD_MS, BC_WIN_MIN, BC_WIN_MAX);
-  const live = bc.mode === 'live' && (bc.phase === 'on' || bc.phase === 'in');
-  bc.shot = null; bc.job = null;
-  bc.win = { rec, tr, off, dur, t: 0, si: 0, orient: Object.assign({}, rec.orient), dec: dec && dec.n, ready: false };
-  bc.after = after; bc.phase = 'win'; bc.mode = 'win'; bc.game = game; bc.u = live ? bc.u : 0; bc.drops = {}; bc.on = {};
-  bc.wins++;
-  const ready = bcArtFor({ x: c.x, y: c.y, angle: rec.angle });
-  if (ready) { bc.win.ready = true; bcFollowReset(); }
-  else bc.u = 0;
-  cancelGestures();
-  return true;
-}
-/* the replay ends (or is skipped): the camera eases back under the sheet, which comes now */
-function bcWinEnd() {
-  if (bc.phase !== 'win') return;
-  const f = bc.after;
-  bc.after = null; bc.job = null;
-  if (bc.win.ready && bc.u > 0) bc.phase = 'out'; else bcOff();
-  if (f) f();
-}
-/* while it plays nothing reaches the game or the sheets: the first press or key ends it, and the
-   rest of that tap (its moves, its release, the click after it) is eaten too */
-for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'wheel']) {
-  addEventListener(t, e => {
-    const eaten = e.pointerId !== undefined && e.pointerId === bc.eatId && t !== 'pointerdown';
-    if (bc.phase !== 'win' && !eaten && !((t === 'click' || t.startsWith('mouse')) && performance.now() < bc.eatUntil)) return;
-    e.stopImmediatePropagation();
-    if (e.cancelable) e.preventDefault();
-    if (t === 'pointerup' || t === 'pointercancel') bc.eatId = null;
-    if (t === 'pointerdown' && bc.phase === 'win') { bc.eatId = e.pointerId; bc.eatUntil = performance.now() + 600; bcWinEnd(); }
-  }, { capture: true, passive: false });
-}
-addEventListener('keydown', e => {
-  if (bc.phase !== 'win' || ['Tab', 'Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) return;
-  e.stopImmediatePropagation(); e.preventDefault();
-  bcWinEnd();
-}, { capture: true });
-/* what felt.broadcast reports */
-function bcInfo() {
-  return { phase: bc.phase, blend: bcBlend(), on: bcOn(), enterMs: bc.enterMs, frames: bc.frames, ms: bc.ms.slice(), wins: bc.wins, drawn: bc.drawn || null,
-    win: bc.win ? { t: bc.win.t, dur: bc.win.dur, off: bc.win.off, dec: bc.win.dec, ready: bc.win.ready } : null, art: bc.art ? bc.art.key : null };
-}
 
 /* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
    (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the
@@ -14833,7 +14336,6 @@ function showOver() {
     if (P.length <= 2) body.lastChild.querySelectorAll('td').forEach(td => td.classList.add('note'));
   }
   overStats.replaceChildren(head, body);
-  overReplay.hidden = !overRec;
   overStats.toggleAttribute('data-many', P.length > 2);
   menu.classList.remove('show');
   over.classList.add('show');
@@ -14847,12 +14349,6 @@ Object.assign(felt, { showCallout });
 menuBtn.addEventListener('click', () => { audioOn(); pause(); });
 resumeBtn.addEventListener('click', () => resume());
 rematch.addEventListener('click', () => { audioOn(); if (modeOpts) start(game.kind, modesAgain()); else start(game.kind); });
-/* the winning shot again through the broadcast camera (4n): the sheet steps aside, then comes back */
-overReplay.addEventListener('click', () => {
-  if (state !== 'over' || !overRec || bc.phase === 'win') return;
-  over.classList.remove('show');
-  if (!bcWinStart(overRec, () => { over.classList.add('show'); if (byKeys) overReplay.focus({ preventScroll: true }); })) over.classList.add('show');
-});
 overMenu.addEventListener('click', () => { modesEnd(); state = 'menu'; showMenu(); hud(); });
 
 /* ============ 6d. LESSON AND CAREER ============ */

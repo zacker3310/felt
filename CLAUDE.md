@@ -176,7 +176,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Setup hero (page 4m, sim 1n): the game setup opens under `#setupHero`, the game's table in hand-written perspective
   (drawTableImage's art laid on the bed and rail planes in constant-depth bands) playing its signature shot through the
   real `strike`/`stepTable` (`HERO_SHOTS` per table via `heroKey`, `heroSetup`; re-solve with `node tools/hero-solver.cjs`
-  after any cloth, strike or rack change). Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
+  after any cloth, strike or rack change; it keeps only shots whose every pot goes in at `POT_V` or faster with no ball left on a lip, as a dribble reads as a hang-up from the low camera). A potted ball leaves the table: `heroDraw` drops it into its pocket over `HERO_DROP_MS` on the screen's clock (cut by the mouth, fading; `heroPotT`), never frozen at the mouth. Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
   in a task after the sheet opens, then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
   final still). `felt.hero` reports it. Its height is `heroFit()` (portrait phone): 30% of the sheet, growing into the
   room a short form leaves up to 50% (a ResizeObserver on the form's columns and `fitSetupRows` rerun it); the camera

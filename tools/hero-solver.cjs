@@ -7,6 +7,7 @@
      snooker: a legal break-off from the D that pots a red, the cue ball up
      carom: a three-cushion point off the red first (the break's rule)
      bumper pool: the marked red into the far cup off a cushion, no foul
+   and on any table with pockets every pot goes in at POT_V or faster and nothing rests on a lip
    and the shortest shot breaks ties (the hero plays it in about three seconds). One worker per
    table, four at a time. About five minutes.
    Usage: node tools/hero-solver.cjs [key,key,...]   (keys as heroKey makes them, e.g. 8|7|regulation) */
@@ -32,8 +33,22 @@ function spread(S, balls) {
   const cx = o.reduce((s, b) => s + b.x, 0) / o.length, cy = o.reduce((s, b) => s + b.y, 0) / o.length;
   return o.reduce((s, b) => s + Math.hypot(b.x - cx, b.y - cy), 0) / o.length / S.TL;
 }
+/* a pot the hero can show: every ball goes down with pace (none dribbles onto the lip, which from
+   the hero's low camera reads as a ball hung up on the pocket), and no ball comes to rest on a
+   pocket's lip. Played by strike and stepTable, as the hero plays it. */
+const POT_V = 0.45;
+function clean(S, H) {
+  const tab = S.strike(S.newTable(H.balls, H.shot.ball), H.shot.angle, H.shot.power, H.shot.spin), was = new Map();
+  for (let go = true, k = 0; go && k < 400000; k++) {
+    for (const b of tab.balls) if (b.on) was.set(b.n, Math.hypot(b.vx, b.vy));
+    go = S.stepTable(tab);
+    for (const b of tab.balls) if (!b.on && was.has(b.n) && tab.potted.includes(b.n)) { if (was.get(b.n) < POT_V) return false; was.delete(b.n); }
+  }
+  return !tab.balls.some(b => b.on && S.POCKETS.some((p, k) => Math.hypot(b.x - p[0], b.y - p[1]) < S.POCKET_R[k] + S.BALL_R * 1.5));
+}
 function score(S, kind, sh) {
   const H = S.heroSetup(kind, sh), g = S.newGame(kind), n = H.shot.ball;
+  if (S.POCKETS.length && !clean(S, H)) return null;
   g.balls = H.balls.map(b => Object.assign({}, b));
   const r = S.simulateShot(H.balls, H.shot), v = S.judge(g, r).verdict, slow = Math.max(0, r.t - 9) * 0.15;
   if (POCKET_OK(kind) && (v.foul || r.potted.includes(0) || !r.potted.length || r.potted.includes(gameBall(kind)))) return null;

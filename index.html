@@ -5587,30 +5587,30 @@ function drillRun(d, shots) {
    a the angle, p the power, s the spin [side, vertical]. They come from tools/hero-solver.cjs:
    re-solve after any change to the cloth, the strike or a rack (it prints this table). */
 const HERO_SHOTS = {
-  '8|7|regulation': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
-  '8|7|generous': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
-  '8|9|regulation': { c: [0.25, 0.5], a: 0.002618, p: 1, s: [0, 0] },
-  '8|9|generous': { c: [0.25, 0.42], a: 0.064122, p: 1, s: [0, -0.25] },
-  '9|7|regulation': { c: [0.25, 0.5], a: -0.002618, p: 0.88, s: [0, 0] },
-  '9|7|generous': { c: [0.25, 0.5], a: -0.002618, p: 0.88, s: [0, 0] },
-  '9|9|regulation': { c: [0.21, 0.74], a: -0.223905, p: 1, s: [0, 0] },
-  '9|9|generous': { c: [0.25, 0.34], a: 0.145565, p: 1, s: [0, 0] },
-  '10|7|regulation': { c: [0.21, 0.42], a: 0.058268, p: 0.88, s: [0, 0.2] },
-  '10|7|generous': { c: [0.21, 0.42], a: 0.058268, p: 0.88, s: [0, 0.2] },
-  '10|9|regulation': { c: [0.21, 0.58], a: -0.092265, p: 0.94, s: [0, 0] },
-  '10|9|generous': { c: [0.21, 0.58], a: -0.092265, p: 0.94, s: [0, 0] },
-  'straight|7|regulation': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
+  '8|7|regulation': { c: [0.25, 0.26], a: 0.219952, p: 0.94, s: [0, -0.25] },
+  '8|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
+  '8|9|regulation': { c: [0.25, 0.58], a: -0.090302, p: 1, s: [0, 0.2] },
+  '8|9|generous': { c: [0.25, 0.66], a: -0.163891, p: 1, s: [0, -0.25] },
+  '9|7|regulation': { c: [0.25, 0.5], a: -0.010472, p: 0.94, s: [0, 0.2] },
+  '9|7|generous': { c: [0.25, 0.34], a: 0.16397, p: 0.88, s: [0, 0.2] },
+  '9|9|regulation': { c: [0.21, 0.34], a: 0.128752, p: 1, s: [0, -0.25] },
+  '9|9|generous': { c: [0.25, 0.5], a: 0.002618, p: 0.94, s: [0, 0] },
+  '10|7|regulation': { c: [0.21, 0.58], a: -0.08183, p: 1, s: [0, 0.2] },
+  '10|7|generous': { c: [0.21, 0.34], a: 0.131444, p: 1, s: [0, 0.2] },
+  '10|9|regulation': { c: [0.21, 0.34], a: 0.141842, p: 0.88, s: [0, 0] },
+  '10|9|generous': { c: [0.21, 0.34], a: 0.141842, p: 0.88, s: [0, 0] },
+  'straight|7|regulation': { c: [0.21, 0.66], a: -0.162859, p: 0.88, s: [0, -0.25] },
   'straight|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
-  'straight|9|regulation': { c: [0.21, 0.66], a: -0.160168, p: 0.94, s: [0, 0] },
-  'straight|9|generous': { c: [0.21, 0.66], a: -0.165404, p: 1, s: [0, 0.2] },
-  'rotation|7|regulation': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
-  'rotation|7|generous': { c: [0.25, 0.26], a: 0.240896, p: 1, s: [0, 0.2] },
-  'rotation|9|regulation': { c: [0.25, 0.5], a: 0.002618, p: 1, s: [0, 0] },
-  'rotation|9|generous': { c: [0.25, 0.42], a: 0.064122, p: 1, s: [0, -0.25] },
-  'snooker|compact': { c: [0.196414, 0.429792], a: 0.017483, p: 1, s: [0, -0.3] },
+  'straight|9|regulation': { c: [0.25, 0.58], a: -0.090302, p: 1, s: [0, 0.2] },
+  'straight|9|generous': { c: [0.25, 0.66], a: -0.163891, p: 1, s: [0, -0.25] },
+  'rotation|7|regulation': { c: [0.25, 0.26], a: 0.219952, p: 0.94, s: [0, -0.25] },
+  'rotation|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
+  'rotation|9|regulation': { c: [0.25, 0.58], a: -0.090302, p: 1, s: [0, 0.2] },
+  'rotation|9|generous': { c: [0.25, 0.66], a: -0.163891, p: 1, s: [0, -0.25] },
+  'snooker|compact': { c: [0.196414, 0.570208], a: -0.001708, p: 0.85, s: [0.4, 0] },
   'snooker|full': { c: [0.198095, 0.570208], a: -0.007422, p: 1, s: [0, -0.3] },
-  'bumper|octagon': { a: -2.670354, p: 0.7, s: [0, 0] },
-  'bumper|rect': { a: -2.225295, p: 0.45, s: [0, 0] },
+  'bumper|octagon': { a: -2.805617, p: 0.7, s: [0, 0] },
+  'bumper|rect': { a: -2.207842, p: 0.55, s: [0, 0] },
   'carom': { a: -2.801253, p: 0.9, s: [0.5, 0.2] },
 };
 const heroKey = kind => POCKET_KINDS.includes(kind) ? `${kind}|${TABLE}|${POCKETS_STYLE}` : kind === 'snooker' ? 'snooker|' + SNOOKER_SIZE : kind === 'bumper' ? 'bumper|' + BUMPER_SHAPE : 'carom';
@@ -7609,7 +7609,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29c';
+const BUILD = 'build 2026-10-29d';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -12946,6 +12946,16 @@ function heroSimT(run, u) {
   const S = run.S, a = clamp(0.62 * HERO_ROLL_MS / 1000 / S, 0.06, 1);
   return S * (a * u + (1 - a) * u ** 2.4);
 }
+const HERO_DROP_MS = 260;
+/* the hero's clock (ms) when the sim reaches a pot's time: heroSimT inverted by bisection, kept */
+function heroPotT(run, pt) {
+  if (pt.th == null) {
+    let lo = 0, hi = 1;
+    for (let j = 0; j < 40; j++) { const mid = (lo + hi) / 2; if (heroSimT(run, mid) < pt.t) lo = mid; else hi = mid; }
+    pt.th = HERO_CUE_MS + hi * HERO_ROLL_MS;
+  }
+  return pt.th;
+}
 function heroDraw(t) {
   const d = hero.data, run = hero.run, A = hero.art, cv = setupHeroArt, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
   const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));
@@ -12959,40 +12969,56 @@ function heroDraw(t) {
   if (t >= HERO_CUE_MS && run && run.done) s = still ? Infinity : heroSimT(run, (t - HERO_CUE_MS) / HERO_ROLL_MS);
   const dt = HERO_SUB * SIM_DT, nS = run ? run.pos.length : 0;
   for (let i = 0; i < n; i++) {
-    let bx, by, on = true, m, fade = 1;
+    let bx, by, bz = g.R, on = true, m, fade = 1, drop = null;
     if (s < 0) { bx = d.balls[i].x; by = d.balls[i].y; m = artTilt(d.balls[i].n); }
     else if (s === Infinity) { const b = run.final.balls[i]; bx = b.x; by = b.y; on = b.on; m = run.rot[nS - 1].subarray(9 * i, 9 * i + 9); }
     else {
       const f = Math.min(nS - 1, s / dt), k = Math.floor(f), k1 = Math.min(nS - 1, k + 1), w = f - k, P = run.pos[k], Q = run.pos[k1];
-      on = !!run.on[k1]; bx = P[2 * i] + (Q[2 * i] - P[2 * i]) * w; by = P[2 * i + 1] + (Q[2 * i + 1] - P[2 * i + 1]) * w; m = run.rot[k].subarray(9 * i, 9 * i + 9);
-      /* down: it runs on to the drop's middle and sinks out of sight over 0.18 s of the sim */
+      on = !!run.on[k1][i]; bx = P[2 * i] + (Q[2 * i] - P[2 * i]) * w; by = P[2 * i + 1] + (Q[2 * i + 1] - P[2 * i + 1]) * w; m = run.rot[k].subarray(9 * i, 9 * i + 9);
+      /* down: a real drop, timed on the screen's clock (the roll's playback speeds up as the balls
+         slow, so a drop timed in the sim's seconds could last one frame and look like a snap). From
+         where it left the bed it runs on toward the pocket's middle and falls below the bed, cut by
+         the pocket's mouth, over HERO_DROP_MS */
       const pt = run.pots[i];
-      if (!on && pt && s - pt.t < 0.18 && g.pockets[pt.k]) {
-        const u = (s - pt.t) / 0.18, P2 = g.pockets[pt.k];
-        bx = pt.at[0] + (P2[0] - pt.at[0]) * Math.min(1, u * 2); by = pt.at[1] + (P2[1] - pt.at[1]) * Math.min(1, u * 2); fade = 1 - u; on = true;
+      if (!on && pt && g.pockets[pt.k]) {
+        const u = (t - heroPotT(run, pt)) / HERO_DROP_MS;
+        if (u >= 0 && u < 1) {
+          const P2 = g.pockets[pt.k], e = 1 - (1 - u) * (1 - u);
+          bx = pt.at[0] + (P2[0] - pt.at[0]) * e; by = pt.at[1] + (P2[1] - pt.at[1]) * e;
+          bz = g.R * (1 - 2.6 * u * u); fade = 1 - u * u; drop = { k: pt.k, u }; on = true;
+        }
       }
     }
     if (!on) continue;
-    const p = Z(heroProj(C, bx, by, g.R)), q = Z(heroProj(C, bx, by, 0));
-    list.push({ ball: d.balls[i].n, p, q, m, fade, d: p[2] });
+    const p = Z(heroProj(C, bx, by, bz)), q = Z(heroProj(C, bx, by, 0));
+    /* a dropping ball keeps its size on the bed (rd): the prepared sprites cover the bed's depths, so a
+       sinking ball never builds a new one mid frame */
+    list.push({ ball: d.balls[i].n, p, q, m, fade, drop, d: p[2], rd: drop ? Z(heroProj(C, bx, by, g.R))[2] : p[2] });
   }
   for (const [px, py] of g.posts) { const p = Z(heroProj(C, px, py, 0)); list.push({ post: true, x: px, y: py, d: p[2] }); }
   list.sort((a, b) => b.d - a.d);
+  hero.drawn = list.filter(o => !o.post).map(o => ({ n: o.ball, x: o.p[0], y: o.p[1], drop: o.drop ? o.drop.u : null, fade: o.fade }));   /* what this frame drew, for hero-check */
   artCtx = x;
   try {
     /* contact shadows, flattened to the bed by how low the eye looks at it */
     for (const o of list) {
       if (o.post) continue;
-      const r = C.F * g.R / o.d * z, sq = clamp((C.E[2] - 0) / Math.hypot(...v3.sub(C.E, [0, 0, 0])) * 1.1, 0.28, 1);
+      const r = C.F * g.R / o.rd * z, sq = clamp((C.E[2] - 0) / Math.hypot(...v3.sub(C.E, [0, 0, 0])) * 1.1, 0.28, 1);
       x.setTransform(1, 0, 0, sq, o.q[0], o.q[1]);
-      drawShadow(0, 0, r, 0.9 * o.fade);
+      drawShadow(0, 0, r, 0.9 * (o.drop ? Math.max(0, 1 - 2.5 * o.drop.u) : o.fade));
     }
     x.setTransform(1, 0, 0, 1, 0, 0);
     for (const o of list) {
       if (o.post) { heroPost(x, C, g, o.x, o.y, Z, z); continue; }
-      const r = C.F * g.R / o.d * z, ax = [];
+      const r = C.F * g.R / o.rd * z, ax = [];
       for (let j = 0; j < 3; j++) { const w = [o.m[j], o.m[3 + j], o.m[6 + j]]; ax.push([v3.dot(w, C.r), -v3.dot(w, C.u), -v3.dot(w, C.f)]); }
-      drawBall(o.ball, o.p[0], o.p[1], r, ax, o.fade, 1 - o.fade);
+      if (o.drop) {
+        /* the pocket's mouth on the bed, the cut closing from the ball's width to the hole's as it falls */
+        const P2 = g.pockets[o.drop.k], rr = g.pr[o.drop.k] + g.R * (1 - o.drop.u);
+        x.save(); x.beginPath();
+        for (let j = 0; j <= 24; j++) { const a = j / 24 * 2 * Math.PI, w = Z(heroProj(C, P2[0] + rr * Math.cos(a), P2[1] + rr * Math.sin(a), 0)); j ? x.lineTo(w[0], w[1]) : x.moveTo(w[0], w[1]); }
+        x.clip(); drawBall(o.ball, o.p[0], o.p[1], r, ax, 1 - o.drop.u ** 1.4, Math.min(1, 1.6 * o.drop.u)); x.restore();   /* into the pocket's dark: out of sight by the end */
+      } else drawBall(o.ball, o.p[0], o.p[1], r, ax, o.fade, 1 - o.fade);
     }
   } finally { artCtx = null; }
   x.setTransform(1, 0, 0, 1, 0, 0);

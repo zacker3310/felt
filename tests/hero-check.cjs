@@ -109,6 +109,19 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     await ev(() => backToMenu());
   }
   const hs = KINDS.map(k => sigs[k].hash);
+  /* a potted ball leaves the table: it is drawn dropping into its pocket for HERO_DROP_MS of the screen's
+     clock (the cut and the fade under way), and is gone after; never frozen at the mouth until the still */
+  for (const kind of KINDS) {
+    const dr = await ev(k => { backToMenu(); showSetup(k); return new Promise(res => { const go = () => { if (!(hero.run && hero.run.done)) return setTimeout(go, 50);
+      heroStop(); const r = hero.run, out = [];
+      for (const [i, p] of Object.entries(r.pots)) {
+        const n = hero.data.balls[i].n, th = heroPotT(r, p), at = u => { heroDraw(th + u * HERO_DROP_MS); return hero.drawn.find(o => o.n === n) || null; };
+        const mid = at(0.5), after = at(1.15), before = at(-0.3);
+        out.push({ n, before: !!before && before.drop === null, mid: !!mid && mid.drop > 0.3 && mid.drop < 0.7 && mid.fade < 1, gone: !after });
+      }
+      heroGo(); res(out); }; go(); }); }, kind);
+    check(`${kind}: every potted ball drops into its pocket over ${'HERO_DROP_MS'} and is gone after (none frozen at the mouth)`, dr.every(o => o.before && o.mid && o.gone), JSON.stringify(dr));
+  }
   check('every game\'s hero differs from every other\'s', new Set(hs).size === KINDS.length, hs.join(' '));
 
   /* Reduce Motion: the final still at once, the same pixels, no animation */

@@ -231,14 +231,15 @@ const artContrast = page => page.evaluate(() => {
 
   /* the game screen is the table and the controls: no player cards, no status text, no tray
      band; #msg stays for screen readers (visually hidden, still a polite live region). The turn
-     chips show both players, as tall as the controls beside them, the active one lit. */
+     chips show both players, as tall as the controls beside them, the active one lit. The 3D switch's label (4o) is a
+     control's, as the power bar's is, not status text. */
   const clean = [];
   for (const [w, h] of [[390, 844], [844, 390], [1280, 800]]) {
     await page.setViewportSize({ width: w, height: h });
     await page.waitForTimeout(150);
     clean.push(await page.evaluate(() => {
       const seen = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 2 && r.height > 2 && cs.visibility !== 'hidden' && cs.display !== 'none' && !el.closest('.overlay:not(.show)'); };
-      const text = [...document.querySelectorAll('#ui *')].filter(el => seen(el) && el.id !== 'banner' && !el.closest('#banner') && !el.closest('#powerBar') && !el.closest('#turnChip')
+      const text = [...document.querySelectorAll('#ui *')].filter(el => seen(el) && el.id !== 'banner' && !el.closest('#banner') && !el.closest('#powerBar') && !el.closest('#turnChip') && !el.closest('#viewBtn')
         && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
       const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
       return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),

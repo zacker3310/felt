@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `30/30 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `31/31 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -203,6 +203,21 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`
   (sticky `.cvAct.pin`), a drill with `.howAct`: a new setup page puts its action there, never inline at the end.
   `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852 and 440x956, text sizes, landscape).
+
+- 3D view (page 4o, `V3`): Settings > Graphics > Table View (`settings.view` 'top' default | '3d', plus `viewPitch` 8-70 deg
+  and `viewDist` 0.45-3.2 m, clamped on load) and the `#viewBtn` 3D switch on the table. The player's camera, never an
+  automatic one: behind the cue ball looking along the aim; a drag across turns the aim (rate by finger speed, `v3Rate`),
+  up and down tilts, a pinch moves it in or out. It moves only with the player's aim or on a cut (`v3Update`: a new turn,
+  the CPU's line shown, the cue ball put down elsewhere), never while the balls roll. While it is live (`V3.live`)
+  `toScreen`/`toTable` go through its camera (`v3Screen`/`v3Table`, a ball's centre height), so taps, ball in hand and
+  calls work unchanged, and `view.k` is the scale at the cue ball. WebGL 2 on `#t3d` over `#stage` (input stays on
+  `#table`): `drawTableImage`'s art on the bed and rail-top planes (alpha cuts the holes), faces, posts, ray-traced balls
+  (`PAINT`, `orient`), drawCast's shadows, the cue; the 2D overlays (guide, rings, calls, D, kitchen) run against the
+  recorder `V3R` (`V3.flat` keeps the flat mapping) and become lines on the bed. No context: top-down. Replays, the menu
+  and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes
+  `tab`, `game` or `orient`. `felt.view3`, `felt.v3Proj`/`v3Unproj`, `felt.v3Ms`/`v3Poses` report it. Pinned by
+  `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every
+  table, frames, landscape) and `settings-check`.
 
 - Motion (page 6m, visual only): one button style (`--btn-*`: primary a white capsule, secondary dark grey, destructive
   red words, red fill when `.arm`ed). A home card opens its sheet through `morphOpen(card, sheet, open)` (open() stays

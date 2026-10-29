@@ -222,7 +222,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `V3_OV_MARGIN`), held still to the roll's end, then the turn's cut is a move back down (`V3_BACK_MS`) to the player's own
   pitch/dist; 'top' draws the roll top-down (`V3.top2d`, the setting stays '3d'); 'stay' holds the aiming pose. Reduce
   Motion: cuts. Never follows the balls. The room (`v3RoomTex`, painted and blurred once a context, `V3.roomMs`): floor
-  and wall cylinder (`V3_ROOM_R`), soft neighbour cards (`v3Cards`), this table's lamp (faded as the camera rises to it). While it is live (`V3.live`)
+  and wall cylinder (`V3_ROOM_R`), soft neighbour cards (`v3Cards`, one atlas, one draw), this table's lamp (faded as the
+  camera rises to it). SwiftShader shades every pixel of every triangle drawn (no early depth reject): the floor is only
+  the cells in view and not behind the table (`v3FloorVis`), so keep room geometry small on screen. While it is live (`V3.live`)
   `toScreen`/`toTable` go through its camera (`v3Screen`/`v3Table`, a ball's centre height), so taps, ball in hand and
   calls work unchanged, and `view.k` is the scale at the cue ball. WebGL 2 on `#t3d` over `#stage` (input stays on
   `#table`): `drawTableImage`'s art on the bed and rail-top planes (alpha cuts the holes), faces, posts, ray-traced balls

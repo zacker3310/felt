@@ -7887,7 +7887,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29k';
+const BUILD = 'build 2026-10-29l';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -13712,6 +13712,11 @@ in vec3 p; in vec2 uv; uniform mat4 M; out vec2 v;
 void main() { v = uv; gl_Position = M * vec4(p, 1.0); }`, `#version 300 es
 precision mediump float; in vec2 v; uniform sampler2D T; uniform vec4 tint; out vec4 o;
 void main() { o = texture(T, v) * tint; }`],
+  card: [`#version 300 es
+in vec3 p; in vec2 uv; in vec4 c; uniform mat4 M; out vec2 v; out vec4 vc;
+void main() { v = uv; vc = c; gl_Position = M * vec4(p, 1.0); }`, `#version 300 es
+precision mediump float; in vec2 v; in vec4 vc; uniform sampler2D T; out vec4 o;
+void main() { o = texture(T, v) * vc; }`],
 };
 function v3Prog(gl, [vs, fs]) {
   const P = gl.createProgram();
@@ -13916,12 +13921,12 @@ function v3Geo() {
     }
     const fBuf = gl.createBuffer(), mesh = new Float32Array([...faces, ...posts]);
     gl.bindBuffer(gl.ARRAY_BUFFER, fBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
-    if (V3.geo) { gl.deleteTexture(V3.geo.tex); for (const b of [V3.geo.pBuf, V3.geo.fBuf, V3.geo.rBuf, V3.geo.lBuf]) gl.deleteBuffer(b); }
-    const room = v3RoomGeo(outline), rBuf = gl.createBuffer(), lBuf = gl.createBuffer();
+    if (V3.geo) { gl.deleteTexture(V3.geo.tex); for (const b of [V3.geo.pBuf, V3.geo.fBuf, V3.geo.rBuf, V3.geo.lBuf, V3.geo.floor.buf]) if (b) gl.deleteBuffer(b); }
+    const room = v3RoomGeo(outline, body), rBuf = gl.createBuffer(), lBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, rBuf); gl.bufferData(gl.ARRAY_BUFFER, room.room, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, lBuf); gl.bufferData(gl.ARRAY_BUFFER, room.lamp, gl.STATIC_DRAW);
     geo = { key, tex, pBuf, nBed: bed.length / 5, nTop: top.length / 5, fBuf, nFaces: faces.length / 10, nPosts: posts.length / 10, h, co, bounce: v3Col(`rgb(${CL.bounce})`),
-      rBuf, nFloor: room.nFloor, nWall: room.nWall, lBuf, nLamp: room.lamp.length / 10, lampZ: room.lampZ, near: room.near, foot: room.foot };
+      rBuf, nFloor: room.nFloor, nWall: room.nWall, floor: room.floor, lBuf, nLamp: room.lamp.length / 10, lampZ: room.lampZ, lampBox: room.lampBox, near: room.near, foot: room.foot };
   } finally { RAIL = rk; view = was.view; dpr = was.dpr; heroNoPosts = false; V3.flat = false; }
   return (V3.geo = geo);
 }
@@ -13953,13 +13958,16 @@ function v3Cue() {
    on real geometry round the table, so it turns and slides as it should when the camera moves:
    the floor (dark boards under the lamp's warm pool, the far boards blurrier than the near, falling
    to black at the walls), the walls (a cylinder V3_ROOM_R out: wainscot, sconces, a back bar's glow,
-   a cue rack, soft bokeh, the top lost in the dark), the neighbouring tables (soft cards: the top
-   flat at the rail's height, the body and the shade turned to the camera, the lamp's glow, its pool
-   on the floor; faded when the camera comes close), this table's shadow on the floor, and this
+   a cue rack, soft bokeh, the top lost in the dark), the neighbouring tables (soft cards in one atlas
+   and one draw: the top flat at the rail's height, the shade and its glow turned to the camera; their
+   pools of light and this table's shadow painted into the floor once a table; faded when the camera
+   comes close), and this
    table's lamp as geometry (a shade on two rods, LAMP_H up: faded out once the camera rises to it,
    so it never stands between the camera and the bed). Low and warm, so the table stays the
-   brightest, sharpest thing. A view only, like the rest of 4o. */
-const V3_ROOM_R = 9, V3_ROOM_TOP = 5.5, V3_FLOOR = 0.76;
+   brightest, sharpest thing. Cost (a software rasteriser shades every pixel of every triangle it
+   draws): the floor is only the cells in view and not behind the table (v3FloorVis), the wall one
+   small bilinear texture, the cards one call, nothing off screen drawn. A view only, like the rest of 4o. */
+const V3_ROOM_R = 9, V3_ROOM_TOP = 5.5, V3_FLOOR = 0.76, V3_FLOOR_R = 7.2;
 /* a seeded random (mulberry32): the room paints the same every time */
 function v3Rng(seed) {
   let a = seed >>> 0;
@@ -14104,47 +14112,31 @@ function v3PaintNTop() {
   for (let i = 0; i < 7; i++) { g.fillStyle = ['#d8d2c0', '#c9a43a', '#2d4a9a', '#a8342c', '#5a2e70', '#d07a2a', '#222'][i]; g.beginPath(); g.arc((o + 0.4 + rnd() * 1.7) * K, (o + 0.3 + rnd() * 0.8) * K, 0.035 * K, 0, 7); g.fill(); }
   return v3Blur(cv, 4);
 }
-/* its body side on: 3.4 m wide, from 10 cm under the floor to 24 cm over the rail's top (a margin for the blur) */
-function v3PaintNBody() {
-  const K = 64, cv = v3Canvas(Math.round(3.4 * K), Math.round(1.1 * K)), g = cv.getContext('2d'), Z = z => (0.24 - z) * K, x0 = 0.45 * K;
-  g.fillStyle = '#3a2618'; g.fillRect(x0, Z(0.04), 2.5 * K, Z(-0.17) - Z(0.04));
-  g.fillStyle = 'rgba(160,120,80,0.6)'; g.fillRect(x0, Z(0.04), 2.5 * K, 2);
-  g.fillStyle = '#1e140e'; g.fillRect(x0 + 0.2 * K, Z(-0.17), 2.1 * K, Z(-0.45) - Z(-0.17));
-  g.fillStyle = '#170f0b'; for (const x of [0.3, 2.05]) g.fillRect(x0 + x * K, Z(-0.45), 0.15 * K, Z(-0.86) - Z(-0.45));
-  return v3Blur(cv, 4);
-}
-/* the neighbour's shade side on (1.9 x 0.45 m, the shade 1.4 x 0.17 in it), its lit lip; the underside glowing;
-   a round glow; this table's shadow */
-function v3PaintShade() {
-  const K = 64, cv = v3Canvas(Math.round(1.9 * K), Math.round(0.45 * K)), g = cv.getContext('2d'), y0 = 0.13 * K, y1 = 0.3 * K;
+/* the neighbour's lamp side on: 1.9 x 0.66 m, the shade (1.4 x 0.17) with its lit lip in the upper part and the
+   light it throws as a soft glow round and under it (one card) */
+function v3PaintLamp() {
+  const K = 64, cv = v3Canvas(Math.round(1.9 * K), Math.round(0.66 * K)), g = cv.getContext('2d'), y0 = 0.16 * K, y1 = 0.33 * K;
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(255,214,160,0.42)'); gr.addColorStop(0.35, 'rgba(255,200,140,0.16)'); gr.addColorStop(1, 'rgba(255,200,140,0)');
+  g.save(); g.translate(0.95 * K, y1); g.scale(0.92 * K, 0.33 * K); g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
   g.fillStyle = '#121110'; g.beginPath(); g.moveTo(0.3 * K, y0); g.lineTo(1.6 * K, y0); g.lineTo(1.65 * K, y1); g.lineTo(0.25 * K, y1); g.closePath(); g.fill();
   g.fillStyle = 'rgba(255,214,150,0.9)'; g.fillRect(0.25 * K, y1 - 2, 1.4 * K, 3);
   return v3Blur(cv, 3);
-}
-function v3PaintUnder() {
-  const cv = v3Canvas(128, 64), g = cv.getContext('2d');
-  g.fillStyle = 'rgb(255,226,176)'; v3RoundRect(g, 18, 18, 92, 28, 6); g.fill();
-  return v3Blur(cv, 3);
-}
-function v3PaintGlow() {
-  const S = 64, cv = v3Canvas(S, S), g = cv.getContext('2d'), gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
-  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.6, 'rgba(255,255,255,0.14)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = gr; g.fillRect(0, 0, S, S);
-  return cv;
 }
 function v3PaintShadow() {
   const cv = v3Canvas(128, 64), g = cv.getContext('2d');
   g.fillStyle = '#000'; v3RoundRect(g, 16, 14, 96, 36, 10); g.fill();
   return v3Blur(cv, 3);
 }
-function v3Tex(gl, cv, premul, repeatS) {
+function v3Tex(gl, cv, premul, repeatS, flat) {
   const t = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, t);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, !!premul);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  /* flat: a texture always seen magnified (the blurred wall): one bilinear fetch, no mipmaps; the rest one mip level a pixel */
+  if (!flat) gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, flat ? gl.LINEAR : gl.LINEAR_MIPMAP_NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, repeatS ? gl.REPEAT : gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   return t;
@@ -14152,25 +14144,73 @@ function v3Tex(gl, cv, premul, repeatS) {
 /* the room's textures, painted once a context (timed: V3.roomMs) */
 function v3RoomTex() {
   if (V3.room) return V3.room;
-  const gl = V3.gl, t0 = performance.now(), soft = V3.soft;
+  const gl = V3.gl, t0 = performance.now(), soft = V3.soft, wall = v3PaintWall(1024, 224), small = v3Canvas(512, 112);
+  /* the wall is all blur: kept small (11 cm a texel at the wall, always magnified on screen) */
+  small.getContext('2d').drawImage(wall, 0, 0, 512, 112);
   V3.room = {
-    floor: v3Tex(gl, v3PaintFloor(soft ? 768 : 1024)), wall: v3Tex(gl, v3PaintWall(soft ? 1024 : 1536, soft ? 224 : 320), false, true),
-    top: v3Tex(gl, v3PaintNTop(), true), body: v3Tex(gl, v3PaintNBody(), true), shade: v3Tex(gl, v3PaintShade(), true), under: v3Tex(gl, v3PaintUnder(), true),
-    glow: v3Tex(gl, v3PaintGlow(), true), shadow: v3Tex(gl, v3PaintShadow(), true),
+    floorCv: v3PaintFloor(soft ? 768 : 1024), floor: gl.createTexture(), floorKey: '', wall: v3Tex(gl, small, false, true, true),
+    shadowCv: v3PaintShadow(), ...v3CardAtlas(gl),
   };
   V3.roomMs = performance.now() - t0;
   return V3.room;
 }
+/* the floor for this table: the painted boards with this table's shadow and the neighbours' pools of light laid in
+   (once a table, timed in V3.roomMs), so the floor is one opaque texture fetch a pixel */
+function v3FloorTex(R, G) {
+  if (R.floorKey === G.key) return;
+  const gl = V3.gl, t0 = performance.now(), base = R.floorCv, S = base.width, K = S / (2 * V3_ROOM_R), cv = v3Canvas(S, S), g = cv.getContext('2d');
+  const X = x => S / 2 + (x - TL / 2) * K, Y = y => S / 2 + (y - TW / 2) * K;
+  g.drawImage(base, 0, 0);
+  g.globalCompositeOperation = 'lighter';
+  for (const [x, y] of G.near) {
+    const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    gr.addColorStop(0, 'rgba(36,29,20,1)'); gr.addColorStop(0.25, 'rgba(20,16,11,1)'); gr.addColorStop(0.6, 'rgba(5,4,3,1)'); gr.addColorStop(1, 'rgba(0,0,0,1)');
+    g.save(); g.translate(X(x), Y(y)); g.scale(2.0 * K, 1.5 * K); g.fillStyle = gr; g.fillRect(-1, -1, 2, 2); g.restore();
+  }
+  g.globalCompositeOperation = 'source-over';
+  const hx = (G.foot[0] + 0.25) * 1.33, hy = (G.foot[1] + 0.25) * 1.78;
+  g.globalAlpha = 0.82; g.drawImage(R.shadowCv, X(TL / 2 - hx), Y(TW / 2 - hy), 2 * hx * K, 2 * hy * K); g.globalAlpha = 1;
+  gl.bindTexture(gl.TEXTURE_2D, R.floor);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  R.floorKey = G.key;
+  V3.roomMs += performance.now() - t0;
+}
 /* the room's geometry for the table now set: the floor (a disc) and the wall (a cylinder) as [x, y, z, u, v]
    in the render frame (z = -height), this table's lamp as mesh vertices, the neighbours' places, the shadow's size */
-function v3RoomGeo(outline) {
+function v3RoomGeo(outline, body) {
   const cx = TL / 2, cy = TW / 2, N = 64, Rr = V3_ROOM_R, room = [];
-  for (let i = 0; i < N; i++) {
-    const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, P = a => [cx + Rr * Math.cos(a), cy + Rr * Math.sin(a)];
-    const p0 = P(a0), p1 = P(a1), uv = q => [(q[0] - cx) / (2 * Rr) + 0.5, (q[1] - cy) / (2 * Rr) + 0.5];
-    for (const q of [[cx, cy], p0, p1]) room.push(q[0], q[1], V3_FLOOR, ...uv(q));
+  /* the floor: a polar grid from under the rails' edge (under it is dark anyway) out to the wall, its cells drawn
+     only where the table does not hide them (v3FloorVis: a software rasteriser shades hidden pixels too); each
+     angle's inner point where its ray from the middle meets the rails' outline */
+  const inner = a => {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    let best = 1e9;
+    for (let i = 0; i < outline.length; i++) {
+      const p = outline[i], q = outline[(i + 1) % outline.length], ex = q[0] - p[0], ey = q[1] - p[1], den = dx * ey - dy * ex;
+      if (Math.abs(den) < 1e-12) continue;
+      const t = ((p[0] - cx) * ey - (p[1] - cy) * ex) / den, u = ((p[0] - cx) * dy - (p[1] - cy) * dx) / den;
+      if (t > 0 && u >= -1e-9 && u <= 1 + 1e-9) best = Math.min(best, t);
+    }
+    return [cx + dx * Math.min(best, Rr * 0.5), cy + dy * Math.min(best, Rr * 0.5)];
+  };
+  const uv = q => [(q[0] - cx) / (2 * Rr) + 0.5, (q[1] - cy) / (2 * Rr) + 0.5];
+  const RF = [0, 0.015, 0.035, 0.06, 0.09, 0.13, 0.18, 0.25, 0.34, 0.46, 0.6, 0.78, 1], grid = [], NF = 128;
+  for (let i = 0; i < NF; i++) {
+    const a = i / NF * 2 * Math.PI, q = inner(a), o = [cx + V3_FLOOR_R * Math.cos(a), cy + V3_FLOOR_R * Math.sin(a)];
+    grid.push(RF.map(f => { const x = q[0] + (o[0] - q[0]) * f, y = q[1] + (o[1] - q[1]) * f; return [x, y, ...uv([x, y])]; }));
   }
-  const nFloor = room.length / 5;
+  /* what hides the floor: the body's box from the floor to the rail tops, and the rails' box from the apron's
+     foot up (each drawn in a little on the octagon and the rounded corners) */
+  const ext = (poly, k) => { let x = 0, y = 0; for (const q of poly) { x = Math.max(x, Math.abs(q[0] - cx)); y = Math.max(y, Math.abs(q[1] - cy)); } return [x * k, y * k]; };
+  const sh = BED_LINES ? 0.7 : 0.97, [bx, by] = ext(body, sh), [ox0, oy0] = ext(outline, BED_LINES ? 0.7 : 0.9), h = BALL_R * 1.42;
+  const occ = [[cx - bx, cy - by, -V3_FLOOR, cx + bx, cy + by, h], [cx - ox0, cy - oy0, -0.15, cx + ox0, cy + oy0, h]];
+  const floor = { grid, occ, rings: RF.length, arr: new Float32Array(NF * (RF.length - 1) * 30), n: 0 };
+  const nFloor = 0;
   for (let i = 0; i < N; i++) {
     const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, u0 = i / N, u1 = (i + 1) / N;
     const x0 = cx + Rr * Math.cos(a0), y0 = cy + Rr * Math.sin(a0), x1 = cx + Rr * Math.cos(a1), y1 = cy + Rr * Math.sin(a1);
@@ -14179,7 +14219,7 @@ function v3RoomGeo(outline) {
   }
   const nWall = room.length / 5 - nFloor;
   /* the lamp: a shade (a frustum, its underside the diffuser) on two rods up into the dark */
-  const lamp = [], lw = clamp(TL * 0.62, 0.45, 2.3) / 2, ld = clamp(TW * 0.42, 0.3, 0.75) / 2, zb = LAMP_H - 0.06, zt = zb + 0.17, ins = 0.05;
+  const lamp = [], lw = clamp(TL * 0.5, 0.45, 2) / 2, ld = clamp(TW * 0.34, 0.28, 0.6) / 2, zb = LAMP_H - 0.06, zt = zb + 0.17, ins = 0.05;
   const v = (x, y, z, c) => lamp.push(x, y, -z, 0, 0, -1, c[0], c[1], c[2], 1);
   const quadL = (a, b, c2, d, ca, cb) => { v(...a, ca); v(...b, ca); v(...c2, cb); v(...a, ca); v(...c2, cb); v(...d, cb); };
   const bot = [[cx - lw, cy - ld], [cx + lw, cy - ld], [cx + lw, cy + ld], [cx - lw, cy + ld]], tp = [[cx - lw + ins, cy - ld + ins], [cx + lw - ins, cy - ld + ins], [cx + lw - ins, cy + ld - ins], [cx - lw + ins, cy + ld - ins]];
@@ -14198,18 +14238,42 @@ function v3RoomGeo(outline) {
   for (const q of outline) { hx = Math.max(hx, Math.abs(q[0] - cx)); hy = Math.max(hy, Math.abs(q[1] - cy)); }
   const ox = Math.max(4.4, hx + 1.25 + 1.6), oy = Math.max(3.3, hy + 0.7 + 1.5), near = [];
   for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) near.push([cx + i * ox, cy + j * oy]);
-  return { room: new Float32Array(room), nFloor, nWall, lamp: new Float32Array(lamp), lampZ: zb, near, foot: [hx, hy] };
+  return { room: new Float32Array(room), nFloor, nWall, floor, lamp: new Float32Array(lamp), lampZ: zb, lampBox: [cx - lw, cy - ld, zb, cx + lw, cy + ld, V3_ROOM_TOP], near, foot: [hx, hy] };
 }
-/* the soft cards of a frame: [x, y, z, u, v] (render frame) quads, each with its texture, blend and tint */
-let v3Cd = new Float32Array(30 * 64), v3CdN = 0;
+/* the neighbours' cards in one atlas (each with a clear gutter): the top (its body is dark on the dark floor and
+   left out: a card that size costs a software rasteriser a millisecond), the lamp;
+   at[name] its [u0, v0, u1, v1] */
+function v3CardAtlas(gl) {
+  const parts = [['top', v3PaintNTop()], ['lamp', v3PaintLamp()]];
+  const W = 512, H = 256, cv = v3Canvas(W, H), g = cv.getContext('2d'), at = {}, gap = 6;
+  let x = gap, y = gap, row = 0;
+  for (const [k, c] of parts) {
+    if (x + c.width + gap > W) { x = gap; y += row + gap; row = 0; }
+    g.drawImage(c, x, y);
+    at[k] = [(x + 0.5) / W, (y + 0.5) / H, (x + c.width - 0.5) / W, (y + c.height - 0.5) / H];
+    x += c.width + gap; row = Math.max(row, c.height);
+  }
+  return { atlas: v3Tex(gl, cv, true), at };
+}
+/* the soft cards of a frame, far to near, into one buffer drawn in one call: [x, y, z, u, v, r, g, b, a] (render
+   frame), premultiplied */
+let v3Cd = new Float32Array(9 * 6 * 48), v3CdN = 0;
 function v3Cards(C, G) {
-  const R = V3.room, out = [];
+  const R = V3.room;
   v3CdN = 0;
-  const push = (tex, add, tint, P, d) => {
-    if (v3CdN + 30 > v3Cd.length) { const n = new Float32Array(v3Cd.length * 2); n.set(v3Cd); v3Cd = n; }
-    const uv = [[0, 0], [1, 0], [1, 1], [0, 1]], first = v3CdN / 5;
-    for (const k of [0, 1, 2, 0, 2, 3]) { v3Cd.set([P[k][0], P[k][1], P[k][2], uv[k][0], uv[k][1]], v3CdN); v3CdN += 5; }
-    out.push({ tex, add, tint, first, d });
+  const push = (k, t, P) => {
+    /* none wholly off one side of the view */
+    let m = 31;
+    for (const q of P) {
+      const w = v3Sub(q, C.Er), dd = v3Dot(w, C.f);
+      if (dd < V3_NEAR) { m &= 16; continue; }
+      const sx = C.cx + C.F * v3Dot(w, C.r) / dd, sy = C.cy - C.F * v3Dot(w, C.u) / dd;
+      m &= (sx < 0 ? 1 : 0) | (sx > C.W ? 2 : 0) | (sy < 0 ? 4 : 0) | (sy > C.H ? 8 : 0);
+    }
+    if (m) return;
+    if (v3CdN + 54 > v3Cd.length) { const n = new Float32Array(v3Cd.length * 2); n.set(v3Cd); v3Cd = n; }
+    const a = R.at[k], uv = [[a[0], a[1]], [a[2], a[1]], [a[2], a[3]], [a[0], a[3]]];
+    for (const j of [0, 1, 2, 0, 2, 3]) { v3Cd.set([P[j][0], P[j][1], P[j][2], uv[j][0], uv[j][1], t[0], t[1], t[2], t[3]], v3CdN); v3CdN += 9; }
   };
   const flat = (x, y, hx, hy, z) => [[x - hx, y - hy, -z], [x + hx, y - hy, -z], [x + hx, y + hy, -z], [x - hx, y + hy, -z]];
   const E = C.E, stand = (x, y, w, z0, z1) => {
@@ -14217,51 +14281,111 @@ function v3Cards(C, G) {
     const l = Math.hypot(rx, ry) || 1; rx *= w / 2 / l; ry *= w / 2 / l;
     return [[x - rx, y - ry, -z1], [x + rx, y + ry, -z1], [x + rx, y + ry, -z0], [x - rx, y - ry, -z0]];
   };
-  const face = (x, y, z, s) => { const P = [x, y, -z], r = C.r, u = C.u, q = (a, b) => [0, 1, 2].map(i => P[i] + (r[i] * a + u[i] * b) * s); return [q(-1, 1), q(1, 1), q(1, -1), q(-1, -1)]; };
-  /* on the floor: this table's shadow, the neighbours' pools */
-  push(R.shadow, false, [1, 1, 1, 0.82], flat(TL / 2, TW / 2, (G.foot[0] + 0.25) * 1.33, (G.foot[1] + 0.25) * 1.78, -V3_FLOOR + 0.002), 0);
-  for (const [x, y] of G.near) push(R.glow, true, [0.14, 0.115, 0.08, 0], flat(x, y, 2.0, 1.5, -V3_FLOOR + 0.003), 0);
-  const fl = out.length;
-  /* the neighbours, far to near, faded as the camera comes close */
+  /* the neighbours, far to near, faded as the camera comes close; none behind the camera */
   const ns = G.near.map(([x, y]) => ({ x, y, d: Math.hypot(x - E[0], y - E[1], E[2]) })).sort((a, b) => b.d - a.d);
   for (const n of ns) {
     const f = smooth01((Math.hypot(n.x - E[0], n.y - E[1]) - 1.2) / 1.6);
-    if (f <= 0.01) continue;
+    if (f <= 0.01 || v3Dot(v3Sub([n.x, n.y, 0], C.Er), C.f) < -2) continue;
     const t = [f, f, f, f];
-    push(R.body, false, t, stand(n.x, n.y, 3.4, -V3_FLOOR - 0.1, 0.24), n.d);
-    push(R.top, false, t, flat(n.x, n.y, 1.7, 1.15, 0.035), n.d);
-    if (E[2] < LAMP_H - 0.06) push(R.under, false, t, flat(n.x, n.y, 1.1, 0.5, LAMP_H - 0.06), n.d);
-    push(R.shade, false, t, stand(n.x, n.y, 1.9, LAMP_H - 0.22, LAMP_H + 0.23), n.d);
-    push(R.glow, true, [0.32 * f, 0.26 * f, 0.18 * f, 0], face(n.x, n.y, LAMP_H - 0.1, 0.7), n.d);
+    push('top', t, flat(n.x, n.y, 1.7, 1.15, 0.035));
+    push('lamp', t, stand(n.x, n.y, 1.9, LAMP_H - 0.39, LAMP_H + 0.27));
   }
-  return { list: out, floor: fl };
 }
-/* the room, drawn after the table's solid parts (so the depth test spares what the table hides) */
+/* the floor's cells the table does not hide from this eye (a corner's ray to it misses the body's box), worked out
+   when the eye moves */
+function v3FloorVis(C, G) {
+  const F = G.floor, E = C.E;
+  if (F.e0 === E[0] && F.e1 === E[1] && F.e2 === E[2]) return F;
+  F.e0 = E[0]; F.e1 = E[1]; F.e2 = E[2];
+  const gl = V3.gl, M = F.rings, N = F.grid.length;
+  if (!F.hid) { F.hid = new Uint8Array(N * M); F.side = new Uint8Array(N * M); }
+  const hid = F.hid, side = F.side, Er = C.Er, f = C.f, r = C.r, u = C.u, dz = -V3_FLOOR - E[2];
+  /* the segment from the eye to a floor point meets a box (slabs; no allocation, as it runs every frame the eye moves) */
+  const through = (x, y, b) => {
+    let t0 = 0, t1 = 1 - 1e-6, d = x - E[0], lo, hi, a, c;
+    if (Math.abs(d) < 1e-12) { if (E[0] < b[0] || E[0] > b[3]) return false; } else { a = (b[0] - E[0]) / d; c = (b[3] - E[0]) / d; lo = Math.min(a, c); hi = Math.max(a, c); t0 = Math.max(t0, lo); t1 = Math.min(t1, hi); if (t0 > t1) return false; }
+    d = y - E[1];
+    if (Math.abs(d) < 1e-12) { if (E[1] < b[1] || E[1] > b[4]) return false; } else { a = (b[1] - E[1]) / d; c = (b[4] - E[1]) / d; lo = Math.min(a, c); hi = Math.max(a, c); t0 = Math.max(t0, lo); t1 = Math.min(t1, hi); if (t0 > t1) return false; }
+    a = (b[2] - E[2]) / dz; c = (b[5] - E[2]) / dz; lo = Math.min(a, c); hi = Math.max(a, c); t0 = Math.max(t0, lo); t1 = Math.min(t1, hi);
+    return t0 <= t1;
+  };
+  /* each point: hidden by the table, and which sides of the view it lies past (bits: left, right, up, down, behind) */
+  for (let i = 0; i < N; i++) for (let j = 0; j < M; j++) {
+    const q = F.grid[i][j], x = q[0], y = q[1], w0 = x - Er[0], w1 = y - Er[1], w2 = V3_FLOOR - Er[2], k = i * M + j;
+    hid[k] = through(x, y, F.occ[0]) || through(x, y, F.occ[1]) ? 1 : 0;
+    const dd = w0 * f[0] + w1 * f[1] + w2 * f[2];
+    if (dd < V3_NEAR) { side[k] = 16; continue; }
+    const sx = C.cx + C.F * (w0 * r[0] + w1 * r[1] + w2 * r[2]) / dd, sy = C.cy - C.F * (w0 * u[0] + w1 * u[1] + w2 * u[2]) / dd;
+    side[k] = (sx < 0 ? 1 : 0) | (sx > C.W ? 2 : 0) | (sy < 0 ? 4 : 0) | (sy > C.H ? 8 : 0);
+  }
+  let n = 0;
+  const A = F.arr, put = q => { A[n++] = q[0]; A[n++] = q[1]; A[n++] = V3_FLOOR; A[n++] = q[2]; A[n++] = q[3]; };
+  for (let i = 0; i < N; i++) {
+    const k = (i + 1) % N, a = F.grid[i], b = F.grid[k], ia = i * M, ib = k * M;
+    for (let j = 0; j + 1 < M; j++) {
+      if (hid[ia + j] && hid[ia + j + 1] && hid[ib + j] && hid[ib + j + 1]) continue;
+      if (side[ia + j] & side[ia + j + 1] & side[ib + j] & side[ib + j + 1]) continue;
+      put(a[j]); put(a[j + 1]); put(b[j + 1]); put(a[j]); put(b[j + 1]); put(b[j]);
+    }
+  }
+  if (!F.buf) F.buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, F.buf); gl.bufferData(gl.ARRAY_BUFFER, A.subarray(0, n), gl.DYNAMIC_DRAW);
+  F.n = n / 5;
+  return F;
+}
+/* the room's wall and floor, opaque, after the table's solid parts (a GPU's depth test then spares what the table
+   hides) and with no depth writes (nothing later needs them). A software rasteriser shades every pixel of a
+   triangle it draws, depth or not, so the floor is only the cells the table leaves in view (v3FloorVis). */
 function v3Room(C, G, attr, off) {
-  const gl = V3.gl, R = v3RoomTex(), pr = V3.prog.room;
+  const gl = V3.gl, R = v3RoomTex();
+  v3FloorTex(R, G);
+  const pr = V3.prog.room;
   gl.useProgram(pr.P);
   gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniform1i(pr.u.T, 0); gl.activeTexture(gl.TEXTURE0);
   gl.bindBuffer(gl.ARRAY_BUFFER, G.rBuf); attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
   gl.uniform4fv(pr.u.tint, [1, 1, 1, 1]);
-  gl.bindTexture(gl.TEXTURE_2D, R.floor); gl.drawArrays(gl.TRIANGLES, 0, G.nFloor);
+  gl.depthMask(false);
   gl.bindTexture(gl.TEXTURE_2D, R.wall); gl.drawArrays(gl.TRIANGLES, G.nFloor, G.nWall);
-  const cd = v3Cards(C, G);
-  gl.bindBuffer(gl.ARRAY_BUFFER, V3.cardBuf); gl.bufferData(gl.ARRAY_BUFFER, v3Cd.subarray(0, v3CdN), gl.STREAM_DRAW);
-  attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
-  gl.enable(gl.BLEND); gl.depthMask(false);
-  for (const c of cd.list) {
-    gl.blendFunc(gl.ONE, c.add ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
-    gl.uniform4fv(pr.u.tint, c.tint); gl.bindTexture(gl.TEXTURE_2D, c.tex);
-    gl.drawArrays(gl.TRIANGLES, c.first, 6);
+  const F = v3FloorVis(C, G);
+  if (F.n) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, F.buf); attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
+    gl.bindTexture(gl.TEXTURE_2D, R.floor); gl.drawArrays(gl.TRIANGLES, 0, F.n);
   }
+  gl.depthMask(true);
+  off(pr);
+}
+/* the neighbours' soft cards, after the table's solid parts (the depth test hides them behind it), in one call */
+function v3RoomCards(C, G, attr, off) {
+  const gl = V3.gl, R = V3.room;
+  v3Cards(C, G);
+  if (!v3CdN) return;
+  const pr = V3.prog.card;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniform1i(pr.u.T, 0);
+  gl.bindTexture(gl.TEXTURE_2D, R.atlas);
+  gl.bindBuffer(gl.ARRAY_BUFFER, V3.cardBuf); gl.bufferData(gl.ARRAY_BUFFER, v3Cd.subarray(0, v3CdN), gl.STREAM_DRAW);
+  attr(pr, 'p', 3, 9, 0); attr(pr, 'uv', 2, 9, 3); attr(pr, 'c', 4, 9, 5);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  gl.drawArrays(gl.TRIANGLES, 0, v3CdN / 9);
   gl.disable(gl.BLEND); gl.depthMask(true);
   off(pr);
+}
+/* a box [x0, y0, z0, x1, y1, z1] (table metres, z up) is inside the camera's view, or may be (a corner behind the eye) */
+function v3Seen(b, C) {
+  let l = 0, r = 0, t = 0, d = 0, n = 0;
+  for (const x of [b[0], b[3]]) for (const y of [b[1], b[4]]) for (const z of [b[2], b[5]]) {
+    const w = v3Sub([x, y, -z], C.Er), dd = v3Dot(w, C.f);
+    if (dd < V3_NEAR) return true;
+    const sx = C.cx + C.F * v3Dot(w, C.r) / dd, sy = C.cy - C.F * v3Dot(w, C.u) / dd;
+    l += sx < 0; r += sx > C.W; t += sy < 0; d += sy > C.H; n++;
+  }
+  return !(l === n || r === n || t === n || d === n);
 }
 /* this table's lamp, faded out as the camera rises to it (so it never hangs between the camera and the bed) */
 function v3Lamp(C, G, attr, off, lamp) {
   const a = 1 - smooth01((C.E[2] - (G.lampZ - 0.3)) / 0.28);
   V3.lampA = a;
-  if (a <= 0.01) return;
+  if (a <= 0.01 || !v3Seen(G.lampBox, C)) return;
   const gl = V3.gl, pr = V3.prog.mesh;
   gl.useProgram(pr.P);
   gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniformMatrix4fv(pr.u.W, false, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
@@ -14709,8 +14833,9 @@ function v3Frame(now) {
   gl.uniform1f(pr.u.lit, 0); gl.drawArrays(gl.TRIANGLES, 0, G.nFaces);
   if (G.nPosts) { gl.uniform1f(pr.u.lit, 1); gl.drawArrays(gl.TRIANGLES, G.nFaces, G.nPosts); }
   off(pr);
-  /* the room round it */
+  /* the room round it: the wall and the floor, then the neighbours' cards */
   v3Room(C, G, attr, off);
+  v3RoomCards(C, G, attr, off);
   /* where each ball is drawn: the carried ghost lifted, the settling cue ball, far to near */
   const R = BALL_R, drawn = list.map(b => ({ n: b.n, x: b.x, y: b.y, z: R + (b.n === 0 && sh ? V3_LIFT * sh : 0), a: 1 }));
   if (ghost && human()) drawn.push({ n: 0, x: placeAt[0], y: placeAt[1], z: R + V3_LIFT * bih.h, a: ghostOk ? 0.96 : 0.5, lift: bih.h });

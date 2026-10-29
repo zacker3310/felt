@@ -52,6 +52,18 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
     const bad = await t.page.evaluate(() => { setSetting('hcAim', true); return { s: felt.settings, polluted: ({}).polluted === 1, stored: localStorage.getItem('felt.settings') }; });
     check('migration: unreadable sv 3 values fall back (a volume clamps), and no prototype key is carried over', bad.s.hand === 'right' && bad.s.bar === 'mid' && bad.s.vol === 100 && bad.s.volFx === 0 && bad.s.text === 100
       && bad.s.marks === false && !bad.polluted && !/__proto__|constructor/.test(bad.stored), JSON.stringify(bad));
+    /* the table view (4o): top-down by default, stored, a bad value back to top-down */
+    const tv0 = await t.page.evaluate(() => felt.settings.view);
+    await t.page.evaluate(() => setSetting('view', '3d'));
+    await t.page.reload();
+    await t.page.waitForFunction(() => window.booted === true);
+    const tv1 = await t.page.evaluate(() => ({ view: felt.settings.view, stored: JSON.parse(localStorage.getItem('felt.settings')).view, pressed: tv3d.getAttribute('aria-pressed') }));
+    await t.page.evaluate(() => localStorage.setItem('felt.settings', '{"sv":3,"view":"sideways","viewPitch":"steep","viewDist":99}'));
+    await t.page.reload();
+    await t.page.waitForFunction(() => window.booted === true);
+    const tv2 = await t.page.evaluate(() => felt.settings);
+    check('Table View: top-down by default, 3D stored and back after a reload, a bad value falls back (pitch default, distance clamped)', tv0 === 'top' && tv1.view === '3d' && tv1.stored === '3d' && tv1.pressed === 'true'
+      && tv2.view === 'top' && tv2.viewPitch === 24 && tv2.viewDist === 3.2, JSON.stringify({ tv0, tv1, v: tv2.view, p: tv2.viewPitch, d: tv2.viewDist }));
     check('migration: no console errors', t.errors.length === 0, t.errors.join(' | '));
     await t.browser.close();
   }

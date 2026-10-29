@@ -67,6 +67,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 /* #table, #ui and the overlays take their height from --app-h (see appSize()), not inset: 0 */
 #table { position: fixed; inset: 0 0 auto 0; height: var(--app-h, 100%); display: block; touch-action: none; }
+/* the 3D view (4o): a WebGL canvas laid exactly over #stage, under the controls; input stays on #table */
+#t3d { position: fixed; left: 0; top: 0; display: block; pointer-events: none; }
+#t3d[hidden] { display: none; }
+/* its switch: a 44 px target on the far rail, left of its middle (placed by v3Layout), a small capsule inside */
+#viewBtn { position: absolute; z-index: 1; left: 0; top: 0; width: 52px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto; }
+#viewBtn[hidden] { display: none; }
+#viewBtn > span { display: grid; place-items: center; min-width: 40px; height: 28px; padding: 0 9px; border-radius: 14px; font-size: 13px; font-weight: 700; letter-spacing: .02em;
+  background: var(--btn-sec); color: var(--btn-sec-ink); border: 1px solid rgba(255, 255, 255, .16); box-shadow: 0 4px 14px rgba(0, 0, 0, .45); }
+#viewBtn[aria-pressed="true"] > span { background: var(--btn-pri); color: var(--btn-pri-ink); border-color: transparent; }
 
 /* ---- the game screen: the table (fitted into #stage by layout()) and one strip or column of
    controls. Nothing else: the players, the potted balls and the status line live in the pause
@@ -1421,6 +1430,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 </head>
 <body>
 <canvas id="table" aria-label="Pool table. Point, tap or drag to aim; the power bar shoots."></canvas>
+<canvas id="t3d" aria-hidden="true" hidden></canvas>
 <div id="ui">
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div>
     <div id="callout" aria-hidden="true"><span id="calloutText"></span></div>
@@ -1441,6 +1451,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <button class="tool" id="editBtn" aria-pressed="false">Add / Remove Balls</button>
     </div>
     <button class="tool" id="editDone" hidden>Done Editing</button>
+    <!-- the table view (4o): top-down or the player's 3D camera; Settings > Graphics > Table View too -->
+    <button id="viewBtn" aria-pressed="false" aria-label="3D View" hidden><span>3D</span></button>
     <button class="rpl" id="replayBtn" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b id="replayLab">Replay</b></span></button>
     <div class="rpl" id="replayBadge" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b>Replay</b><i id="replaySlow" hidden>Slow motion</i></span></div>
     <button class="rpl" id="replaySkip" hidden aria-label="Skip the replay"><span><b>Skip</b></span></button>
@@ -1690,6 +1702,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h3 class="ghead" id="lookLab">Look</h3>
       <div class="group" role="group" aria-labelledby="lookLab" id="lookRows"></div>
       <p class="gfoot" id="lookNote"></p>
+      <h3 class="ghead" id="tvLab">Table View</h3>
+      <div class="group" role="group" aria-labelledby="tvLab">
+        <div class="prow"><div class="seg" role="group" aria-labelledby="tvLab" aria-describedby="tvNote"><button id="tvTop" aria-pressed="true">Top Down</button><button id="tv3d" aria-pressed="false">3D</button></div></div>
+      </div>
+      <p class="gfoot" id="tvNote">3D puts the camera behind the cue ball: drag across the table to aim, up and down to tilt, pinch to move in or out. It stays where you put it while the balls roll. The 3D button on the table switches too.</p>
       <h3 class="ghead" id="camLab">Camera</h3>
       <div class="group" role="group" aria-labelledby="camLab">
         <div class="prow"><div class="seg" role="group" aria-labelledby="camLab" aria-describedby="camNote"><button id="camAuto" aria-pressed="true">Follow</button><button id="camOff" aria-pressed="false">Fixed</button></div></div>
@@ -7809,15 +7826,25 @@ let RAIL = 0.115;
 const RAIL_MAX = 0.115, RAIL_MIN = 0.10;   /* under 0.10 the caps overflow the wood */
 /* the rail for a viewport: RAIL_MIN up to a 430 px short side, RAIL_MAX from 700 px, smooth between */
 const railFor = (w, h) => RAIL_MIN + (RAIL_MAX - RAIL_MIN) * ease(430, 700, Math.min(w, h));
-const ctx = table.getContext('2d');
+/* the table's 2D context; the 3D view (4o) points it at its recorder for a moment to lay the overlays on the bed */
+let ctx = table.getContext('2d');
 /* where drawBall and drawShadow paint: the table's canvas, or for a moment a menu tile's (artCtx) */
 let artCtx = null;
 let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
+/* the 3D view (4o), its state here so the mappings below can read it from the first frame. While it is
+   live (V3.live) toScreen and toTable go through its camera (a table point at a ball's centre height,
+   a screen point back onto that plane), so every tap, grab and mark finds what is under the finger;
+   V3.flat is set while it lays the top-down overlays on the bed, which keep the flat mapping. */
+const V3_PITCH = [8, 70], V3_DIST = [0.45, 3.2], V3_PITCH0 = 24, V3_DIST0 = 1.1;
+const V3 = { ok: null, gl: null, live: false, flat: false, soft: false, renderer: '', yaw: 0, px: NaN, py: NaN, seat: { shot: undefined, turn: -1, plan: null, set: false },
+  cuts: 0, k: 100, cam: null, box: null, scale: 1, ms: [], frames: 0, poses: [], lost: false };
 function toScreen(x, y) {
+  if (V3.live && !V3.flat) return v3Screen(x, y);
   const v = view;
   return v.portrait ? [v.ox + y * v.k, v.oy + (TL - x) * v.k] : [v.ox + x * v.k, v.oy + y * v.k];
 }
 function toTable(sx, sy) {
+  if (V3.live && !V3.flat) return v3Table(sx, sy);
   const v = view;
   return v.portrait ? [TL - (sy - v.oy) / v.k, (sx - v.ox) / v.k] : [(sx - v.ox) / v.k, (sy - v.oy) / v.k];
 }
@@ -7852,7 +7879,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29h';
+const BUILD = 'build 2026-10-29i';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -7907,6 +7934,7 @@ function layout() {
   view.tray = null;
   tableImg = drawTableImage();
   camFit();
+  v3Layout();
 }
 
 /* ---- 3b. the camera ----
@@ -9804,11 +9832,11 @@ function settleH(now) {
 }
 /* ball in hand, the whole turn: four chevrons that say the ball can be moved; while it is being
    moved (placeAt set), the ghost where it is, and a ring that says whether it may stay there */
-function drawPlace(now) {
+function drawPlace(now, noBall = false) {
   const c = game.balls.find(b => b.n === 0), placing = !!placeAt, at = placeAt || (c.on ? [c.x, c.y] : null);
   if (!at) return;
   const ok = !placing || canPlace(game, at[0], at[1]), s = toScreen(at[0], at[1]), rp = BALL_R * view.k;
-  if (placing) {
+  if (placing && !noBall) {
     const h = bih.h, rr = rp * dpr * (1 + LIFT_GROW * h);
     bih.sr = drawCast(at[0], at[1], s[0] * dpr, s[1] * dpr, rp * dpr, h, ok ? 1 : 0.4);
     drawBall(0, s[0] * dpr, s[1] * dpr, rr, axesOf(orient[0] || IDENT), ok ? 0.96 : 0.5);
@@ -9824,6 +9852,7 @@ function drawPlace(now) {
   }
 }
 function draw(now) {
+  if (V3.live) { v3Frame(now); return; }   /* the 3D view (4o) draws the table instead */
   trackBalls();
   if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
   prevState = state;
@@ -10088,7 +10117,7 @@ const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: tru
 const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
 const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
   'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
-  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls'];
+  'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls', 'view', 'viewPitch', 'viewDist'];
 /* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
    2 and 2 to 3 renamed nothing: the new keys simply take their defaults in loadSettings. */
 /* (migrateSettings, section 6) */
@@ -10149,7 +10178,7 @@ const felt = window.felt = {
   toScreen, toTable, pause, resume,
   forceWin: p => { game.winner = p; game.verdict = { why: 'forced' }; finish(); },
   /* the table's footprint on screen, CSS px: the rail's outer edge */
-  tableRect() { const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
+  tableRect() { if (V3.live && V3.box) { const B = V3.box; return { left: B.left, top: B.top, right: B.left + B.width, bottom: B.top + B.height }; } const a = toScreen(-RAIL, -RAIL), b = toScreen(TL + RAIL, TW + RAIL); return { left: Math.min(a[0], b[0]), top: Math.min(a[1], b[1]), right: Math.max(a[0], b[0]), bottom: Math.max(a[1], b[1]) }; },
 };
 /* the ball the cue strikes: the cue ball, or in bumper pool the shooter's chosen ball and in carom
    the shooter's own cue ball (game.striker) */
@@ -10913,6 +10942,7 @@ function frameBody(now) {
   stepPlaceBack(now);
   stepOffer();
   camStep(dtMs);
+  v3Update();
   draw(now);
 }
 /* the CPU's turn begins: its search starts, one slice a frame (think) */
@@ -11278,6 +11308,7 @@ function leaveBed() {
   if (state === 'aim' && human() && !aimLock) aimAngle = hov.rest;
 }
 function hover(e) {
+  if (V3.live) return;   /* the 3D camera is the aim: a pointer passing over it never moves it (4o) */
   const x = e.clientX, y = e.clientY, now = e.timeStamp, p = pointAt(e), bed = onBed(p);
   if (!hov) hov = { x, y, t: now, bed: false, rest: aimAngle };
   if (Math.hypot(x - hov.x, y - hov.y) > 4) {
@@ -11316,10 +11347,14 @@ function cancelGestures() {
 table.addEventListener('pointerdown', e => {
   audioOn();
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
-  /* a second finger (a pinch, a palm) kills the sweep in progress and puts the aim back */
+  /* a second finger (a pinch, a palm) kills the sweep in progress and puts the aim back; in the
+     3D view (4o) it is a pinch: the camera's distance follows the fingers' spread */
   if (gest && !gest.bar && e.pointerId !== gest.id && e.pointerType !== 'mouse') {
     const g = gest;
-    if (g.mode !== 'grab' && g.mode !== 'ball' && state === 'aim') { aimAngle = g.a0; g.mode = 'dead'; }
+    if (g.mode !== 'grab' && g.mode !== 'ball' && state === 'aim') {
+      aimAngle = g.a0; g.mode = 'dead';
+      if (V3.live && !g.pinch && g.p0 !== undefined) { settings.viewPitch = g.p0; g.mode = 'pinch'; g.pinch = { id: e.pointerId, at: [e.clientX, e.clientY], d0: Math.max(20, Math.hypot(e.clientX - g.last[0], e.clientY - g.last[1])), dist0: settings.viewDist }; }
+    }
     return;
   }
   /* F8: a tap during the CPU's turn hurries it (the wait and the cue's swing; never the search) */
@@ -11340,7 +11375,7 @@ table.addEventListener('pointerdown', e => {
     g.mode = 'grab'; g.from = [c.x, c.y]; g.p0 = pointAt(e);
     if (mouse) table.style.cursor = 'grabbing';
   } else {
-    g.a0 = aimAngle; g.c = s;
+    g.a0 = aimAngle; g.c = s; g.p0 = settings.viewPitch;
     /* sweep: where the finger was last applied, when, its smoothed speed, and the trail for liftAim */
     g.at = [e.clientX, e.clientY]; g.tLast = e.timeStamp; g.v = null; g.trail = [[e.timeStamp, aimAngle, e.clientX, e.clientY]];
   }
@@ -11351,6 +11386,7 @@ table.addEventListener('pointermove', e => {
   if (!human()) return;
   if (!gest) { if (e.pointerType === 'mouse') hover(e); return; }
   const g = gest;
+  if (g.pinch && !g.bar && (e.pointerId === g.pinch.id || e.pointerId === g.id)) { v3Pinch(g, e); return; }
   if (g.bar || e.pointerId !== g.id) return;
   const dx = e.clientX - g.x0, dy = e.clientY - g.y0, slop = TAP_SLOP[kindOf(g)];
   g.far = Math.max(g.far, Math.hypot(dx, dy));
@@ -11363,6 +11399,7 @@ table.addEventListener('pointermove', e => {
     return;
   }
   if (state !== 'aim' || g.mode === 'dead') return;
+  if (V3.live) { v3Drag(g, e); return; }   /* the 3D view: across aims, up and down tilts (4o) */
   /* the finger's speed, from every move since the press (the slop included) */
   const b = [e.clientX, e.clientY], dv = Math.hypot(b[0] - g.last[0], b[1] - g.last[1]);
   if (dv > 0) { g.v = fingerSpeed(g.v, dv, e.timeStamp - g.tLast); g.last = b; g.tLast = e.timeStamp; }
@@ -11396,6 +11433,8 @@ function turnTo(g, b, t) {
 }
 function endTable(e, cancel) {
   const g = gest;
+  /* the 3D view's pinch (4o): either finger lifting ends it where it is */
+  if (g && g.pinch && (e.pointerId === g.pinch.id || e.pointerId === g.id)) { if (g.mode === 'pinch') { g.mode = 'dead'; v3Keep(); } if (e.pointerId === g.pinch.id) return; }
   if (!g || g.bar || e.pointerId !== g.id) return;
   gest = null;
   if (g.mode === 'grab' || g.mode === 'ball') {
@@ -11407,6 +11446,7 @@ function endTable(e, cancel) {
     }
     return;
   }
+  if (g.mode === 'pitch') { v3Keep(); return; }
   if (state !== 'aim' || g.mode === 'dead' || cancel) return;
   const k = kindOf(g), tap = !g.held && !g.shown && (g.far <= TAP_SLOP[k] || (g.far <= TAP_MAX[k] && e.timeStamp - g.t0 < TAP_MS));
   if (tap && solo && solo.edit && game.mode === 'practice') { editAt(toTable(g.x0, g.y0)); return; }   /* free table editing (5s) */
@@ -12492,7 +12532,7 @@ function loadSettings() {
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
     hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
-    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic' };
+    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', view: 'top', viewPitch: V3_PITCH0, viewDist: V3_DIST0 };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     let o = JSON.parse(raw || '{}') || {};
@@ -12506,6 +12546,10 @@ function loadSettings() {
     for (const k of ['replays', 'reduceMotion', 'marks', 'hcAim', 'keyShoot']) if (typeof o[k] === 'boolean') s[k] = o[k];
     for (const k of ['vol', 'volFx']) if (typeof o[k] === 'number' && Number.isFinite(o[k])) s[k] = clamp(Math.round(o[k] / 5) * 5, 0, 100);
     if (TEXT_SIZES.includes(o.text)) s.text = o.text;
+    /* the table view (4o): top-down or 3D, and the 3D camera's pitch (degrees) and distance (metres), clamped */
+    if (['top', '3d'].includes(o.view)) s.view = o.view;
+    if (typeof o.viewPitch === 'number' && Number.isFinite(o.viewPitch)) s.viewPitch = clamp(o.viewPitch, V3_PITCH[0], V3_PITCH[1]);
+    if (typeof o.viewDist === 'number' && Number.isFinite(o.viewDist)) s.viewDist = clamp(o.viewDist, V3_DIST[0], V3_DIST[1]);
     for (const k of ['8', '9', '10']) if (rulesetsFor(k).some(r => r.id === o['rules' + k])) s['rules' + k] = o['rules' + k];
     if (RACES_141.includes(o.race141)) s.race141 = o.race141;
     if (typeof o.stalemate === 'boolean') s.stalemate = o.stalemate;
@@ -12572,6 +12616,7 @@ function applyPrefs(k) {
   if (k === 'hand' || k === 'bar') { layout(); hudControls(); }
   if (k === 'replays' && !settings.replays) hideOffer();
   if (k === 'keyShoot' && !settings.keyShoot && keyPull) cancelKeyPull();
+  if (k === 'view') v3Sync();
 }
 const SEGS = [
   ['cpu', [[vs2p, false], [vsCpu, true]]],
@@ -12605,6 +12650,7 @@ const SEGS = [
   ['bar', [[pbMid, 'mid'], [pbEdge, 'edge']]],
   ['replays', [[rpOn, true], [rpOff, false]]],
   ['text', TEXT_SIZES.map(n => [document.getElementById('ts' + n), n])],
+  ['view', [[tvTop, 'top'], [tv3d, '3d']]],
 ];
 /* Gameplay's default rules: a row per game with a choice of rulesets, built from RULESETS
    (rulesetsFor), each button named by its ruleset ("felt rules", "WPA", "Obvious shots free") */
@@ -13531,6 +13577,783 @@ setupHeroArt.addEventListener('click', heroReplay);
 /* the form grows or shrinks (the CPU's cards, a folded choice, the text size): the hero follows */
 if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => heroFit()); for (const c of setupScroll.children) ro.observe(c); }
 
+/* ---- 4o. the 3D view ----
+   Settings > Graphics > Table View (settings.view: 'top', the default, or '3d'), and the 3D button on
+   the table's far rail. A camera the player drives, never one that moves by itself: it stands behind
+   the cue ball looking along the aim, at the pitch (V3_PITCH, degrees) and distance (V3_DIST, metres)
+   the player last left it (settings.viewPitch, settings.viewDist). Input (section 5): a drag across
+   the table turns the aim and the camera turns with it (the camera is the aim), at a rate set by the
+   finger's speed (V3_YAW_SLOW for a slow, deliberate finger, a fraction of a degree, up to V3_YAW_FAST
+   for a swipe); a drag up or down tilts it; a pinch moves it in or out. Taps, the cue ball in hand,
+   pocket and ball calls, the english pad, the wheel and the keys work as they do top-down: toScreen
+   and toTable go through the camera (a table point at a ball's centre height, a screen point back
+   onto that plane). Only the power bar shoots.
+   When it moves: the player's drag, tilt and pinch, and their aim (keys, wheel, a tap on a ball). The
+   turn's start is a cut, never a move: behind the cue ball on the turn's aim (auto aim's line, where
+   the swing will land). A cue ball in hand being dragged holds the camera still; let go, it cuts
+   behind the ball's new spot. The CPU's turn: a cut behind its cue ball along its line when the line
+   is shown, then nothing while the cue swings onto it. While the balls roll it stays exactly where it
+   was. A replay (5r), the menu and the lesson are top-down.
+   Drawing: WebGL 2 (no context: the top-down view, and no button). The bed and the rail and rubber
+   tops are drawTableImage's art painted once per table and look (landscape, RAIL_MAX, the posts
+   left out) laid on two planes: the bed at 0 and the tops at the cushion's height, where the art's
+   alpha (halved over the bed, the mouths and the holes) cuts the holes through. The cushion noses,
+   the jaws and the apron are faces between, the bumper posts stand. The balls are spheres traced in
+   a fragment shader (their paint from PAINT: base, caps, the number decal from an atlas, the marks;
+   orient's turn; the lamp LAMP_H over the middle of the bed), each over a contact shade and a cast
+   shadow on the bed (drawCast's). The overlays (the aim guide, the ghost ball, rings, calls, the
+   kitchen, the D, the hint, solo marks) are the 2D code's own, run once a frame against a recorder
+   (V3R) that turns its paths into lines of constant screen width and fills on the bed (and on the
+   rail tops where they fall there). The cue is a lathe of the look's parts behind the ball.
+   A view only: it reads game, tab, orient and the aim, and never writes them. ---- */
+const V3_YAW_SLOW = 0.02 * Math.PI / 180, V3_YAW_FAST = 0.3 * Math.PI / 180, V3_YAW_MOUSE = 0.12 * Math.PI / 180;
+const V3_PITCH_PX = 0.25, V3_FY = 0.5, V3_AHEAD = 0.8, V3_FOV = [21, 24], V3_NEAR = 0.02, V3_SOFT_DPR = 1.25, V3_LIFT = LIFT_H;
+/* the view is wanted (the setting) and has a place (a table in play, not a replay, not the lesson) */
+const v3Want = () => settings.view === '3d' && state !== 'menu' && !rp && !(solo && solo.kind === 'lesson') && felt.v3 !== false;
+/* ---- GL ---- */
+const V3_SRC = {
+  tex: [`#version 300 es
+in vec3 p; in vec2 uv; uniform mat4 M; out vec2 v;
+void main() { v = uv; gl_Position = M * vec4(p, 1.0); }`, `#version 300 es
+precision highp float; in vec2 v; uniform sampler2D T; uniform float rail; out vec4 o;
+void main() { vec4 c = texture(T, v); if (rail > 0.5 && c.a < 0.75) discard; o = vec4(c.rgb, 1.0); }`],
+  mesh: [`#version 300 es
+in vec3 p; in vec3 n; in vec4 c; uniform mat4 M; uniform mat4 W; out vec4 vc; out vec3 vn; out vec3 vp;
+void main() { vec4 w = W * vec4(p, 1.0); vc = c; vn = mat3(W) * n; vp = w.xyz; gl_Position = M * w; }`, `#version 300 es
+precision highp float; in vec4 vc; in vec3 vn; in vec3 vp; uniform vec3 L; uniform vec3 E; uniform float lit; uniform float alpha; out vec4 o;
+void main() {
+  if (lit < 0.5) { o = vec4(vc.rgb, vc.a * alpha); return; }
+  vec3 n = normalize(vn), l = normalize(L - vp), v = normalize(E - vp), h = normalize(l + v);
+  float d = max(dot(n, l), 0.0), s = pow(max(dot(n, h), 0.0), 36.0);
+  o = vec4(vc.rgb * (0.38 + 0.72 * d) + 0.22 * s, vc.a * alpha);
+}`],
+  ball: [`#version 300 es
+in vec2 q; uniform mat4 V; uniform mat4 P; uniform vec3 C; uniform float R; out vec3 vp; out vec2 vq;
+void main() { vec4 c = V * vec4(C, 1.0); vec3 pv = c.xyz + vec3(q * R * 1.35, 0.0); vp = pv; vq = q * 1.35; gl_Position = P * vec4(pv, 1.0); }`, `#version 300 es
+precision highp float; in vec3 vp; in vec2 vq;
+uniform mat4 P; uniform vec3 Cv; uniform float R; uniform mat3 Vi; uniform vec3 Ax0; uniform vec3 Ax1; uniform vec3 Ax2;
+uniform vec3 base; uniform vec4 cap0; uniform vec4 cap1; uniform vec4 cap2; uniform vec3 capC0; uniform vec3 capC1; uniform vec3 capC2;
+uniform float num; uniform float mark; uniform sampler2D N; uniform sampler2D K; uniform vec3 Lv; uniform vec3 bounce; uniform float alpha; uniform float rim; out vec4 o;
+vec3 paint(vec3 c, vec4 cp, vec3 col, vec3 l) { if (cp.w < 0.5) return c; float a = cp.x < 0.5 ? l.x : cp.x < 1.5 ? l.y : l.z; return abs(a) >= cp.y ? col : c; }
+void main() {
+  vec3 d = normalize(vp);
+  float b = dot(d, Cv), pr2 = dot(Cv, Cv) - b * b, edge = R - sqrt(max(pr2, 0.0)), fw = max(fwidth(sqrt(max(pr2, 0.0))), 1e-6);
+  float cov = clamp(edge / fw + 0.5, 0.0, 1.0);
+  if (cov <= 0.0) discard;
+  float disc = max(R * R - pr2, 0.0), t = b - sqrt(disc);
+  vec3 hit = d * t, nv = (hit - Cv) / R;
+  vec3 nr = Vi * nv, np = vec3(nr.x, nr.y, -nr.z), l = vec3(dot(Ax0, np), dot(Ax1, np), dot(Ax2, np));
+  vec3 c = base;
+  c = paint(c, cap0, capC0, l); c = paint(c, cap1, capC1, l); c = paint(c, cap2, capC2, l);
+  if (num > 0.5 && abs(l.z) >= 0.866) {
+    float u = l.x / (num > 9.5 ? 0.82 : 1.0), w = l.y * sign(l.z);
+    vec2 cell = vec2(u + 0.5, w + 0.5);
+    if (cell.x > 0.0 && cell.x < 1.0 && cell.y > 0.0 && cell.y < 1.0) c = mix(c, vec3(0.078), texture(N, vec2((num + cell.x) / 16.0, cell.y)).a);
+  }
+  vec3 lv = normalize(Lv - hit), vv = -d, h = normalize(lv + vv);
+  float df = max(dot(nv, lv), 0.0), sp = pow(max(dot(nv, h), 0.0), 120.0), sh = pow(max(dot(nv, h), 0.0), 14.0), fr = pow(1.0 - max(dot(nv, vv), 0.0), 3.0);
+  vec3 col = c * (0.3 + 0.78 * df) + bounce * 0.2 * max(-np.z, 0.0) * c + vec3(1.0) * (0.95 * sp + 0.07 * sh) + vec3(0.06) * fr;
+  col *= 1.0 - 0.35 * smoothstep(0.2, 0.95, -np.z);
+  if (mark > -0.5 && length(vq) < 0.62) {
+    vec2 m = vq / 1.24 + 0.5; m.y = 1.0 - m.y;
+    vec4 k = texture(K, vec2((mark + m.x) / 32.0, m.y));
+    col = mix(col, k.rgb, k.a);
+  }
+  if (rim > 0.5 && edge < R * 0.09) col = mix(col, vec3(0.77), 0.85);
+  vec4 cl = P * vec4(hit, 1.0);
+  gl_FragDepth = clamp(cl.z / cl.w * 0.5 + 0.5, 0.0, 1.0);
+  o = vec4(col, alpha * cov);
+}`],
+  shadow: [`#version 300 es
+in vec2 q; uniform mat4 M; uniform vec3 S; uniform float ext; out vec2 vw;
+void main() { vec3 w = S + vec3(q * ext, 0.0); vw = w.xy; gl_Position = M * vec4(w, 1.0); }`, `#version 300 es
+precision highp float; in vec2 vw; uniform vec2 A; uniform vec2 B; uniform float R; uniform float grow; uniform float ao; uniform float ca; out vec4 o;
+void main() {
+  float d1 = length(vw - A) / R, d2 = length(vw - B) / (R * grow * 1.5);
+  float a1 = ao * 0.55 * (1.0 - smoothstep(0.8, 1.16, d1));
+  float a2 = ca * (d2 < 0.5 ? mix(0.56, 0.36, d2 / 0.5) : d2 < 0.78 ? mix(0.36, 0.1, (d2 - 0.5) / 0.28) : d2 < 1.0 ? mix(0.1, 0.0, (d2 - 0.78) / 0.22) : 0.0);
+  float a = 1.0 - (1.0 - a1) * (1.0 - a2);
+  if (a < 0.004) discard;
+  o = vec4(0.0, 0.0, 0.0, a);
+}`],
+  over: [`#version 300 es
+in vec3 A; in vec3 B; in vec3 st; in vec4 c; uniform mat4 M; uniform vec2 VP; out vec4 vc;
+void main() {
+  vec4 a = M * vec4(A, 1.0), b = M * vec4(B, 1.0), p = mix(a, b, st.y);
+  if (st.z > 0.0) {
+    vec2 sa = a.xy / a.w * VP, sb = b.xy / b.w * VP, dir = sb - sa;
+    dir = length(dir) > 1e-6 ? normalize(dir) : vec2(1.0, 0.0);
+    vec2 off = (vec2(-dir.y, dir.x) * st.x + dir * (st.y * 2.0 - 1.0)) * st.z * 0.5;
+    p.xy += off / VP * p.w;
+  }
+  vc = c; gl_Position = p;
+}`, `#version 300 es
+precision highp float; in vec4 vc; out vec4 o; void main() { o = vec4(vc.rgb * vc.a, vc.a); }`],
+};
+function v3Prog(gl, [vs, fs]) {
+  const P = gl.createProgram();
+  for (const [t, src] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]]) {
+    const sh = gl.createShader(t);
+    gl.shaderSource(sh, src); gl.compileShader(sh);
+    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw new Error('3D view shader: ' + gl.getShaderInfoLog(sh));
+    gl.attachShader(P, sh);
+  }
+  gl.linkProgram(P);
+  if (!gl.getProgramParameter(P, gl.LINK_STATUS)) throw new Error('3D view program: ' + gl.getProgramInfoLog(P));
+  const u = {}, a = {};
+  for (let i = 0; i < gl.getProgramParameter(P, gl.ACTIVE_UNIFORMS); i++) { const n = gl.getActiveUniform(P, i).name; u[n] = gl.getUniformLocation(P, n); }
+  for (let i = 0; i < gl.getProgramParameter(P, gl.ACTIVE_ATTRIBUTES); i++) { const n = gl.getActiveAttrib(P, i).name; a[n] = gl.getAttribLocation(P, n); }
+  return { P, u, a };
+}
+/* the context and everything that does not depend on the table: false when there is none */
+function v3Init() {
+  if (V3.lost) return false;
+  if (V3.ok !== null) return V3.ok;
+  V3.ok = false;
+  try {
+    const gl = t3d.getContext('webgl2', { antialias: true, alpha: false, depth: true, stencil: false, premultipliedAlpha: true, powerPreference: 'high-performance' });
+    if (!gl) return false;
+    const ext = gl.getExtension('WEBGL_debug_renderer_info');
+    V3.renderer = String(gl.getParameter(ext ? ext.UNMASKED_RENDERER_WEBGL : gl.RENDERER));
+    /* a software rasteriser (a test machine, a phone without a GPU driver): fewer pixels, so a frame stays in budget */
+    V3.soft = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(V3.renderer);
+    V3.gl = gl;
+    V3.aniso = gl.getExtension('EXT_texture_filter_anisotropic');
+    V3.prog = {};
+    for (const k of Object.keys(V3_SRC)) V3.prog[k] = v3Prog(gl, V3_SRC[k]);
+    V3.quad = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    V3.ovBuf = gl.createBuffer(); V3.cueBuf = null; V3.cueKey = '';
+    V3.numTex = v3Atlas(gl, v3NumArt());
+    V3.markTex = v3Atlas(gl, v3MarkArt());
+    if (!V3.listening) {
+      V3.listening = true;
+      t3d.addEventListener('webglcontextlost', e => { e.preventDefault(); V3.lost = true; V3.geo = null; });
+      t3d.addEventListener('webglcontextrestored', () => { V3.lost = false; V3.ok = null; V3.geo = null; });
+    }
+    V3.ok = true;
+  } catch (e) { console.error(e); V3.ok = false; }
+  return V3.ok;
+}
+function v3Atlas(gl, cv) {
+  const t = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cv);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  return t;
+}
+/* the numbers 1 to 15 as drawBall writes them (0.6 of the radius, bold), one 128 px cell each,
+   a cell spanning the ball's local -0.5 to 0.5 */
+function v3NumArt() {
+  const S = 128, c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = 16 * S; c.height = S;
+  g.fillStyle = '#fff'; g.font = `700 ${0.6 * S}px ${NUM_FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let n = 1; n <= 15; n++) g.fillText(String(n), (n + 0.5) * S, S * 0.54);
+  return c;
+}
+/* the colour-blind marks (markOf), upright badges: a cell per [text, dark] the page can ask for */
+const V3_MARKS = [];
+function v3MarkArt() {
+  const S = 64, c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = 32 * S; c.height = S;
+  for (const n of ALL_BALLS) { const m = markOf(n); if (m && !V3_MARKS.some(x => x[0] === m[0] && x[1] === m[1])) V3_MARKS.push(m); }
+  V3_MARKS.forEach(([t, dark], i) => {
+    const x = (i + 0.5) * S, y = S / 2, R = S * 0.48;
+    g.fillStyle = dark ? '#141414' : IVORY; g.beginPath(); g.arc(x, y, R, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = dark ? IVORY : '#141414'; g.lineWidth = S * 0.05; g.stroke();
+    g.fillStyle = dark ? IVORY : '#141414'; g.font = `700 ${(R * (t.length > 1 ? 1.0 : 1.2)).toFixed(1)}px ${NUM_FONT}`;
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, x, y + R * 0.06);
+  });
+  return c;
+}
+const v3MarkIdx = n => { const m = settings.marks && markOf(n); return m ? V3_MARKS.findIndex(x => x[0] === m[0] && x[1] === m[1]) : -1; };
+/* colours: any CSS colour the overlays use, as [r, g, b, a] 0..1 (parsed once each) */
+const V3_COL = new Map();
+function v3Col(s) {
+  if (Array.isArray(s)) return s;
+  let c = V3_COL.get(s);
+  if (c) return c;
+  const t = String(s).trim();
+  if (t[0] === '#') {
+    const h = t.length === 4 ? t.slice(1).split('').map(x => x + x).join('') : t.slice(1, 7), n = parseInt(h, 16);
+    c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255, 1];
+  } else {
+    const m = (t.match(/[\d.]+/g) || [255, 255, 255]).map(Number);
+    c = [m[0] / 255, m[1] / 255, m[2] / 255, m.length > 3 ? m[3] : 1];
+  }
+  if (V3_COL.size < 4096) V3_COL.set(s, c);
+  return c;
+}
+/* ---- the table: art, planes and faces, once per table and look ---- */
+const v3Key = () => [TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, BALL_R, lookSig(), V3.soft].join('|');
+function v3Inside(x, y) {
+  if (BED_LINES) return BED_LINES.every(([nx, ny, c]) => nx * x + ny * y - c >= 0);
+  return x >= 0 && x <= TL && y >= 0 && y <= TW;
+}
+function v3Geo() {
+  const key = v3Key();
+  if (V3.geo && V3.geo.key === key) return V3.geo;
+  const gl = V3.gl, rk = RAIL, was = { view, dpr };
+  let geo;
+  V3.flat = true;
+  try {
+    RAIL = RAIL_MAX;
+    useCloth();
+    const co = cushionDepth(), h = BALL_R * 1.42, outline = heroOutline(co), ext = RAIL + 0.02;
+    const K = Math.min(V3.soft ? 560 : 1000, (V3.soft ? 2048 : 4096) / (TL + 2 * ext)), w = Math.ceil((TL + 2 * ext) * K), hh = Math.ceil((TW + 2 * ext) * K);
+    dpr = 1; heroNoPosts = true;
+    view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null };
+    const img = drawTableImage(w, hh);
+    /* the tops' cut: alpha halved over the bed, the mouths and the holes */
+    const g = img.getContext('2d');
+    g.setTransform(K, 0, 0, K, ext * K, ext * K);
+    g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 0.5; g.fillStyle = '#000';
+    g.beginPath();
+    if (BED_LINES) polyPath(g, octagon(0)); else g.rect(0, 0, TL, TW);
+    for (const [a, b] of MOUTHS) { g.moveTo(a.p[0], a.p[1]); g.lineTo(a.e[0], a.e[1]); g.lineTo(b.e[0], b.e[1]); g.lineTo(b.p[0], b.p[1]); g.closePath(); }
+    POCKETS.forEach((P, i) => { g.moveTo(P[0] + POCKET_R[i], P[1]); g.arc(P[0], P[1], POCKET_R[i], 0, Math.PI * 2); g.closePath(); });
+    g.fill('nonzero');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    if (V3.aniso && !V3.soft) gl.texParameterf(gl.TEXTURE_2D, V3.aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(V3.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+    /* the two planes: the outline as a fan from the bed's middle, at 0 and at h (render frame: z = -height) */
+    const uv = (x, y) => [(x + ext) * K / w, (y + ext) * K / hh], plane = z => {
+      const out = [], m = [TL / 2, TW / 2];
+      for (let i = 0; i < outline.length; i++) {
+        const a = outline[i], b = outline[(i + 1) % outline.length];
+        for (const q of [m, a, b]) out.push(q[0], q[1], -z, ...uv(q[0], q[1]));
+      }
+      return out;
+    };
+    /* the tops need only the ring between the outline and the bed (the bed under it is cut anyway): each outline
+       point paired with where its ray from the middle meets the bed's edge; the chords stay inside the bed */
+    const inner = BED_LINES ? octagon(0) : [[0, 0], [TL, 0], [TL, TW], [0, TW]], ring = [], m0 = [TL / 2, TW / 2];
+    const toEdge = q => {
+      const dx = q[0] - m0[0], dy = q[1] - m0[1];
+      let best = 1;
+      for (let i = 0; i < inner.length; i++) {
+        const a = inner[i], b = inner[(i + 1) % inner.length], ex = b[0] - a[0], ey = b[1] - a[1], den = dx * ey - dy * ex;
+        if (Math.abs(den) < 1e-12) continue;
+        const t = ((a[0] - m0[0]) * ey - (a[1] - m0[1]) * ex) / den, u = ((a[0] - m0[0]) * dy - (a[1] - m0[1]) * dx) / den;
+        if (t > 0 && u >= -1e-9 && u <= 1 + 1e-9) best = Math.min(best, t);
+      }
+      return [m0[0] + dx * best, m0[1] + dy * best];
+    };
+    for (let i = 0; i < outline.length; i++) {
+      const a = outline[i], b = outline[(i + 1) % outline.length], ai = toEdge(a), bi = toEdge(b);
+      for (const q of [a, b, bi, a, bi, ai]) ring.push(q[0], q[1], -h, ...uv(q[0], q[1]));
+    }
+    const bed = plane(0), top = ring, planes = new Float32Array([...bed, ...top]);
+    const pBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, pBuf); gl.bufferData(gl.ARRAY_BUFFER, planes, gl.STATIC_DRAW);
+    /* the faces: the apron (the outline's edges, from the top down 15 cm), the noses and jaws (from the top to the bed) */
+    const RW = railLook(), faces = [], col = s => v3Col(s), quad = (a, b, z0, z1, c0, c1, nrm) => {
+      const v = (q, z, c) => faces.push(q[0], q[1], -z, nrm[0], nrm[1], 0, c[0], c[1], c[2], 1);
+      v(a, z0, c0); v(b, z0, c0); v(b, z1, c1); v(a, z0, c0); v(b, z1, c1); v(a, z1, c1);
+    };
+    for (let i = 0; i < outline.length; i++) {
+      const a = outline[i], b = outline[(i + 1) % outline.length], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      quad(a, b, h, -0.15, col(mixRgb(RW.base, 0.3)), col(mixRgb(RW.base, 0.9)), [(b[1] - a[1]) / L, (a[0] - b[0]) / L]);
+    }
+    const cx = TL / 2, cy = TW / 2;
+    /* the floor, 76 cm down: a warm pool under the lamp falling to the room's near black */
+    const fl = (r, c) => Array.from({ length: 24 }, (_, i) => [cx + r * Math.cos(i * Math.PI / 12), cy + r * Math.sin(i * Math.PI / 12), c]);
+    const rings = [fl(0.01, [0.1, 0.085, 0.07]), fl(1.6, [0.085, 0.075, 0.065]), fl(4, [0.05, 0.048, 0.047]), fl(9, [0.043, 0.043, 0.047])];
+    for (let r = 0; r + 1 < rings.length; r++) for (let i = 0; i < 24; i++) {
+      const A = rings[r][i], B = rings[r][(i + 1) % 24], C2 = rings[r + 1][(i + 1) % 24], D = rings[r + 1][i];
+      for (const q of [A, B, C2, A, C2, D]) faces.push(q[0], q[1], 0.76, 0, 0, -1, q[2][0], q[2][1], q[2][2], 1);
+    }
+    for (const [ea, pa, pb, eb] of CUSHION_POLYS) for (const [a, b] of MOUTHS.length ? [[pa, pb], [ea, pa], [pb, eb]] : [[pa, pb]]) {
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+      let nx = (b[1] - a[1]) / L, ny = (a[0] - b[0]) / L;
+      if (nx * (cx - mx) + ny * (cy - my) < 0) { nx = -nx; ny = -ny; }
+      quad(a, b, h, 0, col(mixRgb(CL.cushion, 0.05, [255, 255, 255])), col(mixRgb(CL.cushion, 0.6)), [nx, ny]);
+    }
+    /* the bumper posts: a black rubber ring round a nickel cap, lit */
+    const posts = [], HP = 0.052, N = 20;
+    for (const [px, py] of BUMPERS) {
+      for (let i = 0; i < N; i++) {
+        const a0 = i / N * 2 * Math.PI, a1 = (i + 1) / N * 2 * Math.PI, P = a => [px + BUMPER_R * Math.cos(a), py + BUMPER_R * Math.sin(a)];
+        const p0 = P(a0), p1 = P(a1), rub = [0.13, 0.13, 0.14], cap = [0.68, 0.67, 0.65];
+        const v = (q, z, n, c) => posts.push(q[0], q[1], -z, n[0], n[1], n[2], c[0], c[1], c[2], 1);
+        const n0 = [Math.cos(a0), Math.sin(a0), 0], n1 = [Math.cos(a1), Math.sin(a1), 0];
+        v(p0, HP, n0, rub); v(p1, HP, n1, rub); v(p1, 0, n1, rub); v(p0, HP, n0, rub); v(p1, 0, n1, rub); v(p0, 0, n0, rub);
+        v([px, py], HP, [0, 0, -1], cap); v(p0, HP, [0, 0, -1], cap); v(p1, HP, [0, 0, -1], cap);
+      }
+    }
+    const fBuf = gl.createBuffer(), mesh = new Float32Array([...faces, ...posts]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, fBuf); gl.bufferData(gl.ARRAY_BUFFER, mesh, gl.STATIC_DRAW);
+    if (V3.geo) { gl.deleteTexture(V3.geo.tex); gl.deleteBuffer(V3.geo.pBuf); gl.deleteBuffer(V3.geo.fBuf); }
+    geo = { key, tex, pBuf, nBed: bed.length / 5, nTop: top.length / 5, fBuf, nFaces: faces.length / 10, nPosts: posts.length / 10, h, co, bounce: v3Col(`rgb(${CL.bounce})`) };
+  } finally { RAIL = rk; view = was.view; dpr = was.dpr; heroNoPosts = false; V3.flat = false; }
+  return (V3.geo = geo);
+}
+/* the cue: a lathe of the look's parts from the tip (x 0) to the butt, radius cueR, 14 sides */
+function v3Cue() {
+  const [CU, tip] = cueLook(), key = JSON.stringify([CU, tip]);
+  if (V3.cueBuf && V3.cueKey === key) return V3.cueBuf;
+  const gl = V3.gl, parts = cueParts(CU, tip), cuts = new Set([0, CUE_LEN]), out = [], S = 14;
+  for (let x = 0.03; x < 0.74; x += 0.06) cuts.add(x);
+  for (const [a, b] of parts) { cuts.add(a); cuts.add(b); }
+  const xs = [...cuts].filter(x => x >= 0 && x <= CUE_LEN).sort((a, b) => a - b), s0 = v3Col(CU.shaft[0]), s1 = v3Col(CU.shaft[1]);
+  const colAt = x => { let c = null; for (const [a, b, k] of parts) if (x >= a && x < b) c = v3Col(k); if (c) return c; const u = clamp((x - 0.027) / 0.713, 0, 1); return s0.map((v, i) => v + (s1[i] - v) * u); };
+  for (let i = 0; i + 1 < xs.length; i++) {
+    const x0 = xs[i], x1 = xs[i + 1], c = colAt((x0 + x1) / 2), r0 = cueR(x0), r1 = cueR(x1);
+    for (let j = 0; j < S; j++) {
+      const a0 = j / S * 2 * Math.PI, a1 = (j + 1) / S * 2 * Math.PI, v = (x, r, a) => out.push(x, r * Math.cos(a), r * Math.sin(a), 0, Math.cos(a), Math.sin(a), c[0], c[1], c[2], 1);
+      v(x0, r0, a0); v(x1, r1, a0); v(x1, r1, a1); v(x0, r0, a0); v(x1, r1, a1); v(x0, r0, a1);
+    }
+  }
+  if (V3.cueBuf) gl.deleteBuffer(V3.cueBuf.b);
+  const b = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(out), gl.STATIC_DRAW);
+  V3.cueKey = key;
+  return (V3.cueBuf = { b, n: out.length / 10 });
+}
+/* ---- the camera ---- */
+const v3Sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], v3Dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const v3Cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const v3Norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+/* the stage the view fills, CSS px, and the canvas sized to it */
+function v3Layout() {
+  const r = stage.getBoundingClientRect();
+  V3.box = { left: r.left, top: r.top, width: Math.max(1, r.width), height: Math.max(1, r.height) };
+  V3.scale = V3.soft ? Math.min(dpr, V3_SOFT_DPR) : dpr;
+  const W = Math.max(1, Math.round(V3.box.width * V3.scale)), H = Math.max(1, Math.round(V3.box.height * V3.scale));
+  if (t3d.width !== W) t3d.width = W;
+  if (t3d.height !== H) t3d.height = H;
+  Object.assign(t3d.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  /* the switch: top-down, on the far rail (the top of the fitted table), past the corner pocket's cap, clear of the
+     scoreboard's middle; in 3D in the stage's top corner, over the room */
+  if (V3.live) { viewBtn.style.left = '4px'; viewBtn.style.top = '4px'; v3Pose(); return; }
+  const B = viewBase, a = screenIn(B, -RAIL, -RAIL), b = screenIn(B, TL + RAIL, TW + RAIL), top = Math.min(a[1], b[1]), left = Math.min(a[0], b[0]), rk = RAIL * B.k;
+  viewBtn.style.left = Math.round(Math.max(0, left - r.left + rk * 1.35)) + 'px';
+  viewBtn.style.top = Math.round(clamp(top - r.top + (rk - 44) / 2, 0, Math.max(0, r.height - 44))) + 'px';
+}
+/* the camera's pose from the pivot (the cue ball), yaw (the aim), pitch and distance: eye and target
+   in table metres (z up), and in the render frame (z = -height: the top-down view's handedness) the
+   view and projection matrices. F, cx, cy: the focal length and the cue ball's place, CSS px. */
+function v3Pose() {
+  const B = V3.box || { left: 0, top: 0, width: 1, height: 1 }, W = B.width, H = B.height;
+  const p = clamp(settings.viewPitch, V3_PITCH[0], V3_PITCH[1]) * Math.PI / 180, d = clamp(settings.viewDist, V3_DIST[0], V3_DIST[1]), R = BALL_R;
+  const ca = Math.cos(V3.yaw), sa = Math.sin(V3.yaw), hd = Math.cos(p) * d, hc = BALL_R * 1.42;
+  const E = [V3.px - ca * hd, V3.py - sa * hd, Math.max(R + Math.sin(p) * d, hc + 0.05)], A = V3_AHEAD * d * Math.cos(p), T = [V3.px + ca * A, V3.py + sa * A, R * (1 - V3_AHEAD)];
+  const Er = [E[0], E[1], -E[2]], Tr = [T[0], T[1], -T[2]], f = v3Norm(v3Sub(Tr, Er)), r = v3Norm(v3Cross(f, [0, 0, -1])), u = v3Cross(r, f);
+  const Vm = [r[0], u[0], -f[0], 0, r[1], u[1], -f[1], 0, r[2], u[2], -f[2], 0, -v3Dot(r, Er), -v3Dot(u, Er), v3Dot(f, Er), 1];
+  const F = Math.min(W / (2 * Math.tan(V3_FOV[0] * Math.PI / 180)), H / (2 * Math.tan(V3_FOV[1] * Math.PI / 180))), cx = W / 2, cy = H * V3_FY, n = V3_NEAR, fa = 40;
+  const Pm = [2 * F / W, 0, 0, 0, 0, 2 * F / H, 0, 0, 1 - 2 * cx / W, -(1 - 2 * cy / H), (fa + n) / (n - fa), -1, 0, 0, 2 * fa * n / (n - fa), 0];
+  const M = new Array(16).fill(0);
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) for (let k = 0; k < 4; k++) M[j * 4 + i] += Pm[k * 4 + i] * Vm[j * 4 + k];
+  V3.cam = { E, T, Er, f, r, u, V: Vm, P: Pm, M, F, cx, cy, W, H, yaw: V3.yaw, pitch: p * 180 / Math.PI, dist: d };
+  V3.k = F / Math.max(0.05, v3Dot(v3Sub([V3.px, V3.py, -R], Er), f));
+  return V3.cam;
+}
+/* table (x, y) at height z to page CSS px, and [x, y, depth]; null behind the eye */
+function v3Proj(x, y, z) {
+  const C = V3.cam, B = V3.box;
+  if (!C || !B) return null;
+  const w = v3Sub([x, y, -z], C.Er), d = v3Dot(w, C.f);
+  if (d < V3_NEAR) return null;
+  return [B.left + C.cx + C.F * v3Dot(w, C.r) / d, B.top + C.cy - C.F * v3Dot(w, C.u) / d, d];
+}
+/* a page point back onto the plane at height z: table [x, y], or null where the ray never meets it */
+function v3Unproj(sx, sy, z) {
+  const C = V3.cam, B = V3.box;
+  if (!C || !B) return null;
+  const a = (sx - B.left - C.cx) / C.F, b = -(sy - B.top - C.cy) / C.F, dir = [0, 1, 2].map(i => C.r[i] * a + C.u[i] * b + C.f[i]);
+  if (Math.abs(dir[2]) < 1e-9) return null;
+  const t = (-z - C.Er[2]) / dir[2];
+  if (t <= 0) return null;
+  return [C.Er[0] + dir[0] * t, C.Er[1] + dir[1] * t];
+}
+function v3Screen(x, y) { const p = v3Proj(x, y, BALL_R); return p ? [p[0], p[1]] : [-1e5, -1e5]; }
+function v3Table(sx, sy) { return v3Unproj(sx, sy, BALL_R) || [-10, -10]; }
+/* once a frame (frameBody): live or not, and where the camera stands. It moves only on a cut (a new
+   turn, the CPU's line shown, a cue ball put down elsewhere) and with the player's aim. */
+function v3Update() {
+  const live = v3Want() && v3Init();
+  if (live !== V3.live) {
+    V3.live = live;
+    t3d.hidden = !live;
+    if (live) V3.seat.set = false; else view = camView(cam.z, cam.x, cam.y);
+    v3Layout();
+  }
+  v3Btn();
+  if (!live) return;
+  const c = cueBall(), S = V3.seat;
+  let cut = null;
+  if (c && c.on) {
+    if (state === 'aim' && human()) {
+      if (!move && !placeBack && !placeAt) {
+        const moved = Math.abs(c.x - V3.px) > 1e-9 || Math.abs(c.y - V3.py) > 1e-9 || !Number.isFinite(V3.px);
+        if (!S.set || moved || S.shot !== felt.lastShot || S.turn !== game.turn || S.plan) cut = aimAnim ? aimAnim.from + aimAnim.d : aimAngle;
+        else if (!aimAnim) V3.yaw = aimAngle;
+        S.shot = felt.lastShot; S.turn = game.turn; S.plan = null;
+      }
+    } else if (state === 'thinking' && cpuPlan) {
+      if (S.plan !== cpuPlan) { S.plan = cpuPlan; cut = cpuPlan.angle; }
+    } else if (!S.set) cut = aimAngle;
+  } else if (!S.set && lastCue) { V3.px = lastCue.x; V3.py = lastCue.y; V3.yaw = lastCue.ang; S.set = true; V3.cuts++; }
+  if (cut !== null) { V3.px = c.x; V3.py = c.y; V3.yaw = cut; S.set = true; V3.cuts++; }
+  if (!S.set) { V3.px = TL / 4; V3.py = TW / 2; V3.yaw = 0; S.set = true; }
+  v3Pose();
+  /* the input's scale (tap reach, grab radius): CSS px per metre at the cue ball */
+  view = { k: V3.k, portrait: viewBase.portrait, ox: viewBase.ox, oy: viewBase.oy, tray: null };
+}
+/* the switch: shown in a game with a GL context, pressed in 3D */
+function v3Btn() {
+  const show = state !== 'menu' && V3.ok !== false && !(solo && solo.kind === 'lesson') && felt.v3 !== false, on = settings.view === '3d';
+  if (viewBtn.hidden === show) viewBtn.hidden = !show;
+  if (viewBtn.getAttribute('aria-pressed') !== String(on)) viewBtn.setAttribute('aria-pressed', String(on));
+}
+/* the setting changed (applyPrefs): the next frame cuts to it */
+function v3Sync() { V3.seat.set = false; v3Btn(); }
+viewBtn.addEventListener('click', () => { audioOn(); setSetting('view', settings.view === '3d' ? 'top' : '3d'); });
+/* ---- input (section 5 calls these while the view is live) ---- */
+const v3Rate = v => V3_YAW_SLOW + (V3_YAW_FAST - V3_YAW_SLOW) * smooth01((v - V_SLOW) / (V_FAST - V_SLOW));
+/* a one-finger drag: past the tap slop it takes an axis, across (the aim) or up and down (the tilt), and keeps it */
+function v3Drag(g, e) {
+  const b = [e.clientX, e.clientY], dv = Math.hypot(b[0] - g.last[0], b[1] - g.last[1]);
+  if (dv > 0) { g.v = fingerSpeed(g.v, dv, e.timeStamp - g.tLast); g.last = b; g.tLast = e.timeStamp; }
+  if (!g.mode) {
+    if (g.far <= TAP_SLOP[kindOf(g)]) return;
+    g.mode = Math.abs(b[0] - g.x0) >= Math.abs(b[1] - g.y0) ? 'sweep' : 'pitch';
+    g.shown = true;
+  }
+  if (g.mode === 'sweep') {
+    aimAngle += (b[0] - g.at[0]) * (g.mouse ? V3_YAW_MOUSE : v3Rate(g.v));
+    handAimed = true; aimAnim = null;
+    pushTrail(g.trail, e.timeStamp, aimAngle, b[0], b[1]);
+  } else if (g.mode === 'pitch') settings.viewPitch = clamp(settings.viewPitch + (b[1] - g.at[1]) * V3_PITCH_PX, V3_PITCH[0], V3_PITCH[1]);
+  g.at = b;
+}
+function v3Pinch(g, e) {
+  const P = g.pinch;
+  if (e.pointerId === P.id) P.at = [e.clientX, e.clientY]; else g.last = [e.clientX, e.clientY];
+  if (g.mode !== 'pinch') return;
+  const d = Math.max(10, Math.hypot(P.at[0] - g.last[0], P.at[1] - g.last[1]));
+  settings.viewDist = clamp(P.dist0 * P.d0 / d, V3_DIST[0], V3_DIST[1]);
+}
+/* a tilt or a pinch let go: kept for the next game */
+function v3Keep() { setSetting('viewPitch', settings.viewPitch); setSetting('viewDist', settings.viewDist); }
+/* ---- the overlays: the 2D code's paths, recorded onto the bed ---- */
+/* V3R stands in for the canvas while the overlays are drawn (the top-down mapping, V3.flat): each
+   path's points go from device px through the 2D view back to table metres; a stroke becomes a
+   line of the same screen width (CSS px), dashed in metres as it was on screen; a fill becomes
+   triangles, a gradient fill evaluated per vertex. Text and images are not drawn; a clip clamps
+   to the bed (the kitchen's wash). */
+const V3R = {
+  m: [1, 0, 0, 1, 0, 0], st: [], path: [], cur: null, strokeStyle: '#fff', fillStyle: '#fff', lineWidth: 1, globalAlpha: 1, dash: [], clipBed: false,
+  lineCap: 'butt', lineJoin: 'miter', font: '', textAlign: 'start', textBaseline: 'alphabetic', globalCompositeOperation: 'source-over', shadowColor: '', shadowBlur: 0, imageSmoothingQuality: 'low',
+  reset() { this.m = [1, 0, 0, 1, 0, 0]; this.st = []; this.path = []; this.cur = null; this.globalAlpha = 1; this.dash = []; this.clipBed = false; this.lineWidth = 1; },
+  save() { this.st.push([this.m.slice(), this.strokeStyle, this.fillStyle, this.lineWidth, this.globalAlpha, this.dash, this.clipBed]); },
+  restore() { const s = this.st.pop(); if (s) [this.m, this.strokeStyle, this.fillStyle, this.lineWidth, this.globalAlpha, this.dash, this.clipBed] = s; },
+  setTransform(a, b, c, d, e, f) { this.m = typeof a === 'object' ? [1, 0, 0, 1, 0, 0] : [a, b, c, d, e, f]; },
+  transform(a, b, c, d, e, f) { const m = this.m; this.m = [m[0] * a + m[2] * b, m[1] * a + m[3] * b, m[0] * c + m[2] * d, m[1] * c + m[3] * d, m[0] * e + m[2] * f + m[4], m[1] * e + m[3] * f + m[5]]; },
+  translate(x, y) { this.transform(1, 0, 0, 1, x, y); },
+  scale(x, y) { this.transform(x, 0, 0, y, 0, 0); },
+  rotate(a) { const c = Math.cos(a), s = Math.sin(a); this.transform(c, s, -s, c, 0, 0); },
+  setLineDash(d) { this.dash = d || []; }, getLineDash() { return this.dash; },
+  beginPath() { this.path = []; this.cur = null; },
+  dev(x, y) { const m = this.m; return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]; },
+  sc() { const m = this.m; return Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])); },
+  moveTo(x, y) { this.cur = [this.dev(x, y)]; this.path.push(this.cur); },
+  lineTo(x, y) { if (!this.cur) this.moveTo(x, y); else this.cur.push(this.dev(x, y)); },
+  closePath() { if (this.cur && this.cur.length) { this.cur.closed = true; this.cur = null; } },
+  rect(x, y, w, h) { this.moveTo(x, y); this.lineTo(x + w, y); this.lineTo(x + w, y + h); this.lineTo(x, y + h); this.closePath(); },
+  arc(x, y, r, a0, a1, ccw) {
+    let d = a1 - a0;
+    if (ccw) { if (d > 0) d -= 2 * Math.PI * Math.ceil(d / (2 * Math.PI)); if (d < -2 * Math.PI) d = -2 * Math.PI; }
+    else { if (d < 0) d += 2 * Math.PI * Math.ceil(-d / (2 * Math.PI)); if (d > 2 * Math.PI) d = 2 * Math.PI; }
+    const n = clamp(Math.ceil(Math.abs(d) / (2 * Math.PI) * clamp(r * this.sc() / dpr * 0.8, 16, 72)), 2, 72);
+    for (let i = 0; i <= n; i++) { const a = a0 + d * i / n; this.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)); }
+  },
+  quadraticCurveTo(cx, cy, x, y) {
+    const p = this.cur ? this.cur[this.cur.length - 1] : this.dev(x, y), m = this.m, det = m[0] * m[3] - m[1] * m[2] || 1;
+    const ux = (m[3] * (p[0] - m[4]) - m[2] * (p[1] - m[5])) / det, uy = (-m[1] * (p[0] - m[4]) + m[0] * (p[1] - m[5])) / det;
+    for (let i = 1; i <= 8; i++) { const t = i / 8, s = 1 - t; this.lineTo(s * s * ux + 2 * s * t * cx + t * t * x, s * s * uy + 2 * s * t * cy + t * t * y); }
+  },
+  ellipse(x, y, rx, ry, rot, a0, a1, ccw) { this.save(); this.translate(x, y); this.rotate(rot); this.scale(rx, ry); const keep = this.st[this.st.length - 1]; this.arc(0, 0, 1, a0, a1, ccw); this.m = keep[0]; this.st.pop(); },
+  clip() { this.clipBed = true; },
+  createRadialGradient(x0, y0, r0, x1, y1, r1) { return { kind: 'r', at: this.dev(x1, y1), r0: r0 * this.sc(), r1: r1 * this.sc(), stops: [], addColorStop(t, c) { this.stops.push([t, v3Col(c)]); } }; },
+  createLinearGradient() { return { kind: 'l', stops: [], addColorStop(t, c) { this.stops.push([t, v3Col(c)]); } }; },
+  fillText() { }, strokeText() { }, drawImage() { }, measureText() { return { width: 0 }; }, clearRect() { }, getImageData() { return { data: [0, 0, 0, 0] }; },
+  fillRect(x, y, w, h) { const keep = this.path; this.path = []; this.rect(x, y, w, h); this.fill(); this.path = keep; },
+  strokeRect(x, y, w, h) { const keep = this.path; this.path = []; this.rect(x, y, w, h); this.stroke(); this.path = keep; },
+  /* a device point to table metres, clamped to the bed under a clip */
+  tab(p) {
+    const B = viewBase, sx = p[0] / dpr, sy = p[1] / dpr;
+    let x = B.portrait ? TL - (sy - B.oy) / B.k : (sx - B.ox) / B.k, y = B.portrait ? (sx - B.ox) / B.k : (sy - B.oy) / B.k;
+    if (this.clipBed) { x = clamp(x, 0, TL); y = clamp(y, 0, TW); }
+    return [x, y];
+  },
+  colAt(style, p) {
+    if (typeof style === 'string') return v3Col(style);
+    const S = style.stops;
+    if (!S.length) return [0, 0, 0, 0];
+    if (style.kind !== 'r') return S[Math.floor(S.length / 2)][1];
+    const t = clamp((Math.hypot(p[0] - style.at[0], p[1] - style.at[1]) - style.r0) / Math.max(1e-6, style.r1 - style.r0), 0, 1);
+    for (let i = 1; i < S.length; i++) if (t <= S[i][0]) { const [ta, a] = S[i - 1], [tb, b] = S[i], u = tb > ta ? (t - ta) / (tb - ta) : 1; return a.map((v, j) => v + (b[j] - v) * u); }
+    return S[S.length - 1][1];
+  },
+  stroke() {
+    const w = this.lineWidth * this.sc() / dpr, c = v3Col(this.strokeStyle), a = c[3] * this.globalAlpha;
+    if (!(w > 0) || a <= 0.002) return;
+    const k = viewBase.k, dash = this.dash.length ? this.dash.map(v => v * this.sc() / dpr / k) : null;
+    for (const sp of this.path) {
+      const pts = sp.map(p => this.tab(p));
+      if (sp.closed && pts.length > 2) pts.push(pts[0]);
+      v3Line(pts, w, [c[0], c[1], c[2], a], dash);
+    }
+  },
+  fill() {
+    const st = this.fillStyle, ga = this.globalAlpha, grad = typeof st !== 'string';
+    for (const sp of this.path) {
+      if (sp.length < 3) continue;
+      let mx = 0, my = 0;
+      for (const p of sp) { mx += p[0]; my += p[1]; }
+      const m = [mx / sp.length, my / sp.length], rings = grad ? 4 : 1;
+      for (let i = 0; i < sp.length; i++) {
+        const p = sp[i], q = sp[(i + 1) % sp.length];
+        for (let j = 0; j < rings; j++) {
+          const f0 = j / rings, f1 = (j + 1) / rings, L = (u, f) => [m[0] + (u[0] - m[0]) * f, m[1] + (u[1] - m[1]) * f];
+          const quad = [L(p, f0), L(q, f0), L(q, f1), L(p, f1)], cs = quad.map(d => { const c = this.colAt(st, d); return [c[0], c[1], c[2], c[3] * ga]; }), ts = quad.map(d => this.tab(d));
+          if (j === 0) v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]]);
+          else { v3Tri([ts[0], ts[1], ts[2]], [cs[0], cs[1], cs[2]]); v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]]); }
+        }
+      }
+    }
+  },
+};
+/* what the overlays lie on: the bed (and the holes), else the rail and rubber tops, a millimetre up */
+function v3Surf(x, y) {
+  if (v3Inside(x, y)) return 0.0012;
+  for (let i = 0; i < POCKETS.length; i++) if (Math.hypot(x - POCKETS[i][0], y - POCKETS[i][1]) < POCKET_R[i]) return 0.0012;
+  return (V3.geo ? V3.geo.h : BALL_R * 1.42) + 0.0012;
+}
+/* the overlay's vertices: A (3), B (3), [side, end, width px] (3), rgba (4) */
+let v3Ov = new Float32Array(1 << 16), v3OvN = 0;
+function v3Push(A, B, s, t, w, c) {
+  if (v3OvN + 13 > v3Ov.length) { const n = new Float32Array(v3Ov.length * 2); n.set(v3Ov); v3Ov = n; }
+  const o = v3Ov, i = v3OvN;
+  o[i] = A[0]; o[i + 1] = A[1]; o[i + 2] = A[2]; o[i + 3] = B[0]; o[i + 4] = B[1]; o[i + 5] = B[2];
+  o[i + 6] = s; o[i + 7] = t; o[i + 8] = w; o[i + 9] = c[0]; o[i + 10] = c[1]; o[i + 11] = c[2]; o[i + 12] = c[3];
+  v3OvN += 13;
+}
+/* a point in the render frame, and whether it is in front of the eye */
+const v3R3 = (x, y) => [x, y, -v3Surf(x, y)];
+const v3Ahead = P => v3Dot(v3Sub(P, V3.cam.Er), V3.cam.f) > V3_NEAR * 2;
+function v3Seg(a, b, w, c) {
+  let A = v3R3(a[0], a[1]), B = v3R3(b[0], b[1]);
+  const da = v3Dot(v3Sub(A, V3.cam.Er), V3.cam.f) - V3_NEAR * 2, db = v3Dot(v3Sub(B, V3.cam.Er), V3.cam.f) - V3_NEAR * 2;
+  if (da <= 0 && db <= 0) return;
+  if (da <= 0) { const t = da / (da - db); A = A.map((v, i) => v + (B[i] - v) * t); }
+  else if (db <= 0) { const t = db / (db - da); B = B.map((v, i) => v + (A[i] - v) * t); }
+  for (const [s, t] of [[-1, 0], [1, 0], [1, 1], [-1, 0], [1, 1], [-1, 1]]) v3Push(A, B, s, t, w * V3.scale, c);
+}
+function v3Line(pts, w, c, dash) {
+  if (pts.length < 2) return;
+  if (!dash || !dash.some(v => v > 0)) { for (let i = 1; i < pts.length; i++) v3Seg(pts[i - 1], pts[i], w, c); return; }
+  let k = 0, left = dash[0], on = true;
+  for (let i = 1; i < pts.length; i++) {
+    let a = pts[i - 1];
+    const b = pts[i];
+    let L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    while (L > 1e-9) {
+      const s = Math.min(L, left), q = [a[0] + (b[0] - a[0]) * s / L, a[1] + (b[1] - a[1]) * s / L];
+      if (on) v3Seg(a, q, w, c);
+      a = q; L -= s; left -= s;
+      if (left <= 1e-9) { k = (k + 1) % dash.length; left = dash[k] || 1e-3; on = !on; }
+    }
+  }
+}
+function v3Tri(ps, cs) {
+  const P = ps.map(p => v3R3(p[0], p[1]));
+  if (!P.every(v3Ahead)) return;
+  for (let i = 0; i < 3; i++) v3Push(P[i], P[i], 0, 0, 0, cs[i]);
+}
+/* the overlays of one frame, in draw()'s order, through the recorder */
+function v3Overlays(now, aiming, c, ghost, ghostOk, dropping, list) {
+  const keepCtx = ctx, keepView = view;
+  v3OvN = 0;
+  V3.flat = true; ctx = V3R; view = viewBase; V3R.reset();
+  try {
+    if (state === 'aim' && game.inHand === 'kitchen' && human()) {
+      tableXform(ctx);
+      ctx.save(); ctx.clip();
+      ctx.fillStyle = 'rgba(255,255,240,0.045)'; ctx.fillRect(-1, -1, HEAD_X + 1, TW + 2);
+      ctx.restore();
+      ctx.strokeStyle = wa(0.3); ctx.lineWidth = 1.5 / view.k;
+      ctx.beginPath(); ctx.moveTo(HEAD_X, 0); ctx.lineTo(HEAD_X, TW); ctx.stroke();
+    }
+    if (state === 'aim' && game.inHand === 'D' && human()) drawD();
+    const gb = gameBall(), rb = BALL_R * view.k * dpr;
+    for (const b of list) if (b.n === gb) { const s = toScreen(b.x, b.y); drawHalo(s[0] * dpr, s[1] * dpr, rb); }
+    drawHint(now); drawSolo(); drawCall(now);
+    V3R.reset();
+    if (aiming) guide(c, aimAngle);
+    V3R.reset();
+    if (state === 'aim' && game.inHand && human() && !dropping) drawPlace(now, true);
+  } finally { ctx = keepCtx; view = keepView; V3.flat = false; }
+}
+/* ---- a frame ---- */
+function v3Frame(now) {
+  const t0 = performance.now(), gl = V3.gl;
+  trackBalls();
+  if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
+  prevState = state;
+  /* the pots' timing (draw's drawPots keeps it): a scratched cue ball waits until its drop is over */
+  pots = pots.filter(p => now - p.t < potMs());
+  const T = shownTab(), balls = T ? T.balls : game.balls;
+  const ghost = state === 'aim' && !!placeAt, dropping = !T && pots.some(p => p.n === 0);
+  const ghostOk = ghost && canPlace(game, placeAt[0], placeAt[1]), hideCue = ghostOk || dropping;
+  const list = balls.filter(b => b.on && !(hideCue && b.n === 0));
+  liftStep(now, ghost && human(), game.balls.find(b => b.n === 0));
+  const sh = settleH(now), c = cueBall();
+  const aiming = (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
+  hudCall();
+  const G = v3Geo(), C = V3.cam || v3Pose();
+  v3Overlays(now, aiming, c, ghost, ghostOk, dropping, list);
+  gl.viewport(0, 0, t3d.width, t3d.height);
+  gl.clearColor(0.043, 0.043, 0.047, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.CULL_FACE);
+  const attr = (pr, name, size, stride, off) => { const l = pr.a[name]; if (l === undefined || l < 0) return; gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, size, gl.FLOAT, false, stride * 4, off * 4); };
+  const off = pr => { for (const k of Object.keys(pr.a)) if (pr.a[k] >= 0) gl.disableVertexAttribArray(pr.a[k]); };
+  /* the bed and the tops */
+  let pr = V3.prog.tex;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, G.tex); gl.uniform1i(pr.u.T, 0);
+  gl.bindBuffer(gl.ARRAY_BUFFER, G.pBuf); attr(pr, 'p', 3, 5, 0); attr(pr, 'uv', 2, 5, 3);
+  gl.uniform1f(pr.u.rail, 0); gl.drawArrays(gl.TRIANGLES, 0, G.nBed);
+  gl.uniform1f(pr.u.rail, 1); gl.drawArrays(gl.TRIANGLES, G.nBed, G.nTop);
+  off(pr);
+  /* the faces and posts */
+  const lamp = [TL / 2, TW / 2, -LAMP_H], I4 = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  pr = V3.prog.mesh;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniformMatrix4fv(pr.u.W, false, I4);
+  gl.uniform3fv(pr.u.L, lamp); gl.uniform3fv(pr.u.E, C.Er); gl.uniform1f(pr.u.alpha, 1);
+  gl.bindBuffer(gl.ARRAY_BUFFER, G.fBuf); attr(pr, 'p', 3, 10, 0); attr(pr, 'n', 3, 10, 3); attr(pr, 'c', 4, 10, 6);
+  gl.uniform1f(pr.u.lit, 0); gl.drawArrays(gl.TRIANGLES, 0, G.nFaces);
+  if (G.nPosts) { gl.uniform1f(pr.u.lit, 1); gl.drawArrays(gl.TRIANGLES, G.nFaces, G.nPosts); }
+  off(pr);
+  /* where each ball is drawn: the carried ghost lifted, the settling cue ball, far to near */
+  const R = BALL_R, drawn = list.map(b => ({ n: b.n, x: b.x, y: b.y, z: R + (b.n === 0 && sh ? V3_LIFT * sh : 0), a: 1 }));
+  if (ghost && human()) drawn.push({ n: 0, x: placeAt[0], y: placeAt[1], z: R + V3_LIFT * bih.h, a: ghostOk ? 0.96 : 0.5, lift: bih.h });
+  for (const o of drawn) o.d = v3Dot(v3Sub([o.x, o.y, -o.z], C.Er), C.f);
+  const vis = drawn.filter(o => o.d > V3_NEAR + R);
+  vis.sort((p, q) => q.d - p.d);
+  /* their shadows on the bed (drawCast's lamp and lean) */
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+  pr = V3.prog.shadow;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.M, false, C.M);
+  gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad); attr(pr, 'q', 2, 2, 0);
+  const key = [-LIGHT[0], -LIGHT[1]];
+  for (const o of vis) {
+    const lift = clamp((o.z - R) / V3_LIFT, 0, 1), dx = o.x - TL / 2, dy = o.y - TW / 2, zc = o.z, t = zc / (LAMP_H - zc), lean = R * (0.2 + 0.7 * lift);
+    const bx = o.x + dx * t + key[0] * lean, by = o.y + dy * t + key[1] * lean, grow = (1 + 0.6 * lift) * (1 + 0.1 * Math.min(1, Math.hypot(dx, dy) / 1.2));
+    const mx = (o.x + bx) / 2, my = (o.y + by) / 2;
+    gl.uniform3fv(pr.u.S, [mx, my, -0.0008]); gl.uniform1f(pr.u.ext, R * 1.6 * grow + Math.hypot(bx - o.x, by - o.y));
+    gl.uniform2fv(pr.u.A, [o.x, o.y]); gl.uniform2fv(pr.u.B, [bx, by]); gl.uniform1f(pr.u.R, R); gl.uniform1f(pr.u.grow, grow);
+    gl.uniform1f(pr.u.ao, o.a * (1 - lift)); gl.uniform1f(pr.u.ca, o.a * (1 - 0.5 * lift));
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  off(pr);
+  /* the overlays, premultiplied */
+  if (v3OvN) {
+    pr = V3.prog.over;
+    gl.useProgram(pr.P);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniform2fv(pr.u.VP, [t3d.width / 2, t3d.height / 2]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, V3.ovBuf); gl.bufferData(gl.ARRAY_BUFFER, v3Ov.subarray(0, v3OvN), gl.STREAM_DRAW);
+    attr(pr, 'A', 3, 13, 0); attr(pr, 'B', 3, 13, 3); attr(pr, 'st', 3, 13, 6); attr(pr, 'c', 4, 13, 9);
+    gl.drawArrays(gl.TRIANGLES, 0, v3OvN / 13);
+    off(pr);
+  }
+  /* the balls */
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(true);
+  pr = V3.prog.ball;
+  gl.useProgram(pr.P);
+  gl.uniformMatrix4fv(pr.u.V, false, C.V); gl.uniformMatrix4fv(pr.u.P, false, C.P);
+  gl.uniformMatrix3fv(pr.u.Vi, false, [C.r[0], C.r[1], C.r[2], C.u[0], C.u[1], C.u[2], -C.f[0], -C.f[1], -C.f[2]]);
+  const Vm = C.V, toV = p => [0, 1, 2].map(i => Vm[i] * p[0] + Vm[4 + i] * p[1] + Vm[8 + i] * p[2] + Vm[12 + i]);
+  gl.uniform3fv(pr.u.Lv, toV(lamp)); gl.uniform3fv(pr.u.bounce, G.bounce.slice(0, 3));
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, V3.numTex); gl.uniform1i(pr.u.N, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, V3.markTex); gl.uniform1i(pr.u.K, 2);
+  gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad); attr(pr, 'q', 2, 2, 0);
+  for (const o of vis) {
+    const P = PAINT[o.n] || PAINT[0], m = orient[o.n] || IDENT, Cw = [o.x, o.y, -o.z];
+    gl.uniform3fv(pr.u.C, Cw); gl.uniform3fv(pr.u.Cv, toV(Cw)); gl.uniform1f(pr.u.R, R);
+    gl.uniform3fv(pr.u.Ax0, [m[0], m[3], m[6]]); gl.uniform3fv(pr.u.Ax1, [m[1], m[4], m[7]]); gl.uniform3fv(pr.u.Ax2, [m[2], m[5], m[8]]);
+    gl.uniform3fv(pr.u.base, v3Col(P.base).slice(0, 3));
+    for (let i = 0; i < 3; i++) {
+      const cp = P.caps[i];
+      gl.uniform4fv(pr.u['cap' + i], cp ? [cp[0], cp[1], 0, 1] : [0, 2, 0, 0]);
+      gl.uniform3fv(pr.u['capC' + i], cp ? v3Col(cp[2]).slice(0, 3) : [0, 0, 0]);
+    }
+    gl.uniform1f(pr.u.num, o.n > 0 && o.n < 16 ? o.n : 0);
+    gl.uniform1f(pr.u.mark, v3MarkIdx(o.n));
+    gl.uniform1f(pr.u.rim, (o.n === 8 || o.n === 62) && CL.rim ? 1 : 0);
+    gl.uniform1f(pr.u.alpha, o.a);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
+  off(pr);
+  gl.disable(gl.BLEND);
+  /* the cue: behind the ball on the aim, raised a little at least (it clears the rails), pulled back by power */
+  if (aiming) {
+    const rest = R + 0.012, back = 0.27;
+    let gap = rest + back * (pull ? clamp(power, 0, 1) : 0);
+    if (state === 'stroke' && stroke) {
+      const u = clamp((now - stroke.t0) * felt.speed / STROKE_MS, 0, 1), g0 = rest + back * clamp(stroke.power, 0, 1);
+      gap = g0 + (R - g0) * u * u;
+    }
+    const sp = cueSpin || { x: 0, y: 0 }, el = Math.max(sp.e || 0, 5 * Math.PI / 180), a = aimAngle, dx = Math.cos(a), dy = Math.sin(a);
+    /* the tip's contact on the ball (the english: x right of the line, y above the middle), then back along the cue */
+    const qx = c.x - dx * R + (-dy) * sp.x * R * 0.5, qy = c.y - dy * R + dx * sp.x * R * 0.5, qz = R + sp.y * R * 0.5, back3 = gap - R;
+    const ax = [-dx * Math.cos(el), -dy * Math.cos(el), -Math.sin(el)], tip = [qx + ax[0] * back3, qy + ax[1] * back3, -qz + ax[2] * back3];
+    const side = [-dy, dx, 0], up = v3Norm(v3Cross(ax, side));
+    const W = [ax[0], ax[1], ax[2], 0, side[0], side[1], side[2], 0, up[0], up[1], up[2], 0, tip[0], tip[1], tip[2], 1];
+    const cue3 = v3Cue();
+    pr = V3.prog.mesh;
+    gl.useProgram(pr.P);
+    gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniformMatrix4fv(pr.u.W, false, W);
+    gl.uniform3fv(pr.u.L, lamp); gl.uniform3fv(pr.u.E, C.Er); gl.uniform1f(pr.u.lit, 1); gl.uniform1f(pr.u.alpha, 1);
+    gl.bindBuffer(gl.ARRAY_BUFFER, cue3.b); attr(pr, 'p', 3, 10, 0); attr(pr, 'n', 3, 10, 3); attr(pr, 'c', 4, 10, 6);
+    gl.drawArrays(gl.TRIANGLES, 0, cue3.n);
+    off(pr);
+    lastCue = { x: c.x, y: c.y, ang: aimAngle };
+  } else if (state !== 'rolling') lastCue = null;
+  if (felt.v3Measure) gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+  V3.frames++;
+  V3.ms.push(performance.now() - t0);
+  if (V3.ms.length > 600) V3.ms.shift();
+  V3.poses.push([V3.cam.E[0], V3.cam.E[1], V3.cam.E[2], V3.cam.T[0], V3.cam.T[1], state]);
+  if (V3.poses.length > 2000) V3.poses.shift();
+  V3.drawn = vis.map(o => ({ n: o.n, x: o.x, y: o.y, a: o.a }));
+}
+/* tests and diagnostics: the view's state, the camera, the mappings and the frame times */
+const v3Info = () => ({ live: V3.live, ok: V3.ok, soft: V3.soft, renderer: V3.renderer, scale: V3.scale, cuts: V3.cuts, frames: V3.frames, k: V3.k,
+  canvas: [t3d.width, t3d.height], box: V3.box && { ...V3.box }, overlay: v3OvN / 13,
+  cam: V3.cam && { E: V3.cam.E.slice(), T: V3.cam.T.slice(), yaw: V3.cam.yaw, pitch: V3.cam.pitch, dist: V3.cam.dist, F: V3.cam.F }, drawn: V3.drawn || [] });
+Object.defineProperty(felt, 'view3', { get: v3Info, enumerable: true });
+Object.assign(felt, {
+  v3Proj: (x, y, z = BALL_R) => V3.live ? v3Proj(x, y, z) : null, v3Unproj: (sx, sy, z = BALL_R) => V3.live ? v3Unproj(sx, sy, z) : null,
+  v3Ms: () => V3.ms.slice(), v3Poses: () => V3.poses.slice(), v3Clear: () => { V3.ms.length = 0; V3.poses.length = 0; }, v3Measure: false,
+});
 /* ---- the record: games played and won, and the human shots' numbers, kept for Stats and records
    (6s). Per game kind: played, two-player games, wins and losses against each CPU opponent; the
    human shots (yours against the CPU, both players' in a two-player game): shots, legal pots (at

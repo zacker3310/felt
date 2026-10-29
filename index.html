@@ -1129,6 +1129,9 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .cv .wk b { font-size: 17px; font-weight: 700; color: var(--label); }
 /* a card: the player, the next match, a recap */
 .cvCard { margin: 8px 0 0; padding: 14px 16px; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+/* the next match card's banner: the setup hero's final still of the event's table (cvBannerPaint) */
+.cvBanner { display: block; width: calc(100% + 32px); aspect-ratio: 2.4; margin: -14px -16px 12px; border-radius: 20px 20px 0 0; background: #0b0b0c; opacity: 0; transition: opacity .3s; }
+.cvBanner.on { opacity: 1; }
 .cvWho { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .cvWho .av { width: 46px; height: 46px; font-size: 16px; }
 .cvWho .tt { flex: 1; min-width: 0; }
@@ -8001,7 +8004,7 @@ function camHiRes() {
   const keep = view, B = viewBase;
   try {
     view = { k: B.k * H, portrait: B.portrait, tray: null, ox: (B.ox - R.left) * H, oy: (B.oy - R.top) * H };
-    tableHi = { sig, H, left: R.left, top: R.top, img: drawTableImage(Math.ceil(w * H * dpr), Math.ceil(h * H * dpr)) };
+    tableHi = { sig, H, left: R.left, top: R.top, img: drawTableImage(Math.ceil(w * H * dpr), Math.ceil(h * H * dpr), true) };
   } finally { view = keep; }
 }
 /* draw(): the table under the camera, clipped to camRect(). True when zoomed: ctx is then saved
@@ -8317,8 +8320,29 @@ function pageColor() {
 }
 let trayBox = null;
 /* the table at the current view into a new canvas of w x h device px (the screen's by default;
-   the menu's tiles ask for their own) */
-function drawTableImage(w = table.width, h = table.height) {
+   the menu's tiles ask for their own). vig: the game screen's vignette (the screen's own image and
+   the camera's high-resolution one; the tiles and the hero have their own framing) */
+function drawTableImage(w = table.width, h = table.height, vig = w === table.width && h === table.height) {
+  const c = paintTable(w, h);
+  if (vig) paintVignette(c.getContext('2d'));
+  return c;
+}
+/* a gentle vignette, laid in table coordinates so the camera's sharper image matches the fitted
+   one: nothing over the middle of the bed, the cloth by the cushions a little darker, the rails'
+   outer edge and the room beyond falling away. It only darkens, so every overlay keeps its
+   contrast (the brightest cloth, under the lamp, is untouched). */
+function paintVignette(g) {
+  tableXform(g);
+  const ax = TL / 2 + RAIL, ay = TW / 2 + RAIL;
+  g.save();
+  g.translate(TL / 2, TW / 2); g.scale(ax, ay);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1.75);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.45, 'rgba(0,0,0,0)'); gr.addColorStop(0.65, 'rgba(0,0,0,0.1)');
+  gr.addColorStop(0.85, 'rgba(0,0,0,0.25)'); gr.addColorStop(1, 'rgba(0,0,0,0.42)');
+  g.fillStyle = gr; g.fillRect(-4, -4, 8, 8);
+  g.restore();
+}
+function paintTable(w, h) {
   useCloth();
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -8345,6 +8369,7 @@ function drawTableImage(w = table.width, h = table.height) {
   paintHoles(g, co, L, px);
   paintCushions(g, co, K);
   paintClothLight(g, co, rnd);
+  paintCushionAO(g, co);
   paintBevels(g, co, L, px);
   paintPocketLips(g, co, L, px);
   if (TABLE === 'carom') { paintCaromSpots(g, px); trayBox = trayGeom(); return c; }
@@ -8668,9 +8693,26 @@ function paintClothLight(g, co, rnd) {
   tableXform(g);
   g.translate(TL / 2, TW / 2); g.scale(TL / 2, TW / 2);
   const gr = g.createRadialGradient(0, 0, 0, 0, 0, 1.3);
-  gr.addColorStop(0, `rgba(${CL.lamp},0.09)`); gr.addColorStop(0.4, `rgba(${CL.lamp},0.03)`);
+  gr.addColorStop(0, `rgba(${CL.lamp},0.09)`); gr.addColorStop(0.3, `rgba(${CL.lamp},0.05)`); gr.addColorStop(0.5, `rgba(${CL.lamp},0)`);
   gr.addColorStop(0.72, 'rgba(0,0,0,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0.3)');
   g.fillStyle = gr; g.fillRect(-2, -2, 4, 4);
+  g.restore();
+}
+/* the cushions' own shade on the bed: under the nose the lamp is cut off, so a soft band of
+   shadow runs along every cushion (all four sides, whatever the lamp's lean), a ball's width deep */
+function paintCushionAO(g, co) {
+  const w = 1.3 * BALL_R;
+  g.save();
+  clipBed(g, co);
+  for (const [ea, pa, pb, eb] of CUSHION_POLYS) {
+    const dx = pb[0] - pa[0], dy = pb[1] - pa[1], l = Math.hypot(dx, dy) || 1, mx = (pa[0] + pb[0]) / 2, my = (pa[1] + pb[1]) / 2;
+    let nx = -dy / l, ny = dx / l;
+    if (nx * (TL / 2 - mx) + ny * (TW / 2 - my) < 0) { nx = -nx; ny = -ny; }
+    const gr = g.createLinearGradient(mx, my, mx + nx * w, my + ny * w);
+    gr.addColorStop(0, 'rgba(0,0,0,0.2)'); gr.addColorStop(0.35, 'rgba(0,0,0,0.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr;
+    g.beginPath(); polyPath(g, [[pa[0] - nx * 0.01, pa[1] - ny * 0.01], [pb[0] - nx * 0.01, pb[1] - ny * 0.01], [pb[0] + nx * w, pb[1] + ny * w], [pa[0] + nx * w, pa[1] + ny * w]]); g.fill();
+  }
   g.restore();
 }
 let napCache = null;
@@ -9108,6 +9150,8 @@ function ballSprites(r) {
   fill(0, 0, r * 0.72, r, [[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0.3)']]);
   fill(lx * 0.5, ly * 0.5, 0, r * 0.7, [[0, 'rgba(255,255,255,0.3)'], [1, 'rgba(255,255,255,0)']]);
   fill(lx * 0.52, ly * 0.52, 0, r * 0.22, [[0, 'rgba(255,255,255,1)'], [0.4, 'rgba(255,255,255,0.85)'], [1, 'rgba(255,255,255,0)']]);
+  /* the room's fill on the far side: a faint broad sheen, so the shade side reads round, not flat */
+  fill(-lx * 0.5, -ly * 0.5, 0, r * 0.42, [[0, 'rgba(255,250,240,0.1)'], [1, 'rgba(255,250,240,0)']]);
   const ssz = Math.ceil(5 * r), sc = ssz / 2, shadow = document.createElement('canvas');
   shadow.width = shadow.height = ssz;
   g = shadow.getContext('2d');
@@ -9119,7 +9163,23 @@ function ballSprites(r) {
   gr = g.createRadialGradient(0, 0, r * 0.85, 0, 0, r * 1.14);
   gr.addColorStop(0, 'rgba(0,0,0,0.5)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
   g.fillStyle = gr; g.fillRect(-sc, -sc, ssz, ssz);
-  return (spriteCache[key] = { r, shade, c, shadow, sc });
+  /* the table's shadows (drawCast): the cast shadow centred, to be laid off from the lamp, and
+     the contact shade right under the ball, apart */
+  const cast = document.createElement('canvas');
+  cast.width = cast.height = ssz;
+  g = cast.getContext('2d');
+  g.translate(sc, sc);
+  gr = g.createRadialGradient(0, 0, 0, 0, 0, r * 1.5);
+  gr.addColorStop(0, 'rgba(0,0,0,0.56)'); gr.addColorStop(0.5, 'rgba(0,0,0,0.36)'); gr.addColorStop(0.78, 'rgba(0,0,0,0.1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(-sc, -sc, ssz, ssz);
+  const ao = document.createElement('canvas');
+  ao.width = ao.height = ssz;
+  g = ao.getContext('2d');
+  g.translate(sc, sc);
+  gr = g.createRadialGradient(0, 0, r * 0.8, 0, 0, r * 1.16);
+  gr.addColorStop(0, 'rgba(0,0,0,0.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(-sc, -sc, ssz, ssz);
+  return (spriteCache[key] = { r, shade, c, shadow, sc, cast, ao });
 }
 /* one ball at device pixel (X, Y), radius r device px, axes from axesOf(). dark sinks it into
    shadow (0..1) for the pot animation. rim: the ball is over something dark (a drop, the tray,
@@ -9194,6 +9254,29 @@ function drawHalo(X, Y, r, alpha = 1) {
   g.strokeStyle = 'rgba(255,222,140,0.22)'; g.lineWidth = w * 3; circle(g, X, Y, R + w * 0.6); g.stroke();
   g.strokeStyle = 'rgba(255,236,190,0.95)'; g.lineWidth = w; circle(g, X, Y, R); g.stroke();
   g.globalAlpha = 1;
+}
+/* The game table's shadows: a lamp hangs LAMP_H over the middle of the bed, so each ball's shadow
+   falls away from the table's centre, further and larger the further out the ball is (with the
+   key light's lean, LIGHT, so it agrees with the balls' highlights), and the contact shade sits
+   right under it. lift (0..1, the ball in hand carried: 4f) raises the ball LIFT_H: the shadow
+   grows, softens by its size alone (a larger sprite, never a blur filter), fades and falls further
+   off, and the contact shade goes. (x, y): the ball in table metres; (X, Y, r): device px where it
+   is drawn (the loupe's too). Reads TL and TW at call time. */
+const LAMP_H = 1.1, LIFT_H = 0.045;
+function drawCast(x, y, X, Y, r, lift = 0, alpha = 1) {
+  const S = ballSprites(r), k = r / S.r, g = artCtx || ctx, m = r / BALL_R;
+  const dx = x - TL / 2, dy = y - TW / 2, d = Math.hypot(dx, dy), zc = BALL_R + LIFT_H * lift, t = zc / (LAMP_H - zc);
+  const key = tdir(-LIGHT[0], -LIGHT[1]), lean = BALL_R * (0.2 + 0.7 * lift);
+  const [sx, sy] = sdir(dx * t + key[0] * lean, dy * t + key[1] * lean);
+  /* larger out from under the lamp and when lifted; kept axis-aligned (a turned sprite is the slow
+     path on a software canvas), so a frame of 16 shadows stays cheap */
+  const grow = (1 + 0.6 * lift) * (1 + 0.1 * Math.min(1, d / 1.2)), w = S.cast.width * k * grow, cx = X + sx * m, cy = Y + sy * m;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  if (lift < 1) { g.globalAlpha = alpha * (1 - lift); g.drawImage(S.ao, X - S.sc * k, Y - S.sc * k, S.ao.width * k, S.ao.height * k); }
+  g.globalAlpha = alpha * (1 - 0.5 * lift);
+  g.drawImage(S.cast, cx - w / 2, cy - w / 2, w, w);
+  g.globalAlpha = 1;
+  return r * 1.5 * grow;   /* the shadow's reach, device px */
 }
 function drawShadow(X, Y, r, alpha = 1) {
   const S = ballSprites(r), k = r / S.r, g = artCtx || ctx;
@@ -9740,6 +9823,32 @@ function drawCue(c, ang, gap, alpha = 1) {
 
 /* ---- 4f. a frame ---- */
 let lastCue = null, shotAt = 0, prevState = '';
+/* the ball in hand's lift, visual only. While it is carried (placeAt set) it rises off the cloth
+   over BIH_UP_MS: its shadow grows, softens and falls further from the lamp (drawCast), and it looks
+   a touch bigger, nearer the eye. Let go on the table, it settles over SETTLE_MS: down, one tiny
+   bounce, still. Reduce Motion: up and down at once, no bounce. It never moves the ball's spot,
+   the input or the view: the ball is drawn exactly where it is. bih.sr is the last cue-ball shadow
+   drawn (device px, look-check reads it). */
+const BIH_UP_MS = 90, SETTLE_MS = 150, LIFT_GROW = 0.06;
+const bih = { h: 0, t: 0, on: false, settle: null, sr: 0 };
+function liftStep(now, carrying, c) {
+  const dt = bih.t ? clamp(now - bih.t, 0, 100) : 16, rm = (carrying || bih.on || bih.settle) && reducedMotion();
+  bih.t = now;
+  if (carrying) { bih.settle = null; bih.h = rm ? 1 : Math.min(1, bih.h + dt / BIH_UP_MS); }
+  else {
+    if (bih.on && bih.h > 0 && !rm && c && c.on && state === 'aim') bih.settle = { t0: now, h0: bih.h };
+    bih.h = 0;
+  }
+  bih.on = carrying;
+  if (bih.settle && (rm || state !== 'aim' || now - bih.settle.t0 >= SETTLE_MS || now < bih.settle.t0)) bih.settle = null;
+}
+/* the settling cue ball's height (0..1): down in the first third, a bounce a tenth as high, still */
+function settleH(now) {
+  const S = bih.settle;
+  if (!S) return 0;
+  const u = clamp((now - S.t0) / SETTLE_MS, 0, 1);
+  return S.h0 * Math.abs(Math.cos(1.5 * Math.PI * u)) * (1 - u) ** 2;
+}
 /* ball in hand, the whole turn: four chevrons that say the ball can be moved; while it is being
    moved (placeAt set), the ghost where it is, and a ring that says whether it may stay there */
 function drawPlace(now) {
@@ -9747,8 +9856,9 @@ function drawPlace(now) {
   if (!at) return;
   const ok = !placing || canPlace(game, at[0], at[1]), s = toScreen(at[0], at[1]), rp = BALL_R * view.k;
   if (placing) {
-    drawShadow(s[0] * dpr, s[1] * dpr, rp * dpr, ok ? 1 : 0.4);
-    drawBall(0, s[0] * dpr, s[1] * dpr, rp * dpr, axesOf(orient[0] || IDENT), ok ? 0.96 : 0.5);
+    const h = bih.h, rr = rp * dpr * (1 + LIFT_GROW * h);
+    bih.sr = drawCast(at[0], at[1], s[0] * dpr, s[1] * dpr, rp * dpr, h, ok ? 1 : 0.4);
+    drawBall(0, s[0] * dpr, s[1] * dpr, rr, axesOf(orient[0] || IDENT), ok ? 0.96 : 0.5);
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -9789,15 +9899,17 @@ function draw(now) {
   const ghost = state === 'aim' && !!placeAt && !rp, dropping = !T && pots.some(p => p.n === 0);
   const ghostOk = ghost && canPlace(game, placeAt[0], placeAt[1]), hideCue = ghostOk || dropping;
   const list = balls.filter(b => b.on && !(hideCue && b.n === 0)), pos = list.map(b => toScreen(b.x, b.y));
+  liftStep(now, ghost && human(), game.balls.find(b => b.n === 0));
+  const sh = rp ? 0 : settleH(now);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  for (const s of pos) drawShadow(s[0] * dpr, s[1] * dpr, rb);
+  list.forEach((b, i) => { const r = drawCast(b.x, b.y, pos[i][0] * dpr, pos[i][1] * dpr, rb, b.n === 0 ? sh : 0); if (b.n === 0 && !ghost) bih.sr = r; });
   /* no aim line from a ghost on an illegal spot (the ball is not there) */
   const c = cueBall(), aiming = !rp && (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
   if (!rp) { drawHint(now); drawSolo(); drawCall(now); hudCall(); }
-  list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, rb, axesOf(orient[b.n] || IDENT)));
+  list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, b.n === 0 && sh ? rb * (1 + LIFT_GROW * sh) : rb, axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
   if (state === 'aim' && game.inHand && human() && !dropping && !rp) drawPlace(now);
@@ -9932,7 +10044,7 @@ function drawLoupe(now, gi) {
     const s = toScreen(b.x, b.y);
     if (Math.hypot(s[0] - C[0], s[1] - C[1]) > reach) continue;
     const q = at(b.x, b.y), X = q[0] * dpr, Y = q[1] * dpr, R = rp * M * dpr;
-    drawShadow(X, Y, R, a);
+    drawCast(b.x, b.y, X, Y, R, 0, a);
     if (b.n === gb) drawHalo(X, Y, R, a);
     drawBall(b.n, X, Y, R, axesOf(orient[b.n] || IDENT), a);
   }
@@ -13017,8 +13129,8 @@ function heroOutline(co) {
   return out;
 }
 /* what the hero needs of kind's table, its layout and its shot (the table set only inside) */
-function heroPrep(kind) {
-  const args = heroArgs(kind), keep = heroOn(args), rk = RAIL;
+function heroPrep(kind, args = heroArgs(kind)) {
+  const keep = heroOn(args), rk = RAIL;
   try {
     RAIL = RAIL_MAX;
     const co = cushionDepth(), H = heroSetup(kind);
@@ -13055,8 +13167,8 @@ function heroSample(run) {
   if (moved) run.moveT = run.tab.t;
   run.pos.push(p); run.on.push(on); run.rot.push(rot);
 }
-function heroRunOn(ms) {
-  const d = hero.data, run = hero.run;
+function heroRunOn(ms, h = hero) {
+  const d = h.data, run = h.run;
   if (!run || run.done) return;
   const keep = heroOn(d.args), t0 = performance.now();
   try {
@@ -13244,8 +13356,8 @@ function heroPotT(run, pt) {
   }
   return pt.th;
 }
-function heroDraw(t) {
-  const d = hero.data, run = hero.run, A = hero.art, cv = setupHeroArt, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
+function heroDraw(t, h = hero, cv = setupHeroArt) {
+  const d = h.data, run = h.run, A = h.art, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
   const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));
   const c0 = d.balls.find(b => b.n === d.shot.ball), fc = heroProj(C, c0.x, c0.y, g.R), F0 = heroProj(C, g.TL * 0.6, g.TW / 2, 0);
   const fx = (fc[0] + F0[0]) / 2, fy = (fc[1] + F0[1]) / 2, Z = p => [fx + (p[0] - fx) * z, fy + (p[1] - fy) * z, p[2]];
@@ -13285,7 +13397,7 @@ function heroDraw(t) {
   }
   for (const [px, py] of g.posts) { const p = Z(heroProj(C, px, py, 0)); list.push({ post: true, x: px, y: py, d: p[2] }); }
   list.sort((a, b) => b.d - a.d);
-  hero.drawn = list.filter(o => !o.post).map(o => ({ n: o.ball, x: o.p[0], y: o.p[1], drop: o.drop ? o.drop.u : null, fade: o.fade }));   /* what this frame drew, for hero-check */
+  h.drawn = list.filter(o => !o.post).map(o => ({ n: o.ball, x: o.p[0], y: o.p[1], drop: o.drop ? o.drop.u : null, fade: o.fade }));   /* what this frame drew, for hero-check */
   artCtx = x;
   try {
     /* contact shadows, flattened to the bed by how low the eye looks at it */
@@ -15146,6 +15258,47 @@ function cvSim() {
   showMatch(res, nm, { sim: true, need: nm.race });
 }
 
+/* the next match card's banner: the setup hero's final still (4m) of the event's game on the
+   event's table (careerTerms' table, pockets and snooker size), in the career's look. Painted in a
+   task after the hub is up (the hero's roll is simulated to its end once), cached by table, look and
+   size. The event's table is set only inside heroOn/heroOff (heroPrep, heroTexture, heroRunOn), so
+   the game's geometry is never left changed; the look is the career's only while it paints. */
+const cvBan = { key: '', img: null };
+function cvBannerArgs(r) {
+  const pk = r.pockets === 'generous' ? 'generous' : 'regulation';
+  return r.game === 'snooker' ? ['snooker', r.table === 'full' ? 'full' : 'compact', pk]
+    : [r.game === 'bumper' || r.game === 'carom' ? r.game : r.table === '9' ? '9' : '7', 'octagon', pk];
+}
+function cvBanner(nm) {
+  const cv = document.createElement('canvas'), kind = nm.rules.game, args = cvBannerArgs(nm.rules);
+  cv.className = 'cvBanner'; cv.id = 'cvBanner'; cv.setAttribute('aria-hidden', 'true');
+  setTimeout(() => cvBannerPaint(cv, kind, args), 0);
+  return cv;
+}
+function cvBannerPaint(cv, kind, args) {
+  if (!cv.isConnected || !cv.clientWidth) return;
+  const dp = Math.min(HERO_DPR, pixelRatio()), W = Math.round(cv.clientWidth * dp), H = Math.round(cv.clientHeight * dp), keepLook = lookCareer;
+  lookCareer = () => Career.loaded ? careerLookOf() : null;
+  try {
+    useCloth();
+    const key = [kind, args.join(), lookSig(), W, H].join('|');
+    if (cvBan.key !== key) {
+      const h = { data: heroPrep(kind, args), run: null, art: null };
+      h.art = heroStill(h.data, W, H);
+      h.run = heroRunStart(h.data);
+      heroRunOn(Infinity, h);
+      const img = document.createElement('canvas');
+      img.width = W; img.height = H;
+      heroDraw(HERO_CUE_MS + HERO_ROLL_MS, h, img);
+      cvBan.key = key; cvBan.img = img;
+    }
+    cv.width = W; cv.height = H;
+    cv.getContext('2d').drawImage(cvBan.img, 0, 0);
+    cv.classList.add('on');
+  } catch (e) { console.error('career banner: ' + e); }
+  finally { lookCareer = keepLook; useCloth(); }
+}
+
 /* the hub */
 PAGES.hub = () => {
   const now = Career.now(), pr = Career.profile(), me = Career.me(), st = Career.stats(), out = [];
@@ -15174,6 +15327,7 @@ PAGES.hub = () => {
     vs.append(cvEl('span', null, nm.eventName), cvEl('span', 'tag', nm.round));
     t2.append(cvEl('b', null, o.name + (o.nick ? ` "${o.nick}"` : '')), cvEl('small', null, `${natName(o.nat)}, ${o.archName}, rating ${o.rating}`));
     w.append(avatarEl(o), t2);
+    if (live && KINDS[nm.rules.game]) m.append(cvBanner(nm));
     m.append(vs, w, cvLinesEl([['Game', `${Career.GAMES[nm.rules.game].name}, ${tableWords(nm.rules)}`], ['Rules', rulesWords(nm.rules)], ['Race', `First to ${unitWords(nm.rules.game, nm.race)}`],
       ['Break', nm.rules.game === 'bumper' || nm.rules.game === 'carom' ? 'You open' : nm.breaker === 0 ? 'You break first' : `${o.name.split(' ')[0]} breaks first`],
       ['Opponent', `Tier ${o.tier}, plays as the ${nm.level} CPU`], ['Head to head', `${nm.h2h[0]}-${nm.h2h[1]}`], ['Format', nm.rules.custom || null]]));

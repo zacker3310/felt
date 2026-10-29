@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `29/29 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `30/30 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -191,6 +191,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   allocation) and the room tone. `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
   offline (`node tools/sound-render.cjs <dir>` writes WAVs). Haptics map in 2h (`hapPlans`, impacts per `HAP_HIT`);
   the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and `moments-check`).
+- Table look (section 4): the static table is baked once per layout/table/look (`drawTableImage` = `paintTable` plus,
+  on the game screen and the camera's hi-res image only, `paintVignette`); the bed carries the lamp's pool
+  (`paintClothLight`) and the cushions' shade (`paintCushionAO`). A frame's ball shadows are `drawCast` (a lamp `LAMP_H`
+  over the bed's middle: shadows fall away from it, axis-aligned sprites only, no blur filter); the hero, tiles and tray
+  keep `drawShadow`. Ball in hand lifts while carried and settles in `SETTLE_MS` (`bih`, `liftStep`, `settleH`; visual
+  only, Reduce Motion: none). The career hub's next match card opens on `cvBanner` (the hero's final still through
+  `heroPrep(kind, args)`/`heroRunOn(ms, h)`/`heroDraw(t, h, cv)`, the career's look). Pinned by `look-check`.
 - Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
   tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
   `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`

@@ -80,7 +80,7 @@ const lowContrast = (page, min = 4.5) => page.evaluate(min => {
    the brand "felt". Kickers render in caps, and a heading that is a sentence (it ends . ? or !, or
    is one of the result lines below, or is marked .prose) is sentence case and not looked at. */
 const TITLE_SEL = ['#menu .tt > b', '.sect', 'h1', '.sheet h2', 'h3.ghead', 'h3.fineHead', 'h3.cvHead', '.topic .tt > b', '.cvSw .tt > b',
-  '.tog > span', '.plab', '.seg > button', '.field > .label', '.rules li > div > b', '.pick .game b', '.foe > b', '.tcard b', 'label.prow .plab',
+  '.tog > span', '.plab', '.tutLink .tt', '.seg > button', '.field > .label', '.rules li > div > b', '.pick .game b', '.foe > b', '.tcard b', 'label.prow .plab',
   'button.big', 'button.ghost', 'button.quiet', 'button.act', 'button.cvBtn', 'button.cvMini', 'button.tool', 'button.cflag', 'button.lessonGo > span', '.howAct > button', '#exBar button',
   '#optHead', '#optBtns button', '#coachBtn', '.kpis dt', '.cvFacts dt', '.cvLines li > span:first-child', '.stat > span', '.ccSum + .tt b'];
 const TITLE_SKIP = ['overText', 'matchTitle', 'hoTitle', 'trickHead', 'drillHead', 'tutDoneTitle', 'tutOfferTitle', 'offerTitle', 'doneTitle', 'mdEndT'];

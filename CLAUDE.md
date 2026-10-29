@@ -173,6 +173,11 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   Space on the focused power bar drives the bar only with `keyShoot` (audit F7): it still shoots through `commit`.
   Ball marks (`marks`) draw on the table (`drawMark`) and on every DOM ball dot (`dotEl`, its `.cb` badge): build any
   new dot list with `dotEl`/`fillDots`, and put `settings.marks` in any cache key over dots.
+- Setup sheets pin their primary action. The game setup is a scrolling form (`#setupScroll`: header, the line beside a
+  table thumbnail, the tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
+  `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`
+  (sticky `.cvAct.pin`), a drill with `.howAct`: a new setup page puts its action there, never inline at the end.
+  `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852 and 440x956, text sizes, landscape).
 
 ## Conventions
 

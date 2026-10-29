@@ -156,8 +156,12 @@ async function portrait() {
   for (const id of IDS) {
     await T.page.click(TILE[id]);
     await T.page.waitForTimeout(250);
-    const link = await ev(T, () => ({ shown: setupSheet.classList.contains('show') && !tutLink.hidden && tutLink.getClientRects().length > 0, text: tutLink.textContent.trim(), icon: !!tutLink.querySelector('.ic svg path') }));
-    check(`${id}: the setup sheet's quiet link "New to ${WORD[id]}? Play the tutorial", with the graduation cap`, link.shown && link.text === `New to ${WORD[id]}? Play the tutorial` && link.icon, JSON.stringify(link));
+    const link = await ev(T, () => ({ shown: setupSheet.classList.contains('show') && !tutLink.hidden && tutLink.getClientRects().length > 0, text: tutLink.textContent.trim(), label: tutLink.getAttribute('aria-label'),
+      icon: !!tutLink.querySelector('.ic svg path'), plain: (s => s.color === 'rgb(245, 245, 247)' && +s.fontWeight === 600)(getComputedStyle(tutLinkText)), noB: !tutLink.querySelector('b') }));
+    /* build 2026-10-29b: a plain row (white words, weight 600, a chevron; no yellow accent), its title in Title Case */
+    const title = `Play the ${WORD[id]} tutorial`.replace(/(^|[\s-])([a-z])/g, (m, a, c) => a + c.toUpperCase()).replace(' The ', ' the ');
+    check(`${id}: the setup sheet's tutorial row "${title}" (plain white, 600, no accent), with the graduation cap; its label asks "New to ${WORD[id]}?"`,
+      link.shown && link.text === title && link.label === `New to ${WORD[id]}? Play the ${WORD[id]} tutorial` && link.icon && link.plain && link.noB, JSON.stringify(link));
     if (id === '8' || id === 'snooker') {
       check(`${id}: the setup sheet with the link: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
       await T.shot('setup-link-' + id + '-p');
@@ -421,7 +425,7 @@ async function landscape() {
   await T.page.click('#tutHome');
   await T.page.click('#playS');
   await T.page.waitForTimeout(250);
-  const ln = await ev(T, () => { const r = tutLink.getBoundingClientRect(), b = breakBtn.getBoundingClientRect(); return { shown: r.height >= 44, inside: r.bottom <= innerHeight && b.bottom <= innerHeight + 0.5 || setupSheet.scrollHeight > setupSheet.clientHeight }; });
+  const ln = await ev(T, () => { const r = tutLink.getBoundingClientRect(), b = breakBtn.getBoundingClientRect(); return { shown: r.height >= 44, inside: r.bottom <= innerHeight && b.bottom <= innerHeight + 0.5 || setupScroll.scrollHeight > setupScroll.clientHeight }; });
   check('956x440: the snooker setup shows the tutorial link (44 px), and Break is reachable', ln.shown && ln.inside, JSON.stringify(ln));
   await T.shot('setup-link-snooker-l');
   await T.page.click('#breakBtn');

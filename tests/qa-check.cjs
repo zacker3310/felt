@@ -273,6 +273,110 @@ const homeFit = page => page.evaluate(() => {
   check('home 440x956: a real tap on Rotation opens its setup', await H2.page.evaluate(() => setupSheet.classList.contains('show') && setupSheet.dataset.kind === 'rotation'));
   await H2.browser.close();
 
+  /* ---------- pinned setup actions (build 2026-10-29b): every setup's primary action (Break or Play,
+     Start Tournament, Watch, Start, Start Career, Start Drill) is pinned at the foot of its sheet,
+     inside the screen and above the home indicator WITHOUT scrolling, and a real tap there starts
+     it. 8-Ball for two players fits whole (no scroll) at 393x852 and 440x956; at 375x667 the form
+     scrolls under the pinned Break. No choice crowds its segment, no sideways scroll ---------- */
+  const tapHere = async (page, sel) => { const [x, y] = await page.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel); await page.touchscreen.tap(x, y); await page.waitForTimeout(200); };
+  /* the primary's box: inside the viewport above the bottom safe area, on top (not under the fade), 44 px or more */
+  const pinned = (page, sel) => page.evaluate(sel => {
+    const b = document.querySelector(sel), r = b.getBoundingClientRect(), z = document.createElement('div');
+    z.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);width:1px;visibility:hidden';
+    document.body.appendChild(z); const sab = z.getBoundingClientRect().height; z.remove();
+    const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { sel, top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height), w: Math.round(r.width), vh: innerHeight, sab,
+      ok: r.top >= 0 && r.left >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight - sab + 0.5 && r.height >= 44 && !!t && b.contains(t),
+      side: document.documentElement.scrollWidth <= innerWidth };
+  }, sel);
+  /* segment words whole (never cut off by their button) */
+  const crowded = page => page.evaluate(() => [...document.querySelectorAll('#setupSheet .seg button')].filter(b => b.getClientRects().length && b.scrollWidth > b.clientWidth + 1).map(b => b.id));
+  const GK = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper']];
+  for (const [w, h] of [[393, 852], [375, 667]]) {
+    const P = await phone(w, h), pp = P.page, pev = (f, a) => pp.evaluate(f, a), tag = `${w}x${h}`;
+    await pp.waitForTimeout(300);
+    const rows = [], bad = [];
+    for (const [sel, kind] of GK) {
+      await pev(() => { backToMenu(); menu.scrollTop = 0; });
+      await touchAt(pp, sel);
+      await pp.waitForTimeout(150);
+      const m = await pinned(pp, '#breakBtn'), cr = await crowded(pp);
+      await tapHere(pp, '#breakBtn');
+      const g = await pev(() => ({ menu: menu.classList.contains('show') || setupSheet.classList.contains('show'), kind: felt.game && felt.game.kind, st: felt.state }));
+      rows.push({ kind, ...m, cr, started: !g.menu && g.kind === kind, st: g.st });
+      if (kind === '8' || kind === 'snooker') {
+        await pev(k => { felt.quitToHome(); showSetup(k); }, kind);
+        await pp.waitForTimeout(150);
+        const a = { small: await smallTargets(pp), low: await lowContrast(pp) };
+        if (a.small.length || a.low.length) bad.push({ kind, ...a });
+      }
+      await pev(() => felt.quitToHome());
+    }
+    check(`setup ${tag}: each of the eight games' setups (opened by a real tap) has Break (Play) pinned inside the screen above the safe area without scrolling, on top, 50 px; a real tap there starts that game; no choice crowded, no sideways scroll`,
+      rows.every(r => r.ok && r.h === 50 && r.side && !r.cr.length && r.started), JSON.stringify(rows.filter(r => !(r.ok && r.h === 50 && r.side && !r.cr.length && r.started))));
+    check(`setup ${tag}: 8-ball and snooker setups: 44 px targets, text 4.5:1`, !bad.length, JSON.stringify(bad));
+    /* 8-Ball, two players: the whole form fits at 393x852; at 375x667 it scrolls under a Break that stays put */
+    const f8 = await pev(() => { backToMenu(); setSetting('cpu', false); showSetup('8'); const r0 = breakBtn.getBoundingClientRect().top; const fit = setupScroll.scrollHeight <= setupScroll.clientHeight;
+      setupScroll.scrollTop = 1e4; const r1 = breakBtn.getBoundingClientRect().top; const n = rulesNote.getBoundingClientRect(), f = setupScroll.getBoundingClientRect();
+      return { fit, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, still: Math.abs(r0 - r1) < 0.5, note: n.bottom <= f.bottom + 0.5, groups: [...setupSheet.querySelectorAll('.sgrp')].filter(g => g.getClientRects().length).length,
+        art: Math.round(setupArt.getBoundingClientRect().height), tut: (s => [s.color, s.fontWeight].join())(getComputedStyle(tutLinkText)) }; });
+    check(`setup ${tag}: 8-Ball for two players: ` + (w === 393 ? 'the whole form fits without scrolling' : 'the form scrolls, its fine print reachable, Break pinned where it was') + '; three inset groups; the table a small thumbnail (under 20% of the height); the tutorial row plain white 600',
+      (w === 393 ? f8.fit : !f8.fit && f8.note) && f8.still && f8.groups === 3 && f8.art < h * 0.2 && f8.tut === 'rgb(245, 245, 247),600', JSON.stringify(f8));
+    /* the modes' setups: Start Tournament, Watch, Start */
+    const MD = [['#modeTour', '#mdStartT', () => felt.tourney !== null && mdBody.dataset.page === 'tour'], ['#modeEx', '#mdWatch', () => felt.mode === 'exhibit' && !modesSheet.classList.contains('show')],
+      ['#modeParty', '#mdStartP', () => felt.mode === 'party' && !modesSheet.classList.contains('show')]];
+    const mr = [];
+    for (const [card, btn, okf] of MD) {
+      await pev(() => { tour = null; tSave(); backToMenu(); menu.scrollTop = 0; });
+      await touchAt(pp, card);
+      await pp.waitForTimeout(150);
+      const m = await pinned(pp, btn);
+      await tapHere(pp, btn);
+      await pp.waitForTimeout(150);
+      mr.push({ card, ...m, started: await pev(`(${okf})()`) });
+      await pev(() => { if (felt.state !== 'menu') felt.quitToHome(); tour = null; tSave(); backToMenu(); });
+    }
+    /* the career's New Career, and a drill's Start Drill */
+    await pev(() => { backToMenu(); showCareer(); felt.careerGo('create'); cv.form.name = 'Sam Rivers'; });
+    await pp.waitForTimeout(600);   /* the page's push is over */
+    const mc = await pinned(pp, '#cvCreate');
+    await tapHere(pp, '#cvCreate');
+    mr.push({ card: 'new career', ...mc, started: await pev(() => Career.loaded && cvBody.dataset.page === 'hub') });
+    await pev(() => backToMenu());
+    await touchAt(pp, '#drillsRow');
+    await touchAt(pp, '#drillList .group button');
+    await pp.waitForTimeout(600);
+    const md2 = await pinned(pp, '#drillGo');
+    await tapHere(pp, '#drillGo');
+    mr.push({ card: 'drill', ...md2, started: await pev(() => !!solo && solo.kind === 'drill' && !drillSheet.classList.contains('show')) });
+    await pev(() => felt.quitToHome());
+    check(`setup ${tag}: Quick Tournament, AI Exhibition, Party, New Career and a drill: the primary action pinned inside the screen above the safe area without scrolling, and a real tap there starts it`,
+      mr.every(r => r.ok && r.side && r.h >= 50 && r.started), JSON.stringify(mr.filter(r => !(r.ok && r.side && r.h >= 50 && r.started))));
+    check(`setup ${tag}: no page errors`, !P.errors.length, P.errors.join(' | '));
+    await P.browser.close();
+  }
+  /* 440x956: 8-Ball for two players fits whole too */
+  const P4 = await phone(440, 956);
+  const f4 = await P4.page.evaluate(() => { setSetting('cpu', false); showSetup('8'); return { fit: setupScroll.scrollHeight <= setupScroll.clientHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight }; });
+  const b4 = await pinned(P4.page, '#breakBtn');
+  check('setup 440x956: 8-Ball for two players fits without scrolling, Break pinned in view', f4.fit && b4.ok, JSON.stringify([f4, b4]));
+  await P4.browser.close();
+  /* Large and Larger text, and on its side: the form scrolls, Break stays pinned and in view for every game */
+  for (const [w, h, ts] of [[393, 852, 130], [375, 667, 115], [375, 667, 130], [956, 440, 100], [956, 440, 130]]) {
+    const L = await phone(w, h, { init: settingsInit({ sv: 3, text: ts }) }), lp = L.page;
+    await lp.waitForTimeout(200);
+    const out = [];
+    for (const [, kind] of GK) {
+      await lp.evaluate(k => { backToMenu(); showSetup(k); }, kind);
+      out.push({ kind, ...(await pinned(lp, '#breakBtn')), cr: await crowded(lp) });
+    }
+    await tapHere(lp, '#breakBtn');
+    const go = await lp.evaluate(() => !setupSheet.classList.contains('show') && felt.game.kind === 'bumper');
+    check(`setup ${w}x${h}, text ${ts}%: Break pinned inside the screen for every game (no sideways scroll, no crowded choice); a real tap there starts the game`,
+      out.every(r => r.ok && r.side && !r.cr.length) && go, JSON.stringify(out.filter(r => !(r.ok && r.side && !r.cr.length))));
+    await L.browser.close();
+  }
+
   /* ---------- titles (build 2026-10-28d): Title Case, Apple style, on every screen reached ---------- */
   const TT = await phone(393, 852);
   const tp = TT.page, tev = (f, a) => tp.evaluate(f, a), flagged = [];

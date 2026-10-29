@@ -481,35 +481,91 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .field .label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .note { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
 .cta { width: 100%; margin-top: 18px; min-height: 58px; font-size: 18px; }
-/* straight pool's four races: under their label when the column is narrow, so each is 44 px (QA F10) */
-.sheet.setup .colB { container-type: inline-size; }
-@container (max-width: 320px) { .field.str { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
-/* setup: the CPU opponents as three cards, or the two players' names */
-#setupSub { margin: -4px 0 4px; }
-.foes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+/* ---- the game setup: a navigation page in the iOS manner. The form scrolls (the header, the
+   game's line beside a thumbnail of its table, the tutorial's row, then the choices as inset
+   grouped rows: Opponent and names; Table and Pockets; Rules and Stalemate; the rules' fine
+   print) over a foot pinned to the bottom of the sheet, clear of the home indicator, with the
+   primary action: Break (Play for bumper pool), a 50 px capsule, never scrolled away. The form
+   fades out under the foot (a gradient, no blur). Full screen on a phone (upright or on its
+   side), a card on anything bigger. 8 pt rhythm: 16 px sides, rows of 44 px targets, 20 px
+   between groups. A choice whose words would crowd goes under its label, full width. ---- */
+#setupSheet { --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
+  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
+#setupSheet .sheet.setup { max-width: 480px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); display: flex; flex-direction: column;
+  overflow: hidden; padding: 0; border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+.setScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; padding: 16px var(--pr) 12px var(--pl); }
+.setScroll > * { min-width: 0; }
+.setFoot { position: relative; z-index: 1; flex: none; padding: 4px var(--pr) max(16px, var(--sab)) var(--pl); background: var(--page); }
+.setFoot::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px; background: linear-gradient(rgba(11, 11, 12, 0), var(--page)); pointer-events: none; }
+#breakBtn { display: block; width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 16px; border-radius: 999px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+#setupSheet .shead { margin: 0 0 8px -4px; gap: 12px; }
+#setupSheet .shead .title { font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
+#setupSheet .shead .kicker { color: var(--label-2); }
+#setupSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+#setupSheet .back:hover { background: #26262a; }
+/* the game's line, and its table beside it (a thumbnail, the whole table) */
+.intro { display: flex; align-items: flex-start; gap: 12px; }
+#setupSub { flex: 1; min-width: 0; margin: 0; font-size: 15px; line-height: 1.35; color: var(--label-2); }
+#setupArt { flex: none; display: block; width: 112px; aspect-ratio: 1.82 / 1; border-radius: 10px; background: var(--cell); }
+#setupSheet[data-kind="bumper"] #setupArt { width: 92px; aspect-ratio: 1.5 / 1; }
+/* the groups: inset, rounded, hairlines between rows inset to the words; a group with nothing to
+   show is not drawn */
+.sgrp { container-type: inline-size; margin: 20px 0 0; overflow: hidden; border-radius: 16px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.sgrp:not(:has(> :not([hidden]))) { display: none; }
+#setupSheet .field { position: relative; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; min-height: 54px; margin: 0; padding: 3px 3px 3px 14px; }
+.sgrp > :not([hidden]) ~ :not([hidden])::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+#setupSheet .field .label { font-size: 16px; line-height: 1.25; color: var(--label); }
+#setupSheet .seg { padding: 2px; gap: 2px; border: 0; border-radius: 10px; background: #0b0b0c; }
+#setupSheet .seg button { min-height: 44px; padding: 0 6px; border-radius: 8px; font-size: 15px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; }
+#setupSheet .seg button[aria-pressed="true"] { background: #3a3a40; color: var(--label); box-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
+/* a long choice ("Re-Rack (House)"), or any choice in a narrow group (large text): the label
+   over a full-width segmented row */
+#setupSheet .field:is(.stack, .fold) { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 3px 3px; }
+#setupSheet .field:is(.stack, .fold) .label { padding-left: 10px; }
+#setupSheet .field.wrap2 .seg button { padding: 4px 6px; white-space: normal; line-height: 1.15; text-overflow: clip; }
+@container (max-width: 330px) {
+  #setupSheet .field { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 3px 3px; }
+  #setupSheet .field .label { padding-left: 10px; }
+}
+/* the CPU opponents as three cards, or the two players' names side by side */
+.foes { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; }
 .foes[hidden], .names[hidden] { display: none; }
-.foe { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px 10px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
+.foe { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px 8px; border-radius: 12px; border: 1px solid #3a3a41; background: #26262a; color: var(--label); }
 .foe:hover { border-color: #6b6b74; }
-.foe[aria-pressed="true"] { background: var(--panel-3); border-color: var(--cream); box-shadow: inset 0 0 0 1px var(--cream); }
-.foe .ball { width: 38px; height: 38px; margin-bottom: 6px; font-size: 12px; }
+.foe[aria-pressed="true"] { background: #303036; border-color: var(--cream); box-shadow: inset 0 0 0 1px var(--cream); }
+.foe .ball { width: 34px; height: 34px; margin-bottom: 4px; font-size: 11px; }
 .foe b { font-size: 15px; }
 .foe small { font-size: 12px; color: var(--muted); }
 .foe .wl { font-variant-numeric: tabular-nums; }
 .foe .wl:empty { display: none; }
-.names { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-.names label { display: grid; gap: 4px; min-width: 0; font-size: 12px; color: var(--muted); }
-.names input { width: 100%; min-height: 46px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: 600 16px/1.2 var(--font);
+.names .nm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+.names input { width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 0; background: #2a2a2e; color: var(--label); font: 600 16px/1.2 var(--font);
   -webkit-user-select: text; user-select: text; }
-.names input::placeholder { color: #8b8b93; }
-.names input:focus { border-color: #8a8a94; }
-#setupArt { display: none; width: 100%; aspect-ratio: 1.82 / 1; border-radius: 14px; background: var(--bg); }
-#setupSheet[data-kind="bumper"] #setupArt { aspect-ratio: 1.5 / 1; }
-@media (min-height: 780px) and (orientation: portrait) { #setupArt { display: block; margin-top: 16px; } }
+.names input::placeholder { color: rgba(235, 235, 245, .6); }
+.names input:focus { outline: 2px solid rgba(235, 235, 245, .6); outline-offset: -2px; }
+/* the fine print: after the groups, quiet */
+#setupSheet .rnote { margin: 12px 14px 0; font-size: 13px; line-height: 1.4; color: var(--label-2); }
+#setupSheet .rnote:empty { display: none; }
+/* on its side: two columns (who plays on the left, the table and rules on the right) */
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
-  .sheet.setup { max-width: 820px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 26px; align-items: start; }
-  .colB { padding-top: 4px; }
-  #setupArt, #setupSheet[data-kind="bumper"] #setupArt { display: block; aspect-ratio: auto; height: clamp(110px, 34vh, 230px); }
-  .sheet.setup .cta { margin-top: 14px; }
+  #setupSheet .sheet.setup { max-width: 860px; }
+  .setScroll { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 20px; align-items: start; }
+  .colB > .sgrp:first-child { margin-top: 0; }
+  #setupSheet .setFoot { padding-top: 0; }
+}
+/* a phone (upright, or on its side): the whole screen, the header clear of the status bar */
+@media (max-width: 600px), (max-height: 500px) {
+  #setupSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  #setupSheet .sheet.setup { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .setScroll { padding-top: calc(var(--sat) + 10px); }
+}
+/* the text sizes (the sheet is zoomed): the sheet keeps the screen's height */
+[data-text="115"] #setupSheet .sheet.setup { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
+[data-text="130"] #setupSheet .sheet.setup { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
+@media (max-width: 600px), (max-height: 500px) {
+  [data-text="115"] #setupSheet .sheet.setup { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
+  [data-text="130"] #setupSheet .sheet.setup { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
 }
 /* settings: the cloth with a live swatch of it */
 .swatch { display: inline-block; width: 30px; height: 20px; border-radius: 5px; background: radial-gradient(circle at 34% 50%, #f6f4ec 0 2.6px, transparent 3.2px), #1b5d47;
@@ -887,6 +943,12 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   #drillSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
   #drillSheet .howTop { padding-top: calc(var(--sat) + 14px); }
 }
+[data-text="115"] :is(#careerSheet, #modesSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
+[data-text="130"] :is(#careerSheet, #modesSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
+@media (max-width: 600px) {
+  [data-text="115"] :is(#careerSheet, #modesSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
+  [data-text="130"] :is(#careerSheet, #modesSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
+}
 [data-text="115"] #drillSheet .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
 [data-text="130"] #drillSheet .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
 @media (max-width: 600px) {
@@ -1029,6 +1091,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 /* actions: the capsule (the page's action), a quiet one, a pair */
 .cvAct { margin: 14px 0 0; display: grid; gap: 8px; }
 .cvAct.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* a setup page's action pinned at the foot of the sheet, clear of the home indicator: the form
+   scrolls under it and fades out above it (a gradient, no blur); on a short page it sits at the foot */
+.cvAct.pin { position: sticky; bottom: 0; z-index: 1; margin: auto calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(16px, var(--sab)) var(--pl);
+  background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 24px); }
+.cvBody:has(> .cvAct.pin:last-child) { padding-bottom: 0; }
 .cvBtn { width: 100%; min-height: 50px; margin: 0; padding: 0 16px; border: 0; border-radius: 999px; background: var(--accent); color: #07110b; font-size: 17px; font-weight: 600; }
 .cvBtn:hover { filter: brightness(1.06); }
 .cvAct.two .cvBtn { padding: 0 4px; letter-spacing: -.02em; }   /* two side by side: a Title Case label ("Advance a Week") keeps to one line at 375 px */
@@ -1105,15 +1172,16 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   border: 1px solid #5a5a62; background: #303036; color: var(--text); font-size: 15px; font-weight: 600; }
 #coachBtn:hover { background: #3a3a41; }
 #coachBtn[hidden] { display: none; }
-.tutLink { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; margin: 12px 0 0; padding: 7px 12px 7px 10px; border-radius: 14px;
-  border: 1px solid var(--line); background: var(--panel-2); text-align: left; color: var(--text); }
-.tutLink:hover { background: var(--panel-3); }
+/* the setup's tutorial row: a plain row of its own group (white words, a quiet icon, a chevron) */
+.tutLink { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; margin: 16px 0 0; padding: 4px 14px 4px 10px; border: 0; border-radius: 16px;
+  background: var(--cell, #1c1c1f); box-shadow: inset 0 0 0 .5px var(--hair, rgba(255, 255, 255, .1)); text-align: left; color: var(--label, #f5f5f7); }
+.tutLink:hover { background: #222226; }
+.tutLink:active { background: #2a2a2e; }
 .tutLink[hidden] { display: none; }
-.tutLink .ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; color: #f2c94c; background: rgba(242, 201, 76, .12); }
+.tutLink .ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; color: var(--label, #f5f5f7); background: rgba(255, 255, 255, .1); }
 .tutLink .ic svg { width: 19px; height: 19px; }
-.tutLink .tt { flex: 1; min-width: 0; font-size: 14px; line-height: 1.3; color: var(--muted); }
-.tutLink .tt b { color: #f2c94c; font-weight: 600; white-space: nowrap; }
-.tutLink .chev { flex: none; width: 16px; height: 16px; color: var(--muted); }
+.tutLink .tt { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--label, #f5f5f7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tutLink .chev { flex: none; width: 15px; height: 15px; margin-left: 0; color: var(--label-3, rgba(235, 235, 245, .38)); }
 .tutGo[hidden] { display: none; }
 #tutOffer .sheet { max-width: 400px; text-align: center; }
 #tutOffer .sub { margin: 0 0 20px; }
@@ -1368,54 +1436,61 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   </div>
 </div>
 
+<!-- the setup: a scrolling form (inset grouped rows, iOS spacing) over a pinned foot with the
+     primary action, Break, always on screen above the home indicator -->
 <div class="overlay" id="setupSheet" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
   <div class="sheet setup">
+    <div class="setScroll" id="setupScroll">
     <div class="colA">
     <div class="shead"><button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <div class="htxt"><p class="kicker">New game</p><h2 class="title" id="setupTitle">8-Ball</h2></div><span class="ball b8" id="setupBall" aria-hidden="true">8</span></div>
-    <p class="sub" id="setupSub"></p>
-    <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">New to 8-ball? <b>Play the tutorial</b></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
-    <div class="field"><span class="label" id="oppLab">Opponent</span>
-      <div class="seg" role="group" aria-labelledby="oppLab"><button id="vs2p" aria-pressed="true">Two Players</button><button id="vsCpu" aria-pressed="false">CPU</button></div></div>
-    <div class="foes" id="levelSeg" role="group" aria-label="CPU opponent">
-      <button class="foe" id="lvEasy" aria-pressed="false"><span class="ball b1" aria-hidden="true">1</span><b>Rookie</b><small>Easy</small><small class="wl" id="wlEasy"></small></button>
-      <button class="foe" id="lvMedium" aria-pressed="true"><span class="ball b5" aria-hidden="true">5</span><b>Regular</b><small>Medium</small><small class="wl" id="wlMedium"></small></button>
-      <button class="foe" id="lvHard" aria-pressed="false"><span class="ball b8" aria-hidden="true">8</span><b>Hustler</b><small>Hard</small><small class="wl" id="wlHard"></small></button>
-    </div>
-    <div class="names" id="nameRow">
-      <label><span>Player 1</span><input id="name1" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 1"></label>
-      <label><span>Player 2</span><input id="name2" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 2"></label>
+    <div class="intro"><p class="sub" id="setupSub"></p><canvas class="art" id="setupArt" aria-hidden="true"></canvas></div>
+    <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">Play the 8-Ball Tutorial</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    <div class="sgrp" role="group" aria-label="Players">
+      <div class="field"><span class="label" id="oppLab">Opponent</span>
+        <div class="seg" role="group" aria-labelledby="oppLab"><button id="vs2p" aria-pressed="true">Two Players</button><button id="vsCpu" aria-pressed="false">CPU</button></div></div>
+      <div class="foes" id="levelSeg" role="group" aria-label="CPU opponent">
+        <button class="foe" id="lvEasy" aria-pressed="false"><span class="ball b1" aria-hidden="true">1</span><b>Rookie</b><small>Easy</small><small class="wl" id="wlEasy"></small></button>
+        <button class="foe" id="lvMedium" aria-pressed="true"><span class="ball b5" aria-hidden="true">5</span><b>Regular</b><small>Medium</small><small class="wl" id="wlMedium"></small></button>
+        <button class="foe" id="lvHard" aria-pressed="false"><span class="ball b8" aria-hidden="true">8</span><b>Hustler</b><small>Hard</small><small class="wl" id="wlHard"></small></button>
+      </div>
+      <div class="field names" id="nameRow"><span class="label" id="nameLab">Names</span>
+        <div class="nm"><input id="name1" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 1" aria-label="Player 1"><input id="name2" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 2" aria-label="Player 2"></div></div>
     </div>
     </div>
     <div class="colB">
-    <canvas class="art" id="setupArt" aria-hidden="true"></canvas>
-    <div class="field pool"><span class="label" id="sizeLab">Table</span>
-      <div class="seg" role="group" aria-labelledby="sizeLab"><button id="tb7" aria-pressed="true">7 ft Bar</button><button id="tb9" aria-pressed="false">9 ft Pro</button></div></div>
-    <div class="field pool"><span class="label" id="pkLab">Pockets</span>
-      <div class="seg" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
-    <div class="field bump" hidden><span class="label" id="btLab">Table</span>
-      <div class="seg" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
-    <div class="field carom" hidden><span class="label" id="crLab">Race To</span>
-      <div class="seg" role="group" aria-labelledby="crLab"><button id="cr5" aria-pressed="false">5</button><button id="cr10" aria-pressed="true">10</button><button id="cr15" aria-pressed="false">15</button></div></div>
-    <div class="field carom" hidden><span class="label" id="ccLab">Cushions</span>
-      <div class="seg" role="group" aria-labelledby="ccLab"><button id="cc3" aria-pressed="true">Three</button><button id="cc1" aria-pressed="false">1-Cushion (Easier)</button></div></div>
-    <div class="field snk" hidden><span class="label" id="stLab">Table</span>
-      <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
-    <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
-      <div class="seg" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One Frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
-    <div class="field r8" hidden><span class="label" id="r8Lab">Rules</span>
-      <div class="seg" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">felt Rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
-    <div class="field r9" hidden><span class="label" id="r9Lab">Rules</span>
-      <div class="seg" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">felt Rules</button><button id="rs9Wpa" aria-pressed="false">WPA, Push Out</button></div></div>
-    <div class="field r10" hidden><span class="label" id="r10Lab">Rules</span>
-      <div class="seg" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious Shots Free</button></div></div>
-    <div class="field str" hidden><span class="label" id="raceLab">Race To</span>
-      <div class="seg" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
-    <div class="field stm" hidden><span class="label" id="smLab">Stalemate</span>
-      <div class="seg" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play On</button><button id="smOn" aria-pressed="false">Re-Rack (House)</button></div></div>
-    <p class="note rnote" id="rulesNote"></p>
-    <button class="big cta" id="breakBtn">Break</button>
+    <div class="sgrp" role="group" aria-label="Table">
+      <div class="field pool"><span class="label" id="sizeLab">Table</span>
+        <div class="seg" role="group" aria-labelledby="sizeLab"><button id="tb7" aria-pressed="true">7 ft Bar</button><button id="tb9" aria-pressed="false">9 ft Pro</button></div></div>
+      <div class="field pool"><span class="label" id="pkLab">Pockets</span>
+        <div class="seg" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
+      <div class="field bump" hidden><span class="label" id="btLab">Table</span>
+        <div class="seg" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
+      <div class="field carom" hidden><span class="label" id="crLab">Race To</span>
+        <div class="seg" role="group" aria-labelledby="crLab"><button id="cr5" aria-pressed="false">5</button><button id="cr10" aria-pressed="true">10</button><button id="cr15" aria-pressed="false">15</button></div></div>
+      <div class="field carom stack" hidden><span class="label" id="ccLab">Cushions</span>
+        <div class="seg" role="group" aria-labelledby="ccLab"><button id="cc3" aria-pressed="true">Three</button><button id="cc1" aria-pressed="false">1-Cushion (Easier)</button></div></div>
+      <div class="field snk" hidden><span class="label" id="stLab">Table</span>
+        <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
+      <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
+        <div class="seg" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One Frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
     </div>
+    <div class="sgrp" role="group" aria-label="Rules">
+      <div class="field r8" hidden><span class="label" id="r8Lab">Rules</span>
+        <div class="seg" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">felt Rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
+      <div class="field r9" hidden><span class="label" id="r9Lab">Rules</span>
+        <div class="seg" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">felt Rules</button><button id="rs9Wpa" aria-pressed="false">WPA, Push Out</button></div></div>
+      <div class="field r10 stack" hidden><span class="label" id="r10Lab">Rules</span>
+        <div class="seg" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious Shots Free</button></div></div>
+      <div class="field str stack" hidden><span class="label" id="raceLab">Race To</span>
+        <div class="seg" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
+      <div class="field stm stack" hidden><span class="label" id="smLab">Stalemate</span>
+        <div class="seg" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play On</button><button id="smOn" aria-pressed="false">Re-Rack (House)</button></div></div>
+    </div>
+    <p class="note rnote" id="rulesNote"></p>
+    </div>
+    </div>
+    <div class="setFoot"><button class="big cta" id="breakBtn">Break</button></div>
   </div>
 </div>
 
@@ -7461,7 +7536,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29a';
+const BUILD = 'build 2026-10-29b';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -12348,7 +12423,22 @@ function showSetup(kind) {
   previewGame(kind);
   syncMenu();
   openSheet(setupSheet, breakBtn);
+  setupScroll.scrollTop = 0;
+  fitSetupRows();
   paintArt();
+}
+/* a choice whose words would crowd its segment beside the label ("WPA, Push Out" on a small
+   phone, any long one at a large text size) goes under its label, full width; if its words still
+   do not fit they take two lines. Measured, so a wider font only folds more rows */
+function fitSetupRows() {
+  if (!setupSheet.classList.contains('show')) return;
+  const over = f => [...f.querySelectorAll('.seg button')].some(b => b.scrollWidth > b.clientWidth + 1);
+  for (const f of setupSheet.querySelectorAll('.field:not(.names)')) {
+    f.classList.remove('fold', 'wrap2');
+    if (f.hidden) continue;
+    if (over(f)) f.classList.add('fold');
+    if (over(f)) f.classList.add('wrap2');
+  }
 }
 /* Break (or Play again): the setup is remembered, and the game starts on it */
 function playSetup(kind) {
@@ -13713,8 +13803,8 @@ function tutOfferAnswer(a) {
 function syncTutLinks(kind) {
   const t = tutById(kind);
   tutLink.hidden = !t || !!tutRec.done[kind];
-  if (t) tutLinkText.innerHTML = `New to ${TUT_WORD[kind]}? <b>Play the tutorial</b>`;
-  tutLink.setAttribute('aria-label', t ? `New to ${TUT_WORD[kind]}? Play the tutorial` : '');
+  if (t) tutLinkText.textContent = titleCase(`Play the ${TUT_WORD[kind]} tutorial`);
+  tutLink.setAttribute('aria-label', t ? `New to ${TUT_WORD[kind]}? Play the ${TUT_WORD[kind]} tutorial` : '');
   for (const b of document.querySelectorAll('.tutGo')) b.lastChild.textContent = titleCase(`${tutRec.done[b.dataset.tut] ? 'Replay' : 'Play'} the ${TUT_WORD[b.dataset.tut]} tutorial`);
 }
 coachBtn.addEventListener('click', () => { audioOn(); tutShowMe(); });
@@ -14023,6 +14113,8 @@ const cvNoteEl = (t, warn) => cvEl('p', 'cvNote' + (warn ? ' warn' : ''), t);
 function cvButton(text, fn, cls, id) { const b = cvEl('button', 'cvBtn' + (cls ? ' ' + cls : ''), titleCase(text)); if (id) b.id = id; b.addEventListener('click', fn); return b; }
 function cvMiniBtn(text, fn, cls, label) { const b = cvEl('button', 'cvMini' + (cls ? ' ' + cls : ''), titleCase(text)); if (fn) b.addEventListener('click', e => { e.stopPropagation(); fn(); }); else b.disabled = true; if (label) b.setAttribute('aria-label', label); return b; }
 function cvActs(...bs) { const d = cvEl('div', 'cvAct' + (bs.filter(Boolean).length === 2 ? ' two' : '')); d.append(...bs.filter(Boolean)); return d; }
+/* a setup page's action (and its secondary beside it), pinned at the foot of the sheet: the page's last element */
+function cvPin(...bs) { const d = cvActs(...bs); d.classList.add('pin'); return d; }
 function cvLinesEl(pairs) { const u = cvEl('ul', 'cvLines'); for (const [k, v] of pairs) { if (v === null || v === undefined || v === '') continue; const li = cvEl('li'); li.append(cvEl('span', null, titleCase(k)), cvEl('span', null, v)); u.appendChild(li); } return u; }
 function cvFactsEl(pairs) { const d = cvEl('dl', 'cvFacts'); for (const [k, v] of pairs) { const x = cvEl('div'); x.append(cvEl('dt', null, titleCase(k)), cvEl('dd', null, v)); d.appendChild(x); } return d; }
 function cvSeg(opts, val, set, cls) {
@@ -14152,7 +14244,7 @@ PAGES.create = () => {
   out.push(cvNoteEl('Hard and Pro turn on simulation purity: your skills are a record only and never touch your shots. On Easy and Medium they cap the guide and auto aim and add a little execution jitter, shown under Options.'));
   if (!f.migrate) out.push(cvHeadEl('Start As'), cvSeg([['novice', 'Novice'], ['amateur', 'Amateur'], ['skilled', 'Skilled'], ['pro', 'Pro']], f.start, v => { f.start = v; }));
   else out.push(cvNoteEl('Your start comes from the ladder: tier 2 at five players beaten, tier 3 at all eight, with reputation and credits for each.'));
-  out.push(cvActs(cvButton(f.migrate ? 'Carry Over and Start' : 'Start Career', () => {
+  out.push(cvPin(cvButton(f.migrate ? 'Carry Over and Start' : 'Start Career', () => {
     if (!String(f.name).trim()) { cv.msg = 'Your player needs a name.'; cvRender(); const n = document.getElementById('cvf-name'); if (n) n.focus(); return; }
     const p = { name: f.name, nick: f.nick, nat: f.nat, town: f.town, hand: f.hand, disc: f.disc, style: f.style, difficulty: f.difficulty, start: f.start, age: Number.isInteger(f.age) ? f.age : 20 };
     const r = f.migrate ? Career.migrate(p) : Career.create(p);
@@ -14167,7 +14259,7 @@ PAGES.create = () => {
 };
 PAGES.confirm = t => {
   setHead(t.kick, t.title);
-  return [cvNoteEl(t.text), cvActs(cvButton(t.yes, () => t.act(), 'warn', 'cvYes'), cvButton('Cancel', () => cvBack(), 'alt', 'cvNo'))];
+  return [cvNoteEl(t.text), cvPin(cvButton(t.yes, () => t.act(), 'warn', 'cvYes'), cvButton('Cancel', () => cvBack(), 'alt', 'cvNo'))];
 };
 function cvAdvance(to) {
   const r = Career.advance(to);
@@ -14956,7 +15048,7 @@ MD_PAGES.tsetup = () => {
     cvHeadEl('Opponents'), cvSeg(T_FIELDS.map(x => [x, x === 'mixed' ? 'Mixed' : LEVEL_WORDS[x]]), f.field, v => { f.field = v; }),
     cvNoteEl('Your matches are played on the table. Every other match is settled by the career\'s match model from the players\' strengths, and shown as simulated.'),
     tour && !tour.done ? cvNoteEl('Starting a new tournament ends the one under way.', true) : null,
-    cvActs(cvButton('Start Tournament', () => tourneyCreate(Object.assign({}, md.tf, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdStartT')),
+    cvPin(cvButton('Start Tournament', () => tourneyCreate(Object.assign({}, md.tf, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdStartT')),
   ];
 };
 /* a new tournament from the setup (or the test hook), saved, its bracket on show */
@@ -15033,7 +15125,7 @@ MD_PAGES.exsetup = () => {
     cvHeadEl('Table'), cvSeg(EX_KINDS.map(k => [k, EX_WORDS[k]]), e.kind, v => { e.kind = v; }, 'wrap four'),
     ...side('a', 'Player 1'), ...side('b', 'Player 2'),
     cvNoteEl('Both players are the CPU, each with the style you pick, through the same physics and rules as any game. The bar under the table pauses and sets the speed: 1x, 2x or 4x. Tap Replay after a shot to see it again.'),
-    cvActs(cvButton('Watch', () => exhibition(Object.assign({}, e, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdWatch')),
+    cvPin(cvButton('Watch', () => exhibition(Object.assign({}, e, { seed: (Math.random() * 0x7fffffff) >>> 0 })), '', 'mdWatch')),
   ];
 };
 MD_PAGES.psetup = () => {
@@ -15053,7 +15145,7 @@ MD_PAGES.psetup = () => {
     cvHeadEl('Names, in Turn Order'), form,
     R.game === 'straight' ? cvHeadEl('Race To') : null, R.game === 'straight' ? cvSeg(PARTY_RACES.map(n => [n, `${n} points`]), q.race, v => { q.race = v; }) : null,
     cvNoteEl('The device goes round the table: whenever the turn passes, it asks for the next player. 8-ball, snooker, bumper pool and three-cushion are two-player games, played from the home screen.'),
-    cvActs(cvButton('Start', () => partyStart({ ruleset: q.ruleset, names: q.names.slice(0, q.n), race: q.race }), '', 'mdStartP')),
+    cvPin(cvButton('Start', () => partyStart({ ruleset: q.ruleset, names: q.names.slice(0, q.n), race: q.race }), '', 'mdStartP')),
   ];
 };
 /* the home's mode cards: each opens its own setup (the tournament under way, if there is one) */
@@ -15090,7 +15182,7 @@ try { if (abandonedAtBoot()) showLeftNote(); careerLeftover(); } catch (e) { }
 try { tourneyLeftover(); } catch (e) { tour = null; }
 muted = !settings.sound;
 /* a resize or a rotation drops any gesture in flight: its screen axes are stale */
-const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); };
+const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); fitSetupRows(); };
 addEventListener('resize', relayout);
 addEventListener('orientationchange', relayout);
 addEventListener('pageshow', relayout);

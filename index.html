@@ -1636,7 +1636,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.6"/><path d="M12 1.8v3M12 19.2v3M1.8 12h3M19.2 12h3"/></svg></span><div><b>Aim</b><p>Drag anywhere on the table to swing the cue. Or tap where the cue ball should go.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="7" width="18" height="10" rx="3"/><path d="M8 7v10M12 7v10M16 7v10"/></svg></span><div><b>Fine-Tune</b><p>Roll the ridged wheel beside the power bar for the last hair.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="4"/><path d="M12 7v7.5M9.6 12.2 12 14.6l2.4-2.4"/></svg></span><div><b>Shoot</b><p>Pull along the power bar and let go. The further you pull, the harder the hit.</p></div></li>
-        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Double tap it to centre. Hold it to raise the cue: with side spin a raised cue curves the ball (a swerve low, a masse high).</p></div></li>
+        <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="7.8" r="2.2" fill="currentColor" stroke="none"/></svg></span><div><b>Spin</b><p>Move the blue tip on the cue ball: high for follow, low for draw. Tap the tip, or double tap the pad, to centre it. Hold it to raise the cue: with side spin a raised cue curves the ball (a swerve low, a masse high).</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18M9.5 5.5 12 3l2.5 2.5M9.5 18.5 12 21l2.5-2.5M5.5 9.5 3 12l2.5 2.5M18.5 9.5 21 12l-2.5 2.5"/></svg></span><div><b>Ball in Hand</b><p>Drag the cue ball to place it, as often as you like. Only the shot locks it in.</p></div></li>
         <li><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M9 6.5v11M15 6.5v11"/></svg></span><div><b>Pause</b><p>Tap the pause button. The game waits.</p></div></li>
       </ul>
@@ -7461,7 +7461,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-28d';
+const BUILD = 'build 2026-10-29a';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -11054,12 +11054,17 @@ fineWheel.addEventListener('wheel', e => {
   aimLock = 'pending'; keepAim();
 }, { passive: false });
 
-/* the english pad: tap or drag the tip anywhere inside the safe circle. Two real taps (each
-   short and still, close together in time and place) centre it; a drag never does. The tip
+/* the english pad: tap or drag the tip anywhere inside the safe circle. A tap on the tip itself
+   (when it is off centre), or a double tap anywhere on the pad, centres it; a drag never does.
+   The double tap is generous (SPIN_DBL: a real thumb on a 56 px pad, not a mouse). The tip
    keeps the cue's elevation (cueSpin.e); a hold (ELEV_HOLD_MS, still) or a right click leaves
    the tip where it was and opens the elevation sheet instead. */
 const spinOk = () => human() && state === 'aim';
 const ELEV_HOLD_MS = 450;
+/* a double tap: a mouse is precise; a thumb is slower and lands wider, but two quick taps far apart
+   are a re-aim, not a centre */
+const SPIN_DBL = { mouse: { ms: 350, px: 24, tapMs: TAP_MS, still: 8 }, touch: { ms: 450, px: 34, tapMs: 350, still: 12 } };
+const SPIN_ON_TIP = 0.32;   /* a tap this close to the off-centre tip (in pad radii) centres it */
 let spinTap = null, spinDrag = null, spinHold = 0;
 function spinAt(e) {
   const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE;
@@ -11073,7 +11078,10 @@ function spinAt(e) {
 spinPad.addEventListener('pointerdown', e => {
   audioOn();
   if (!spinOk() || e.button > 0) return;
-  spinDrag = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, far: 0, before: cueSpin };
+  const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE;
+  const tx = r.left + r.width / 2 + (cueSpin.x || 0) * R, ty = r.top + r.height / 2 - (cueSpin.y || 0) * R;
+  const onTip = Math.hypot(cueSpin.x || 0, cueSpin.y || 0) > 0.08 && Math.hypot(e.clientX - tx, e.clientY - ty) < SPIN_ON_TIP * r.width / 2;
+  spinDrag = { id: e.pointerId, t: e.timeStamp, x: e.clientX, y: e.clientY, far: 0, before: cueSpin, onTip };
   spinPad.setPointerCapture(e.pointerId);
   spinAt(e);
   clearTimeout(spinHold);
@@ -11097,8 +11105,10 @@ spinPad.addEventListener('pointerup', e => {
   const d = spinDrag;
   spinDrag = null;
   if (!d || d.id !== e.pointerId) return;
-  const tap = e.timeStamp - d.t < TAP_MS && d.far < 8;
-  if (tap && spinTap && e.timeStamp - spinTap.t < 350 && Math.hypot(d.x - spinTap.x, d.y - spinTap.y) < 24 && spinOk()) {
+  const D = SPIN_DBL[e.pointerType === 'mouse' ? 'mouse' : 'touch'];
+  const tap = e.timeStamp - d.t < D.tapMs && d.far < D.still;
+  const dbl = tap && spinTap && e.timeStamp - spinTap.t < D.ms && Math.hypot(d.x - spinTap.x, d.y - spinTap.y) < D.px;
+  if (spinOk() && (dbl || (tap && d.onTip))) {
     spinTap = null; cueSpin = spinOf({ x: 0, y: 0, e: cueSpin.e }); hudControls();
   } else spinTap = tap ? { t: e.timeStamp, x: d.x, y: d.y } : null;
 });

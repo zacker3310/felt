@@ -969,6 +969,22 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   for (let i = 0; i < 2; i++) { await tch('touchStart', tpad.x - 8, tpad.y - 8); await tch('touchEnd'); }
   const tdbl = await mp.evaluate(() => felt.cueSpin);
   check('touch: english pad re-drag keeps the english, a real double tap centres it', Math.hypot(tre.x, tre.y) > 0.2 && tdbl.x === 0 && tdbl.y === 0, JSON.stringify({ tre, tdbl }));
+  /* one tap on the tip itself centres it; a thumb's double tap (slower and wider than a mouse's) centres it */
+  await mp.waitForTimeout(600);
+  await tch('touchStart', tpad.x + 12, tpad.y - 10); await tch('touchEnd');
+  const tset = await mp.evaluate(() => felt.cueSpin);
+  await mp.waitForTimeout(600);
+  const tip = await mp.evaluate(() => { const r = spinPad.getBoundingClientRect(), R = r.width / 2 * SPIN_SAFE; return { x: r.x + r.width / 2 + felt.cueSpin.x * R, y: r.y + r.height / 2 - felt.cueSpin.y * R }; });
+  await tch('touchStart', tip.x + 2, tip.y + 1); await tch('touchEnd');
+  const ttip = await mp.evaluate(() => felt.cueSpin);
+  check('touch: a tap on the off-centre tip centres the english (a tap elsewhere placed it)', Math.hypot(tset.x, tset.y) > 0.2 && ttip.x === 0 && ttip.y === 0, JSON.stringify({ tset, ttip }));
+  await mp.waitForTimeout(600);
+  await tch('touchStart', tpad.x + 14, tpad.y + 4); await tch('touchEnd');
+  const tone = await mp.evaluate(() => felt.cueSpin);
+  await mp.waitForTimeout(280);
+  await tch('touchStart', tpad.x - 12, tpad.y - 4); await tch('touchEnd');
+  const tslow = await mp.evaluate(() => felt.cueSpin);
+  check('touch: a thumb\'s double tap, 280 ms and 27 px apart, centres the english', Math.hypot(tone.x, tone.y) > 0.2 && tslow.x === 0 && tslow.y === 0, JSON.stringify({ tone, tslow }));
   /* a still hold on the pad opens the cue elevation sheet and puts the tip back where it was */
   await mp.waitForTimeout(400);
   await tch('touchStart', tpad.x + 10, tpad.y - 10);

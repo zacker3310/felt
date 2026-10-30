@@ -129,11 +129,11 @@ const artContrast = page => page.evaluate(() => {
     cue.hold && cue.swerve && cue.masse && cue.level && opens.every(o => o.open && !o.help), JSON.stringify({ cue, opens }));
   await page.click('#helpBtn');
   /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS),
-     but the sheets' own materials (the HIG token sheet: the pop-up menu and the bars pinned over a
+     but the sheets' own materials (the HIG token sheet: the pop-up menu, the setup's rules popover and the bars pinned over a
      scrolling page), drawn only over the sheet's own list, never over the table */
   const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
     .filter(r => r.style && ['backdrop-filter', '-webkit-backdrop-filter', 'filter'].some(k => /blur/.test(r.style.getPropertyValue(k)))).map(r => r.selectorText));
-  const MATERIALS = ['.seg.pop.open', '.howAct', '.cvAct.pin'];
+  const MATERIALS = ['.seg.pop.open', '.infoPop', '.howAct', '.cvAct.pin'];
   check('no backdrop or blur filters anywhere but a sheet\'s own materials (the menu, the pinned bars): the table behind a sheet or a callout stays sharp', blurs.every(b => MATERIALS.includes(b)), JSON.stringify(blurs));
   /* no colour accents: no side stripe (an inset shadow offset on one side, or a border on one side wider than a
      hairline) and no coloured underline bar on any rule (the owner's call: emphasis is weight, never a stripe) */

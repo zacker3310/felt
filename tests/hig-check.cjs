@@ -8,12 +8,19 @@
       (600 on the chosen one), each segment a 44 px target
    5. a pop-up menu opens by a real tap, picks by a real tap, closes, and the pick persists (a reload);
       a tap outside closes it and does nothing else; Esc closes it
-   6. the setup has no eyebrow over its Large Title (34 px), and every footer sits wholly above the
-      pinned Break bar once scrolled to (every game, upright at 393x852 and 375x667, and on its side) */
+   6. the setup has no eyebrow over its Large Title (34 px) and no fine print on its form: the rules'
+      text is behind the (i) at the end of the title (every game: 44 px, a real tap opens the popover
+      with the ruleset's own words, it follows a change of rules, an outside tap closes it and does
+      nothing else, so does Esc, and it fits the screen upright and on its side); the modes' and the
+      career's last footer sits above their pinned action
+   7. no scrolling: every game's setup, two players and CPU, fits whole at 375x667, 393x852, 440x956,
+      852x393 and 956x440 (the form does not scroll, Break wholly in view, the hero at least its
+      floor), and a real finger drag on the form moves nothing */
 'use strict';
 const { check, done, open, choose, openPop, smallTargets, lowContrast } = require('./lib.cjs');
 const RAMP = [34, 28, 22, 20, 17, 16, 15, 13, 12, 11];
 const KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
+const RULESETS_10 = { wpa: 'Lowest ball first, and call every shot, obvious or not.', house: 'an obvious shot is called for you from your aim' };
 
 /* the screens the components appear on, each opened by the page's own functions */
 const SCREENS = [
@@ -142,17 +149,111 @@ const ROOTS = '#setupSheet, #prefsSheet, #helpSheet, #statsSheet, #modesSheet, #
   check('pop-up: the quick tournament\'s Game is the same pop-up row; a real tap picks the second game', !!g0 && g0.length > 4 && g1.text === g0[1] && !g1.open, JSON.stringify([g0, g1]));
   await T.browser.close();
 
-  /* 6: every footer wholly above the pinned bar, scrolled to: each game's setup, upright and on its side */
+  /* 6: the rules' fine print behind the (i): every game, by real taps, at 393x852 */
+  {
+    const P = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true });
+    const pg = P.page, pe = (f, a) => pg.evaluate(f, a);
+    const tapEl = async sel => { const c = await pe(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }, sel); await pg.touchscreen.tap(c[0], c[1]); await pg.waitForTimeout(350); };
+    const POCKET = ['8', '9', '10', 'straight', 'rotation'];
+    const want = k => `(${POCKET.includes(k) ? `rulesFor('${k}')` : `RULESETS[DEFAULT_RULESET['${k}']]`}).description`;
+    const rows = [];
+    for (const k of KINDS) {
+      await pe(k => { backToMenu(); setSetting('cpu', k === '8'); showSetup(k); }, k);
+      await pg.waitForTimeout(300);
+      const before = await pe(() => ({ notes: [...setupSheet.querySelectorAll('.rnote, .gfoot, #setupScroll .note')].filter(n => n.getClientRects().length && n.textContent.trim()).length,
+        b: (r => [r.width, r.height])(rulesInfo.getBoundingClientRect()), glyph: (r => [r.width, r.height])(rulesInfo.querySelector('svg').getBoundingClientRect()),
+        mid: (a => (b => Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2))(setupTitle.getBoundingClientRect()))(rulesInfo.getBoundingClientRect()),
+        label: rulesInfo.getAttribute('aria-label'), hidden: rulesPop.hidden }));
+      await tapEl('#rulesInfo');
+      const r = await pe(w => { const q = rulesPop.getBoundingClientRect(), d = eval(w);
+        return { open: !rulesPop.hidden, exp: rulesInfo.getAttribute('aria-expanded'), has: rulesPopBody.textContent.includes(d), title: rulesPopTitle.textContent, src: rulesPopSrc.textContent,
+          fs: [rulesPopTitle, rulesPopSrc, rulesPopBody.firstChild].map(e => getComputedStyle(e).fontSize), inView: q.left >= 0 && q.top >= 0 && q.right <= innerWidth && q.bottom <= innerHeight,
+          near: Math.min(Math.abs(q.top - rulesInfo.getBoundingClientRect().bottom), Math.abs(q.bottom - rulesInfo.getBoundingClientRect().top)) < 12, blur: getComputedStyle(rulesPop).backdropFilter,
+          bad: /\u2014|\(felt house rule\)/.test(rulesPop.textContent) }; }, want(k));
+      if (k === '8') r.a11y = { small: await smallTargets(pg), low: await lowContrast(pg) };
+      await pg.keyboard.press('Escape');
+      await pg.waitForTimeout(100);
+      const esc = await pe(() => ({ open: !rulesPop.hidden, sheet: setupSheet.classList.contains('show'), focus: document.activeElement === rulesInfo }));
+      rows.push({ k, before, r, esc });
+    }
+    const badRows = rows.filter(({ k, before, r, esc }) => before.notes || before.b[0] < 44 || before.b[1] < 44 || Math.round(before.glyph[0]) !== 22 || before.mid > 1.5 || !/^About /.test(before.label) || !before.hidden
+      || !r.open || r.exp !== 'true' || !r.has || !/ Rules$/.test(r.title) || !r.src || r.fs.join() !== '17px,13px,15px' || !r.inView || !r.near || !/blur/.test(r.blur) || r.bad
+      || (r.a11y && (r.a11y.small.length || r.a11y.low.length)) || esc.open || !esc.sheet || !esc.focus);
+    check('setup: no fine print on any game\'s form; the (i) at the end of the Large Title (44 px, a 22 px info.circle centred on the title\'s line) opens by a real tap a popover by it on the menu material: "<Game> Rules" (Headline), the ruleset (Footnote), its description (Subheadline); Esc closes it, the sheet stays, focus back on the button',
+      !badRows.length, JSON.stringify(badRows.slice(0, 3)));
+    /* it follows a change of rules while open, and a real pick after it closes */
+    await pe(() => { backToMenu(); setSetting('cpu', false); setSetting('rules10', '10-wpa'); showSetup('10'); });
+    await pg.waitForTimeout(300);
+    await tapEl('#rulesInfo');
+    const u1 = await pe(() => ({ t: rulesPopBody.textContent, id: rulesPop.dataset.ruleset }));
+    await pe(() => setSetting('rules10', '10-house'));
+    const u2 = await pe(() => ({ t: rulesPopBody.textContent, id: rulesPop.dataset.ruleset, open: !rulesPop.hidden, src: rulesPopSrc.textContent }));
+    check('the popover follows the rules while open (WPA to Obvious Shots Free: the text changes in place)', u1.id === '10-wpa' && u1.t.includes(RULESETS_10.wpa) && u2.id === '10-house' && u2.t.includes(RULESETS_10.house) && u2.open, JSON.stringify([u1, u2]));
+    /* a tap outside (on Break, of all places) closes it and does nothing else */
+    await tapEl('#breakBtn');
+    const o = await pe(() => ({ open: !rulesPop.hidden, sheet: setupSheet.classList.contains('show'), state: felt.state, menu: menu.classList.contains('show') || setupSheet.classList.contains('show') }));
+    check('a tap outside the popover (on Break) closes it and does nothing else: the sheet stays, no game starts', !o.open && o.sheet && o.menu, JSON.stringify(o));
+    await choose(pg, '#rs10Wpa', { touch: true });
+    await tapEl('#rulesInfo');
+    const u3 = await pe(() => ({ id: rulesPop.dataset.ruleset, s: felt.settings.rules10, open: !rulesPop.hidden }));
+    await tapEl('#rulesPopDone');
+    const u4 = await pe(() => ({ open: !rulesPop.hidden, focus: document.activeElement === rulesInfo }));
+    check('a real pick of WPA in Rules, then the (i): the popover shows WPA; Done closes it, focus back on the button', u3.id === '10-wpa' && u3.s === '10-wpa' && u3.open && !u4.open && u4.focus, JSON.stringify([u3, u4]));
+    check('6: no page errors', !P.errors.length, P.errors.join(' | '));
+    await P.browser.close();
+  }
+  /* the popover fits the screen, upright at 375x667 and on its side */
+  for (const [w, h] of [[375, 667], [852, 393], [956, 440]]) {
+    const P = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true });
+    const fit = [];
+    for (const k of KINDS) {
+      await P.page.evaluate(k => { backToMenu(); setSetting('cpu', true); setSetting('stalemate', true); showSetup(k); }, k);
+      await P.page.waitForTimeout(150);
+      const c = await P.page.evaluate(() => { const r = rulesInfo.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+      await P.page.touchscreen.tap(c[0], c[1]);
+      await P.page.waitForTimeout(350);
+      fit.push(await P.page.evaluate(k => { const q = rulesPop.getBoundingClientRect(); return { k, open: !rulesPop.hidden, ok: q.left >= 0 && q.top >= 0 && q.right <= innerWidth && q.bottom <= innerHeight && rulesPop.scrollHeight <= rulesPop.clientHeight + 1 }; }, k));
+      await P.page.keyboard.press('Escape');
+    }
+    check(`${w}x${h}: every game's rules popover opens by a real tap and fits the screen whole`, fit.every(f => f.open && f.ok), JSON.stringify(fit.filter(f => !(f.open && f.ok))));
+    await P.page.evaluate(() => setSetting('stalemate', false));
+    await P.browser.close();
+  }
+
+  /* 7: no scrolling, every game, both opponents, five screens */
+  for (const [w, h] of [[375, 667], [393, 852], [440, 956], [852, 393], [956, 440]]) {
+    const P = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true });
+    const out = await P.page.evaluate(async KINDS => {
+      const r = [];
+      for (const k of KINDS) for (const cpu of [false, true]) {
+        backToMenu(); setSetting('cpu', cpu); showSetup(k);
+        await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+        const b = breakBtn.getBoundingClientRect(), hr = setupHero.getBoundingClientRect(), S = setupHero.parentElement.getBoundingClientRect(), side = innerWidth > innerHeight;
+        const heroOk = side ? hr.height >= innerHeight - 1 && hr.width >= 0.25 * innerWidth : hr.height >= HERO_MIN * S.height - 0.5;
+        r.push({ k, cpu, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, ov: getComputedStyle(setupScroll).overflowY, brk: [Math.round(b.top), Math.round(b.bottom)], hero: Math.round(side ? hr.width : hr.height), fit: setupSheet.dataset.fit || '0',
+          ok: setupScroll.scrollHeight <= setupScroll.clientHeight + 1 && getComputedStyle(setupScroll).overflowY === 'hidden' && b.top >= 0 && b.bottom <= innerHeight && b.height === 50 && heroOk });
+      }
+      return r;
+    }, KINDS);
+    const bad = out.filter(o => !o.ok);
+    check(`no scroll ${w}x${h}: all eight games' setups, two players and CPU, fit whole (the form still, Break wholly in view, the hero at least its floor)`, !bad.length, JSON.stringify(bad));
+    /* a real finger drag up the form (the tallest: 8-ball against the CPU) moves nothing */
+    await P.page.evaluate(() => { backToMenu(); setSetting('cpu', true); showSetup('8'); });
+    await P.page.waitForTimeout(300);
+    const cdp = await P.page.context().newCDPSession(P.page);
+    const a = await P.page.evaluate(() => { const r = levelSeg.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height * 0.8]; });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: a[0], y: a[1] }] });
+    for (let i = 1; i <= 8; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: a[0], y: a[1] - i * 20 }] }); await P.page.waitForTimeout(16); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await P.page.waitForTimeout(300);
+    const dr = await P.page.evaluate(() => ({ top: setupScroll.scrollTop, sheet: setupSheet.classList.contains('show'), page: document.scrollingElement.scrollTop }));
+    check(`no scroll ${w}x${h}: a real finger drag up the 8-ball CPU form leaves it where it was (scrollTop 0, the sheet open)`, dr.top === 0 && dr.page === 0 && dr.sheet, JSON.stringify(dr));
+    check(`no scroll ${w}x${h}: no page errors`, !P.errors.length, P.errors.join(' | '));
+    await P.browser.close();
+  }
+  /* and the modes' and the career's pinned pages, upright and on its side */
   for (const [w, h] of [[393, 852], [375, 667], [852, 393]]) {
     const P = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true });
-    const out = await P.page.evaluate(KINDS => KINDS.flatMap(k => [false, true].map(cpu => {
-      backToMenu(); setSetting('cpu', cpu); showSetup(k);
-      setupScroll.scrollTop = 1e5;
-      const bar = setFoot.getBoundingClientRect(), notes = [...setupSheet.querySelectorAll('.rnote')].filter(n => n.getClientRects().length && n.textContent.trim());
-      return { k, cpu, ok: notes.every(n => { const r = n.getBoundingClientRect(); return r.bottom <= bar.top + 0.5 && r.top >= setupScroll.getBoundingClientRect().top - 0.5; }), n: notes.length };
-    })), KINDS);
-    const bad = out.filter(o => !o.ok);
-    check(`footers ${w}x${h}: every setup's group footer (the rules' fine print) sits wholly above the pinned Break bar when scrolled to`, !bad.length && out.some(o => o.n), JSON.stringify(bad));
     /* and the modes' and the career's pinned pages: their last footer above the pinned action */
     const cv = await P.page.evaluate(() => [['tsetup', () => showModes('tsetup'), modesSheet], ['psetup', () => showModes('psetup'), modesSheet], ['create', () => { showCareer(); felt.careerGo('create'); }, careerSheet]].map(([n, go, sh]) => {
       backToMenu(); go();

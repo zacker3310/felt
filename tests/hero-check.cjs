@@ -53,13 +53,13 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const b = await ev(() => ({ frames: felt.hero.frames, raf: felt.hero.raf, state: felt.hero.state }));
     const sim = await ev(k => __simFinal(k), kind);
     sigs[kind] = a.sig;
-    check(`${kind}: the hero is full bleed, ${(a.box[3] / a.vh * 100).toFixed(1)}% of the height (30-50%), and not blank (variance ${a.sig.varc.toFixed(0)})`,
-      a.box[0] === 0 && Math.abs(a.box[2] - a.vw) < 0.5 && a.box[3] >= 0.3 * a.vh - 0.5 && a.box[3] <= 0.5 * a.vh + 0.5 && a.sig.varc > 200);
+    check(`${kind}: the hero is full bleed, ${(a.box[3] / a.vh * 100).toFixed(1)}% of the height (20-50%), and not blank (variance ${a.sig.varc.toFixed(0)})`,
+      a.box[0] === 0 && Math.abs(a.box[2] - a.vw) < 0.5 && a.box[3] >= 0.2 * a.vh - 0.5 && a.box[3] <= 0.5 * a.vh + 0.5 && a.sig.varc > 200);
     /* the empty band between the form's last line and Break */
     const band = await ev(() => { let b = 0; for (const c of setupScroll.children) if (c.getClientRects().length) b = Math.max(b, c.getBoundingClientRect().bottom);
       const pad = parseFloat(getComputedStyle(setupScroll).paddingBottom); return { band: Math.round(breakBtn.getBoundingClientRect().top - b - pad), h: setupHero.getBoundingClientRect().height, vh: innerHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight }; });
-    check(`${kind}: the hero takes the spare room (band above Break ${band.band} px: 24 px or less, or the hero at its 50% cap; the form never scrolled by it)`,
-      (band.band <= 24 || band.h >= 0.5 * band.vh - 0.5 || band.h <= 0.3 * band.vh + 0.5 && band.sh > band.ch) && !(band.h > 0.3 * band.vh + 0.5 && band.sh > band.ch), JSON.stringify(band));
+    check(`${kind}: the hero takes the spare room (band above Break ${band.band} px: 24 px or less, or the hero at its 50% cap; the form never scrolls)`,
+      (band.band <= 24 || band.h >= 0.5 * band.vh - 0.5) && band.sh <= band.ch + 1, JSON.stringify(band));
     check(`${kind}: the shot settles within 5 s of opening (${settleMs} ms), then no frame is asked for`, ok && b.state === 'done' && !b.raf && b.frames === a.h.frames && mid.state === 'play', JSON.stringify({ settleMs, mid: mid.state, b }));
     const same = JSON.stringify(sim.balls) === JSON.stringify(a.h.final);
     /* Node's sim on the same table */
@@ -182,7 +182,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const r = setupBack.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), bb = breakBtn.getBoundingClientRect();
     return { w: r.width, h: r.height, top: setupBack.contains(t), hero: setupHero.getBoundingClientRect().height, fit: setupScroll.scrollHeight <= setupScroll.clientHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, brk: [bb.top, bb.bottom, bb.height], vh: innerHeight }; });
   check('the back button over the hero: 44 px and on top', lay.w >= 44 && lay.h >= 44 && lay.top, JSON.stringify(lay));
-  check('8-Ball for two players fits whole at 393x852 under a hero of 30% to 50% (the HIG list is shorter: the hero takes the room it leaves), Break pinned and wholly in view', lay.fit && lay.hero >= 0.3 * lay.vh - 0.5 && lay.hero <= 0.5 * lay.vh + 0.5 && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
+  check('8-Ball for two players fits whole at 393x852 under a hero of 20% to 50% (the hero takes the room the form leaves), Break pinned and wholly in view', lay.fit && lay.hero >= 0.2 * lay.vh - 0.5 && lay.hero <= 0.5 * lay.vh + 0.5 && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
   /* the CPU's cards make the snooker form taller: the hero gives the room back, then takes it again */
   const opp = await ev(async () => { backToMenu(); setSetting('cpu', false); showSetup('snooker'); await new Promise(r => setTimeout(r, 300)); const h0 = setupHero.getBoundingClientRect().height;
     vsCpu.click(); await new Promise(r => setTimeout(r, 300)); const h1 = setupHero.getBoundingClientRect().height, fit1 = setupScroll.scrollHeight <= setupScroll.clientHeight;

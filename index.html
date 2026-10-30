@@ -740,9 +740,47 @@ button.topic:active { background: var(--sys-press); transition-duration: 0s; }
   -webkit-user-select: text; user-select: text; }
 .names input::placeholder { color: var(--sys-label-3); }
 .names input:focus { outline: 2px solid var(--sys-label-2); outline-offset: -2px; }
-/* the rules' fine print: the Rules group's footer */
-#setupSheet .rnote { margin: var(--foot-mt) var(--row-px) 0; }
-#setupSheet .rnote:empty { display: none; }
+/* the rules' fine print is not on the form: the (i) at the trailing end of the Large Title opens it
+   in a popover of the menu material (info.circle, 22 pt in the secondary label colour, a 44 pt
+   target, centred on the title's line; 6r) */
+.titleRow { display: flex; align-items: center; gap: var(--sp-2); }
+.titleRow .title { flex: 1 1 auto; min-width: 0; }
+.infoBtn { flex: none; position: relative; width: 44px; height: 44px; margin: -2px -11px -2px 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: none;
+  color: var(--sys-label-2); pointer-events: auto; cursor: pointer; }
+.infoBtn svg { width: 22px; height: 22px; display: block; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)); }
+.infoBtn:active, .infoBtn[aria-expanded="true"] { color: var(--sys-label); }
+.infoPop { position: fixed; z-index: 60; left: 0; top: 0; width: min(320px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain;
+  padding: 4px var(--row-px) var(--sp-4); border-radius: var(--r-menu); background: var(--mat-menu); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+  box-shadow: var(--menu-shadow); color: var(--sys-label); text-align: left; transform-origin: var(--pop-o, top right); animation: popMenuIn .26s cubic-bezier(.2, .9, .25, 1.08) both; }
+.infoPop[hidden] { display: none; }
+.infoPop:focus { outline: none; }
+.ipHead { display: flex; align-items: center; gap: var(--sp-2); min-height: var(--row-h); }
+.ipHead h3 { flex: 1 1 auto; min-width: 0; margin: 0; font: var(--t-headline); letter-spacing: var(--tr-body); color: var(--sys-label); }
+.ipDone { flex: none; min-width: 44px; min-height: 44px; margin-right: -8px; padding: 0 8px; border: 0; background: none; color: var(--sys-label); font: var(--t-headline); letter-spacing: var(--tr-body); }
+.ipSrc { margin: 0 0 var(--sp-2); font: var(--t-footnote); letter-spacing: var(--tr-footnote); color: var(--sys-label-2); }
+.ipBody p { margin: var(--sp-2) 0 0; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label); }
+.ipBody p:first-child { margin-top: 0; }
+[data-motion="reduce"] .infoPop { animation: none; }
+@media (prefers-reduced-motion: reduce) { .infoPop { animation: none; } }
+/* no scrolling (fitSetupRows): the hero gives first (heroFit, down to its floor), then the spacing
+   in steps, each only as needed: fit1 the list's end, the tutorial row's gap and the hero's room
+   over its title; fit2 the game's
+   line on one line; fit3 the CPU's rows on one line (the level as the row's value); fit4 the table
+   and the rules groups as one. A form that fits does not scroll at all (.still); one that cannot
+   (Larger and Largest Text) scrolls as before */
+#setupSheet .setScroll.still { overflow-y: hidden; overscroll-behavior: none; touch-action: pan-x pinch-zoom; }
+#setupSheet[data-fit] .setScroll { padding-bottom: 0; }
+#setupSheet[data-fit] .tutLink { margin-top: 0; }
+#setupSheet[data-fit] .hero { padding-top: calc(var(--sat, 0px) + 58px); }   /* the back button's 44 pt from 10 pt down, and 4 pt clear */
+#setupSheet:is([data-fit="2"], [data-fit="3"], [data-fit="4"]) #setupSub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#setupSheet:is([data-fit="3"], [data-fit="4"]) .foe { padding-top: 0; padding-bottom: 0; }
+#setupSheet:is([data-fit="3"], [data-fit="4"]) .foe .tt { display: flex; align-items: baseline; gap: var(--sp-3); }
+#setupSheet:is([data-fit="3"], [data-fit="4"]) .foe b { flex: none; }
+#setupSheet:is([data-fit="3"], [data-fit="4"]) .foe small { flex: 1 1 auto; min-width: 0; font: var(--t-body); letter-spacing: var(--tr-body); text-align: right; }
+#setupSheet[data-fit="4"] .colB > .sgrp:has(+ .sgrp > :not([hidden])) { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+#setupSheet[data-fit="4"] .colB > .sgrp + .sgrp { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+#setupSheet[data-fit="4"] .colB > .sgrp + .sgrp::before { content: ""; position: absolute; z-index: 1; top: 0; left: var(--row-px); right: 0; height: 1px;
+  transform: scaleY(var(--hl)); transform-origin: top; background: var(--sys-sep); pointer-events: none; }
 /* on its side: two columns (who plays on the left, the table and rules on the right) */
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
   #setupSheet .sheet.setup { max-width: 860px; }
@@ -758,11 +796,12 @@ button.topic:active { background: var(--sys-press); transition-duration: 0s; }
 }
 /* on its side: the hero a panel down the left, the form and Break on the right */
 @media (orientation: landscape) and (max-height: 500px) {
-  #setupSheet .sheet.setup { display: grid; grid-template-columns: minmax(0, 41fr) minmax(0, 59fr); grid-template-rows: minmax(0, 1fr) auto; }
+  #setupSheet .sheet.setup { display: grid; grid-template-columns: minmax(0, 32fr) minmax(0, 68fr); grid-template-rows: minmax(0, 1fr) auto; }
   #setupSheet .hero { grid-row: 1 / 3; grid-column: 1; height: auto; padding-right: 16px; }
-  #setupSheet .setScroll { grid-column: 2; display: block; padding-left: 16px; }
+  #setupSheet .setScroll { grid-column: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 16px; align-items: start; padding-left: 16px; }
   #setupSheet .setFoot { grid-column: 2; padding-left: 16px; }
-  #setupSheet .colB > .sgrp:first-child { margin-top: 14px; }
+  #setupSheet .colB > .sgrp:first-child { margin-top: var(--sp-2); }
+  #setupSheet .colA > .tutLink[hidden] + .sgrp { margin-top: var(--sp-2); }
 }
 /* the text sizes (the sheet is zoomed): the sheet keeps the screen's height */
 [data-text="115"] #setupSheet .sheet.setup { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
@@ -1598,7 +1637,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <canvas id="setupHeroArt" aria-hidden="true"></canvas>
       <button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <span class="ball b8" id="setupBall" aria-hidden="true">8</span>
-      <div class="heroTxt"><h2 class="title" id="setupTitle">8-Ball</h2><p class="sub" id="setupSub"></p></div>
+      <div class="heroTxt"><div class="titleRow"><h2 class="title" id="setupTitle">8-Ball</h2><button class="infoBtn" id="rulesInfo" type="button" aria-label="About These Rules" aria-haspopup="dialog" aria-expanded="false" aria-controls="rulesPop"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.6" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="11" cy="6.9" r="1.25" fill="currentColor"/><path d="M9.3 9.6h2.2v6.2M9.2 15.9h4.4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><p class="sub" id="setupSub"></p></div>
     </div>
     <div class="setScroll" id="setupScroll">
     <div class="colA">
@@ -1644,10 +1683,14 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <div class="field stm" hidden><span class="label" id="smLab">Stalemate</span>
         <div class="seg pop" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play On</button><button id="smOn" aria-pressed="false">Re-Rack (House)</button></div></div>
     </div>
-    <p class="note rnote" id="rulesNote"></p>
     </div>
     </div>
     <div class="setFoot" id="setFoot"><button class="big cta" id="breakBtn">Break</button></div>
+    <div class="infoPop" id="rulesPop" role="dialog" aria-labelledby="rulesPopTitle" tabindex="-1" hidden>
+      <div class="ipHead"><h3 id="rulesPopTitle">8-Ball Rules</h3><button class="ipDone" id="rulesPopDone" type="button">Done</button></div>
+      <p class="ipSrc" id="rulesPopSrc"></p>
+      <div class="ipBody" id="rulesPopBody"></div>
+    </div>
   </div>
 </div>
 
@@ -7925,7 +7968,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-30c';
+const BUILD = 'build 2026-10-30d';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -12833,7 +12876,7 @@ function popPlace(seg) {
   seg.style.animation = '';
 }
 function popShow(seg) {
-  popClose();
+  popClose(); infoClose();
   popOpen = seg;
   seg.classList.add('open');
   seg._pop.setAttribute('aria-expanded', 'true');
@@ -12963,13 +13006,13 @@ const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet
 function openSheet(el, focus) {
   if (!leftNote.hidden) hideLeftNote();
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
-  popClose();
+  popClose(); infoClose();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
   if (mo.src && mo.src.sheet !== el) mo.src = null;   /* only the sheet a card opened goes back into it (6m) */
   el.scrollTop = 0;
   if (byKeys && focus) focus.focus({ preventScroll: true });
 }
-function closeSheets() { popClose(); for (const s of SHEETS()) s.classList.remove('show'); }
+function closeSheets() { popClose(); infoClose(); for (const s of SHEETS()) s.classList.remove('show'); }
 function backToMenu() { closeSheets(); closeSolo(); showMenu(); }
 /* Esc: the sheet on top closes (the trick result goes to the list); false when none was open */
 function escSheet() {
@@ -12998,9 +13041,71 @@ function syncSetupRules() {
   const kind = setupKind;
   for (const [cls, on] of [['.r8', kind === '8'], ['.r9', kind === '9'], ['.r10', kind === '10'], ['.str', kind === 'straight'], ['.stm', kind === '8' || kind === '9']])
     for (const el of setupSheet.querySelectorAll(cls)) el.hidden = !on;
-  const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : null, t = R ? `${R.name} (${R.source}). ${R.description}` : '';
-  if (rulesNote.textContent !== t) rulesNote.textContent = t;
+  rulesInfoSync();
 }
+/* ---- 6r. the rules' fine print, behind the (i) at the end of the setup's Large Title: a popover
+   of the menu material anchored to the button (under it, or over it near the foot of the
+   screen), the game's rules as a Headline, the ruleset's name, its description and the choices'
+   fine print in sentence case. It follows the choices while open. A tap outside closes it and
+   does nothing else, as Esc, Done, the button again, a resize or the sheet closing do; focus goes
+   back to the button. ---- */
+const RULES_SRC = { '8-house': 'House rules', '8-wpa': 'WPA world standardized rules', '9-house': 'House rules', '9-wpa': 'WPA world standardized rules, with the push out',
+  '10-wpa': 'WPA world standardized rules', '10-house': 'WPA rules, obvious shots called for you', 'straight-wpa': '14.1 continuous, WPA world standardized rules',
+  rotation: 'American rotation, house rules', bumper: 'House rules', carom: 'UMB rules, simplified', snooker: 'WPBSA rules, simplified' };
+function rulesInfoOf(kind) {
+  const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : RULESETS[DEFAULT_RULESET[kind]], ps = [R.description];
+  if (kind === '8' || kind === '9') ps.push(settings.stalemate ? `Stalemate: after ${STALEMATE_INNINGS} innings with no ball potted, the balls are racked again.` : 'Stalemate: play on. A rack with no ball potted is played out.');
+  if (kind === 'straight') ps.push(`First to ${settings.race141} points wins.`);
+  if (kind === 'carom') ps.push(`First to ${settings.caromRace} points wins.` + (settings.caromCush === 1 ? ' The easier game: one cushion before the second ball is enough.' : ''));
+  if (kind === 'snooker') ps.push(settings.snookerFrames === 3 ? 'Best of three frames.' : 'One frame.', 'After a foul the player fouled chooses: play on, have it played again, or take a free ball when snookered.');
+  return { id: R.id, title: titleCase(KINDS[kind].name) + ' Rules', src: RULES_SRC[R.id] || R.source, ps };
+}
+function rulesInfoSync() {
+  const I = rulesInfoOf(setupKind), key = JSON.stringify(I);
+  if (rulesPop._key === key) return;
+  rulesPop._key = key; rulesPop.dataset.ruleset = I.id;
+  rulesPopTitle.textContent = I.title; rulesPopSrc.textContent = I.src;
+  rulesPopBody.replaceChildren(...I.ps.map(t => { const e = document.createElement('p'); e.textContent = t; return e; }));
+  rulesInfo.setAttribute('aria-label', `About ${I.title}`);
+  if (!rulesPop.hidden) infoPlace();
+}
+function infoPlace() {
+  const r = rulesInfo.getBoundingClientRect(), el = rulesPop;
+  el.style.animation = 'none'; el.style.left = '0px'; el.style.top = '0px';
+  let o = el.getBoundingClientRect();
+  const z = o.width / (el.offsetWidth || 1) || 1, m = 8, gap = 4 * z;
+  el.style.maxHeight = Math.max(120, (innerHeight - 2 * m) / z) + 'px';
+  o = el.getBoundingClientRect();
+  const w = o.width, h = o.height, x = Math.max(m, Math.min(innerWidth - m - w, r.right - w));
+  let y = r.bottom + gap, up = false;
+  if (y + h > innerHeight - m) { y = r.top - gap - h; up = true; }
+  if (y < m) { y = Math.max(m, Math.min(r.bottom + gap, innerHeight - m - h)); up = false; }
+  el.style.left = (x - o.left) / z + 'px'; el.style.top = (y - o.top) / z + 'px';
+  el.style.setProperty('--pop-o', (up ? 'bottom ' : 'top ') + (r.right - w > m ? 'right' : 'left'));
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+function infoOpen() {
+  popClose();
+  rulesInfoSync();
+  rulesPop.hidden = false; rulesInfo.setAttribute('aria-expanded', 'true');
+  infoPlace();
+  rulesPop.focus({ preventScroll: true });
+}
+function infoClose(focus) {
+  if (rulesPop.hidden) return false;
+  rulesPop.hidden = true; rulesInfo.setAttribute('aria-expanded', 'false');
+  if (focus) rulesInfo.focus({ preventScroll: true });
+  return true;
+}
+rulesInfo.addEventListener('click', () => { if (rulesPop.hidden) infoOpen(); else infoClose(true); });
+rulesPopDone.addEventListener('click', () => infoClose(true));
+addEventListener('pointerdown', e => {
+  if (rulesPop.hidden || rulesPop.contains(e.target) || rulesInfo.contains(e.target)) return;
+  infoClose(true); popSwallow = performance.now();   /* the tap that closes it does nothing else (6p) */
+}, true);
+addEventListener('keydown', e => { if (e.key === 'Escape' && infoClose(true)) { e.stopPropagation(); e.preventDefault(); } }, true);
+addEventListener('resize', () => infoClose());
 /* the home's game cards, each named for a screen reader with its setup as it stands (the setup
    opens on the choices last made: they are settings), the modes' lines, and the setup's records
    against each CPU opponent */
@@ -13048,13 +13153,26 @@ function showSetup(kind) {
   if (!morphHolds(() => heroShow(kind, true))) heroShow(kind, true);   /* after the card's morph lands (6m) */
   paintArt();
 }
-/* the setup's layout once its rows are in: the hero's height (heroFit), and the hairline over the
-   foot's bar only while the list runs on under it. A choice never folds: a pop-up row's value
-   ellipsises, the segmented control's words are short */
+/* the setup's layout once its rows are in, so that it never scrolls: the hero gives first (heroFit,
+   down to its floor), then the spacing in steps (data-fit 1 to FIT_STEPS, the first that fits).
+   A form that fits is still (no scroll, no bounce); one that cannot even then (Larger and Largest
+   Text) scrolls, the hairline over the foot's bar while the list runs on under it. A choice never
+   folds: a pop-up row's value ellipsises, the segmented control's words are short */
+const FIT_STEPS = 4;
 function fitSetupRows() {
   if (!setupSheet.classList.contains('show')) return;
-  heroFit();
-  setFoot.classList.toggle('whole', setupScroll.scrollHeight <= setupScroll.clientHeight);
+  let f;
+  for (let i = 0; ; i++) {
+    const v = i ? String(i) : undefined;
+    if (setupSheet.dataset.fit !== v) { if (v) setupSheet.dataset.fit = v; else delete setupSheet.dataset.fit; }
+    f = setupRoom();
+    if (f.fits || i === FIT_STEPS) break;
+  }
+  heroFit(f);
+  const whole = setupScroll.scrollHeight <= setupScroll.clientHeight + 1;
+  setupScroll.classList.toggle('still', whole);
+  if (whole && setupScroll.scrollTop) setupScroll.scrollTop = 0;
+  setFoot.classList.toggle('whole', whole);
 }
 /* Break (or Play again): the setup is remembered, and the game starts on it */
 function playSetup(kind) {
@@ -13614,23 +13732,30 @@ const heroTxtH = W => { const t = document.querySelector('#setupHero .heroTxt');
    together (text-wrap: balance does better where the browser has it; this is its fallback) */
 const noWidow = t => t.replace(/ (\S+)$/, '\u00a0$1');
 /* ---- the controller ---- */
-/* the hero takes the room a short form leaves (portrait phone): between 30% and 50% of the sheet,
-   as tall as the form and Break allow; a form that needs the room keeps the CSS 30% exactly.
-   Run whenever the form's size may change (fitSetupRows, and a ResizeObserver on its columns). */
-const HERO_MIN = 0.3, HERO_MAX = 0.5;
-function heroFit() {
+/* the setup's room (portrait phone): the form's height, the sheet's, Break's bar and the hero's
+   floor (HERO_MIN of the sheet, or its words and the back button's room if more), in screen px.
+   fits: the form and Break fit with the hero at its floor or more. Elsewhere (on its side, a card)
+   the hero is not in the form's column: fits when the form fits its own box. */
+const HERO_MIN = 0.2, HERO_MAX = 0.5;
+function setupRoom() {
+  const el = setupHero, sc = setupScroll, r = sc.getBoundingClientRect(), k = el.offsetHeight / (el.getBoundingClientRect().height || 1) || 1;
+  const phone = matchMedia('(max-width: 600px), (max-height: 500px)').matches, side = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
+  let bottom = r.top;
+  for (const c of sc.children) if (c.getClientRects().length) bottom = Math.max(bottom, c.getBoundingClientRect().bottom);
+  const content = bottom - r.top + sc.scrollTop / k + parseFloat(getComputedStyle(sc).paddingBottom) / k;
+  if (!phone || side) return { portrait: false, fits: content <= r.height + 1 };
+  const S = el.parentElement.getBoundingClientRect().height, cs = getComputedStyle(el), txt = el.querySelector('.heroTxt');
+  const words = (parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + txt.offsetHeight) / k;
+  const floor = Math.max(HERO_MIN * S, words), spare = S - setFoot.getBoundingClientRect().height - content - 1;
+  return { portrait: true, S, k, floor, spare, fits: spare >= floor - 0.5 };
+}
+/* the hero (portrait phone): the room the form leaves, between its floor and HERO_MAX of the sheet;
+   a form too tall for that (Larger Text) keeps the hero at its floor and scrolls. Run whenever the
+   form's size may change (fitSetupRows, and a ResizeObserver on its columns). */
+function heroFit(f = setupRoom()) {
   const el = setupHero;
   if (!setupSheet.classList.contains('show')) return;
-  const phone = matchMedia('(max-width: 600px), (max-height: 500px)').matches, side = matchMedia('(orientation: landscape) and (max-height: 500px)').matches;
-  let want = '';
-  if (phone && !side) {
-    const S = el.parentElement.getBoundingClientRect().height, sc = setupScroll, r = sc.getBoundingClientRect(), k = el.offsetHeight / (el.getBoundingClientRect().height || 1);
-    let bottom = r.top;
-    for (const c of sc.children) if (c.getClientRects().length) bottom = Math.max(bottom, c.getBoundingClientRect().bottom);
-    const content = bottom - r.top + sc.scrollTop / k + parseFloat(getComputedStyle(sc).paddingBottom) / k;
-    const spare = S - setFoot.getBoundingClientRect().height - content - 1;
-    if (spare > HERO_MIN * S + 8) want = Math.round(Math.min(spare, HERO_MAX * S) * k) + 'px';
-  }
+  const want = f.portrait ? Math.round(Math.min(Math.max(f.spare, f.floor), HERO_MAX * f.S) * f.k) + 'px' : '';
   if (el.style.height !== want) { el.style.height = want; if (hero.data) heroShow(setupKind); }
 }
 function heroSize() {
@@ -13713,7 +13838,7 @@ function heroInfo() {
 }
 setupHeroArt.addEventListener('click', heroReplay);
 /* the form grows or shrinks (the CPU's cards, a folded choice, the text size): the hero follows */
-if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => heroFit()); for (const c of setupScroll.children) ro.observe(c); }
+if (typeof ResizeObserver === 'function') { let q = 0; const ro = new ResizeObserver(() => { if (!q) q = requestAnimationFrame(() => { q = 0; fitSetupRows(); }); }); for (const c of setupScroll.children) ro.observe(c); }
 
 /* ---- 4o. the 3D view ----
    Settings > Graphics > Table View (settings.view: 'top', the default, or '3d'), and the 3D button on

@@ -180,9 +180,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   real `strike`/`stepTable` (`HERO_SHOTS` per table via `heroKey`, `heroSetup`; re-solve with `node tools/hero-solver.cjs`
   after any cloth, strike or rack change; it keeps only shots whose every pot goes in at `POT_V` or faster with no ball left on a lip, as a dribble reads as a hang-up from the low camera). A potted ball leaves the table: `heroDraw` drops it into its pocket over `HERO_DROP_MS` on the screen's clock (cut by the mouth, fading; `heroPotT`), never frozen at the mouth. Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
   in a task after the sheet opens, then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
-  final still). `felt.hero` reports it. Its height is `heroFit()` (portrait phone): 30% of the sheet, growing into the
-  room a short form leaves up to 50% (a ResizeObserver on the form's columns and `fitSetupRows` rerun it); the camera
-  rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
+  final still). `felt.hero` reports it. Its height is `heroFit()` (portrait phone): the room the form leaves, from its
+  floor (`HERO_MIN` 20% of the sheet, or its words and the back button's room if more) up to 50% (`setupRoom` measures;
+  a ResizeObserver on the form's columns reruns `fitSetupRows` in a frame); the camera rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
   `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
 - Sound and haptics (sections 2, 2h): the table's sounds are real CC0 recordings in `sounds/` (`SFX_FILES`: 10 ball
   clacks, 4 cue strikes, 3 cushions, 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
@@ -220,14 +220,22 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   chevron.up.chevron.down); the open menu is fixed, placed by `popPlace` in its own coordinates (zoom-proof), closed
   by a pick, a tap outside (swallowed), Esc, a real scroll or a resize. A long or many-option choice is a pop-up
   (`cvSeg` decides for the career and modes). Tests pick through `choose(page, sel)` / `openPop` in `tests/lib.cjs`
-  (real taps, the menu first). Blur only on the menu and pinned bars, never over the table (boot-check).
-  `hig-check` pins it (row heights, the ramp, hairlines, segmented metrics, the menu by real taps, footers above Break).
-- Setup sheets pin their primary action. The game setup is the hero (Large Title 34, a Subheadline line, no eyebrow)
-  over a scrolling inset grouped list (`#setupScroll`: the tutorial's plain row "Learn 8-Ball", Opponent as a segmented
-  control with the CPU's three rows (`.foe`: ball, name, level and record, a checkmark) or the two names, then pop-up
-  rows for Table, Pockets, Rules, Stalemate and the rest, the rules' fine print as the Rules group's footer) over
-  `.setFoot` holding `#breakBtn` (a 50 px capsule above `--sab`; a hairline over it while the list runs on under it,
-  `fitSetupRows()`). Career and modes setup pages end with `cvPin(...)` (sticky `.cvAct.pin` on the bar material), a
+  (real taps, the menu first). Blur only on the menu, the rules popover and pinned bars, never over the table (boot-check).
+  `hig-check` pins it (row heights, the ramp, hairlines, segmented metrics, the menu by real taps, the setup's (i)
+  popover, no scrolling on the setup).
+- Setup sheets pin their primary action. The game setup is the hero (Large Title 34 with the (i) `#rulesInfo` at its
+  trailing end, a Subheadline line, no eyebrow) over an inset grouped list (`#setupScroll`: the tutorial's plain row
+  "Learn 8-Ball", Opponent as a segmented control with the CPU's three rows (`.foe`: ball, name, level and record, a
+  checkmark) or the two names, then pop-up rows for Table, Pockets, Rules, Stalemate and the rest) over `.setFoot`
+  holding `#breakBtn` (a 50 px capsule above `--sab`). No fine print on the form: the rules' words (`rulesInfoOf`: the
+  ruleset's name in `RULES_SRC`, its description, the choices' fine print) are in `#rulesPop` (page 6r), a popover of
+  the menu material anchored to the (i), following the choices live, closed by an outside tap (swallowed), Esc, Done,
+  the (i), a resize or the sheet closing, focus back on the button. It never scrolls: `fitSetupRows()` lets the hero
+  give first (heroFit to its floor), then steps `data-fit` 1 to 4 until the form fits (1 the list's end, the tutorial
+  row's gap and the hero's room over its title; 2 the game's line on one line; 3 the CPU rows on one line; 4 the table
+  and rules groups as one); a form that fits is `.still` (overflow hidden, no bounce). On its side the hero is a 32%
+  panel and the form two columns. Larger and Largest Text may scroll (the accessibility fallback, the hairline over
+  the bar while the list runs on under it). A new setup row must still fit 8-ball vs the CPU at 375x667 (3 px spare). Career and modes setup pages end with `cvPin(...)` (sticky `.cvAct.pin` on the bar material), a
   drill with `.howAct`: a new setup page puts its action there, never inline at the end. The house rulesets are named
   "House Rules" ("8-ball, house rules"). `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852
   and 440x956, text sizes, landscape).

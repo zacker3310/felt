@@ -188,8 +188,8 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   const ms = await p.evaluate(() => ({ home: menu.classList.contains('show'), tiles: [play10, playStr, playRot].map(b => b.parentElement === playRow && b.getClientRects().length ? b.dataset.kind : null) }));
   check('more: 10-ball, straight pool and rotation are cards on home with the other games', ms.home && ms.tiles.join() === '10,straight,rotation', JSON.stringify(ms));
   await p.click('#playStr');
-  const st = await p.evaluate(() => ({ title: setupTitle.textContent, race: !document.querySelector('#setupSheet .str').hidden, note: rulesNote.textContent }));
-  check('more: straight pool\'s setup has the race and the WPA rules note', st.title === 'Straight Pool' && st.race && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));
+  const st = await p.evaluate(() => ({ title: setupTitle.textContent, race: !document.querySelector('#setupSheet .str').hidden, note: rulesPopSrc.textContent + ' ' + rulesPopBody.textContent, info: !!rulesInfo }));
+  check('more: straight pool\'s setup has the race, and its (i) the WPA 14.1 rules', st.title === 'Straight Pool' && st.race && st.info && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));
   await choose(p, '#rc25');
   await p.click('#breakBtn');
   const sp = await p.evaluate(() => ({ kind: felt.game.kind, race: felt.game.race, n: felt.game.balls.filter(b => b.on).length, last: settings.last }));

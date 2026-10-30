@@ -318,13 +318,13 @@ const homeFit = page => page.evaluate(() => {
     check(`setup ${tag}: each of the eight games' setups (opened by a real tap) has Break (Play) pinned inside the screen above the safe area without scrolling, on top, 50 px; a real tap there starts that game; no choice crowded, no sideways scroll`,
       rows.every(r => r.ok && r.h === 50 && r.side && !r.cr.length && r.started), JSON.stringify(rows.filter(r => !(r.ok && r.h === 50 && r.side && !r.cr.length && r.started))));
     check(`setup ${tag}: 8-ball and snooker setups: 44 px targets, text 4.5:1`, !bad.length, JSON.stringify(bad));
-    /* 8-Ball, two players: the whole form fits at 393x852; at 375x667 it scrolls under a Break that stays put */
-    const f8 = await pev(() => { backToMenu(); setSetting('cpu', false); showSetup('8'); const r0 = breakBtn.getBoundingClientRect().top; const fit = setupScroll.scrollHeight <= setupScroll.clientHeight;
-      setupScroll.scrollTop = 1e4; const r1 = breakBtn.getBoundingClientRect().top; const n = rulesNote.getBoundingClientRect(), f = setupScroll.getBoundingClientRect();
-      return { fit, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, still: Math.abs(r0 - r1) < 0.5, note: n.bottom <= f.bottom + 0.5, groups: [...setupSheet.querySelectorAll('.sgrp')].filter(g => g.getClientRects().length).length,
+    /* 8-Ball, two players: the whole form fits without scrolling (at 393x852 and at 375x667), Break where it was */
+    const f8 = await pev(() => { backToMenu(); setSetting('cpu', false); showSetup('8'); const r0 = breakBtn.getBoundingClientRect().top; const fit = setupScroll.scrollHeight <= setupScroll.clientHeight + 1;
+      setupScroll.scrollTop = 1e4; const r1 = breakBtn.getBoundingClientRect().top;
+      return { fit, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, top: setupScroll.scrollTop, still: Math.abs(r0 - r1) < 0.5, groups: [...setupSheet.querySelectorAll('.sgrp')].filter(g => g.getClientRects().length).length,
         art: Math.round(setupHero.getBoundingClientRect().height), tut: (s => [s.color, s.fontWeight].join())(getComputedStyle(tutLinkText)) }; });
-    check(`setup ${tag}: 8-Ball for two players: ` + (w === 393 ? 'the whole form fits without scrolling' : 'the form scrolls, its fine print reachable, Break pinned where it was') + '; three inset groups; the hero across the top (30% to 36% of the height); the tutorial row a plain white Body row',
-      (w === 393 ? f8.fit : !f8.fit && f8.note) && f8.still && f8.groups === 3 && f8.art >= h * 0.3 - 1 && f8.art <= h * 0.36 && f8.tut === 'rgb(255, 255, 255),400', JSON.stringify(f8));
+    check(`setup ${tag}: 8-Ball for two players: the whole form fits without scrolling; three inset groups; the hero across the top (20% to 50% of the height); the tutorial row a plain white Body row`,
+      f8.fit && f8.top === 0 && f8.still && f8.groups === 3 && f8.art >= h * 0.2 - 1 && f8.art <= h * 0.5 + 1 && f8.tut === 'rgb(255, 255, 255),400', JSON.stringify(f8));
     /* the modes' setups: Start Tournament, Watch, Start */
     const MD = [['#modeTour', '#mdStartT', () => felt.tourney !== null && mdBody.dataset.page === 'tour'], ['#modeEx', '#mdWatch', () => felt.mode === 'exhibit' && !modesSheet.classList.contains('show')],
       ['#modeParty', '#mdStartP', () => felt.mode === 'party' && !modesSheet.classList.contains('show')]];

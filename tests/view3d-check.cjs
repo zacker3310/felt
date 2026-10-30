@@ -18,6 +18,9 @@
    5. the physics: a shot in 3D ends exactly as simulateShot says and as the same shot top-down.
    6. every table renders (8-ball 7 ft and 9 ft, snooker 10 ft and 12 ft, bumper octagon and
       rectangle, carom): the canvas is drawn (not blank), every ball on the table drawn.
+   8. the aim's lines on red, green and blue cloth, read off the canvas: each line's width at half height within a
+      device px of the 2D width (CSS px times the canvas scale), feathered edges, 3:1 against what it lies on; rings
+      cut so no chord is over 3.5 device px up close; the call ring hidden behind its ball, shown in front of it.
    7. frames while dragging the aim within budget (see the budget note below), the HUD's text over the
       3D view 4.5:1, targets 44 px, and landscape. FELT_SHOTS=<dir> saves screenshots. */
 'use strict';
@@ -347,6 +350,89 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     await framed(t, r.key, 'portrait');
   }
   await t.ev(() => { setSetting('bumperTable', 'octagon'); setSetting('snookerTable', 'compact'); setSetting('table', '7'); });
+
+  /* ---- 8. the aim's lines: smooth rings, anti-aliased ribbons at the 2D widths, on the cloth, behind the balls ---- */
+  /* a straight shot along the camera: the cue ball, the 1 and the foot corner in a line, called, so the guide's lines
+     run straight up the middle of the view; each cloth, read off the GL canvas right after a draw */
+  const lineShot = (cloth, pitch, dist, calls = true) => t.ev(([cloth, pitch, dist, calls]) => {
+    setSetting('cloth', cloth); setSetting('viewPitch', pitch); setSetting('viewDist', dist); settings.calls.highlight = calls;
+    setSetting('rules10', '10-house'); felt.start('10');
+    const g = felt.game, A = POCKET_AIM[5], u = [A[0] - TL * 0.3, A[1] - TW * 0.5], l = Math.hypot(u[0], u[1]);
+    u[0] /= l; u[1] /= l;
+    const b1 = [A[0] - u[0] * 0.8, A[1] - u[1] * 0.8], c = [b1[0] - u[0] * 0.5, b1[1] - u[1] * 0.5];
+    for (const x of g.balls) x.on = x.n === 0 || x.n === 1 || x.n === 10;
+    Object.assign(g.balls.find(x => x.n === 0), { x: c[0], y: c[1] });
+    Object.assign(g.balls.find(x => x.n === 1), { x: b1[0], y: b1[1] });
+    Object.assign(g.balls.find(x => x.n === 10), { x: TL * 0.25, y: TW * 0.2 });
+    Object.assign(g, { breakShot: false, inHand: null, pushAvail: false });
+    aimAngle = Math.atan2(u[1], u[0]); hud();
+    /* the 1 turned the same way every time, so its paint under a pixel never changes between two draws */
+    orient[1] = IDENT.slice();
+    return { u, b1, c };
+  }, [cloth, pitch, dist, calls]);
+  /* the pixels across the view at the screen height of table point (x, y) on the bed: [r, g, b] per device px, and where it is */
+  const rowAt = (x, y, half = 14) => t.ev(([x, y, half]) => {
+    draw(performance.now());
+    const gl = t3d.getContext('webgl2'), s = felt.v3Proj(x, y, 0.0012), B = felt.view3.box, k = felt.view3.scale;
+    const px = Math.round((s[0] - B.left) * k), py = t3d.height - 1 - Math.round((s[1] - B.top) * k), w = 2 * half + 1, out = new Uint8Array(w * 4);
+    gl.readPixels(px - half, py, w, 1, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    const row = [];
+    for (let i = 0; i < w; i++) row.push([out[i * 4], out[i * 4 + 1], out[i * 4 + 2]]);
+    return { row, px, k };
+  }, [x, y, half]);
+  const lumOf = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  /* a line's profile: the cloth either side, the peak, the width at half height (device px) and the feathered steps */
+  const profile = row => {
+    /* measured on the pixel values as drawn (sRGB), so a partly covered edge pixel reads as the coverage it got */
+    const L = row.map(c => (c[0] + c[1] + c[2]) / 3), bg = (L.slice(0, 4).reduce((a, b) => a + b) + L.slice(-4).reduce((a, b) => a + b)) / 8, pk = Math.max(...L), i = L.indexOf(pk);
+    const f = L.map(v => (v - bg) / Math.max(1e-9, pk - bg));
+    /* the half-height width, interpolated at both edges */
+    let a = i, b = i;
+    while (a > 0 && f[a - 1] >= 0.5) a--;
+    while (b < f.length - 1 && f[b + 1] >= 0.5) b++;
+    const left = a > 0 ? a - 1 + (0.5 - f[a - 1]) / Math.max(1e-9, f[a] - f[a - 1]) : a - 0.5, right = b < f.length - 1 ? b + 1 - (0.5 - f[b + 1]) / Math.max(1e-9, f[b] - f[b + 1]) : b + 0.5;
+    const soft = side => side.some(v => Math.abs(v) > 0.1 && Math.abs(v) < 0.9);
+    /* the line against what it is seen on: the cloth, or its own dark edge where the 2D design gives it one */
+    const edge = row.slice(Math.max(0, a - 2), b + 3).concat([row[0], row[row.length - 1]]).reduce((m, c) => lumOf(c) < lumOf(m) ? c : m), lp = lumOf(row[i]);
+    return { fwhm: right - left, contrast: (lp + 0.05) / (lumOf(edge) + 0.05), onCloth: (lp + 0.05) / (lumOf(row[0]) + 0.05), feather: soft(f.slice(0, i)) && soft(f.slice(i + 1)), f: f.map(v => +v.toFixed(2)) };
+  };
+  for (const cloth of ['red', 'green', 'blue']) {
+    const L = await lineShot(cloth, 18, 0.9);
+    await frames(page, 3);
+    /* the object ball's line, part way from the 1 to the pocket, and the aim line just short of the ghost ball (nearer, the cue ball hides the bed) */
+    const ob = await rowAt(L.b1[0] + L.u[0] * 0.35, L.b1[1] + L.u[1] * 0.35), aim = await rowAt(L.c[0] + L.u[0] * 0.33, L.c[1] + L.u[1] * 0.33);
+    const po = profile(ob.row), pa = profile(aim.row), wo = 2 * ob.k, wa = 1.25 * ob.k;
+    check(`lines on ${cloth}: the object ball's line ${po.fwhm.toFixed(2)} device px wide (2D: 2 CSS px = ${wo.toFixed(2)}), feathered edges, ${po.contrast.toFixed(2)}:1 over the cloth`,
+      Math.abs(po.fwhm - wo) <= 1 && po.feather && po.contrast >= 3, JSON.stringify(po));
+    check(`lines on ${cloth}: the aim line ${pa.fwhm.toFixed(2)} device px wide (2D: 1.25 CSS px = ${wa.toFixed(2)}), feathered edges, ${pa.contrast.toFixed(2)}:1 over the cloth`,
+      Math.abs(pa.fwhm - wa) <= 1 && pa.feather && pa.contrast >= 3, JSON.stringify(pa));
+    if (SHOTS && cloth === 'red') await page.screenshot({ path: path.join(SHOTS, 'v3-lines-red.png') });
+  }
+  /* the rings: up close every arc's chord on screen is a few device px, so a ring stays round */
+  await lineShot('red', 14, 0.6);
+  await frames(page, 3);
+  const arcs = await t.ev(() => ({ max: felt.view3.arcMax, ghost: felt.view3.ghost }));
+  check(`rings: up close the longest chord of any ring is ${arcs.max.toFixed(2)} device px (round, not a polygon; at most 3.5), the ghost ball drawn as a ball`, arcs.max > 0 && arcs.max <= 3.5 && arcs.ghost && arcs.ghost.legal, JSON.stringify(arcs));
+  /* depth: the called ball's ring behind the 1 is hidden by the ball (the same pixels with the highlight off), its near side shows */
+  const ringPx = async calls => {
+    const L = await lineShot('red', 16, 0.8, calls);
+    await frames(page, 3);
+    return t.ev(L => {
+      draw(performance.now());
+      const gl = t3d.getContext('webgl2'), B = felt.view3.box, k = felt.view3.scale, R = BALL_R, rr = R + 0.004;
+      const at = (x, y, z) => { const s = felt.v3Proj(x, y, z), out = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, out); return { px: [...out.slice(0, 3)], s }; };
+      const far = at(L.b1[0] + L.u[0] * rr, L.b1[1] + L.u[1] * rr, 0.0012), near = at(L.b1[0] - L.u[0] * rr, L.b1[1] - L.u[1] * rr, 0.0012), ctr = felt.v3Proj(L.b1[0], L.b1[1], R), top = felt.v3Proj(L.b1[0], L.b1[1], 2 * R);
+      return { far, near, inBall: Math.hypot(far.s[0] - ctr[0], far.s[1] - ctr[1]) < Math.hypot(top[0] - ctr[0], top[1] - ctr[1]) * 0.9 };
+    }, L);
+  };
+  const on = await ringPx(true), offR = await ringPx(false);
+  const dd = (a, b) => Math.max(...a.map((v, i) => Math.abs(v - b[i])));
+  check('depth: the call ring behind the 1 is hidden by the ball (its pixel the same with the ring off), its near side drawn on the cloth', on.inBall && dd(on.far.px, offR.far.px) <= 8 && dd(on.near.px, offR.near.px) > 30, JSON.stringify({ on, offR }));
+  if (SHOTS) {
+    await lineShot('red', 14, 0.6); await frames(page, 3); await page.screenshot({ path: path.join(SHOTS, 'v3-aim-red-near.png') });
+    await lineShot('red', 30, 1.8); await frames(page, 3); await page.screenshot({ path: path.join(SHOTS, 'v3-aim-red-far.png') });
+  }
+  await t.ev(() => { settings.calls.highlight = true; setSetting('cloth', 'green'); });
 
   /* ---- 7. frames, contrast, targets, landscape ---- */
   /* Budget: on a phone's GPU the view draws at the screen's full pixel ratio. Headless Chromium here

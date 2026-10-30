@@ -15,7 +15,7 @@
 /* Bumper pool at dpr 3, upright and on its side, both cloths: cups dark through with no cloth,
    posts drawn, the marked ball's spot. */
 'use strict';
-const { check, done, open } = require('./lib.cjs');
+const { check, done, open, speedFactor } = require('./lib.cjs');
 
 /* in-page helpers: draw now, then read device pixels at CSS points */
 const HELPERS = () => {
@@ -544,8 +544,9 @@ async function tableChecks(page, tag) {
   check('loupe: 120 to 150 CSS px across, its centre more than its radius from the contact', lp.L1 && lp.L1.r * 2 >= 110 && lp.L1.r * 2 <= 150 && lp.d > lp.L1.r, JSON.stringify(lp.L1) + ' d ' + lp.d.toFixed(1));
   /* software canvas on a CI runner is 1.5x slower than a dev machine, so the absolute bound is the
      real one (a 60 fps frame) and the relative one catches a loupe that grows out of proportion */
-  check('loupe: a frame with it up at dpr 3 fits a 60 fps frame and costs at most twice the frame without it (headless, software)',
-    lp.ms < 16.7 && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without`);
+  const sp = await speedFactor(q.page);   /* the 60 fps budget scaled by this machine's speed (lib.cjs) */
+  check(`loupe: a frame with it up at dpr 3 fits a 60 fps frame (x${sp.f.toFixed(2)} for this machine) and costs at most twice the frame without it (headless, software)`,
+    lp.ms < 16.7 * sp.f && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without, speed ${sp.ms.toFixed(2)} ms`);
   check('dpr 3: no console errors', q.errors.length === 0, q.errors.join(' | '));
   await q.browser.close();
   /* bumper pool at dpr 3, upright and on its side, both cloths: both cups are dark through and

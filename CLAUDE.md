@@ -293,6 +293,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Layout checks are font-sensitive: they measure with Inter (closest to the iPhone's SF Pro). CI installs it and maps
   system-ui to it (`tests/fonts/prefer-inter.conf`); a runner on DejaVu Sans (7.5% wider) fails fit checks. Design
   rows that ellipsise rather than wrap, so a wider font never changes the home's height.
+- Absolute frame budgets (ms) on headless software rendering swing with the runner: multiply them by lib's
+  `speedFactor(page)` (a fixed canvas workload against this machine's `SPEED_REF_MS`, never below 1) and keep a
+  relative check (with vs without) beside them.
 - Writing a test that reads final positions after a firm shot: balls bounce around for seconds.
   Read velocities just after the event instead (see the stun/follow/draw check).
 

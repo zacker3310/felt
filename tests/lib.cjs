@@ -155,4 +155,27 @@ async function openPop(page, sel, { touch = false } = {}) {
   await page.waitForFunction(sel => { const s = document.querySelector(sel).closest('.seg.pop'); return s.classList.contains('open') && !s.getAnimations().some(a => a.playState === 'running'); }, sel, { timeout: 3000 }).catch(() => {});
 }
 
-module.exports = { URL, check, done, open, smallTargets, settled, lowContrast, badTitles, choose, openPop };
+/* how much slower this machine draws than the one the absolute frame budgets were set on. A fixed
+   software-canvas workload, best of five; budgets are multiplied by it (never below 1), so a slow
+   or busy CI runner is judged against itself and a fast machine keeps the real 60 fps budget. The
+   relative checks (with vs without) carry the regression signal either way. */
+const SPEED_REF_MS = 6.4;   /* this dev machine, headless Chromium, 2026-10-30 */
+async function speedFactor(page) {
+  const ms = await page.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 1179; c.height = 2556;
+    const g = c.getContext('2d'), runs = [];
+    for (let r = 0; r < 5; r++) {
+      g.getImageData(0, 0, 1, 1); const t0 = performance.now();
+      for (let i = 0; i < 40; i++) {
+        const x = (i * 97) % 1100, y = (i * 211) % 2400, gr = g.createRadialGradient(x, y, 4, x, y, 160);
+        gr.addColorStop(0, '#fff'); gr.addColorStop(1, '#0a3');
+        g.fillStyle = gr; g.beginPath(); g.arc(x, y, 160, 0, 6.283); g.fill();
+      }
+      g.getImageData(0, 0, 1, 1); runs.push(performance.now() - t0);
+    }
+    return Math.min(...runs);
+  });
+  return { ms, f: Math.min(3, Math.max(1, ms / SPEED_REF_MS)) };
+}
+
+module.exports = { speedFactor, URL, check, done, open, smallTargets, settled, lowContrast, badTitles, choose, openPop };

@@ -12,7 +12,7 @@
    4. the table geometry and physics globals are exactly what they were, mid-shot and after the
       sheet closes;
    5. frames within a 60 Hz budget: 95% under 16 ms, none over 33 (each frame flushed, felt.heroMeasure);
-   6. the kicker, the title and the game's line keep 4.5:1 over the final frame (measured on the
+   6. the Large Title and the game's line keep 4.5:1 over the final frame (measured on the
       screen's pixels with the words hidden).
    Then: Reduce Motion shows that same final still and never animates; a tap on the hero replays
    it; the sheet closed mid-shot stops the frames; a table change on the sheet replays the shot on
@@ -20,7 +20,7 @@
    393x852 with Break pinned and a real tap there starts the game; on its side the hero is a panel
    left of the form. */
 'use strict';
-const { check, done, open } = require('./lib.cjs');
+const { check, done, open, choose } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 
 const KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom'];
@@ -89,7 +89,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     await ev(k => { showSetup(k); }, kind);
     await page.waitForFunction(() => felt.hero.state === 'done', null, { timeout: 8000 });
     const boxes = await ev(() => { document.querySelector('.heroTxt').style.visibility = 'hidden';
-      return ['#setupSheet .heroTxt .kicker', '#setupTitle', '#setupSub'].map(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(), c = getComputedStyle(e).color.match(/[\d.]+/g).map(Number); return { s, r: [r.left, r.top, r.width, r.height], c }; }); });
+      return ['#setupTitle', '#setupSub'].map(s => { const e = document.querySelector(s), r = e.getBoundingClientRect(), c = getComputedStyle(e).color.match(/[\d.]+/g).map(Number); return { s, r: [r.left, r.top, r.width, r.height], c }; }); });
     const png = await page.screenshot({ clip: { x: 0, y: 0, width: 393, height: 300 } });
     await ev(() => { document.querySelector('.heroTxt').style.visibility = ''; });
     const worst = await ev(([b64, boxes]) => new Promise(res => {
@@ -107,7 +107,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
       };
       im.src = 'data:image/png;base64,' + b64;
     }), [png.toString('base64'), boxes]);
-    check(`${kind}: kicker, title and line keep 4.5:1 over the brightest pixel behind them (${worst.map(w => w.ratio).join(', ')})`, worst.every(w => w.ratio >= 4.5), JSON.stringify(worst));
+    check(`${kind}: the Large Title and the line keep 4.5:1 over the brightest pixel behind them (${worst.map(w => w.ratio).join(', ')})`, worst.every(w => w.ratio >= 4.5), JSON.stringify(worst));
     await ev(() => backToMenu());
   }
   const hs = KINDS.map(k => sigs[k].hash);
@@ -168,8 +168,8 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
   await ev(() => { setSetting('table', '7'); setSetting('pockets', 'regulation'); showSetup('8'); });
   await page.waitForFunction(() => felt.hero.state === 'done', null, { timeout: 8000 });
   const g1 = await ev(() => __geo());
-  await page.touchscreen.tap(...(await ev(() => { const r = tb9.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; })));
-  await page.waitForTimeout(200);
+  await choose(page, '#tb9', { touch: true });
+  await page.waitForTimeout(80);
   const ch = await ev(() => ({ key: felt.hero.key, state: felt.hero.state }));
   await page.waitForFunction(() => felt.hero.state === 'done', null, { timeout: 8000 });
   const ch2 = await ev(() => ({ final: JSON.stringify(felt.hero.final) === JSON.stringify(__simFinal('8').balls), geo: __geo() }));
@@ -182,7 +182,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const r = setupBack.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2), bb = breakBtn.getBoundingClientRect();
     return { w: r.width, h: r.height, top: setupBack.contains(t), hero: setupHero.getBoundingClientRect().height, fit: setupScroll.scrollHeight <= setupScroll.clientHeight, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, brk: [bb.top, bb.bottom, bb.height], vh: innerHeight }; });
   check('the back button over the hero: 44 px and on top', lay.w >= 44 && lay.h >= 44 && lay.top, JSON.stringify(lay));
-  check('8-Ball for two players fits whole at 393x852 under a hero of exactly 30%, Break pinned and wholly in view', lay.fit && Math.abs(lay.hero - 0.3 * lay.vh) < 0.5 && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
+  check('8-Ball for two players fits whole at 393x852 under a hero of 30% to 50% (the HIG list is shorter: the hero takes the room it leaves), Break pinned and wholly in view', lay.fit && lay.hero >= 0.3 * lay.vh - 0.5 && lay.hero <= 0.5 * lay.vh + 0.5 && lay.brk[0] >= 0 && lay.brk[1] <= lay.vh && lay.brk[2] === 50, JSON.stringify(lay));
   /* the CPU's cards make the snooker form taller: the hero gives the room back, then takes it again */
   const opp = await ev(async () => { backToMenu(); setSetting('cpu', false); showSetup('snooker'); await new Promise(r => setTimeout(r, 300)); const h0 = setupHero.getBoundingClientRect().height;
     vsCpu.click(); await new Promise(r => setTimeout(r, 300)); const h1 = setupHero.getBoundingClientRect().height, fit1 = setupScroll.scrollHeight <= setupScroll.clientHeight;

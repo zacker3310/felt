@@ -13,7 +13,7 @@ for (const g of [
   'window', 'document', 'navigator', 'location', 'localStorage', 'console', 'setTimeout', 'clearTimeout',
   'requestAnimationFrame', 'cancelAnimationFrame', 'performance', 'URLSearchParams', 'AudioContext',
   'webkitAudioContext', 'matchMedia', 'getComputedStyle', 'devicePixelRatio', 'innerWidth', 'innerHeight',
-  'addEventListener', 'removeEventListener', 'ImageData', 'ResizeObserver', 'visualViewport', 'screen',
+  'addEventListener', 'removeEventListener', 'ImageData', 'ResizeObserver', 'MutationObserver', 'visualViewport', 'screen',
 ]) browser[g] = 'readonly';
 
 module.exports = [

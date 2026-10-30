@@ -84,7 +84,7 @@ const lowContrast = (page, min = 4.5) => page.evaluate(min => {
    the brand "felt". Kickers render in caps, and a heading that is a sentence (it ends . ? or !, or
    is one of the result lines below, or is marked .prose) is sentence case and not looked at. */
 const TITLE_SEL = ['#menu .tt > b', '.sect', 'h1', '.sheet h2', 'h3.ghead', 'h3.fineHead', 'h3.cvHead', '.topic .tt > b', '.cvSw .tt > b',
-  '.tog > span', '.plab', '.tutLink .tt', '.seg > button', '.field > .label', '.rules li > div > b', '.pick .game b', '.foe > b', '.tcard b', 'label.prow .plab',
+  '.tog > span', '.plab', '.tutLink .tt', '.seg > button', '.popBtn .pv', '.field > .label', '.rules li > div > b', '.pick .game b', '.foe .tt > b', '.tcard b', 'label.prow .plab',
   'button.big', 'button.ghost', 'button.quiet', 'button.act', 'button.cvBtn', 'button.cvMini', 'button.tool', 'button.cflag', 'button.lessonGo > span', '.howAct > button', '#exBar button',
   '#optHead', '#optBtns button', '#coachBtn', '.kpis dt', '.cvFacts dt', '.cvLines li > span:first-child', '.stat > span', '.ccSum + .tt b'];
 const TITLE_SKIP = ['overText', 'matchTitle', 'hoTitle', 'trickHead', 'drillHead', 'tutDoneTitle', 'tutOfferTitle', 'offerTitle', 'doneTitle', 'mdEndT'];
@@ -114,4 +114,45 @@ const badTitles = page => page.evaluate(([SEL, SKIP]) => {
   return out;
 }, [TITLE_SEL, TITLE_SKIP]);
 
-module.exports = { URL, check, done, open, smallTargets, settled, lowContrast, badTitles };
+/* pick a choice by a real tap: a choice in a pop-up menu (index.html 6p: a .seg.pop) is reached
+   by tapping its pop-up button first, then the item; a segmented one directly. touch: true taps
+   with the touchscreen, else the mouse clicks (as page.click). */
+async function choose(page, sel, { touch = false } = {}) {
+  const at = async xy => { if (touch) await page.touchscreen.tap(xy[0], xy[1]); else await page.mouse.click(xy[0], xy[1]); await page.waitForTimeout(120); };
+  const btn = await page.evaluate(sel => {
+    const b = document.querySelector(sel), s = b && b.closest('.seg.pop');
+    if (!s || s.classList.contains('open')) return null;
+    s.nextElementSibling.scrollIntoView({ block: 'center' });
+    return true;
+  }, sel);
+  if (btn) await at(await stableCentre(page, sel, true));
+  await at(await stableCentre(page, sel, false));
+}
+/* the centre of an element (or of its pop-up button) once it has stopped moving (a pushed page's
+   slide, a menu's opening), as page.click waits for a stable target */
+function stableCentre(page, sel, popBtn) {
+  return page.evaluate(([sel, popBtn]) => new Promise(res => {
+    let b = document.querySelector(sel);
+    if (popBtn) b = b.closest('.seg.pop').nextElementSibling;
+    else if (!b.closest('.seg.pop.open')) b.scrollIntoView({ block: 'center' });
+    let last = null, n = 0;
+    const t0 = performance.now();
+    const step = () => {
+      const r = b.getBoundingClientRect(), k = [r.left, r.top, r.width, r.height].map(v => v.toFixed(1)).join();
+      const moving = document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.target && a.effect.target.contains && a.effect.target.contains(b));
+      if (k === last && !moving && ++n >= 3 || performance.now() - t0 > 3000) return res([r.left + r.width / 2, r.top + r.height / 2]);
+      if (k !== last) n = 0;
+      last = k; requestAnimationFrame(step);
+    };
+    step();
+  }), [sel, popBtn]);
+}
+/* open a choice's pop-up menu by a real tap (as choose, without picking) */
+async function openPop(page, sel, { touch = false } = {}) {
+  await page.evaluate(sel => document.querySelector(sel).closest('.seg.pop').nextElementSibling.scrollIntoView({ block: 'center' }), sel);
+  const xy = await stableCentre(page, sel, true);
+  if (touch) await page.touchscreen.tap(xy[0], xy[1]); else await page.mouse.click(xy[0], xy[1]);
+  await page.waitForFunction(sel => { const s = document.querySelector(sel).closest('.seg.pop'); return s.classList.contains('open') && !s.getAnimations().some(a => a.playState === 'running'); }, sel, { timeout: 3000 }).catch(() => {});
+}
+
+module.exports = { URL, check, done, open, smallTargets, settled, lowContrast, badTitles, choose, openPop };

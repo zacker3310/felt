@@ -15,7 +15,7 @@
       fits at 375 px. (Space on the power bar is audit F7, in audit-check.) */
 'use strict';
 const fs = require('fs');
-const { check, done, open, smallTargets, lowContrast, settled } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast, settled } = require('./lib.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
 const PAGES = [['prGame', 'Gameplay'], ['prCtl', 'Controls'], ['prGfx', 'Graphics'], ['prAud', 'Audio and Haptics'], ['prA11y', 'Accessibility'], ['prAbout', 'About']];
 
@@ -141,10 +141,10 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.click('#prGame');
   const rows = await p.evaluate(() => [...rulesRows.querySelectorAll('.prow .plab')].map(l => l.textContent));
   check('Gameplay: a default-rules row for each game with a choice of rulesets (8, 9 and 10-ball), then the stalemate re-rack', rows.join('|') === '8-Ball|9-Ball|10-Ball|House Re-Rack on a Stalemate (8 and 9-Ball)', JSON.stringify(rows));
-  await p.click('#prs8-wpa');
-  await p.click('#prs10-house');
-  await p.click('#prc25');
-  await p.click('#pcr5');
+  await choose(p, '#prs8-wpa');
+  await choose(p, '#prs10-house');
+  await choose(p, '#prc25');
+  await choose(p, '#pcr5');
   const g = await p.evaluate(() => { felt.start('8'); const a = felt.game.rules.id; felt.start('10'); const b = felt.game.rules.id; felt.start('straight'); const c = felt.game.rules.race || felt.game.race; felt.start('carom'); const d = felt.game.race; felt.quitToHome(); return { a, b, c, d, pressed: document.getElementById('prs8-wpa').getAttribute('aria-pressed'), setup: rs8Wpa.getAttribute('aria-pressed') }; });
   check('Gameplay: the default rules and races chosen here start the next games on them (8-ball WPA, 10-ball obvious free, 14.1 to 25, carom to 5), the setup agreeing',
     g.a === '8-wpa' && g.b === '10-house' && g.c === 25 && g.d === 5 && g.pressed === 'true' && g.setup === 'true', JSON.stringify(g));

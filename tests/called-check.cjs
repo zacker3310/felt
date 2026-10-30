@@ -6,7 +6,7 @@
    beat the settings and say so; a push-out's option box; the CPU calls its shots and answers
    the options; More games opens the three new games' setups; targets and contrast hold. */
 'use strict';
-const { check, done, open, settled, smallTargets, lowContrast } = require('./lib.cjs');
+const { check, done, open, choose, openPop, settled, smallTargets, lowContrast } = require('./lib.cjs');
 
 const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, camera: 'auto', names: ['Ann', ''] };
 (async () => {
@@ -18,8 +18,8 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
       && s0.calls.mode === 'official' && s0.calls.detail === 'pocket' && s0.calls.highlight === true && s0.rules8 === '8-house' && s0.sv === 3, JSON.stringify(s0));
     await t.page.click('#prefsBtn');
     await t.page.click('#prGame');
-    await t.page.click('#cmAll');
-    await t.page.click('#cdRails');
+    await choose(t.page, '#cmAll');
+    await choose(t.page, '#cdRails');
     await t.page.click('#tgHighlight');
     const stored = await t.page.evaluate(() => JSON.parse(localStorage.getItem('felt.settings')));
     check('settings: Gameplay choices are stored, versioned, beside the old ones', stored.sv === 3 && stored.calls.mode === 'all' && stored.calls.detail === 'rails' && stored.calls.highlight === false && stored.guide === 'short', JSON.stringify(stored));
@@ -190,7 +190,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   await p.click('#playStr');
   const st = await p.evaluate(() => ({ title: setupTitle.textContent, race: !document.querySelector('#setupSheet .str').hidden, note: rulesNote.textContent }));
   check('more: straight pool\'s setup has the race and the WPA rules note', st.title === 'Straight Pool' && st.race && /14\.1/.test(st.note) && /WPA/.test(st.note), JSON.stringify(st));
-  await p.click('#rc25');
+  await choose(p, '#rc25');
   await p.click('#breakBtn');
   const sp = await p.evaluate(() => ({ kind: felt.game.kind, race: felt.game.race, n: felt.game.balls.filter(b => b.on).length, last: settings.last }));
   check('more: Break starts 14.1 to the race chosen; Play again remembers it', sp.kind === 'straight' && sp.race === 25 && sp.n === 16 && sp.last === 'straight', JSON.stringify(sp));

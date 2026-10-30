@@ -55,6 +55,54 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEven
   --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px);
   --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px);
 }
+/* ---- the HIG token sheet (.buildloop/spec/hig-tokens.md has every value's source). Every sheet
+   (setup, Settings, How to play, Stats, the modes, the career, drills) is built from these and only
+   these: UIKit's dynamic system colours in their dark appearance, the Dynamic Type ramp at the
+   Large (default) size with SF's tracking, the inset grouped list's metrics, hairlines, radii and
+   the materials. Larger text zooms the sheets (data-text, section 6), so a token is one size. ---- */
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
+  /* colour: systemGroupedBackground, secondary..., labels, fills, separators, the grays */
+  --sys-grouped: #000000; --sys-grouped-2: #1c1c1e; --sys-grouped-3: #2c2c2e;
+  --sys-bg: #000000; --sys-bg-2: #1c1c1e; --sys-bg-3: #2c2c2e;
+  --sys-label: #ffffff; --sys-label-2: rgba(235, 235, 245, .6); --sys-label-3: rgba(235, 235, 245, .3); --sys-label-4: rgba(235, 235, 245, .16);
+  --sys-fill: rgba(120, 120, 128, .36); --sys-fill-2: rgba(120, 120, 128, .32); --sys-fill-3: rgba(118, 118, 128, .24); --sys-fill-4: rgba(118, 118, 128, .18);
+  --sys-sep: rgba(84, 84, 88, .6); --sys-sep-opaque: #38383a;
+  --sys-gray: #8e8e93; --sys-gray-2: #636366; --sys-gray-3: #48484a; --sys-gray-4: #3a3a3c; --sys-gray-5: #2c2c2e; --sys-gray-6: #1c1c1e;
+  --sys-head: #8e8e92;   /* an inset grouped section's header and footer words */
+  --sys-red: #ff453a; --sys-green: #30d158; --sys-press: #3a3a3c;   /* a row held down */
+  /* type: the Dynamic Type ramp (size/leading, weight) and SF's tracking at each size */
+  --t-large: 700 34px/41px var(--font-display); --tr-large: .37px;
+  --t-title1: 700 28px/34px var(--font-display); --tr-title1: .36px;
+  --t-title2: 700 22px/28px var(--font-display); --tr-title2: .35px;
+  --t-title3: 600 20px/25px var(--font-display); --tr-title3: .38px;
+  --t-headline: 600 17px/22px var(--font-ui); --t-body: 400 17px/22px var(--font-ui); --tr-body: -.41px;
+  --t-callout: 400 16px/21px var(--font-ui); --tr-callout: -.32px;
+  --t-subhead: 400 15px/20px var(--font-ui); --tr-subhead: -.24px;
+  --t-footnote: 400 13px/18px var(--font-ui); --tr-footnote: -.08px;
+  --t-caption1: 400 12px/16px var(--font-ui); --t-caption2: 400 11px/13px var(--font-ui); --tr-caption2: .06px;
+  /* spacing: 4 pt steps; the list's insets */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+  --row-h: 44px; --row-px: 16px; --row-py: 11px; --row-icon: 29px; --row-icon-gap: 15px;
+  --sep-l: 16px; --sep-l-icon: 60px;   /* separators inset to the words: 16, or 16 + icon 29 + 15 */
+  --group-gap: 20px; --head-mt: 22px; --head-mb: 7px; --foot-mt: 7px;
+  /* radii: the iOS 26 inset group and menu, the segmented capsule, a field, an icon tile */
+  --r-group: 26px; --r-menu: 26px; --r-seg: 16px; --r-thumb: 14px; --r-field: 10px; --r-icon: 7px; --r-capsule: 999px;
+  /* the segmented control: a 32 pt track (in a 44 pt target), a 2 pt inset thumb, 13 pt words */
+  --seg-h: 32px; --seg-in: 2px; --seg-track: var(--sys-fill-3); --seg-thumb: #636366; --seg-div: rgba(142, 142, 147, .3);
+  --seg-shadow: 0 3px 8px rgba(0, 0, 0, .12), 0 3px 1px rgba(0, 0, 0, .04);
+  /* separators: one device pixel (a 1 px line scaled by 1 / devicePixelRatio) */
+  --hl: .5;
+  /* materials: the bar under a pinned action and the menu, a tinted blur */
+  --mat-bar: rgba(0, 0, 0, .76); --mat-menu: rgba(37, 37, 39, .94); --mat-blur: saturate(180%) blur(30px);
+  --menu-shadow: 0 12px 40px rgba(0, 0, 0, .5), 0 0 0 .5px rgba(255, 255, 255, .1);
+  --tint: #3ddc84;   /* the cloth's accent: a list's checkmark */
+}
+@media (min-resolution: 2.5dppx) { :root { --hl: .3334; } }
+@media (max-resolution: 1.5dppx) { :root { --hl: 1; } }
+[data-cloth="red"] { --tint: #ff8a7a; }
+[data-cloth="blue"] { --tint: #7cb6ff; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: var(--app-h, 100%); background: var(--bg); color: var(--text); font: 15px/1.4 var(--font); overflow: hidden; }
 /* no pinch or double-tap zoom anywhere: the page and the game UI take no browser gestures at
@@ -333,13 +381,52 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sheet { position: relative; width: 100%; max-width: 440px; padding: 24px 22px 22px; border-radius: 22px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 24px 80px rgba(0, 0, 0, .55); }
 h1 { margin: 0; font-size: 46px; line-height: 1; letter-spacing: -.035em; font-weight: 800; }
 h1 i { font-style: normal; color: var(--signal); }
-.sub { margin: 0; color: var(--muted); font-size: 14px; }
+.sub { margin: 0; color: var(--muted); font: var(--t-subhead); letter-spacing: var(--tr-subhead); }
 .opts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; }
 .opts .label { font-size: 13px; color: var(--muted); white-space: nowrap; }
-.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
-.seg button { min-height: 44px; padding: 0 6px; border-radius: 10px; border: 0; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; white-space: nowrap; }
-.seg button:hover { color: var(--text); }
-.seg button[aria-pressed="true"] { background: var(--panel-3); color: var(--text); box-shadow: inset 0 0 0 1px #55555e, 0 1px 2px rgba(0, 0, 0, .4); }
+/* ---- the segmented control (UISegmentedControl): for two to four short choices flipped often. A
+   32 pt track of tertiarySystemFill, a 2 pt inset thumb of systemGray2 with its shadow, 13 pt words
+   (600 on the chosen one), hairline dividers between unchosen neighbours. The track sits centred in
+   a 44 pt row so every segment is a 44 pt target. One component on every sheet. ---- */
+.seg { position: relative; isolation: isolate; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; padding: 0 var(--seg-in); border: 0; background: none; }
+.seg::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: calc(50% - var(--seg-h) / 2); height: var(--seg-h); border-radius: var(--r-seg); background: var(--seg-track); pointer-events: none; }
+.seg > button { position: relative; isolation: isolate; min-width: 0; min-height: var(--row-h); padding: 0 8px; border: 0; border-radius: 0; background: none; color: var(--sys-label);
+  font: 500 13px/18px var(--font-ui); letter-spacing: -.08px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg > button::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: calc(50% - var(--seg-h) / 2 + var(--seg-in)); height: calc(var(--seg-h) - 2 * var(--seg-in));
+  border-radius: var(--r-thumb); background: transparent; transition: background-color .2s; pointer-events: none; }
+.seg > button[aria-pressed="true"] { font-weight: 600; }
+.seg > button[aria-pressed="true"]::before { background: var(--seg-thumb); box-shadow: var(--seg-shadow); }
+.seg > button:not([aria-pressed="true"]):active::before { background: var(--sys-fill-4); }
+.seg > button + button::after { content: ""; position: absolute; left: 0; top: calc(50% - 7px); width: 1px; height: 14px; background: var(--seg-div); pointer-events: none; }
+.seg > button[aria-pressed="true"]::after, .seg > button[aria-pressed="true"] + button::after { display: none; }
+/* ---- the pop-up button (UIButton showsMenuAsPrimaryAction, SwiftUI's menu Picker): a choice with
+   longer words or more of them. The row's value and chevron.up.chevron.down at its trailing edge in
+   secondary label; a tap opens its menu. The menu is the choice's own .seg.pop (popUp(), section 6):
+   a floating panel of the menu material, 44 pt items in 17 pt body type, a checkmark leading the
+   chosen one, closed by a pick, a tap outside, Esc, a scroll or a resize. ---- */
+.popBtn { display: flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 44px; min-height: var(--row-h); margin: 0; padding: 0; border: 0; background: none;
+  color: var(--sys-label-2); font: var(--t-body); letter-spacing: var(--tr-body); text-align: right; }
+.popBtn .pv { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popBtn svg { flex: none; width: 10px; height: 16px; }
+.popBtn:active .pv, .popBtn[aria-expanded="true"] .pv { opacity: .55; }
+.popBtn:disabled { opacity: .45; cursor: default; }
+.seg.pop { display: none; }
+.seg.pop.open { position: fixed; z-index: 60; left: 0; top: 0; display: block; width: max-content; min-width: 250px; max-width: min(320px, calc(100vw - 16px)); padding: 6px 0;
+  overflow-y: auto; overscroll-behavior: contain; border-radius: var(--r-menu); background: var(--mat-menu); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur);
+  box-shadow: var(--menu-shadow); transform-origin: var(--pop-o, top right); animation: popMenuIn .26s cubic-bezier(.2, .9, .25, 1.08) both; }
+.seg.pop.open::before { display: none; }
+@keyframes popMenuIn { from { opacity: 0; transform: scale(.82); } }
+.seg.pop.open > button { display: flex; align-items: center; width: 100%; min-height: var(--row-h); padding: var(--row-py) var(--row-px) var(--row-py) 12px; overflow: visible;
+  color: var(--sys-label); font: var(--t-body); letter-spacing: var(--tr-body); text-align: left; white-space: normal; }
+.seg.pop.open > button::before, .seg.pop.open > button::after { display: none; }
+.seg.pop.open > button:hover, .seg.pop.open > button:focus-visible { background: rgba(255, 255, 255, .08); outline: none; }
+.seg.pop.open > button:active { background: rgba(255, 255, 255, .14); }
+.seg.pop.open > button[hidden] { display: none; }
+.seg.pop > button > .mChk { flex: none; width: 16px; height: 16px; margin-right: 8px; visibility: hidden; }
+.seg.pop > button[aria-pressed="true"] > .mChk { visibility: visible; }
+.seg.pop > button > i { flex: none; }
+.seg:not(.pop) > button > .mChk { display: none; }
+@media (prefers-reduced-motion: reduce) { .seg.pop.open { animation: none; } .seg > button::before { transition: none; } }
 .sect { margin: 22px 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .big small { display: block; font-size: 12px; font-weight: 500; opacity: .92; }
@@ -478,7 +565,6 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .acc { flex: none; display: flex; align-items: center; gap: 5px; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .acc svg { width: 16px; height: 16px; color: var(--accent); }
 #drillsRow .acc svg { color: #f2c94c; }
-.chev { flex: none; width: 15px; height: 15px; margin-left: -4px; color: var(--label-3); }
 /* the daily shot: a calendar leaf with today's date; a flame and the streak, or done today */
 .solo .cal { grid-template-rows: 9px 1fr; place-items: stretch; overflow: hidden; }
 .cal i { background-color: var(--accent); }
@@ -524,96 +610,138 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* ---- the sheets: setup, settings, stats, how to play. A back button, a title, the rest ---- */
 .shead { display: flex; align-items: center; gap: 12px; margin: -4px 0 12px -4px; }
 .shead .htxt { flex: 1; min-width: 0; }
-.shead .title { margin: 0; font-size: 26px; }
+.shead .title { margin: 0; font: var(--t-title1); letter-spacing: var(--tr-title1); }
 .shead .kicker { margin: 0 0 2px; }
-.shead .ball { width: 42px; height: 42px; font-size: 14px; }
-.back { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); }
-.back:hover { background: var(--panel-3); }
+.shead .ball { width: 42px; height: 42px; font-size: 13px; }
+/* the back button: a 44 pt glass circle with chevron.left (the iOS 26 navigation bar's) */
+.back { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 0; color: var(--sys-label);
+  background: #2c2c2e; box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .14); }
+.back:hover { background: #3a3a3c; }
 .back svg { width: 20px; height: 20px; }
 .field { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 12px; margin-top: 12px; }
 .field[hidden] { display: none; }
 .field .label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .note { margin: 8px 0 0; font-size: 12px; line-height: 1.45; color: var(--muted); }
 .cta { width: 100%; margin-top: 18px; min-height: 50px; font-size: 17px; }
-/* ---- the game setup: a navigation page in the iOS manner. The form scrolls (the header, the
-   game's line beside a thumbnail of its table, the tutorial's row, then the choices as inset
-   grouped rows: Opponent and names; Table and Pockets; Rules and Stalemate; the rules' fine
-   print) over a foot pinned to the bottom of the sheet, clear of the home indicator, with the
-   primary action: Break (Play for bumper pool), a 50 px capsule, never scrolled away. The form
-   fades out under the foot (a gradient, no blur). Full screen on a phone (upright or on its
-   side), a card on anything bigger. 8 pt rhythm: 16 px sides, rows of 44 px targets, 20 px
-   between groups. A choice whose words would crowd goes under its label, full width. ---- */
-#setupSheet { --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
-  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
+/* ---- the inset grouped list (UITableView's .insetGrouped, SwiftUI's Form), one component on every
+   sheet: a group is a 26 pt rounded cell of secondarySystemGroupedBackground on the black grouped
+   background (the contrast is the border: no outline), its rows 44 pt or more in 17 pt body type
+   with 16 pt insets, a separator one device pixel tall between rows, inset to the words (16 pt, or
+   60 pt past a 29 pt icon). Over a group, its header; under it, its footer: 13 pt footnote type in
+   the header and footer grey, 16 pt in from the group's edge. ---- */
+.sgrp, .how .group, .cvForm { position: relative; container-type: normal; margin: var(--group-gap) 0 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-group);
+  background: var(--sys-grouped-2); box-shadow: none; }
+.sgrp:not(:has(> :not([hidden]))) { display: none; }
+:is(.sgrp, .how .group, .cvForm) > * { position: relative; }
+:is(.sgrp, .how .group, .cvForm) > :not([hidden]) ~ :not([hidden])::before { content: ""; position: absolute; z-index: 1; top: 0; left: var(--sep-l); right: 0; height: 1px;
+  transform: scaleY(var(--hl)); transform-origin: top; background: var(--sys-sep); pointer-events: none; }
+:is(.topic, .solo):has(> :is(.htile, .dmedal, .shopSw, .av, .ball, .ic, .wk, .rk)) { --sep-l: var(--sep-l-icon); }
+.ghead, .cvHead { display: flex; align-items: center; gap: 8px; margin: var(--head-mt) var(--row-px) var(--head-mb); font: var(--t-footnote); letter-spacing: var(--tr-footnote); color: var(--sys-head); }
+:is(.ghead, .cvHead) + :is(.group, .cvForm, .seg) { margin-top: 0; }
+.gfoot, .cvNote, .dnote, .rnote { margin: var(--foot-mt) var(--row-px) 0; font: var(--t-footnote); letter-spacing: var(--tr-footnote); color: var(--sys-head); }
+/* a row that goes somewhere: an icon tile, a title (and a subtitle), a value, a chevron */
+.topic { position: relative; width: 100%; min-height: var(--row-h); display: flex; align-items: center; gap: var(--row-icon-gap); padding: 6px var(--row-px); border: 0; border-radius: 0;
+  background: transparent; text-align: left; color: var(--sys-label); transition: background-color .15s; }
+button.topic:active { background: var(--sys-press); transition-duration: 0s; }
+.topic .tt { flex: 1; min-width: 0; }
+.topic b { display: block; font: var(--t-body); letter-spacing: var(--tr-body); }
+.topic small { display: block; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.topic .val { flex: none; font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label-2); font-variant-numeric: tabular-nums; }
+.chev { flex: none; width: 14px; height: 14px; margin-left: -6px; color: var(--sys-label-3); }
+.htile { flex: none; width: var(--row-icon); height: var(--row-icon); display: grid; place-items: center; overflow: hidden; border-radius: var(--r-icon);
+  background: radial-gradient(circle at 50% 35%, #2b7d5e, #12402f 92%); }
+[data-cloth="red"] .htile { background: radial-gradient(circle at 50% 35%, #b2343b, #5c1218 92%); }
+[data-cloth="blue"] .htile { background: radial-gradient(circle at 50% 35%, #346fbd, #122f5c 92%); }
+.htile > svg { width: var(--row-icon); height: var(--row-icon); }
+.htile > svg[width] { width: 19px; height: 19px; }
+.htile .ball { width: 19px; height: 19px; font-size: 8px; box-shadow: inset -2px -3px 4px rgba(0, 0, 0, .35), 0 1.5px 2px rgba(0, 0, 0, .4); }
+/* a switch row (UISwitch: 51 x 31, systemGreen on, systemFill off) */
+.tog, .cvSw { position: relative; width: 100%; min-height: var(--row-h); display: flex; align-items: center; gap: var(--sp-3); padding: 6px var(--row-px); border: 0; background: transparent;
+  text-align: left; color: var(--sys-label); font: var(--t-body); letter-spacing: var(--tr-body); }
+.tog span, .cvSw .tt { flex: 1; min-width: 0; }
+:is(.tog, .cvSw) > i { flex: none; position: relative; width: 51px; height: 31px; border-radius: 15.5px; background: var(--sys-fill); transition: background-color .2s; }
+:is(.tog, .cvSw) > i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .15), 0 3px 1px rgba(0, 0, 0, .06); transition: transform .2s; }
+.tog[aria-checked="true"] > i, .cvSw[aria-checked="true"] > i { background: var(--sys-green); }
+.tog[aria-checked="true"] > i::after, .cvSw[aria-checked="true"] > i::after { transform: translateX(20px); }
+.tog:disabled, .cvSw:disabled { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { :is(.tog, .cvSw) > i, :is(.tog, .cvSw) > i::after { transition: none; } }
+/* a choice row: its label, and a segmented control under it or a pop-up button beside it */
+.prow { position: relative; display: grid; gap: 0; min-height: var(--row-h); padding: 0 var(--row-px); }
+.prow[hidden] { display: none; }
+.prow:has(> .popBtn) { grid-template-columns: minmax(0, 1fr) minmax(0, max-content); align-items: center; column-gap: var(--sp-4); }
+.prow:has(> .popBtn) > .popBtn { max-width: 100%; }
+.plab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: var(--row-py) 0 0; font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label); }
+.prow:has(> .popBtn) > .plab { padding: var(--row-py) 0; }
+.prow.bare > .popBtn { grid-column: 1 / -1; justify-content: space-between; color: var(--sys-label); text-align: left; }
+.prow.bare > .popBtn svg { color: var(--sys-label-2); }
+#clLab { justify-content: flex-start; align-items: center; }
+.plab b { font-weight: 400; font-variant-numeric: tabular-nums; color: var(--sys-label-2); }
+/* ---- the game setup: a navigation page in the iOS manner, built from the token sheet. The hero
+   (the game's table, its Large Title and a Subheadline line) over a scrolling inset grouped list:
+   the tutorial's plain row; Opponent (a segmented control) with the CPU's three rows or the two
+   names; Table and Pockets as pop-up rows; Rules and Stalemate as pop-up rows with the rules' fine
+   print as the group's footer. Under it a bar of the bar material holds the primary action, Break
+   (Play for bumper pool), a 50 pt capsule clear of the home indicator, never scrolled away; a
+   hairline tops the bar while the list runs on under it. Full screen on a phone (upright or on its
+   side), a card on anything bigger. ---- */
+#setupSheet { --label: var(--sys-label); --label-2: var(--sys-label-2); --label-3: var(--sys-label-3); --hair: var(--sys-sep);
+  --page: var(--sys-grouped); --cell: var(--sys-grouped-2); --pl: 20px; --pr: 20px; }
 #setupSheet .sheet.setup { max-width: 480px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); display: flex; flex-direction: column;
-  overflow: hidden; padding: 0; border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
-.setScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; padding: 4px var(--pr) 6px var(--pl); }
-#setupSheet .colA > .tutLink { margin-top: 6px; }
+  overflow: hidden; padding: 0; border: 0; border-radius: 28px; background: var(--page); color: var(--label); font-family: var(--font-ui); box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 .5px rgba(255, 255, 255, .12); }
+.setScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; padding: 0 var(--pr) var(--sp-5) var(--pl); }
 .setScroll > * { min-width: 0; }
-.setFoot { position: relative; z-index: 1; flex: none; padding: 4px var(--pr) max(16px, var(--sab)) var(--pl); background: var(--page); }
+.setFoot { position: relative; z-index: 1; flex: none; padding: var(--sp-2) var(--pr) max(16px, var(--sab)) var(--pl); background: var(--page); }   /* the list ends at its hairline: nothing runs under it to blur */
+.setFoot::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1px; transform: scaleY(var(--hl)); transform-origin: top; background: var(--sys-sep); pointer-events: none; }
 .setFoot.whole::before { display: none; }
-.setFoot::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px; background: linear-gradient(rgba(11, 11, 12, 0), var(--page)); pointer-events: none; }
-#breakBtn { display: block; width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 16px; border-radius: 999px; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+#breakBtn { display: block; width: 100%; height: 50px; min-height: 50px; margin: 0; padding: 0 16px; border-radius: var(--r-capsule); font: var(--t-headline); letter-spacing: var(--tr-body); }
 /* the hero (4m): the game's table in a low perspective, its signature shot played by the sim,
    full bleed across the top of the sheet and fixed above the form, the back button and the
-   game's ball over it, the kicker, the title and the game's line on its lower edge over a dark
-   fade into the page (4.5:1 for every word, measured). The canvas fills it; a tap replays. */
+   game's ball over it, the Large Title and the game's line on its lower edge over a dark fade
+   into the page (4.5:1 for every word, measured). The canvas fills it; a tap replays. */
 #setupSheet .hero { position: relative; flex: none; display: flex; flex-direction: column; justify-content: flex-end; height: 262px; min-height: 0; overflow: hidden;
-  background: var(--page); padding: calc(var(--sat, 0px) + 64px) var(--pr) 10px var(--pl); }
+  background: var(--page); padding: calc(var(--sat, 0px) + 64px) var(--pr) var(--sp-3) var(--pl); }
 #setupHeroArt { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; transition: opacity .28s ease-out; }
 #setupHeroArt.wait { opacity: 0; transition: none; }
 [data-motion="reduce"] #setupHeroArt { transition: none; }
 @media (prefers-reduced-motion: reduce) { #setupHeroArt { transition: none; } }
 #setupSheet .hero::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(rgba(11, 11, 12, .5), rgba(11, 11, 12, 0) calc(var(--sat, 0px) + 76px)),
-    linear-gradient(rgba(11, 11, 12, 0) calc(100% - 160px), rgba(11, 11, 12, .32) calc(100% - 134px), rgba(11, 11, 12, .62) calc(100% - 114px), rgba(11, 11, 12, .75) calc(100% - 98px), rgba(11, 11, 12, .84) calc(100% - 64px), rgba(11, 11, 12, .95) calc(100% - 26px), var(--page)); }
-#setupSheet .hero .back { position: absolute; top: calc(var(--sat, 0px) + 10px); left: var(--pl); z-index: 1; border: 0; background: rgba(18, 18, 20, .72); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .2); color: #fff; }
-#setupSheet .hero .back:hover { background: rgba(38, 38, 42, .85); }
+  background: linear-gradient(rgba(0, 0, 0, .5), rgba(0, 0, 0, 0) calc(var(--sat, 0px) + 76px)),
+    linear-gradient(rgba(0, 0, 0, 0) calc(100% - 160px), rgba(0, 0, 0, .32) calc(100% - 134px), rgba(0, 0, 0, .62) calc(100% - 114px), rgba(0, 0, 0, .75) calc(100% - 98px), rgba(0, 0, 0, .84) calc(100% - 64px), rgba(0, 0, 0, .95) calc(100% - 26px), var(--page)); }
+#setupSheet .hero .back { position: absolute; top: calc(var(--sat, 0px) + 10px); left: var(--pl); z-index: 1; }
 #setupSheet .hero .ball { position: absolute; top: calc(var(--sat, 0px) + 12px); right: var(--pr); z-index: 1; width: 40px; height: 40px; font-size: 13px; }
 .heroTxt { position: relative; z-index: 1; pointer-events: none; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
-.heroTxt .kicker { margin: 0 0 2px; color: rgba(255, 255, 255, .86); }
-.heroTxt .title { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.12; color: #fff; overflow-wrap: anywhere; }
-#setupSub { margin: 4px 0 0; font-size: 15px; line-height: 1.3; color: rgba(235, 235, 245, .82); }
+.heroTxt .title { margin: 0; font: var(--t-large); letter-spacing: var(--tr-large); color: #fff; overflow-wrap: anywhere; }
+#setupSub { margin: 2px 0 0; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: rgba(235, 235, 245, .82); }
 /* short headings and lines on the setup sheets wrap balanced, never one word alone on the last line */
 #setupSub, .heroTxt .title, :is(#setupSheet, #modesSheet, #careerSheet, #drillSheet) :is(h2, h3, .title, .sub) { text-wrap: balance; }
-/* the groups: inset, rounded, hairlines between rows inset to the words; a group with nothing to
-   show is not drawn */
-.sgrp { container-type: inline-size; margin: 12px 0 0; overflow: hidden; border-radius: 16px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
-.sgrp:not(:has(> :not([hidden]))) { display: none; }
-#setupSheet .field { position: relative; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; min-height: 50px; margin: 0; padding: 3px 3px 3px 14px; }
-.sgrp > :not([hidden]) ~ :not([hidden])::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
-#setupSheet .field .label { font-size: 16px; line-height: 1.25; color: var(--label); }
-#setupSheet .seg { padding: 2px; gap: 2px; border: 0; border-radius: 10px; background: #0b0b0c; }
-#setupSheet .seg button { min-height: 44px; padding: 0 6px; border-radius: 8px; font-size: 15px; color: var(--label-2); overflow: hidden; text-overflow: ellipsis; }
-#setupSheet .seg button[aria-pressed="true"] { background: #3a3a40; color: var(--label); box-shadow: 0 1px 2px rgba(0, 0, 0, .45); }
-/* a long choice ("Re-Rack (House)"), or any choice in a narrow group (large text): the label
-   over a full-width segmented row */
-#setupSheet .field:is(.stack, .fold) { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 8px 3px 3px; }
-#setupSheet .field:is(.stack, .fold) .label { padding-left: 10px; }
-#setupSheet .field.wrap2 .seg button { padding: 4px 6px; white-space: normal; line-height: 1.15; text-overflow: clip; }
-@container (max-width: 330px) {
-  #setupSheet .field { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 3px 3px; }
-  #setupSheet .field .label { padding-left: 10px; }
-}
-/* the CPU opponents as three cards, or the two players' names side by side */
-.foes { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px; }
+/* the setup's rows: a label and its control on one 44 pt line (a pop-up button's value at the
+   trailing edge), or a segmented control across the row */
+#setupSheet .field { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: var(--sp-4); min-height: var(--row-h); margin: 0; padding: 0 var(--row-px); }
+#setupSheet .field .label { display: block; font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label); white-space: nowrap; }
+#setupSheet .field > .seg { grid-column: 1 / -1; }
+#setupSheet .field > .popBtn { justify-self: stretch; }
+/* the CPU opponents: a row each (the ball, the name, its level and record, a checkmark on the one chosen) */
+.foes { position: relative; display: block; }
 .foes[hidden], .names[hidden] { display: none; }
-.foe { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px 8px; border-radius: 12px; border: 1px solid #3a3a41; background: #26262a; color: var(--label); }
-.foe:hover { border-color: #6b6b74; }
-.foe[aria-pressed="true"] { background: #303036; border-color: var(--cream); box-shadow: inset 0 0 0 1px var(--cream); }
-.foe .ball { width: 34px; height: 34px; margin-bottom: 4px; font-size: 11px; }
-.foe b { font-size: 15px; }
-.foe small { font-size: 12px; color: var(--muted); }
-.foe .wl { font-variant-numeric: tabular-nums; }
-.foe .wl:empty { display: none; }
-.names .nm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
-.names input { width: 100%; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 10px; border: 0; background: #2a2a2e; color: var(--label); font: 600 16px/1.2 var(--font);
+.foe { position: relative; width: 100%; min-width: 0; min-height: var(--row-h); display: flex; align-items: center; gap: var(--sp-3); padding: 6px var(--row-px); border: 0; border-radius: 0;
+  background: transparent; color: var(--sys-label); text-align: left; transition: background-color .15s; }
+.foe:active { background: var(--sys-press); transition-duration: 0s; }
+.foe .ball { width: 28px; height: 28px; font-size: 11px; box-shadow: inset -3px -4px 6px rgba(0, 0, 0, .35); }
+.foe .tt { flex: 1; min-width: 0; display: block; }
+.foe b { display: block; font: var(--t-body); letter-spacing: var(--tr-body); }
+.foe small { display: block; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.foe .wl:not(:empty)::before { content: " \00b7  "; }
+.foe .chk { flex: none; width: 18px; height: 18px; color: var(--tint); visibility: hidden; }
+.foe[aria-pressed="true"] .chk { visibility: visible; }
+.foes > .foe + .foe::before { content: ""; position: absolute; top: 0; left: calc(var(--row-px) + 28px + var(--sp-3)); right: 0; height: 1px; transform: scaleY(var(--hl)); transform-origin: top; background: var(--sys-sep); }
+/* the two players' names: two fields on the row */
+.names .nm { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--sp-2); }
+.names input { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border-radius: var(--r-field); border: 0; background: var(--sys-fill-3); color: var(--sys-label); font: var(--t-body); letter-spacing: var(--tr-body);
   -webkit-user-select: text; user-select: text; }
-.names input::placeholder { color: rgba(235, 235, 245, .6); }
-.names input:focus { outline: 2px solid rgba(235, 235, 245, .6); outline-offset: -2px; }
-/* the fine print: after the groups, quiet */
-#setupSheet .rnote { margin: 8px 14px 0; font-size: 13px; line-height: 1.35; color: var(--label-2); }
+.names input::placeholder { color: var(--sys-label-3); }
+.names input:focus { outline: 2px solid var(--sys-label-2); outline-offset: -2px; }
+/* the rules' fine print: the Rules group's footer */
+#setupSheet .rnote { margin: var(--foot-mt) var(--row-px) 0; }
 #setupSheet .rnote:empty { display: none; }
 /* on its side: two columns (who plays on the left, the table and rules on the right) */
 @media (orientation: landscape) and (min-width: 700px) and (max-height: 620px) {
@@ -657,16 +785,16 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* Stats and records (6s): the overview's numbers and table in the grouped list's cells; a page's
    rows are a label and its number (the denominator in words), a best with its date under it */
 #statsSheet .kpis { margin: 8px 0 0; }
-#statsSheet .kpis div { background: var(--cell); border: 0; border-radius: 16px; box-shadow: inset 0 0 0 .5px var(--hair); }
+#statsSheet .kpis div { background: var(--cell); border: 0; border-radius: var(--r-group); box-shadow: none; padding: var(--sp-3) var(--row-px); }
 #statsSheet .kpis dt, #statsSheet .kpis dd small { color: var(--label-2); }
 .how .group.tbl { padding: 6px 14px 2px; overflow-x: auto; }
 .how .group.tbl .rec tr:first-child th { border-top: 0; }
-.how .stat { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: 44px; padding: 11px 14px; font-size: 15px; line-height: 1.3; color: var(--label); }
+.how .stat { position: relative; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; min-height: var(--row-h); padding: var(--row-py) var(--row-px); font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label); }
 .how .stat > span { min-width: 0; }
-.how .stat small { display: block; font-size: 13px; color: var(--label-2); }
-.how .stat b { flex: none; max-width: 58%; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.how .stat small { display: block; font: var(--t-footnote); color: var(--sys-label-2); }
+.how .stat b { flex: none; max-width: 58%; font-weight: 400; color: var(--sys-label-2); text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .how .stat b small { font-weight: 500; }
-.form { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+.form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: var(--row-h); padding: 8px var(--row-px); }
 .form i { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; font: 700 13px/1 var(--font); font-style: normal; color: #0b0b0c; background: #8fd8b0; }
 .form i.l { background: #3a3a41; color: var(--label); box-shadow: inset 0 0 0 1px #6b6b74; }
 #statsPage { padding-bottom: max(28px, var(--sab)); }
@@ -674,11 +802,11 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
 .kpis div { min-width: 0; padding: 10px 12px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
 .kpis dt { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kpis dd { margin: 2px 0 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpis dd { margin: 2px 0 0; font: var(--t-title2); font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .kpis dd small { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
 @media (min-width: 600px) { .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .rec { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.rec th, .rec td { padding: 10px 4px; text-align: right; border-top: 1px solid var(--line); font-size: 14px; white-space: nowrap; }
+.rec th, .rec td { padding: 10px 4px; text-align: right; border-top: .5px solid var(--sys-sep); font-size: 15px; white-space: nowrap; }
 .rec th:first-child { text-align: left; padding-left: 0; }
 .rec thead th { padding-top: 0; border-top: 0; font-size: 12px; font-weight: 600; color: var(--muted); }
 .rec tbody th { font-weight: 700; }
@@ -690,72 +818,52 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    tutorial, or the lesson) pinned at the foot, clear of the home indicator. The back button pops
    to the list, and from the list goes home. The header stays pinned while the page scrolls under
    it. Full screen on a phone held upright, a card on anything wider. One accent from the cloth. ---- */
-#helpSheet, #prefsSheet, #statsSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .66); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
-  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
-[data-cloth="red"] :is(#helpSheet, #prefsSheet, #statsSheet) { --accent: #ff8a7a; }
-[data-cloth="blue"] :is(#helpSheet, #prefsSheet, #statsSheet) { --accent: #7cb6ff; }
-:is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
-  padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+/* the full-screen sheets (How to play, Settings, Stats, Drills, the career, the modes): one shell.
+   A pinned header (the back button and the page's title, Title 1) over the page's inset grouped
+   lists, the page's action pinned at the foot on the bar material. Full screen on a phone held
+   upright, a card on anything wider. One accent from the cloth. */
+:is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) { --accent: var(--tint); --label: var(--sys-label); --label-2: var(--sys-label-2); --label-3: var(--sys-label-3);
+  --hair: var(--sys-sep); --page: var(--sys-grouped); --cell: var(--sys-grouped-2); --pl: 20px; --pr: 20px; --warn: #ff8a7a; }
+:is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab)));
+  overflow-y: auto; overflow-x: clip; overscroll-behavior: contain; display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 0; border-radius: 28px;
+  background: var(--page); color: var(--label); font-family: var(--font-ui); box-shadow: 0 24px 80px rgba(0, 0, 0, .55), 0 0 0 .5px rgba(255, 255, 255, .12); }
 @media (max-width: 600px) {
-  #helpSheet, #prefsSheet, #statsSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  :is(#helpSheet, #prefsSheet, #statsSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
+  :is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
+  :is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border-radius: 0; box-shadow: none; }
+  :is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
 }
 .howTop { position: sticky; top: 0; z-index: 2; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 18px var(--pr) 8px var(--pl); background: var(--page); }
-.howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px; background: linear-gradient(var(--page), rgba(11, 11, 12, 0)); pointer-events: none; }
-:is(#helpSheet, #prefsSheet, #statsSheet) .shead { margin: 0; gap: 14px; }
-:is(#helpSheet, #prefsSheet, #statsSheet) .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-:is(#helpSheet, #prefsSheet, #statsSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
-:is(#helpSheet, #prefsSheet, #statsSheet) .back:hover { background: #26262a; }
-.how .group { margin: 8px 0 0; padding: 0; list-style: none; overflow: hidden; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.howTop::after { content: ""; position: absolute; left: 0; right: 0; bottom: -14px; height: 14px; background: linear-gradient(var(--page), rgba(0, 0, 0, 0)); pointer-events: none; }
+:is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) .shead { margin: 0; gap: 14px; }
+:is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet) .shead .title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .howList { padding: 0 0 max(24px, var(--sab)); }
 .howList[hidden], .pan[hidden] { display: none; }
 /* on a full-screen phone a short page still puts its action at the foot of the screen */
-:is(#helpSheet, #prefsSheet, #statsSheet) .sheet { display: flex; flex-direction: column; }
 .how .pan:not([hidden]) { flex: 1 0 auto; display: flex; flex-direction: column; }
 .how .pan .howAct { margin-top: auto; }
-/* the topics */
-.topic { position: relative; width: 100%; min-height: 62px; display: flex; align-items: center; gap: 14px; padding: 9px 14px; border: 0; border-radius: 0;
-  background: transparent; text-align: left; color: var(--label); transition: background-color .15s; }
-.topic + .topic::before, .how .rules li + li::before { content: ""; position: absolute; top: 0; left: 60px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
-.topic:hover { background: rgba(255, 255, 255, .04); }
-.topic:active { background: rgba(255, 255, 255, .09); transition-duration: 0s; }
-.topic .tt { flex: 1; min-width: 0; }
-.topic b { display: block; font-size: 17px; font-weight: 500; line-height: 1.25; }
-.topic small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.topic .chev { color: var(--label-3); }
-.htile { flex: none; width: 32px; height: 32px; display: grid; place-items: center; overflow: hidden; border-radius: 9px;
-  background: radial-gradient(circle at 50% 35%, #2b7d5e, #12402f 92%); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .16); }
-[data-cloth="red"] .htile { background: radial-gradient(circle at 50% 35%, #b2343b, #5c1218 92%); }
-[data-cloth="blue"] .htile { background: radial-gradient(circle at 50% 35%, #346fbd, #122f5c 92%); }
-.htile > svg { width: 32px; height: 32px; }
-.htile > svg[width] { width: 20px; height: 20px; }
-.htile .ball { width: 20px; height: 20px; font-size: 8px; box-shadow: inset -2px -3px 4px rgba(0, 0, 0, .35), 0 1.5px 2px rgba(0, 0, 0, .4); }
-/* a topic's rules: a heading and a sentence or two each */
-.how .rules li { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 12px 16px 13px; }
-.how .rules li + li::before { left: 16px; }
-.how .rules.keys li + li::before, .how .rules.touch li + li::before { left: 60px; }
+/* a topic's rules: a heading (Headline) and a sentence or two (Subheadline) each */
+.how .rules li { display: flex; align-items: flex-start; gap: var(--row-icon-gap); padding: var(--row-py) var(--row-px); }
 .how .rules li > div { flex: 1; min-width: 0; }
-.how .rules b { display: block; font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--label); }
-.how .rules p { margin: 2px 0 0; font-size: 15px; line-height: 1.4; color: var(--label-2); }
-.how .rules .ic { flex: none; width: 30px; height: 30px; margin-top: 1px; display: grid; place-items: center; border-radius: 8px; color: var(--accent); background: rgba(255, 255, 255, .08); }
+.how .rules b { display: block; font: var(--t-headline); letter-spacing: var(--tr-body); color: var(--sys-label); }
+.how .rules p { margin: 2px 0 0; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label-2); }
+.how .rules .ic { flex: none; width: var(--row-icon); height: var(--row-icon); margin-top: -3px; display: grid; place-items: center; border-radius: var(--r-icon); color: var(--accent); background: var(--sys-fill-3); }
 .how .rules .ic svg { width: 19px; height: 19px; }
+.how .rules:is(.keys, .touch) > li { --sep-l: var(--sep-l-icon); }
 /* snooker's colours in order, a dot and its value each */
-.cols { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 14px; font-weight: 600; color: var(--label); font-variant-numeric: tabular-nums; }
+.cols { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font: 600 15px/20px var(--font-ui); color: var(--sys-label); font-variant-numeric: tabular-nums; }
 .cols > span { display: inline-flex; align-items: center; gap: 6px; }
 .cols i { width: 13px; height: 13px; border-radius: 50%; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .3); }
 .cols i.k { background: radial-gradient(circle at 35% 30%, #5a5a60, #0e0e10 70%); box-shadow: 0 0 0 1px #6e6e76; }
-.how kbd { display: inline-block; min-width: 22px; padding: 3px 6px; border: 0; border-radius: 6px; background: #2e2e33; color: var(--label); font-size: 12px; font-weight: 600; line-height: 1.1;
-  font-family: inherit; text-align: center; vertical-align: 1px; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .45), inset 0 0 0 .5px rgba(255, 255, 255, .14); }
-/* the fine print: quiet, smaller, no container */
-.how .fineHead { margin: 26px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
-.how .fine { margin: 0; padding: 0 16px; list-style: none; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+.how kbd { display: inline-block; min-width: 22px; padding: 3px 6px; border: 0; border-radius: 6px; background: var(--sys-gray-4); color: var(--sys-label); font: 600 12px/14px var(--font-ui);
+  text-align: center; vertical-align: 1px; box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .45); }
+/* the fine print: a header and footnotes, no container */
+.how .fineHead { margin: var(--head-mt) var(--row-px) var(--head-mb); font: var(--t-footnote); letter-spacing: var(--tr-footnote); color: var(--sys-head); }
+.how .fine { margin: 0; padding: 0 var(--row-px); list-style: none; font: var(--t-footnote); letter-spacing: var(--tr-footnote); color: var(--sys-head); }
 .how .fine li + li { margin-top: 8px; }
 #panSolo { padding-bottom: max(28px, var(--sab)); }
-/* the page's action, pinned at the foot */
-.howAct { position: sticky; bottom: 0; z-index: 1; margin: 0 calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(18px, var(--sab)) var(--pl);
-  background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 22px); }
+/* the page's action, pinned at the foot on the bar material (as the setup's Break) */
+.howAct { position: sticky; bottom: 0; z-index: 1; margin: var(--sp-5) calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: var(--sp-2) var(--pr) max(16px, var(--sab)) var(--pl);
+  background: var(--mat-bar); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); }
 .howAct button { width: 100%; margin: 0; padding: 0 16px;
   transition: transform .2s cubic-bezier(.3, 1.45, .55, 1), background-color .15s; }
 .howAct button[hidden] { display: none; }
@@ -771,10 +879,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* a short screen (a phone on its side): a tighter header and foot, so more rules show */
 @media (max-height: 500px) {
   .howTop { padding-top: 12px; padding-bottom: 4px; }
-  :is(#helpSheet, #prefsSheet, #statsSheet) .shead .title { font-size: 24px; }
-  .howAct { padding-top: 16px; padding-bottom: max(12px, var(--sab)); }
-  .howAct button { font-size: 16px; }
-  .how .rules li { padding-top: 10px; padding-bottom: 11px; }
+  :is(#helpSheet, #prefsSheet, #statsSheet, #drillSheet, #careerSheet, #modesSheet) .shead .title { font: var(--t-title2); letter-spacing: var(--tr-title2); }
+  .how .rules li { padding-top: 9px; padding-bottom: 9px; }
 }
 @media (max-height: 500px) {
   .sheet { padding: 16px 20px 16px; }
@@ -789,27 +895,17 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
   #menu.show:not([data-paused]) .newgame > * { animation: none; }
 }
 /* ---- Settings: the How to play pattern (an inset grouped list, a page pushed per group). A page
-   is grouped cells under small headers: a row is a label over a segmented choice, a switch, or a
-   slider; a quiet footnote under each group says what it does. ---- */
-.how .ghead { display: flex; align-items: center; gap: 8px; margin: 22px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
+   is groups under headers: a row is a pop-up choice, a segmented control, a switch or a slider;
+   a footer under each group says what it does. ---- */
 .how .ghead:first-child, .how .lock + .ghead { margin-top: 10px; }
-.how .gfoot { margin: 6px 16px 0; font-size: 13px; line-height: 1.45; color: var(--label-2); }
-.how .prow { position: relative; display: grid; gap: 8px; padding: 10px 14px 12px; }
-.how .prow[hidden] { display: none; }
-.how .group > * + *::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
-.how .group > .topic + .topic::before { left: 60px; }
-.how .plab { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 15px; line-height: 1.3; color: var(--label); }
-.how .plab b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--label-2); }
-.how .seg { background: #0b0b0c; }
-.how .tog { position: relative; width: 100%; min-height: 50px; padding: 8px 14px; font-size: 15px; color: var(--label); }
-.how .tog + .tog { border-top: 0; }
-.how .note.lock { margin: 10px 16px 0; font-size: 13px; }
-.how .vol input { width: 100%; height: 44px; margin: 0; accent-color: #2f9e62; background: transparent; }
-.how .about { padding: 12px 16px; }
-.how .about p { margin: 0; font-size: 15px; line-height: 1.45; color: var(--label-2); }
+.how .note.lock { margin: 10px 16px 0; font: var(--t-footnote); }
+.how .vol { padding-bottom: 4px; }
+.how .vol input { width: 100%; height: 44px; margin: 0; accent-color: var(--sys-green); background: transparent; }
+.how .about { padding: var(--row-py) var(--row-px); }
+.how .about p { margin: 0; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label-2); }
 .how .about p + p { margin-top: 8px; }
-.how .about b { margin-right: 6px; color: var(--label); }
-#prefsSheet .diag { margin: 12px 16px max(24px, var(--sab)); font-size: 12px; color: var(--label-2); }
+.how .about b { margin-right: 6px; font-weight: 600; color: var(--sys-label); }
+#prefsSheet .diag { margin: 12px 16px max(24px, var(--sab)); font: var(--t-caption1); color: var(--sys-label-2); }
 #prefsSheet .pan { padding-bottom: max(28px, var(--sab)); }
 /* Accessibility: a larger text size grows the sheets and the words over the table (not the table) */
 [data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #callBar, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
@@ -1002,18 +1098,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
    a page pushed per drill, the accent capsule pinned at the foot), full screen on a phone held
    upright. A medal per drill: bronze, silver and gold, each 3:1 or better on the cell. The result
    is the trick shots' light sheet, each shot's score as a chip. ---- */
-#drillSheet { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
-  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; }
-[data-cloth="red"] #drillSheet { --accent: #ff8a7a; }
-[data-cloth="blue"] #drillSheet { --accent: #7cb6ff; }
-#drillSheet .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
-  display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
-@media (max-width: 600px) {
-  #drillSheet { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  #drillSheet .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  #drillSheet .howTop { padding-top: calc(var(--sat) + 14px); }
-}
 [data-text="115"] :is(#careerSheet, #modesSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
 [data-text="130"] :is(#careerSheet, #modesSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
 @media (max-width: 600px) {
@@ -1026,17 +1110,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   [data-text="115"] #drillSheet .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
   [data-text="130"] #drillSheet .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
 }
-#drillSheet .shead { margin: 0; gap: 14px; }
-#drillSheet .shead .title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#drillSheet .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
-#drillSheet .back:hover { background: #26262a; }
 #drillSheet .pan { padding-bottom: 0; }
-#drillSheet .topic .val { flex: none; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; }
-#drillSheet .dnote { margin: 4px 16px 6px; font-size: 13px; line-height: 1.45; color: var(--label-2); }
+#drillSheet .dnote { margin: 4px 16px 6px; }
 #drillTitle.swap { animation: titleIn .32s ease-out both; }
-@media (max-height: 500px) { #drillSheet .shead .title { font-size: 24px; } }
 /* the medal: a disc in the tier's colour with the drill's number, or an empty ring */
-.dmedal { flex: none; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
+.dmedal { flex: none; width: var(--row-icon); height: var(--row-icon); display: grid; place-items: center; border-radius: 50%; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums;
   color: var(--label-2); box-shadow: inset 0 0 0 1.5px rgba(235, 235, 245, .38); }
 .dmedal[data-tier="1"] { background: #c98a52; color: #1a1006; box-shadow: none; }
 .dmedal[data-tier="2"] { background: #c8ccd4; color: #15171b; box-shadow: none; }
@@ -1104,113 +1182,89 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 /* the career (6d): one sheet of push pages in How to play's manner (inset grouped lists of rows,
    a pinned header, the accent capsule for the page's action), full screen on a phone held
    upright and a card on anything wider. Every page is rebuilt from Career's reads. */
-:is(#careerSheet, #modesSheet) { --accent: #3ddc84; --label: #f5f5f7; --label-2: rgba(235, 235, 245, .7); --label-3: rgba(235, 235, 245, .38); --hair: rgba(255, 255, 255, .1);
-  --page: #0b0b0c; --cell: #1c1c1f; --pl: 20px; --pr: 20px; --warn: #ff8a7a; }
-[data-cloth="red"] :is(#careerSheet, #modesSheet) { --accent: #ff8a7a; }
-[data-cloth="blue"] :is(#careerSheet, #modesSheet) { --accent: #7cb6ff; }
-:is(#careerSheet, #modesSheet) .sheet { max-width: 560px; max-height: calc(var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))); overflow-y: auto; overflow-x: clip; overscroll-behavior: contain;
-  display: flex; flex-direction: column; padding: 0 var(--pr) 0 var(--pl); border: 1px solid #2a2a2e; border-radius: 28px; background: var(--page); color: var(--label);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
-@media (max-width: 600px) {
-  :is(#careerSheet, #modesSheet) { --pl: max(16px, var(--sal)); --pr: max(16px, var(--sar)); padding: 0; background: var(--page); }
-  :is(#careerSheet, #modesSheet) .sheet { max-width: none; height: var(--app-h, 100vh); max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
-  :is(#careerSheet, #modesSheet) .howTop { padding-top: calc(var(--sat) + 14px); }
-}
-:is(#careerSheet, #modesSheet) .shead { margin: 0; gap: 14px; }
-:is(#careerSheet, #modesSheet) .shead .title { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; overflow-wrap: anywhere; }
-:is(#careerSheet, #modesSheet) .shead .kicker { color: var(--label-2); letter-spacing: .04em; overflow-wrap: anywhere; }
-:is(#careerSheet, #modesSheet) .back { border: 0; background: var(--cell); box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .12); color: var(--label); }
+:is(#careerSheet, #modesSheet) .shead .title { overflow-wrap: anywhere; }
+/* the line over a career page's title: Footnote, sentence case, never a tracked capital eyebrow */
+:is(#careerSheet, #modesSheet) .shead .kicker { margin: 0 0 1px; font: var(--t-footnote); letter-spacing: var(--tr-footnote); text-transform: none; color: var(--sys-label-2); overflow-wrap: anywhere; }
 .cvBody { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 0 max(24px, var(--sab)); min-width: 0; }
-.cvHead { margin: 22px 16px 6px; font-size: 13px; font-weight: 600; color: var(--label-2); }
 .cvHead:first-child { margin-top: 10px; }
-.cv .group { margin: 8px 0 0; }
 .cv .topic[disabled] { cursor: default; }
 .cv .topic[disabled]:hover, .cv .topic[disabled]:active, .cv div.topic:hover { background: transparent; }
-.cv .topic .val { flex: none; max-width: 46%; font-size: 15px; color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.cv .topic .val { flex: none; max-width: 46%; color: var(--sys-label-2); font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
 .cv .topic .val.on { color: var(--accent); font-weight: 600; }
 .cv .topic .val.bad { color: var(--warn); }
 .cv .topic small { white-space: normal; overflow-wrap: anywhere; }
 .cv .topic.me { font-weight: 700; }
-.cv .topic .rk { flex: none; width: 34px; font-size: 15px; font-weight: 600; color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; }
-.cv .topic .av { width: 34px; height: 34px; font-size: 13px; }
-.cv .topic + .topic::before { left: 16px; }
+.cv .topic .rk { flex: none; width: 34px; font: 600 15px/20px var(--font-ui); color: var(--label-2); font-variant-numeric: tabular-nums; text-align: right; }
+.cv .topic .av { width: 32px; height: 32px; font-size: 13px; }
 .cv .wk { flex: none; width: 34px; display: grid; justify-items: center; font-size: 11px; line-height: 1.1; color: var(--label-2); }
 .cv .wk b { font-size: 17px; font-weight: 700; color: var(--label); }
 /* a card: the player, the next match, a recap */
-.cvCard { margin: 8px 0 0; padding: 14px 16px; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
+.cvCard { margin: var(--group-gap) 0 0; padding: 14px var(--row-px); border-radius: var(--r-group); background: var(--cell); }
+:is(.cvHead) + .cvCard { margin-top: 0; }
 /* the next match card's banner: the setup hero's final still of the event's table (cvBannerPaint) */
-.cvBanner { display: block; width: calc(100% + 32px); aspect-ratio: 2.4; margin: -14px -16px 12px; border-radius: 20px 20px 0 0; background: #0b0b0c; opacity: 0; transition: opacity .3s; }
+.cvBanner { display: block; width: calc(100% + 32px); aspect-ratio: 2.4; margin: -14px -16px 12px; border-radius: var(--r-group) var(--r-group) 0 0; background: #000; opacity: 0; transition: opacity .3s; }
 .cvBanner.on { opacity: 1; }
 .cvWho { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.cvWho .av { width: 46px; height: 46px; font-size: 16px; }
+.cvWho .av { width: 46px; height: 46px; font-size: 17px; }
 .cvWho .tt { flex: 1; min-width: 0; }
-.cvWho b { display: block; font-size: 18px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
-.cvWho small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); overflow-wrap: anywhere; }
+.cvWho b { display: block; font: var(--t-headline); letter-spacing: var(--tr-body); overflow-wrap: anywhere; }
+.cvWho small { display: block; font: var(--t-footnote); color: var(--label-2); overflow-wrap: anywhere; }
 .cvFacts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 12px 0 0; }
 .cvFacts div { min-width: 0; }
 .cvFacts dt { font-size: 12px; color: var(--label-2); overflow-wrap: anywhere; }
 .cvFacts dd { margin: 1px 0 0; font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .cvBar { height: 4px; margin: 12px 0 0; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; }
 .cvBar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
-.cvLines { margin: 10px 0 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.4; color: var(--label-2); }
+.cvLines { margin: 10px 0 0; padding: 0; list-style: none; font: var(--t-subhead); color: var(--label-2); }
 .cvLines li { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
 .cvLines li span:first-child { flex: none; }
 .cvLines li span:last-child { min-width: 0; color: var(--label); text-align: right; overflow-wrap: anywhere; }
 .cvVs { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 10px; font-size: 13px; font-weight: 600; color: var(--label-2); }
 .cvVs span:first-child { min-width: 0; overflow-wrap: anywhere; }
 .cvVs .tag { flex: none; padding: 3px 9px; border-radius: 999px; background: rgba(255, 255, 255, .08); color: var(--label); font-size: 12px; }
-.cvNote { margin: 10px 16px 0; font-size: 13px; line-height: 1.45; color: var(--label-2); }
 .cvNote.warn { color: var(--warn); }
-.cvMsg { margin: 10px 0 0; padding: 10px 14px; border-radius: 14px; background: #1f1f23; font-size: 14px; line-height: 1.4; color: var(--label); }
+.cvMsg { margin: 10px 0 0; padding: 10px 14px; border-radius: 14px; background: var(--sys-grouped-3); font: var(--t-subhead); color: var(--label); }
 /* actions: the capsule (the page's action), a quiet one, a pair */
 .cvAct { margin: 14px 0 0; display: grid; gap: 8px; }
 .cvAct.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-/* a setup page's action pinned at the foot of the sheet, clear of the home indicator: the form
-   scrolls under it and fades out above it (a gradient, no blur); on a short page it sits at the foot */
-.cvAct.pin { position: sticky; bottom: 0; z-index: 1; margin: auto calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: 24px var(--pr) max(16px, var(--sab)) var(--pl);
-  background: linear-gradient(rgba(11, 11, 12, 0), var(--page) 24px); }
+/* a setup page's action pinned at the foot of the sheet, clear of the home indicator, on the bar
+   material (as the setup's Break): the form scrolls under it; on a short page it sits at the foot */
+.cvAct.pin { position: sticky; bottom: 0; z-index: 1; margin: auto calc(-1 * var(--pr)) 0 calc(-1 * var(--pl)); padding: var(--sp-2) var(--pr) max(16px, var(--sab)) var(--pl);
+  background: var(--mat-bar); -webkit-backdrop-filter: var(--mat-blur); backdrop-filter: var(--mat-blur); }
 .cvBody:has(> .cvAct.pin:last-child) { padding-bottom: 0; }
 .cvBtn { width: 100%; margin: 0; padding: 0 16px; }
 .cvAct.two .cvBtn { padding: 0 4px; letter-spacing: -.02em; }   /* two side by side: a Title Case label ("Advance a Week") keeps to one line at 375 px */
 .cvBtn:disabled, .cvMini:disabled { background: var(--btn-sec); color: var(--label-2); filter: none; cursor: default; }
 .cvMini { flex: none; min-width: 64px; padding: 0 14px; }
 #cvRetire .tt > b { color: var(--btn-warn-ink); }
-/* segments over the page colour */
-.cv .seg { margin: 8px 0 0; background: var(--cell); border-color: #2a2a2e; }
-.cv .seg button { color: var(--label-2); }
-.cv .seg button[aria-pressed="true"] { color: var(--label); }
-.cv .seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cv .seg.wrap.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+/* a segmented control straight on the page (a filter over a list, a choice under a header) */
+.cvBody > .seg { margin: var(--sp-2) 0 0; }
+.cvBody > .cvHead + .seg { margin-top: -4px; }
 /* the new career form */
-.cvForm { display: grid; overflow: hidden; margin: 8px 0 0; border-radius: 20px; background: var(--cell); box-shadow: inset 0 0 0 .5px var(--hair); }
-.cvForm label { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 10px; min-height: 52px; padding: 4px 14px; font-size: 15px; color: var(--label); }
-.cvForm label + label::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
-.cvForm input, .cvForm select { width: 100%; min-width: 0; min-height: 44px; padding: 0 10px; border: 0; border-radius: 10px; background: #2a2a2e; color: var(--label); font: 16px var(--font); }
-.cvForm input::placeholder { color: rgba(235, 235, 245, .6); }
-.cvScore { width: 72px; min-height: 44px; padding: 0 8px; border: 0; border-radius: 10px; background: #2a2a2e; color: var(--label); font: 16px var(--font); text-align: center; }
-/* a switch row */
-.cvSw { position: relative; width: 100%; min-height: 56px; display: flex; align-items: center; gap: 14px; padding: 9px 14px; border: 0; background: transparent; text-align: left; color: var(--label); }
-.cvSw .tt { flex: 1; min-width: 0; }
-.cvSw b { display: block; font-size: 16px; font-weight: 500; }
-.cvSw small { display: block; font-size: 13px; line-height: 1.3; color: var(--label-2); }
-.cvSw i { flex: none; position: relative; width: 50px; height: 30px; border-radius: 15px; background: #3a3a40; transition: background-color .15s; }
-.cvSw i::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: transform .15s; }
-.cvSw[aria-checked="true"] i { background: var(--accent); }
-.cvSw[aria-checked="true"] i::after { transform: translateX(20px); }
-.cvSw + .cvSw::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.cvForm { display: grid; }
+.cvForm label { position: relative; display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: var(--sp-3); min-height: var(--row-h); padding: 4px var(--row-px); font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label); }
+.cvForm input, .cvForm select { width: 100%; min-width: 0; min-height: var(--row-h); padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--sys-label); font: var(--t-body); letter-spacing: var(--tr-body); text-align: right; }
+.cvForm input:focus { outline: none; }
+/* a select is a pop-up button: its value and chevron.up.chevron.down in secondary label, at the trailing edge */
+.cvForm select { -webkit-appearance: none; appearance: none; padding-right: 18px; color: var(--sys-label-2); text-align-last: right;
+  background: no-repeat right center / 10px 16px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 16' fill='none' stroke='%23999' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.8 5.6 5 2.4l3.2 3.2M1.8 10.4 5 13.6l3.2-3.2'/%3E%3C/svg%3E"); }
+.cvForm select option { color: #fff; background: #2c2c2e; }
+.cvForm input::placeholder { color: var(--sys-label-3); }
+.cvScore { width: 72px; min-height: 44px; padding: 0 8px; border: 0; border-radius: var(--r-field); background: var(--sys-fill-3); color: var(--sys-label); font: var(--t-body); text-align: center; }
+/* a switch row with a subtitle (the switch itself is the shared one) */
+.cvSw b { display: block; font: var(--t-body); letter-spacing: var(--tr-body); }
+.cvSw small { display: block; font: var(--t-subhead); letter-spacing: var(--tr-subhead); color: var(--sys-label-2); }
 /* a bracket's match: both names, the score between */
-.bm { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: 44px; padding: 6px 14px; font-size: 14px; color: var(--label-2); }
-.bm + .bm::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; height: 1px; transform: scaleY(.5); transform-origin: top; background: rgba(255, 255, 255, .16); }
+.bm { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 8px; min-height: var(--row-h); padding: 6px var(--row-px); font: var(--t-subhead); color: var(--label-2); }
 .bm span { min-width: 0; overflow-wrap: anywhere; }
 .bm span:last-child { text-align: right; }
 .bm .w { color: var(--label); font-weight: 600; }
 .bm .me { color: var(--accent); }
 .bm b { font-variant-numeric: tabular-nums; color: var(--label); font-weight: 600; }
 /* a skill or a mastery as a bar */
-.cvMeter { flex: none; width: 34%; display: grid; gap: 4px; justify-items: end; font-size: 14px; color: var(--label-2); font-variant-numeric: tabular-nums; }
+.cvMeter { flex: none; width: 34%; display: grid; gap: 4px; justify-items: end; font: var(--t-subhead); color: var(--label-2); font-variant-numeric: tabular-nums; }
 .cvMeter i { display: block; width: 100%; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .12); overflow: hidden; }
 .cvMeter i::after { content: ""; display: block; width: var(--v, 0%); height: 100%; background: var(--accent); }
-@media (prefers-reduced-motion: reduce) { .cvSw i, .cvSw i::after { transition: none; } }
 /* the pause menu in a career match: who, their line, the score */
 #careerNow { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
 #careerNow[hidden] { display: none; }
@@ -1241,16 +1295,14 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   border: 1px solid #5a5a62; background: #303036; color: var(--text); font-size: 15px; font-weight: 600; }
 #coachBtn:hover { background: #3a3a41; }
 #coachBtn[hidden] { display: none; }
-/* the setup's tutorial row: a plain row of its own group (white words, a quiet icon, a chevron) */
-.tutLink { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; margin: 16px 0 0; padding: 4px 14px 4px 10px; border: 0; border-radius: 16px;
-  background: var(--cell, #1c1c1f); box-shadow: inset 0 0 0 .5px var(--hair, rgba(255, 255, 255, .1)); text-align: left; color: var(--label, #f5f5f7); }
-.tutLink:hover { background: #222226; }
-.tutLink:active { background: #2a2a2e; }
+/* the setup's tutorial row: a plain row, a group of its own (a tinted glyph, Body words, a chevron) */
+.tutLink { position: relative; display: flex; align-items: center; gap: var(--row-icon-gap); width: 100%; min-height: var(--row-h); margin: var(--sp-2) 0 0; padding: 6px var(--row-px);
+  border: 0; border-radius: var(--r-group); background: var(--sys-grouped-2); text-align: left; color: var(--sys-label); transition: background-color .15s; }
+.tutLink:active { background: var(--sys-press); transition-duration: 0s; }
 .tutLink[hidden] { display: none; }
-.tutLink .ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; color: var(--label, #f5f5f7); background: rgba(255, 255, 255, .1); }
-.tutLink .ic svg { width: 19px; height: 19px; }
-.tutLink .tt { flex: 1; min-width: 0; font-size: 16px; font-weight: 600; line-height: 1.25; color: var(--label, #f5f5f7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tutLink .chev { flex: none; width: 15px; height: 15px; margin-left: 0; color: var(--label-3, rgba(235, 235, 245, .38)); }
+.tutLink .ic { flex: none; width: 24px; height: 24px; display: grid; place-items: center; color: var(--tint); }
+.tutLink .ic svg { width: 24px; height: 24px; }
+.tutLink .tt { flex: 1; min-width: 0; font: var(--t-body); letter-spacing: var(--tr-body); color: var(--sys-label); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tutGo[hidden] { display: none; }
 #tutOffer .sheet { max-width: 400px; text-align: center; }
 #tutOffer .sub { margin: 0 0 20px; }
@@ -1303,30 +1355,15 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .b14 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #167842 22% 78%, #f6f4ec 78%); }
 .b15 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #7a1e20 22% 78%, #f6f4ec 78%); }
 .rnote:empty { display: none; }
-/* settings, Gameplay: wrapping choices, and switch rows (in Settings' groups: see .how .tog) */
-.seg.wrap { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
-.seg.wrap button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
-/* Settings > Graphics, the look (4l): the unlocked choices of each slot, as many to a row as fit */
-.seg.looks { grid-auto-flow: row; grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); }
-.seg.looks button { white-space: normal; line-height: 1.2; padding: 4px 6px; }
-.seg.looks button:not([hidden]) { display: flex; align-items: center; justify-content: center; }
 .chip-x { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
-.seg button:disabled, .tog:disabled { opacity: .55; cursor: default; }
+.seg button:disabled { opacity: .45; cursor: default; }
 .note.lock { color: #ffd58a; }
-.tog { min-height: 44px; display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 0; background: transparent; text-align: left; color: var(--text); font-size: 14px; }
-.tog + .tog { border-top: 1px solid var(--line); }
-.tog span { flex: 1; min-width: 0; }
-.tog i { flex: none; position: relative; width: 44px; height: 26px; border-radius: 13px; background: #48484f; transition: background-color .15s; }
-.tog i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #f5f5f7; transition: transform .15s; }
-.tog[aria-checked="true"] i { background: #2f9e62; }
-.tog[aria-checked="true"] i::after { transform: translateX(18px); }
 /* the call bar: the call in words (tap to change), the shot-type flags, Safety and Push out; it sits
    at the stage's foot, next to the power bar (upright: over it; wide: by the column) */
 #callBar { position: absolute; z-index: 2; left: 50%; bottom: 6px; transform: translateX(-50%); width: max-content; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: calc(100% - 12px); pointer-events: none; }
 #callBar[hidden] { display: none; }
 #callBar > * { pointer-events: auto; }
 [data-layout="wide"] #callBar { left: 27%; max-width: 40%; }
-.field.stack { grid-template-columns: minmax(0, 1fr); gap: 6px; }
 #callPill { min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94);
   text-align: left; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); max-width: 100%; }
 #callPill b, #callText { font-size: 14px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1364,7 +1401,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .bm b small { display: block; font-size: 11px; font-weight: 500; color: var(--label-2); text-align: center; }
 .bm b { text-align: center; }
 .mdForm { margin: 8px 0 0; }
-.cv .seg.wrap.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 /* the stage takes no taps (the table under it does): the bar takes its own back (QA F1) */
 #exBar { position: absolute; z-index: 2; left: 50%; bottom: 6px; transform: translateX(-50%); display: flex; gap: 6px; align-items: center; padding: 4px; border-radius: 26px; pointer-events: auto;
   background: rgba(22, 22, 24, .94); border: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
@@ -1562,18 +1598,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <canvas id="setupHeroArt" aria-hidden="true"></canvas>
       <button class="back" id="setupBack" aria-label="Back to home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
       <span class="ball b8" id="setupBall" aria-hidden="true">8</span>
-      <div class="heroTxt"><p class="kicker">New game</p><h2 class="title" id="setupTitle">8-Ball</h2><p class="sub" id="setupSub"></p></div>
+      <div class="heroTxt"><h2 class="title" id="setupTitle">8-Ball</h2><p class="sub" id="setupSub"></p></div>
     </div>
     <div class="setScroll" id="setupScroll">
     <div class="colA">
-    <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">Play the 8-Ball Tutorial</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    <button class="tutLink" id="tutLink" hidden><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg></span><span class="tt" id="tutLinkText">Learn 8-Ball</span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
     <div class="sgrp" role="group" aria-label="Players">
-      <div class="field"><span class="label" id="oppLab">Opponent</span>
+      <div class="field"><span class="label sr" id="oppLab">Opponent</span>
         <div class="seg" role="group" aria-labelledby="oppLab"><button id="vs2p" aria-pressed="true">Two Players</button><button id="vsCpu" aria-pressed="false">CPU</button></div></div>
       <div class="foes" id="levelSeg" role="group" aria-label="CPU opponent">
-        <button class="foe" id="lvEasy" aria-pressed="false"><span class="ball b1" aria-hidden="true">1</span><b>Rookie</b><small>Easy</small><small class="wl" id="wlEasy"></small></button>
-        <button class="foe" id="lvMedium" aria-pressed="true"><span class="ball b5" aria-hidden="true">5</span><b>Regular</b><small>Medium</small><small class="wl" id="wlMedium"></small></button>
-        <button class="foe" id="lvHard" aria-pressed="false"><span class="ball b8" aria-hidden="true">8</span><b>Hustler</b><small>Hard</small><small class="wl" id="wlHard"></small></button>
+        <button class="foe" id="lvEasy" aria-pressed="false"><span class="ball b1" aria-hidden="true">1</span><span class="tt"><b>Rookie</b><small>Easy<span class="wl" id="wlEasy"></span></small></span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button>
+        <button class="foe" id="lvMedium" aria-pressed="true"><span class="ball b5" aria-hidden="true">5</span><span class="tt"><b>Regular</b><small>Medium<span class="wl" id="wlMedium"></span></small></span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button>
+        <button class="foe" id="lvHard" aria-pressed="false"><span class="ball b8" aria-hidden="true">8</span><span class="tt"><b>Hustler</b><small>Hard<span class="wl" id="wlHard"></span></small></span><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 12.5l5 5L19.5 7"/></svg></button>
       </div>
       <div class="field names" id="nameRow"><span class="label" id="nameLab">Names</span>
         <div class="nm"><input id="name1" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 1" aria-label="Player 1"><input id="name2" type="text" maxlength="12" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Player 2" aria-label="Player 2"></div></div>
@@ -1582,31 +1618,31 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <div class="colB">
     <div class="sgrp" role="group" aria-label="Table">
       <div class="field pool"><span class="label" id="sizeLab">Table</span>
-        <div class="seg" role="group" aria-labelledby="sizeLab"><button id="tb7" aria-pressed="true">7 ft Bar</button><button id="tb9" aria-pressed="false">9 ft Pro</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="sizeLab"><button id="tb7" aria-pressed="true">7 ft Bar</button><button id="tb9" aria-pressed="false">9 ft Pro</button></div></div>
       <div class="field pool"><span class="label" id="pkLab">Pockets</span>
-        <div class="seg" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="pkLab"><button id="pkReg" aria-pressed="true">Regulation</button><button id="pkGen" aria-pressed="false">Generous</button></div></div>
       <div class="field bump" hidden><span class="label" id="btLab">Table</span>
-        <div class="seg" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="btLab"><button id="btOct" aria-pressed="true">Octagon</button><button id="btRect" aria-pressed="false">Rectangle</button></div></div>
       <div class="field carom" hidden><span class="label" id="crLab">Race To</span>
-        <div class="seg" role="group" aria-labelledby="crLab"><button id="cr5" aria-pressed="false">5</button><button id="cr10" aria-pressed="true">10</button><button id="cr15" aria-pressed="false">15</button></div></div>
-      <div class="field carom stack" hidden><span class="label" id="ccLab">Cushions</span>
-        <div class="seg" role="group" aria-labelledby="ccLab"><button id="cc3" aria-pressed="true">Three</button><button id="cc1" aria-pressed="false">1-Cushion (Easier)</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="crLab"><button id="cr5" aria-pressed="false">5</button><button id="cr10" aria-pressed="true">10</button><button id="cr15" aria-pressed="false">15</button></div></div>
+      <div class="field carom" hidden><span class="label" id="ccLab">Cushions</span>
+        <div class="seg pop" role="group" aria-labelledby="ccLab"><button id="cc3" aria-pressed="true">Three</button><button id="cc1" aria-pressed="false">1-Cushion (Easier)</button></div></div>
       <div class="field snk" hidden><span class="label" id="stLab">Table</span>
-        <div class="seg" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="stLab"><button id="stCompact" aria-pressed="true">Compact 10 ft</button><button id="stFull" aria-pressed="false">Full 12 ft</button></div></div>
       <div class="field snk" hidden><span class="label" id="sfLab">Frames</span>
-        <div class="seg" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One Frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="sfLab"><button id="sf1" aria-pressed="true">One Frame</button><button id="sf3" aria-pressed="false">Best of 3</button></div></div>
     </div>
     <div class="sgrp" role="group" aria-label="Rules">
       <div class="field r8" hidden><span class="label" id="r8Lab">Rules</span>
-        <div class="seg" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">felt Rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">House Rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
       <div class="field r9" hidden><span class="label" id="r9Lab">Rules</span>
-        <div class="seg" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">felt Rules</button><button id="rs9Wpa" aria-pressed="false">WPA, Push Out</button></div></div>
-      <div class="field r10 stack" hidden><span class="label" id="r10Lab">Rules</span>
-        <div class="seg" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious Shots Free</button></div></div>
-      <div class="field str stack" hidden><span class="label" id="raceLab">Race To</span>
-        <div class="seg" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
-      <div class="field stm stack" hidden><span class="label" id="smLab">Stalemate</span>
-        <div class="seg" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play On</button><button id="smOn" aria-pressed="false">Re-Rack (House)</button></div></div>
+        <div class="seg pop" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">House Rules</button><button id="rs9Wpa" aria-pressed="false">WPA, Push Out</button></div></div>
+      <div class="field r10" hidden><span class="label" id="r10Lab">Rules</span>
+        <div class="seg pop" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious Shots Free</button></div></div>
+      <div class="field str" hidden><span class="label" id="raceLab">Race To</span>
+        <div class="seg pop" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
+      <div class="field stm" hidden><span class="label" id="smLab">Stalemate</span>
+        <div class="seg pop" role="group" aria-labelledby="smLab"><button id="smOff" aria-pressed="true">Play On</button><button id="smOn" aria-pressed="false">Re-Rack (House)</button></div></div>
     </div>
     <p class="note rnote" id="rulesNote"></p>
     </div>
@@ -1639,24 +1675,24 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <div class="group" role="group" aria-labelledby="gpRulesLab" id="rulesRows">
         <!-- one row per game with a choice of rulesets, built from RULESETS (rulesetsFor) -->
         <div class="prow" id="stmRow"><span class="plab" id="pstmLab">House Re-Rack on a Stalemate (8 and 9-Ball)</span>
-          <div class="seg" role="group" aria-labelledby="pstmLab"><button id="psmOff" aria-pressed="true">Off</button><button id="psmOn" aria-pressed="false">On</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="pstmLab"><button id="psmOff" aria-pressed="true">Off</button><button id="psmOn" aria-pressed="false">On</button></div></div>
       </div>
       <p class="gfoot">A new game starts on these. An event (a career match) brings its own.</p>
       <h3 class="ghead" id="gpRaceLab">Races</h3>
       <div class="group" role="group" aria-labelledby="gpRaceLab">
         <div class="prow"><span class="plab" id="prcLab">Straight Pool (14.1), Points</span>
-          <div class="seg" role="group" aria-labelledby="prcLab"><button id="prc25">25</button><button id="prc50">50</button><button id="prc100">100</button><button id="prc150">150</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="prcLab"><button id="prc25">25</button><button id="prc50">50</button><button id="prc100">100</button><button id="prc150">150</button></div></div>
         <div class="prow"><span class="plab" id="pcrLab">Three-Cushion, Points</span>
-          <div class="seg" role="group" aria-labelledby="pcrLab"><button id="pcr5">5</button><button id="pcr10">10</button><button id="pcr15">15</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="pcrLab"><button id="pcr5">5</button><button id="pcr10">10</button><button id="pcr15">15</button></div></div>
         <div class="prow"><span class="plab" id="psfLab">Snooker, Frames</span>
-          <div class="seg" role="group" aria-labelledby="psfLab"><button id="psf1">One Frame</button><button id="psf3">Best of 3</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="psfLab"><button id="psf1">One Frame</button><button id="psf3">Best of 3</button></div></div>
       </div>
       <h3 class="ghead" id="gpLab">Called Shots</h3>
       <div class="group" role="group" aria-labelledby="gpLab">
         <div class="prow"><span class="plab" id="cmLab">Call</span>
-          <div class="seg wrap" role="group" aria-labelledby="cmLab"><button id="cmOff" aria-pressed="false">Off</button><button id="cmEight" aria-pressed="false">8-Ball Only</button><button id="cmOfficial" aria-pressed="true">Official Rules</button><button id="cmAll" aria-pressed="false">All Shots</button><button id="cmCareer" aria-pressed="false">Career Rules</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="cmLab"><button id="cmOff" aria-pressed="false">Off</button><button id="cmEight" aria-pressed="false">8-Ball Only</button><button id="cmOfficial" aria-pressed="true">Official Rules</button><button id="cmAll" aria-pressed="false">All Shots</button><button id="cmCareer" aria-pressed="false">Career Rules</button></div></div>
         <div class="prow"><span class="plab" id="cdLab">Declaration</span>
-          <div class="seg wrap" role="group" aria-labelledby="cdLab"><button id="cdBall" aria-pressed="false">Ball Only</button><button id="cdPocket" aria-pressed="true">Ball and Pocket</button><button id="cdRails" aria-pressed="false">Ball, Pocket and Rails (Custom)</button><button id="cdStrict" aria-pressed="false">Strict (Custom)</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="cdLab"><button id="cdBall" aria-pressed="false">Ball Only</button><button id="cdPocket" aria-pressed="true">Ball and Pocket</button><button id="cdRails" aria-pressed="false">Ball, Pocket and Rails (Custom)</button><button id="cdStrict" aria-pressed="false">Strict (Custom)</button></div></div>
         <button class="tog" id="tgObvious" role="switch" aria-checked="true"><span>Auto-Call Obvious Shots</span><i aria-hidden="true"></i></button>
         <button class="tog" id="tgSafety" role="switch" aria-checked="true"><span>Require Safety Declarations</span><i aria-hidden="true"></i></button>
         <button class="tog" id="tgEight" role="switch" aria-checked="false"><span>Require Called 8 Pocket</span><i aria-hidden="true"></i></button>
@@ -1684,18 +1720,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h3 class="ghead" id="ctlLab">Layout</h3>
       <div class="group" role="group" aria-labelledby="ctlLab">
         <div class="prow"><span class="plab" id="hdLab">Hand</span>
-          <div class="seg" role="group" aria-labelledby="hdLab"><button id="hdRight" aria-pressed="true">Right-Handed</button><button id="hdLeft" aria-pressed="false">Left-Handed</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="hdLab"><button id="hdRight" aria-pressed="true">Right-Handed</button><button id="hdLeft" aria-pressed="false">Left-Handed</button></div></div>
         <div class="prow"><span class="plab" id="pbLab">Power Bar</span>
-          <div class="seg" role="group" aria-labelledby="pbLab"><button id="pbMid" aria-pressed="true">Middle</button><button id="pbEdge" aria-pressed="false">At the Edge</button></div></div>
+          <div class="seg pop" role="group" aria-labelledby="pbLab"><button id="pbMid" aria-pressed="true">Middle</button><button id="pbEdge" aria-pressed="false">At the Edge</button></div></div>
       </div>
       <p class="gfoot">Left-handed mirrors the controls: the strip under the table runs the other way, and on its side the column stands left of the table. At the edge puts the power bar under your thumb, at the end of the strip or the foot of the column.</p>
       <p class="gfoot">Keyboard: the arrows aim, Alt or Ctrl for a hair. Tab to the power bar, then up and down set its mark. Accessibility can let Space drive the bar.</p>
     </section>
     <!-- Graphics -->
     <section class="pan" id="ppGfx" aria-labelledby="prefsTitle" hidden>
-      <h3 class="ghead" id="clLab">Cloth <span class="swatch" id="clothSwatch" aria-hidden="true"></span></h3>
-      <div class="group" role="group" aria-labelledby="clLab">
-        <div class="prow"><div class="seg looks" role="group" aria-labelledby="clLab" id="clothSeg"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
+      <h3 class="ghead" id="clHead">Table</h3>
+      <div class="group" role="group" aria-labelledby="clHead">
+        <div class="prow"><span class="plab" id="clLab"><span class="swatch" id="clothSwatch" aria-hidden="true"></span>Cloth</span><div class="seg pop" role="group" aria-labelledby="clLab" id="clothSeg"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
       </div>
       <p class="gfoot">The cloth applies to every game (blue is carom's classic).</p>
       <!-- the look (4l): a row per slot, built from LOOKS, showing what is unlocked -->
@@ -2900,11 +2936,11 @@ const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation'];
 const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
   pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2 };
 const RULESETS = {
-  '8-house': { game: '8', name: '8-ball, felt rules', source: 'felt house rule', breakAny: true,
+  '8-house': { game: '8', name: '8-ball, house rules', source: 'felt house rule', breakAny: true,
     description: 'Hit one of your group first, pot it to carry on. No calls unless your settings ask for them. An 8 on the break is spotted and the breaker carries on.' },
   '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option',
     description: 'Call every shot that is not obvious, and the 8 always with its pocket. A legal break pots a ball or drives four to the cushions. An 8 on the break: spot it or re-rack.' },
-  '9-house': { game: '9', name: '9-ball, felt rules', source: 'felt house rule', gameBallBreak: 'win', threeFoul: 'loss',
+  '9-house': { game: '9', name: '9-ball, house rules', source: 'felt house rule', gameBallBreak: 'win', threeFoul: 'loss',
     description: 'Lowest ball first. A legal 9 wins, early or on the break. Three fouls in a row lose.' },
   '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', missed: 'option',
     description: 'Lowest ball first, any legal 9 wins. Push out on the shot after the break; your opponent may hand it back. A legal break pots a ball or drives four to the cushions. Three fouls lose.' },
@@ -7887,7 +7923,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29l';
+const BUILD = 'build 2026-10-30a';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -12663,14 +12699,14 @@ const SEGS = [
   ['viewAfter', [[vaPull, 'pull'], [vaTop, 'top'], [vaStay, 'stay']]],
 ];
 /* Gameplay's default rules: a row per game with a choice of rulesets, built from RULESETS
-   (rulesetsFor), each button named by its ruleset ("felt rules", "WPA", "Obvious shots free") */
+   (rulesetsFor), each choice named by its ruleset ("House rules", "WPA", "Obvious shots free") */
 const RULE_KINDS = { 8: '8-ball', 9: '9-ball', 10: '10-ball' }, RULE_BTNS = [];
 for (const kind of Object.keys(RULE_KINDS)) {
   const sets = rulesetsFor(kind);
   if (sets.length < 2) continue;
   const row = document.createElement('div'), lab = document.createElement('span'), seg = document.createElement('div');
   row.className = 'prow'; lab.className = 'plab'; lab.id = 'prsLab' + kind; lab.textContent = titleCase(RULE_KINDS[kind]);
-  seg.className = 'seg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
+  seg.className = 'seg pop'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
   const opts = sets.map(r => {
     const b = document.createElement('button'), w = r.name.split(', ')[1] || r.name;
     b.id = 'prs' + r.id; b.textContent = titleCase(w);
@@ -12700,7 +12736,7 @@ const LOOK_ROWS = [['cue', 'Cue'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['ball
   for (const [slot, label] of LOOK_ROWS) {
     const row = document.createElement('div'), lab = document.createElement('span'), seg = document.createElement('div'), opts = [];
     row.className = 'prow'; lab.className = 'plab'; lab.id = 'lk' + slot + 'Lab'; lab.textContent = label;
-    seg.className = 'seg looks'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
+    seg.className = 'seg pop'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
     for (const key of Object.keys(LOOKS[slot])) {
       const b = document.createElement('button');
       b.id = 'lk-' + slot + '-' + key; b.textContent = LOOKS[slot][key].name; b.setAttribute('aria-pressed', 'false');
@@ -12732,6 +12768,101 @@ for (const [btn, k] of BOOL_TOGS) btn.addEventListener('click', () => setSetting
 /* the volume sliders: the value shows as it moves, and is stored as it moves */
 const VOLS = [[volMaster, volMasterVal, 'vol'], [volFx, volFxVal, 'volFx']];
 for (const [el, , k] of VOLS) el.addEventListener('input', () => setSetting(k, clamp(Math.round(+el.value / 5) * 5, 0, 100)));
+/* ---- 6p. the pop-up button and its menu (the HIG's pop-up button over a UIMenu): one component for
+   every choice with longer words or more of them, on every sheet. A .seg.pop keeps its buttons as
+   the choices (their ids, aria-pressed, handlers and settings as they were); popUp(seg) puts a
+   pop-up button after it (the chosen one's words and chevron.up.chevron.down) and the seg becomes
+   its menu: fixed over everything, placed under the button (over it near the foot of the screen),
+   trailing edges aligned, a checkmark leading the chosen item. A pick, a tap outside (which does
+   nothing else), Esc, a scroll or a resize closes it; the arrows move between its items. The
+   button's words follow aria-pressed whoever sets it (a MutationObserver). ---- */
+const POP_GLYPH = '<svg viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 5.6 5 2.4l3.2 3.2M1.8 10.4 5 13.6l3.2-3.2"/></svg>';
+const POP_CHECK = '<svg class="mChk" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.8 8.6l3.4 3.4 7-7.6"/></svg>';
+let popOpen = null, popSwallow = 0;
+function popSync(seg) {
+  const b = seg._pop, on = seg.querySelector('button[aria-pressed="true"]'), items = [...seg.querySelectorAll(':scope > button')];
+  const t = on ? on.textContent.trim() : '', lab = document.getElementById(seg.getAttribute('aria-labelledby') || '');
+  if (b.firstChild.textContent !== t) b.firstChild.textContent = t;
+  const name = lab ? lab.textContent.trim() + (t ? ', ' + t : '') : t;
+  if (b.getAttribute('aria-label') !== name) b.setAttribute('aria-label', name);
+  b.disabled = items.length > 0 && items.every(x => x.disabled || x.hidden);
+}
+function popUp(seg) {
+  if (seg._pop) return seg._pop;
+  seg.classList.add('pop');
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'popBtn';
+  b.setAttribute('aria-haspopup', 'true'); b.setAttribute('aria-expanded', 'false');
+  b.innerHTML = '<span class="pv"></span>' + POP_GLYPH;
+  seg.after(b); seg._pop = b; b._menu = seg;
+  for (const it of seg.querySelectorAll(':scope > button')) if (!it.querySelector('.mChk')) it.insertAdjacentHTML('afterbegin', POP_CHECK);
+  b.addEventListener('click', () => { if (popOpen === seg) popClose(true); else popShow(seg); });
+  seg.addEventListener('click', e => { if (popOpen === seg && e.target.closest('button')) setTimeout(() => popClose(true), 0); });
+  seg.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const its = [...seg.querySelectorAll(':scope > button:not([hidden]):not(:disabled)')], i = its.indexOf(document.activeElement);
+    const n = its[(i + (e.key === 'ArrowDown' ? 1 : its.length - 1)) % its.length];
+    if (n) n.focus(); e.preventDefault();
+  });
+  new MutationObserver(() => popSync(seg)).observe(seg, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['aria-pressed', 'hidden', 'disabled'] });
+  popSync(seg);
+  return b;
+}
+/* the menu under (or over) its button, its trailing edge on the button's, inside the screen: placed
+   in the menu's own coordinates, so a zoomed sheet (Larger Text) or a transformed one still lines up */
+function popPlace(seg) {
+  const b = seg._pop, r = b.getBoundingClientRect();
+  seg.style.animation = 'none';   /* measured unscaled: the opening animation starts after */
+  seg.style.left = '0px'; seg.style.top = '0px'; seg.style.maxHeight = '';
+  let o = seg.getBoundingClientRect();
+  const z = o.width / (seg.offsetWidth || 1) || 1, m = 8, gap = 6 * z;
+  seg.style.maxHeight = Math.max(120, (innerHeight - 2 * m) / z) + 'px';
+  o = seg.getBoundingClientRect();
+  const w = o.width, h = o.height;
+  const x = Math.max(m, Math.min(innerWidth - m - w, r.right - w));
+  let y = r.bottom + gap, up = false;
+  if (y + h > innerHeight - m) { y = r.top - gap - h; up = true; }
+  if (y < m) { y = Math.max(m, innerHeight - m - h); up = false; }
+  seg.style.left = (x - o.left) / z + 'px'; seg.style.top = (y - o.top) / z + 'px';
+  seg.style.setProperty('--pop-o', (up ? 'bottom ' : 'top ') + (r.right - w > m ? 'right' : 'left'));
+  void seg.offsetWidth;
+  seg.style.animation = '';
+}
+function popShow(seg) {
+  popClose();
+  popOpen = seg;
+  seg.classList.add('open');
+  seg._pop.setAttribute('aria-expanded', 'true');
+  popPlace(seg);
+  seg._at = new Map();
+  for (let x = seg._pop.parentElement; x; x = x.parentElement) seg._at.set(x, [x.scrollTop, x.scrollLeft]);
+  if (byKeys) (seg.querySelector(':scope > button[aria-pressed="true"]:not([hidden])') || seg.querySelector(':scope > button:not([hidden])') || seg._pop).focus({ preventScroll: true });
+}
+function popClose(focus) {
+  const seg = popOpen;
+  if (!seg) return;
+  popOpen = null;
+  seg.classList.remove('open');
+  seg.style.left = seg.style.top = seg.style.maxHeight = '';
+  seg._pop.setAttribute('aria-expanded', 'false');
+  if (focus && byKeys) seg._pop.focus({ preventScroll: true });
+}
+/* a tap outside the open menu closes it and does nothing else (UIKit's menu takes that tap) */
+addEventListener('pointerdown', e => {
+  if (!popOpen || popOpen.contains(e.target) || popOpen._pop.contains(e.target)) return;
+  popClose(); popSwallow = performance.now();
+}, true);
+addEventListener('click', e => {
+  if (popSwallow && performance.now() - popSwallow < 700) { popSwallow = 0; e.stopPropagation(); e.preventDefault(); }
+  else popSwallow = 0;
+}, true);
+addEventListener('keydown', e => { if (popOpen && e.key === 'Escape') { popClose(true); e.stopPropagation(); e.preventDefault(); } }, true);
+/* a scroll that moves what is under the menu closes it (a scroll event that moves nothing, as a
+   pushed page's slide sends, does not) */
+const popScrolled = t => { const was = popOpen && popOpen._at && popOpen._at.get(t); return !was || Math.abs(t.scrollTop - was[0]) > 2 || Math.abs(t.scrollLeft - was[1]) > 2; };
+addEventListener('scroll', e => { if (popOpen && !popOpen.contains(e.target) && popScrolled(e.target === document ? document.scrollingElement : e.target)) popClose(); }, true);
+addEventListener('resize', () => popClose());
+for (const s of document.querySelectorAll('.seg.pop')) popUp(s);
 /* the rules are locked by an event (a career rack) for the game on now */
 const rulesLocked = () => !!(paused && game.rules && game.rules.locked);
 function syncMenu() {
@@ -12828,12 +12959,13 @@ const SHEETS = () => [setupSheet, prefsSheet, statsSheet, helpSheet, careerSheet
 function openSheet(el, focus) {
   if (!leftNote.hidden) hideLeftNote();
   menu.classList.remove('show'); over.classList.remove('show'); closeSolo();
+  popClose();
   for (const s of SHEETS()) s.classList.toggle('show', s === el);
   if (mo.src && mo.src.sheet !== el) mo.src = null;   /* only the sheet a card opened goes back into it (6m) */
   el.scrollTop = 0;
   if (byKeys && focus) focus.focus({ preventScroll: true });
 }
-function closeSheets() { for (const s of SHEETS()) s.classList.remove('show'); }
+function closeSheets() { popClose(); for (const s of SHEETS()) s.classList.remove('show'); }
 function backToMenu() { closeSheets(); closeSolo(); showMenu(); }
 /* Esc: the sheet on top closes (the trick result goes to the list); false when none was open */
 function escSheet() {
@@ -12912,19 +13044,11 @@ function showSetup(kind) {
   if (!morphHolds(() => heroShow(kind, true))) heroShow(kind, true);   /* after the card's morph lands (6m) */
   paintArt();
 }
-/* a choice whose words would crowd its segment beside the label ("WPA, Push Out" on a small
-   phone, any long one at a large text size) goes under its label, full width; if its words still
-   do not fit they take two lines. Measured, so a wider font only folds more rows */
+/* the setup's layout once its rows are in: the hero's height (heroFit), and the hairline over the
+   foot's bar only while the list runs on under it. A choice never folds: a pop-up row's value
+   ellipsises, the segmented control's words are short */
 function fitSetupRows() {
   if (!setupSheet.classList.contains('show')) return;
-  const over = f => [...f.querySelectorAll('.seg button')].some(b => b.scrollWidth > b.clientWidth + 1);
-  for (const f of setupSheet.querySelectorAll('.field:not(.names)')) {
-    f.classList.remove('fold', 'wrap2');
-    if (f.hidden) continue;
-    if (over(f)) f.classList.add('fold');
-    if (over(f)) f.classList.add('wrap2');
-  }
-  /* a form that fits whole has nothing under the foot to fade */
   heroFit();
   setFoot.classList.toggle('whole', setupScroll.scrollHeight <= setupScroll.clientHeight);
 }
@@ -16149,7 +16273,7 @@ function tutOfferAnswer(a) {
 function syncTutLinks(kind) {
   const t = tutById(kind);
   tutLink.hidden = !t || !!tutRec.done[kind];
-  if (t) tutLinkText.textContent = titleCase(`Play the ${TUT_WORD[kind]} tutorial`);
+  if (t) tutLinkText.textContent = titleCase(`Learn ${TUT_WORD[kind]}`);
   tutLink.setAttribute('aria-label', t ? `New to ${TUT_WORD[kind]}? Play the ${TUT_WORD[kind]} tutorial` : '');
   for (const b of document.querySelectorAll('.tutGo')) b.lastChild.textContent = titleCase(`${tutRec.done[b.dataset.tut] ? 'Replay' : 'Play'} the ${TUT_WORD[b.dataset.tut]} tutorial`);
 }
@@ -16463,16 +16587,23 @@ function cvActs(...bs) { const d = cvEl('div', 'cvAct' + (bs.filter(Boolean).len
 function cvPin(...bs) { const d = cvActs(...bs); d.classList.add('pin'); return d; }
 function cvLinesEl(pairs) { const u = cvEl('ul', 'cvLines'); for (const [k, v] of pairs) { if (v === null || v === undefined || v === '') continue; const li = cvEl('li'); li.append(cvEl('span', null, titleCase(k)), cvEl('span', null, v)); u.appendChild(li); } return u; }
 function cvFactsEl(pairs) { const d = cvEl('dl', 'cvFacts'); for (const [k, v] of pairs) { const x = cvEl('div'); x.append(cvEl('dt', null, titleCase(k)), cvEl('dd', null, v)); d.appendChild(x); } return d; }
+/* a choice: a segmented control for a few short words, else (cls 'wrap', more than four, or long
+   words) a group of one pop-up row (6p), the value as its title under the page's header */
 function cvSeg(opts, val, set, cls) {
-  const s = cvEl('div', 'seg' + (cls ? ' ' + cls : ''));
+  const pop = /\bwrap\b/.test(cls || '') || opts.length > 4 || opts.some(o => String(o[1]).length > 13);
+  const s = cvEl('div', 'seg');
   s.setAttribute('role', 'group');
   for (const [v, label] of opts) {
     const b = cvEl('button', null, titleCase(label));
     b.setAttribute('aria-pressed', String(v === val));
-    b.addEventListener('click', () => { for (const x of s.children) x.setAttribute('aria-pressed', String(x === b)); set(v); });
+    b.addEventListener('click', () => { for (const x of s.querySelectorAll(':scope > button')) x.setAttribute('aria-pressed', String(x === b)); set(v); });
     s.appendChild(b);
   }
-  return s;
+  if (!pop) return s;
+  const row = cvEl('div', 'prow bare');
+  row.appendChild(s);
+  popUp(s);
+  return cvGroup(row);
 }
 function cvSwitch(title, sub, on, set, id) {
   const b = cvEl('button', 'cvSw');
@@ -16583,7 +16714,7 @@ PAGES.create = () => {
   const out = [cvHeadEl('Profile'), (() => { const d = cvEl('div', 'cvForm'); d.append(
     cvField('Name', cvInput('name', { max: 24, ph: 'Your name' })), cvField('Nickname', cvInput('nick', { max: 20, ph: 'Optional' })),
     cvField('Nationality', cvSelect('nat', Career.NAT.map(n => [n.id, n.name]))), cvField('Hometown', cvInput('town', { max: 24, ph: 'A city' })),
-    cvField('Age', cvInput('age', { type: 'number', min: 14, maxv: 70 })), cvField('Best game', cvSelect('disc', Career.DISCS.map(d => [d, Career.GAMES[d].name]))),
+    cvField('Age', cvInput('age', { type: 'number', min: 14, maxv: 70 })), cvField('Best Game', cvSelect('disc', Career.DISCS.map(d => [d, Career.GAMES[d].name]))),
     cvField('Style', cvSelect('style', Object.keys(Career.STYLES).map(k => [k, Career.STYLES[k].name])))); return d; })()];
   out.push(cvHeadEl('Plays'), cvSeg([['right', 'Right-Handed'], ['left', 'Left-Handed']], f.hand, v => { f.hand = v; }));
   out.push(cvHeadEl('Difficulty'), cvSeg([['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard'], ['pro', 'Pro']], f.difficulty, v => { f.difficulty = v; }));

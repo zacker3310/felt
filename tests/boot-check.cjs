@@ -7,7 +7,7 @@
    --sat/--sar/--sab/--sal, which headless env() leaves at 0) against the sizes before the
    maximised layout. */
 'use strict';
-const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast } = require('./lib.cjs');
 
 /* the words laid over the home's art (the eight game cards): each line's colour against the art's
    own pixels under it (the scrim is painted into the canvas), worst case at the 2nd percentile
@@ -69,14 +69,22 @@ const artContrast = page => page.evaluate(() => {
   await page.click('#playB');
   /* measure once the sheet has finished rising (mid-animation sizes come out a hair under 44) */
   await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running'));
-  const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent, pool: !!tb7.getClientRects().length }; }));
+  /* the Table choice is a pop-up row (6p): its button names the value; its menu, opened by a real tap, holds both */
+  const btBtn = await page.evaluate(() => { const b = btOct.parentElement.nextElementSibling, r = b.getBoundingClientRect(); return { v: b.textContent.trim(), w: r.width, h: r.height }; });
+  await openPop(page, '#btOct');
+  const bt = await page.evaluate(() => [btOct, btRect].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), lab: b.parentElement.previousElementSibling.textContent, pool: !!tb7.closest('.field').getClientRects().length }; }));
   check('setup (bumper pool): its Table control (Octagon, Rectangle), 44 px targets, the octagon by default; no pool table options',
-    bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Table' && !b.pool) && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify(bt));
+    btBtn.v === 'Octagon' && btBtn.h >= 44 && bt[0].t === 'Octagon' && bt[1].t === 'Rectangle' && bt.every(b => b.w >= 44 && b.h >= 44 && b.lab === 'Table' && !b.pool) && bt[0].p === 'true' && bt[1].p === 'false', JSON.stringify([btBtn, bt]));
+  check('setup (bumper pool), its menu open: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  await page.keyboard.press('Escape');
+  check('setup (bumper pool): Esc closes the menu and leaves the sheet', await page.evaluate(() => !document.querySelector('.seg.pop.open') && setupSheet.classList.contains('show')));
   check('setup (bumper pool): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.click('#setupBack');
   /* 8-ball setup: size and pockets, regulation by default, no bumper control */
   await page.click('#play8');
-  const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), bump: !!btOct.getClientRects().length }; }));
+  await openPop(page, '#pkReg');
+  const pk = await page.evaluate(() => [pkReg, pkGen].map(b => { const r = b.getBoundingClientRect(); return { t: b.textContent, w: r.width, h: r.height, p: b.getAttribute('aria-pressed'), bump: !!btOct.closest('.field').getClientRects().length }; }));
+  await page.keyboard.press('Escape');
   check('setup (8-ball): Pockets, Regulation / Generous, 44 px each, regulation by default; no bumper control', pk[0].t === 'Regulation' && pk[1].t === 'Generous' && pk.every(b => b.w >= 44 && b.h >= 44 && !b.bump)
     && pk[0].p === 'true' && pk[1].p === 'false' && await page.evaluate(() => felt.pockets === 'regulation'), JSON.stringify(pk));
   check('setup (8-ball): targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
@@ -120,10 +128,13 @@ const artContrast = page => page.evaluate(() => {
   check('how to play: the cue elevation page says how to open it (hold the english pad, or right click it with a mouse) and what swerve and masse do; More modes, Drills and Career open their sheets',
     cue.hold && cue.swerve && cue.masse && cue.level && opens.every(o => o.open && !o.help), JSON.stringify({ cue, opens }));
   await page.click('#helpBtn');
-  /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS) */
+  /* nothing frosts the table: no CSS rule sets a backdrop or blur filter (they read as smeared on iOS),
+     but the sheets' own materials (the HIG token sheet: the pop-up menu and the bars pinned over a
+     scrolling page), drawn only over the sheet's own list, never over the table */
   const blurs = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })
     .filter(r => r.style && ['backdrop-filter', '-webkit-backdrop-filter', 'filter'].some(k => /blur/.test(r.style.getPropertyValue(k)))).map(r => r.selectorText));
-  check('no backdrop or blur filters anywhere (the table behind a sheet or a callout stays sharp)', blurs.length === 0, JSON.stringify(blurs));
+  const MATERIALS = ['.seg.pop.open', '.howAct', '.cvAct.pin'];
+  check('no backdrop or blur filters anywhere but a sheet\'s own materials (the menu, the pinned bars): the table behind a sheet or a callout stays sharp', blurs.every(b => MATERIALS.includes(b)), JSON.stringify(blurs));
   /* no colour accents: no side stripe (an inset shadow offset on one side, or a border on one side wider than a
      hairline) and no coloured underline bar on any rule (the owner's call: emphasis is weight, never a stripe) */
   const stripes = await page.evaluate(() => [...document.styleSheets].flatMap(sh => [...sh.cssRules]).flatMap(function all(r) { return r instanceof CSSGroupingRule ? [...r.cssRules].flatMap(all) : [r]; })

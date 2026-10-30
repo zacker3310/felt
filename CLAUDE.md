@@ -206,11 +206,31 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   keep `drawShadow`. Ball in hand lifts while carried and settles in `SETTLE_MS` (`bih`, `liftStep`, `settleH`; visual
   only, Reduce Motion: none). The career hub's next match card opens on `cvBanner` (the hero's final still through
   `heroPrep(kind, args)`/`heroRunOn(ms, h)`/`heroDraw(t, h, cv)`, the career's look). Pinned by `look-check`.
-- Setup sheets pin their primary action. The game setup is the hero over a scrolling form (`#setupScroll`: the
-  tutorial row, inset groups `.sgrp`) over `.setFoot` holding `#breakBtn` (a 50 px capsule above
-  `--sab`); `fitSetupRows()` folds a crowded choice under its label. Career and modes setup pages end with `cvPin(...)`
-  (sticky `.cvAct.pin`), a drill with `.howAct`: a new setup page puts its action there, never inline at the end.
-  `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852 and 440x956, text sizes, landscape).
+- HIG design system (build 2026-10-29n): the token `:root` at the top of the `<style>` ("the HIG token sheet") is the
+  only source of colour (UIKit's dark dynamic colours: `--sys-grouped*`, `--sys-label*`, `--sys-fill*`, `--sys-sep`,
+  the grays), type (the Dynamic Type ramp as `font` shorthands `--t-large` .. `--t-caption2` plus `--tr-*` tracking;
+  34 28 22 20 17 16 15 13 12 11 are the only sizes on a sheet), spacing (`--sp-*`, `--row-*`), radii (`--r-*`),
+  hairlines (`--hl`: 1 px scaled to one device pixel) and materials (`--mat-*`) for every sheet. Sources and values:
+  `.buildloop/spec/hig-tokens.md`. Three shared components, one rule set each, used on every sheet:
+  the inset grouped list (`.sgrp`, `.how .group`, `.cvForm`: a `--r-group` cell on black, rows 44 pt in Body with 16 pt
+  insets, separators inset to the words via `--sep-l`, headers `.ghead`/`.cvHead` and footers `.gfoot`/`.cvNote`/`.rnote`
+  in Footnote); the segmented control (`.seg`: a 32 pt track centred in a 44 pt target, a 2 pt inset thumb, 13 pt
+  words) for two to four short choices; the pop-up button and its menu (6p, `popUp(seg)`): a `.seg.pop` keeps its
+  buttons (ids, `aria-pressed`, handlers, settings) as the menu's items and gets a `.popBtn` after it (value and
+  chevron.up.chevron.down); the open menu is fixed, placed by `popPlace` in its own coordinates (zoom-proof), closed
+  by a pick, a tap outside (swallowed), Esc, a real scroll or a resize. A long or many-option choice is a pop-up
+  (`cvSeg` decides for the career and modes). Tests pick through `choose(page, sel)` / `openPop` in `tests/lib.cjs`
+  (real taps, the menu first). Blur only on the menu and pinned bars, never over the table (boot-check).
+  `hig-check` pins it (row heights, the ramp, hairlines, segmented metrics, the menu by real taps, footers above Break).
+- Setup sheets pin their primary action. The game setup is the hero (Large Title 34, a Subheadline line, no eyebrow)
+  over a scrolling inset grouped list (`#setupScroll`: the tutorial's plain row "Learn 8-Ball", Opponent as a segmented
+  control with the CPU's three rows (`.foe`: ball, name, level and record, a checkmark) or the two names, then pop-up
+  rows for Table, Pockets, Rules, Stalemate and the rest, the rules' fine print as the Rules group's footer) over
+  `.setFoot` holding `#breakBtn` (a 50 px capsule above `--sab`; a hairline over it while the list runs on under it,
+  `fitSetupRows()`). Career and modes setup pages end with `cvPin(...)` (sticky `.cvAct.pin` on the bar material), a
+  drill with `.howAct`: a new setup page puts its action there, never inline at the end. The house rulesets are named
+  "House Rules" ("8-ball, house rules"). `qa-check` pins it (real taps at 393x852 and 375x667, 8-Ball whole at 393x852
+  and 440x956, text sizes, landscape).
 
 - 3D view (page 4o, `V3`): Settings > Graphics > Table View (`settings.view` 'top' default | '3d', plus `viewPitch` 8-70 deg
   and `viewDist` 0.45-3.2 m, clamped on load) and the `#viewBtn` 3D switch on the table. The player's camera, never an
@@ -235,8 +255,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every
   table, frames, landscape) and `settings-check`.
 
-- Motion (page 6m, visual only): one button style (`--btn-*`: primary a white capsule, secondary dark grey, destructive
-  red words, red fill when `.arm`ed). A home card opens its sheet through `morphOpen(card, sheet, open)` (open() stays
+- Motion (page 6m, visual only): one button style (`--btn-*`: primary a white 50 pt capsule in Headline, secondary dark
+  grey, destructive red words, red fill when `.arm`ed; the back button a 44 pt grey circle). A home card opens its sheet through `morphOpen(card, sheet, open)` (open() stays
   synchronous; FLIP layers `.mLayer`/`.mPiece`/`.mTitle`; the hero waits via `morphHolds`), Back through
   `morphClose(sheet)`; Reduce Motion cross-fades. Sheets pull down to dismiss and push pages swipe back from the left
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds

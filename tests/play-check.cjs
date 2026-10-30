@@ -10,7 +10,7 @@
    menu's card, settings surviving a reload, rematch after a win, touch on a phone, and bumper pool
    (its card, the chosen ball, the bar, byte-for-byte rolls, the CPU, the pause cards, a win). */
 'use strict';
-const { check, done, open, settled, smallTargets, lowContrast } = require('./lib.cjs');
+const { check, done, open, choose, openPop, settled, smallTargets, lowContrast } = require('./lib.cjs');
 const DEG = Math.PI / 180;
 /* the power a bar pull of d px gives, by the page's own rule (span and arm from where it began) */
 const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92, arm = Math.min(armPx, span * 0.2); return Math.min(1, Math.max(0, (d - arm) / (span - arm))); };
@@ -329,7 +329,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#prefsBack');
   await page.click('#prGfx');
   await page.evaluate(() => { window.oldImg = tableImg; });
-  await page.click('#clRed');
+  await choose(page, '#clRed');
   const repaint = await page.evaluate(() => tableImg !== window.oldImg && document.documentElement.dataset.cloth === 'red');
   await page.reload();
   await page.waitForFunction(() => window.booted === true);
@@ -630,7 +630,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await wrapTable();
   const t7 = await page.evaluate(() => ({ s: felt.settings.table, p: tb7.getAttribute('aria-pressed') }));
   await page.click('#play8');
-  await page.click('#tb9');
+  await choose(page, '#tb9');
   const preview = await page.evaluate(() => tableCalls.slice());
   await page.reload();
   await page.waitForFunction(() => window.booted === true);
@@ -653,7 +653,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#menuBtn');
   await page.click('#exitBtn');
   await page.click('#play8');
-  await page.click('#tb7');
+  await choose(page, '#tb7');
   const g7 = await page.evaluate(() => { tableCalls.length = 0; felt.start('8'); return { calls: tableCalls.slice(), table: felt.table, TL }; });
   check('table size: back to 7 ft, the next game is on the 7 ft table (1.981 m)', g7.calls[0] === '7' && g7.table === '7' && Math.abs(g7.TL - 1.981) < 1e-9, JSON.stringify(g7));
 
@@ -666,7 +666,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await wrapPk();
   const pr = await page.evaluate(() => ({ s: felt.settings.pockets, p: pkReg.getAttribute('aria-pressed'), now: felt.pockets, R: felt.pocketR }));
   await page.click('#play8');
-  await page.click('#pkGen');
+  await choose(page, '#pkGen');
   const pg = await page.evaluate(() => ({ calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }));
   check('pockets: regulation by default; choosing Generous rebuilds the table behind the menu at once', pr.s === 'regulation' && pr.p === 'true' && pr.now === 'regulation'
     && pg.calls.includes('generous') && pg.now === 'generous' && pg.R[0] > pr.R[0] && pg.R[1] > pr.R[1], JSON.stringify({ pr, pg }));
@@ -692,7 +692,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.click('#menuBtn');
   await page.click('#exitBtn');
   await page.click('#play8');
-  await page.click('#pkReg');
+  await choose(page, '#pkReg');
   const pz = await page.evaluate(() => { pkCalls.length = 0; felt.start('8'); return { calls: pkCalls.slice(), now: felt.pockets, R: felt.pocketR }; });
   check('pockets: back to regulation, the next game has regulation pockets', pz.calls[0] === 'regulation' && pz.now === 'regulation' && pz.R[0] === 0.056 && pz.R[1] === 0.058, JSON.stringify(pz));
 
@@ -1165,8 +1165,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
        picks the rectangle, and the choice survives a reload; on each, a bar shot byte for byte */
     check('bumper: the default bumper table is the octagon (eight cushions, 40 in across the flats)', s0.shape === 'octagon' && s0.cush === 8 && Math.abs(s0.TL - 1.016) < 1e-9, JSON.stringify(s0));
     await kp.evaluate(() => { felt.start('bumper'); showSetup('bumper'); });
-    const ctl = await kp.evaluate(() => ({ shown: !!btOct.getClientRects().length && !!btRect.getClientRects().length, oct: btOct.getAttribute('aria-pressed') }));
-    await kp.click('#btRect');
+    const ctl = await kp.evaluate(() => ({ shown: !!btOct.closest('.field').getClientRects().length && btOct.parentElement.nextElementSibling.textContent.trim() === 'Octagon', oct: btOct.getAttribute('aria-pressed') }));
+    await choose(kp, '#btRect');
     const rs = await kp.evaluate(() => { const was = TL; felt.start('bumper'); return { was, s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, kind: felt.game.kind, pressed: btRect.getAttribute('aria-pressed') }; });
     check('bumper: the menu\'s Bumper control picks the rectangle (stored; a game in progress keeps its table, the next bumper game is on it)',
       Math.abs(rs.was - 1.016) < 1e-9 &&
@@ -1179,7 +1179,7 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     check('bumper rectangle: a bar shot, live equal to simulateShot byte for byte', o4.same && o4.ball === 21, JSON.stringify(o4));
     await settled(kp);
     await kp.evaluate(() => showSetup('bumper'));
-    await kp.click('#btOct');
+    await choose(kp, '#btOct');
     const ob = await kp.evaluate(() => { felt.start('bumper'); felt.speed = 40; return { s: settings.bumperTable, ls: JSON.parse(localStorage.getItem('felt.settings')).bumperTable, TL, cush: CUSH.length, st: felt.state }; });
     const o5 = await barShot(0.45);
     check('bumper octagon: back on the octagon from the menu, a game starts and a bar shot rolls live equal to simulateShot byte for byte',

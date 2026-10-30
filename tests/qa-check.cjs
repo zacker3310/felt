@@ -16,7 +16,7 @@
    and a CPU game left by closing the app: a one-time notice at the next boot.
    titles every title on every screen reached is Title Case (Apple's HIG): lib's badTitles. */
 'use strict';
-const { check, done, open, smallTargets, lowContrast, badTitles } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast, badTitles } = require('./lib.cjs');
 
 const SIZES = { '375x667': [375, 667], '393x852': [393, 852], '440x956': [440, 956], '956x440': [956, 440] };
 const phone = (w, h, o = {}) => open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 2, ...o });
@@ -93,8 +93,11 @@ const homeFit = page => page.evaluate(() => {
 
   /* ---------- F10: straight pool's races ---------- */
   await touchAt(page, '#playStr');
+  await openPop(page, '#rc25', { touch: true });   /* Race To is a pop-up row (6p): its menu, opened by a real tap */
   const races = await ev(() => ['rc25', 'rc50', 'rc100', 'rc150'].map(id => { const r = document.getElementById(id).getBoundingClientRect(); return Math.round(Math.min(r.width, r.height)); }));
   check('F10: straight pool\'s Race to buttons are 44 px or more at 375x667', races.every(s => s >= 44), JSON.stringify(races));
+  check('F10: the straight pool setup has no target under 44 px (its Race To menu open)', !(await smallTargets(page)).length, JSON.stringify(await smallTargets(page)));
+  await page.keyboard.press('Escape');
   check('F10: the straight pool setup has no target under 44 px', !(await smallTargets(page)).length, JSON.stringify(await smallTargets(page)));
   await ev(() => backToMenu());
 
@@ -248,7 +251,7 @@ const homeFit = page => page.evaluate(() => {
   /* the setup remembers: choices made by taps in one game's setup are where it opens next time,
      after a reload too (Play again's one-tap convenience lives on as card, Break) */
   await touchAt(hp, '#play9');
-  for (const sel of ['#vsCpu', '#lvHard', '#tb9', '#pkGen', '#rs9Wpa']) await touchAt(hp, sel);
+  for (const sel of ['#vsCpu', '#lvHard', '#tb9', '#pkGen', '#rs9Wpa']) await choose(hp, sel, { touch: true });
   await touchAt(hp, '#breakBtn');
   await hp.waitForTimeout(300);
   const st = await hev(() => felt.game.kind);
@@ -320,8 +323,8 @@ const homeFit = page => page.evaluate(() => {
       setupScroll.scrollTop = 1e4; const r1 = breakBtn.getBoundingClientRect().top; const n = rulesNote.getBoundingClientRect(), f = setupScroll.getBoundingClientRect();
       return { fit, sh: setupScroll.scrollHeight, ch: setupScroll.clientHeight, still: Math.abs(r0 - r1) < 0.5, note: n.bottom <= f.bottom + 0.5, groups: [...setupSheet.querySelectorAll('.sgrp')].filter(g => g.getClientRects().length).length,
         art: Math.round(setupHero.getBoundingClientRect().height), tut: (s => [s.color, s.fontWeight].join())(getComputedStyle(tutLinkText)) }; });
-    check(`setup ${tag}: 8-Ball for two players: ` + (w === 393 ? 'the whole form fits without scrolling' : 'the form scrolls, its fine print reachable, Break pinned where it was') + '; three inset groups; the hero across the top (30% to 36% of the height); the tutorial row plain white 600',
-      (w === 393 ? f8.fit : !f8.fit && f8.note) && f8.still && f8.groups === 3 && f8.art >= h * 0.3 - 1 && f8.art <= h * 0.36 && f8.tut === 'rgb(245, 245, 247),600', JSON.stringify(f8));
+    check(`setup ${tag}: 8-Ball for two players: ` + (w === 393 ? 'the whole form fits without scrolling' : 'the form scrolls, its fine print reachable, Break pinned where it was') + '; three inset groups; the hero across the top (30% to 36% of the height); the tutorial row a plain white Body row',
+      (w === 393 ? f8.fit : !f8.fit && f8.note) && f8.still && f8.groups === 3 && f8.art >= h * 0.3 - 1 && f8.art <= h * 0.36 && f8.tut === 'rgb(255, 255, 255),400', JSON.stringify(f8));
     /* the modes' setups: Start Tournament, Watch, Start */
     const MD = [['#modeTour', '#mdStartT', () => felt.tourney !== null && mdBody.dataset.page === 'tour'], ['#modeEx', '#mdWatch', () => felt.mode === 'exhibit' && !modesSheet.classList.contains('show')],
       ['#modeParty', '#mdStartP', () => felt.mode === 'party' && !modesSheet.classList.contains('show')]];
@@ -415,7 +418,7 @@ const homeFit = page => page.evaluate(() => {
       tc: [titleCase('8-ball, felt rules'), titleCase('Tap again to forfeit.'), titleCase('race to 5'), titleCase('head-to-head record'), titleCase('WPA, push out')] };
   });
   check('titles: one name, two cases: the setup title says 8-Ball while the name in sentences stays 8-ball; subtitles stay sentence case; titleCase keeps felt, WPA, numbers, small words and sentences',
-    sc.t === '8-Ball' && sc.name === '8-ball' && sc.rule === 'felt Rules' && sc.ex === 'Watch two CPUs play' && sc.tc.join('|') === '8-Ball, felt Rules|Tap again to forfeit.|Race to 5|Head-to-Head Record|WPA, Push Out', JSON.stringify(sc));
+    sc.t === '8-Ball' && sc.name === '8-ball' && sc.rule === 'House Rules' && sc.ex === 'Watch two CPUs play' && sc.tc.join('|') === '8-Ball, felt Rules|Tap again to forfeit.|Race to 5|Head-to-Head Record|WPA, Push Out', JSON.stringify(sc));
   check('titles: no page errors', !TT.errors.length, TT.errors.join(' | '));
   await TT.browser.close();
   done();

@@ -17,7 +17,7 @@
    6. storage: a v1 record migrates keeping every value (backed up once as it was), and a corrupted
       record recovers from the copy kept before the last write; nothing throws. */
 'use strict';
-const { check, done, open, smallTargets, lowContrast, settled } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast, settled } = require('./lib.cjs');
 
 const ALL_LOOKS = ['cloth-grey', 'cloth-teal', 'cloth-midnight', 'cloth-plum', 'cue-maple', 'cue-ebony', 'cue-carbon', 'cue-gold', 'cue-legacy', 'cue-champion', 'cue-centurion',
   'chalk-green', 'chalk-red', 'rail-cherry', 'rail-oak', 'rail-ebony', 'balls-pro', 'balls-vintage', 'balls-tv'];
@@ -200,8 +200,8 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
     const gfx = await ev(t, () => { felt.quitToHome(); showPrefs('gfx'); return { own: lookOwned('cloth', 'midnight') && lookOwned('cue', 'gold') && lookOwned('balls', 'pro'), btn: !document.getElementById('clMidnight').hidden && !document.getElementById('lk-cue-gold').hidden,
       locked: document.getElementById('lk-rail-oak').hidden, note: lookNote.textContent }; });
     check('Settings > Graphics: what the career owns is unlocked and shown; what it does not own stays hidden', gfx.own && gfx.btn && gfx.locked && /looks unlocked/.test(gfx.note), JSON.stringify(gfx));
-    await t.page.click('#lk-cue-gold');
-    await t.page.click('#clMidnight');
+    await choose(t.page, '#lk-cue-gold');
+    await choose(t.page, '#clMidnight');
     const set = await ev(t, () => ({ cue: settings.cue, cloth: settings.cloth, look: look(), pressed: document.getElementById('lk-cue-gold').getAttribute('aria-pressed') }));
     check('Settings: a tap wears an unlocked look outside the career', set.cue === 'gold' && set.cloth === 'midnight' && set.look.cue === 'gold' && set.look.cloth === 'midnight' && set.pressed === 'true', JSON.stringify(set));
     await t.page.reload(); await t.page.waitForFunction(() => window.booted === true);

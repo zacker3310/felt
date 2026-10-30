@@ -19,7 +19,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { check, done, open, smallTargets, lowContrast, settled } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast, settled } = require('./lib.cjs');
 const { loadSim, regionSource } = require('./sim.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
 const IDS = ['8', '9', 'bumper', 'carom', 'snooker'];
@@ -157,10 +157,10 @@ async function portrait() {
     await T.page.click(TILE[id]);
     await T.page.waitForTimeout(250);
     const link = await ev(T, () => ({ shown: setupSheet.classList.contains('show') && !tutLink.hidden && tutLink.getClientRects().length > 0, text: tutLink.textContent.trim(), label: tutLink.getAttribute('aria-label'),
-      icon: !!tutLink.querySelector('.ic svg path'), plain: (s => s.color === 'rgb(245, 245, 247)' && +s.fontWeight === 600)(getComputedStyle(tutLinkText)), noB: !tutLink.querySelector('b') }));
-    /* build 2026-10-29b: a plain row (white words, weight 600, a chevron; no yellow accent), its title in Title Case */
-    const title = `Play the ${WORD[id]} tutorial`.replace(/(^|[\s-])([a-z])/g, (m, a, c) => a + c.toUpperCase()).replace(' The ', ' the ');
-    check(`${id}: the setup sheet's tutorial row "${title}" (plain white, 600, no accent), with the graduation cap; its label asks "New to ${WORD[id]}?"`,
+      icon: !!tutLink.querySelector('.ic svg path'), plain: (s => s.color === 'rgb(255, 255, 255)' && +s.fontWeight === 400 && s.fontSize === '17px')(getComputedStyle(tutLinkText)), noB: !tutLink.querySelector('b') }));
+    /* build 2026-10-29n: a plain Body row (white, 17 pt regular, the graduation cap, a chevron), its title in Title Case */
+    const title = `Learn ${WORD[id]}`.replace(/(^|[\s-])([a-z])/g, (m, a, c) => a + c.toUpperCase());
+    check(`${id}: the setup sheet's tutorial row "${title}" (a plain white Body row, no accent on the words), with the graduation cap; its label asks "New to ${WORD[id]}?"`,
       link.shown && link.text === title && link.label === `New to ${WORD[id]}? Play the ${WORD[id]} tutorial` && link.icon && link.plain && link.noB, JSON.stringify(link));
     if (id === '8' || id === 'snooker') {
       check(`${id}: the setup sheet with the link: targets 44 px, text 4.5:1`, (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
@@ -280,8 +280,8 @@ async function portrait() {
 
   /* the snooker tutorial from How to play puts the 8-ball table back exactly */
   await T.page.click('#play8');
-  await T.page.click('#tb9');
-  await T.page.click('#pkGen');
+  await choose(T.page, '#tb9');
+  await choose(T.page, '#pkGen');
   await T.page.click('#setupBack');
   const g0 = await geo(T), s0 = await ev(T, () => JSON.stringify(settings));
   await T.page.click('#helpBtn');

@@ -7887,7 +7887,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-29l';
+const BUILD = 'build 2026-10-29m';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -9709,7 +9709,9 @@ function guideLines(c, ang) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.5), 1.25);
-  guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
+  /* the 3D view (4o) shows the ghost ball as a ball, faint, where the cue ball will meet; top-down, its ring */
+  if (V3.flat && V3.live) V3.ghost = { x: gx, y: gy, legal };
+  else guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
   if (!P) return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: null };
   if (first && !legal) guideRing(first.x, first.y, rp + 3, ILLEGAL, 2);
   /* the object ball */
@@ -13618,14 +13620,16 @@ if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => 
    orient's turn; the lamp LAMP_H over the middle of the bed), each over a contact shade and a cast
    shadow on the bed (drawCast's). The overlays (the aim guide, the ghost ball, rings, calls, the
    kitchen, the D, the hint, solo marks) are the 2D code's own, run once a frame against a recorder
-   (V3R) that turns its paths into lines of constant screen width and fills on the bed (and on the
-   rail tops where they fall there). The cue is a lathe of the look's parts behind the ball.
+   (V3R) that turns its paths into mitred, anti-aliased ribbons of the 2D widths (CSS px times the
+   canvas scale) and fills, each path at one height (v3PathZ: the bed, or a pocket's marker on the
+   rail tops), its arcs cut so a chord is about V3_ARC_PX on screen; the balls hide what is behind
+   them. The guide's ghost ball is a faint ball (V3_GHOST_A) instead of its ring. The cue is a lathe of the look's parts behind the ball.
    A view only: it reads game, tab, orient and the aim, and never writes them. ---- */
 const V3_YAW_SLOW = 0.02 * Math.PI / 180, V3_YAW_FAST = 0.3 * Math.PI / 180, V3_YAW_MOUSE = 0.12 * Math.PI / 180;
 const V3_PITCH_PX = 0.25, V3_FY = 0.5, V3_AHEAD = 0.8, V3_FOV = [21, 24], V3_NEAR = 0.02, V3_SOFT_DPR = 1.25, V3_LIFT = LIFT_H;
 /* After the Shot: the moves' lengths (ms), the overview's margin (a fraction of the box a side), the yaws
    it may turn from the shot's (degrees) and the pitches it tries (degrees) */
-const V3_OUT_MS = 800, V3_BACK_MS = 600, V3_OV_MARGIN = 0.07, V3_OV_YAW = [0, 15, -15, 30, -30, 45, -45], V3_OV_PITCH = [40, 48, 56, 64];
+const V3_GHOST_A = 0.34, V3_ARC_PX = 2.5, V3_OUT_MS = 800, V3_BACK_MS = 600, V3_OV_MARGIN = 0.07, V3_OV_YAW = [0, 15, -15, 30, -30, 45, -45], V3_OV_PITCH = [40, 48, 56, 64];
 /* the view is wanted (the setting) and has a place (a table in play, not a replay, not the lesson) */
 const v3Want = () => settings.view === '3d' && state !== 'menu' && !rp && !(solo && solo.kind === 'lesson') && felt.v3 !== false && !V3.top2d;
 /* ---- GL ---- */
@@ -13695,18 +13699,28 @@ void main() {
   o = vec4(0.0, 0.0, 0.0, a);
 }`],
   over: [`#version 300 es
-in vec3 A; in vec3 B; in vec3 st; in vec4 c; uniform mat4 M; uniform vec2 VP; out vec4 vc;
+in vec3 P; in vec3 Q; in vec3 N; in vec2 sw; in vec4 c; uniform mat4 M; uniform vec2 VP; out vec4 vc; out float vs; out float vw;
 void main() {
-  vec4 a = M * vec4(A, 1.0), b = M * vec4(B, 1.0), p = mix(a, b, st.y);
-  if (st.z > 0.0) {
-    vec2 sa = a.xy / a.w * VP, sb = b.xy / b.w * VP, dir = sb - sa;
-    dir = length(dir) > 1e-6 ? normalize(dir) : vec2(1.0, 0.0);
-    vec2 off = (vec2(-dir.y, dir.x) * st.x + dir * (st.y * 2.0 - 1.0)) * st.z * 0.5;
-    p.xy += off / VP * p.w;
-  }
-  vc = c; gl_Position = p;
+  vec4 p = M * vec4(P, 1.0);
+  vc = c; vs = sw.x; vw = sw.y;
+  if (sw.y <= 0.0) { gl_Position = p; return; }
+  vec4 q = M * vec4(Q, 1.0), n = M * vec4(N, 1.0);
+  vec2 sp = p.xy / p.w * VP, t0 = sp - q.xy / q.w * VP, t1 = n.xy / n.w * VP - sp;
+  bool h0 = dot(t0, t0) > 1e-8, h1 = dot(t1, t1) > 1e-8;
+  t0 = h0 ? normalize(t0) : vec2(0.0); t1 = h1 ? normalize(t1) : vec2(0.0);
+  if (!h0) t0 = t1; if (!h1) t1 = t0;
+  vec2 n0 = vec2(-t0.y, t0.x), n1 = vec2(-t1.y, t1.x), m = n0 + n1;
+  m = dot(m, m) > 1e-8 ? normalize(m) : n1;
+  float hw = sw.y * 0.5 + 1.0, l = hw / max(dot(m, n1), 0.4);
+  p.xy += m * l * sw.x / VP * p.w;
+  gl_Position = p;
 }`, `#version 300 es
-precision highp float; in vec4 vc; out vec4 o; void main() { o = vec4(vc.rgb * vc.a, vc.a); }`],
+precision highp float; in vec4 vc; in float vs; in float vw; out vec4 o;
+void main() {
+  float a = 1.0;
+  if (vw > 0.0) { float d = abs(vs) * (vw * 0.5 + 1.0); a = clamp(vw * 0.5 + 0.5 - d, 0.0, 1.0); }
+  o = vec4(vc.rgb * vc.a * a, vc.a * a);
+}`],
   room: [`#version 300 es
 in vec3 p; in vec2 uv; uniform mat4 M; out vec2 v;
 void main() { v = uv; gl_Position = M * vec4(p, 1.0); }`, `#version 300 es
@@ -14659,8 +14673,15 @@ const V3R = {
     let d = a1 - a0;
     if (ccw) { if (d > 0) d -= 2 * Math.PI * Math.ceil(d / (2 * Math.PI)); if (d < -2 * Math.PI) d = -2 * Math.PI; }
     else { if (d < 0) d += 2 * Math.PI * Math.ceil(-d / (2 * Math.PI)); if (d > 2 * Math.PI) d = 2 * Math.PI; }
-    const n = clamp(Math.ceil(Math.abs(d) / (2 * Math.PI) * clamp(r * this.sc() / dpr * 0.8, 16, 72)), 2, 72);
+    /* as many points as keep each chord about V3_ARC_PX device px long where the camera sees it (its near side) */
+    let n = clamp(Math.ceil(Math.abs(d) / (2 * Math.PI) * clamp(r * this.sc() / dpr * 0.8, 16, 72)), 2, 72);
+    const C = V3.cam;
+    if (C) {
+      const q = this.tab(this.dev(x, y)), rm = r * this.sc() / dpr / viewBase.k, dd = v3Dot(v3Sub([q[0], q[1], 0], C.Er), C.f);
+      n = clamp(Math.ceil(Math.abs(d) * rm * C.F * V3.scale / Math.max(V3_NEAR * 4, dd - rm) / V3_ARC_PX), 8, 720);
+    }
     for (let i = 0; i <= n; i++) { const a = a0 + d * i / n; this.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)); }
+    if (this.cur) this.cur.arc = true;
   },
   quadraticCurveTo(cx, cy, x, y) {
     const p = this.cur ? this.cur[this.cur.length - 1] : this.dev(x, y), m = this.m, det = m[0] * m[3] - m[1] * m[2] || 1;
@@ -14695,15 +14716,16 @@ const V3R = {
     if (!(w > 0) || a <= 0.002) return;
     const k = viewBase.k, dash = this.dash.length ? this.dash.map(v => v * this.sc() / dpr / k) : null;
     for (const sp of this.path) {
-      const pts = sp.map(p => this.tab(p));
-      if (sp.closed && pts.length > 2) pts.push(pts[0]);
-      v3Line(pts, w, [c[0], c[1], c[2], a], dash);
+      const pts = sp.map(p => this.tab(p)), n = pts.length, ring = sp.closed || (n > 2 && Math.hypot(pts[0][0] - pts[n - 1][0], pts[0][1] - pts[n - 1][1]) < 1e-7);
+      if (ring && !sp.closed) pts.pop();
+      v3Line(pts, w, [c[0], c[1], c[2], a], dash, ring, v3PathZ(pts, ring), sp.arc);
     }
   },
   fill() {
     const st = this.fillStyle, ga = this.globalAlpha, grad = typeof st !== 'string';
     for (const sp of this.path) {
       if (sp.length < 3) continue;
+      const z = v3PathZ(sp.map(p => this.tab(p)), true);
       let mx = 0, my = 0;
       for (const p of sp) { mx += p[0]; my += p[1]; }
       const m = [mx / sp.length, my / sp.length], rings = grad ? 4 : 1;
@@ -14712,64 +14734,100 @@ const V3R = {
         for (let j = 0; j < rings; j++) {
           const f0 = j / rings, f1 = (j + 1) / rings, L = (u, f) => [m[0] + (u[0] - m[0]) * f, m[1] + (u[1] - m[1]) * f];
           const quad = [L(p, f0), L(q, f0), L(q, f1), L(p, f1)], cs = quad.map(d => { const c = this.colAt(st, d); return [c[0], c[1], c[2], c[3] * ga]; }), ts = quad.map(d => this.tab(d));
-          if (j === 0) v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]]);
-          else { v3Tri([ts[0], ts[1], ts[2]], [cs[0], cs[1], cs[2]]); v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]]); }
+          if (j === 0) v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]], z);
+          else { v3Tri([ts[0], ts[1], ts[2]], [cs[0], cs[1], cs[2]], z); v3Tri([ts[0], ts[2], ts[3]], [cs[0], cs[2], cs[3]], z); }
         }
       }
     }
   },
 };
-/* what the overlays lie on: the bed (and the holes), else the rail and rubber tops, a millimetre up */
-function v3Surf(x, y) {
-  if (v3Inside(x, y)) return 0.0012;
-  for (let i = 0; i < POCKETS.length; i++) if (Math.hypot(x - POCKETS[i][0], y - POCKETS[i][1]) < POCKET_R[i]) return 0.0012;
-  return (V3.geo ? V3.geo.h : BALL_R * 1.42) + 0.0012;
+/* what an overlay path lies on, all of it at one height: the bed a millimetre up; a closed shape centred off the bed
+   or on a pocket (a pocket's ring or glow) on the rail and rubber tops round the hole, so it reads as the 2D marker laid flat, never a ramp */
+function v3PathZ(pts, closed) {
+  if (!closed || !pts.length) return 0.0012;
+  let mx = 0, my = 0;
+  for (const p of pts) { mx += p[0]; my += p[1]; }
+  mx /= pts.length; my /= pts.length;
+  const atPocket = POCKETS.some((P, i) => Math.hypot(mx - P[0], my - P[1]) < POCKET_R[i] * 1.6);
+  return v3Inside(mx, my) && !atPocket ? 0.0012 : (V3.geo ? V3.geo.h : BALL_R * 1.42) + 0.0012;
 }
-/* the overlay's vertices: A (3), B (3), [side, end, width px] (3), rgba (4) */
+/* the overlay's vertices: P (3), the point before it and after it on its line (3 + 3: the joins are mitred in screen
+   space), [side, width device px] (2), rgba (4); a fill's are P three times and width 0 */
+const V3_OVF = 15;
 let v3Ov = new Float32Array(1 << 16), v3OvN = 0;
-function v3Push(A, B, s, t, w, c) {
-  if (v3OvN + 13 > v3Ov.length) { const n = new Float32Array(v3Ov.length * 2); n.set(v3Ov); v3Ov = n; }
+function v3Push(P, Q, N, s, w, c) {
+  if (v3OvN + V3_OVF > v3Ov.length) { const n = new Float32Array(v3Ov.length * 2); n.set(v3Ov); v3Ov = n; }
   const o = v3Ov, i = v3OvN;
-  o[i] = A[0]; o[i + 1] = A[1]; o[i + 2] = A[2]; o[i + 3] = B[0]; o[i + 4] = B[1]; o[i + 5] = B[2];
-  o[i + 6] = s; o[i + 7] = t; o[i + 8] = w; o[i + 9] = c[0]; o[i + 10] = c[1]; o[i + 11] = c[2]; o[i + 12] = c[3];
-  v3OvN += 13;
+  o[i] = P[0]; o[i + 1] = P[1]; o[i + 2] = P[2]; o[i + 3] = Q[0]; o[i + 4] = Q[1]; o[i + 5] = Q[2]; o[i + 6] = N[0]; o[i + 7] = N[1]; o[i + 8] = N[2];
+  o[i + 9] = s; o[i + 10] = w; o[i + 11] = c[0]; o[i + 12] = c[1]; o[i + 13] = c[2]; o[i + 14] = c[3];
+  v3OvN += V3_OVF;
 }
-/* a point in the render frame, and whether it is in front of the eye */
-const v3R3 = (x, y) => [x, y, -v3Surf(x, y)];
-const v3Ahead = P => v3Dot(v3Sub(P, V3.cam.Er), V3.cam.f) > V3_NEAR * 2;
-function v3Seg(a, b, w, c) {
-  let A = v3R3(a[0], a[1]), B = v3R3(b[0], b[1]);
-  const da = v3Dot(v3Sub(A, V3.cam.Er), V3.cam.f) - V3_NEAR * 2, db = v3Dot(v3Sub(B, V3.cam.Er), V3.cam.f) - V3_NEAR * 2;
-  if (da <= 0 && db <= 0) return;
-  if (da <= 0) { const t = da / (da - db); A = A.map((v, i) => v + (B[i] - v) * t); }
-  else if (db <= 0) { const t = db / (db - da); B = B.map((v, i) => v + (A[i] - v) * t); }
-  for (const [s, t] of [[-1, 0], [1, 0], [1, 1], [-1, 0], [1, 1], [-1, 1]]) v3Push(A, B, s, t, w * V3.scale, c);
-}
-function v3Line(pts, w, c, dash) {
-  if (pts.length < 2) return;
-  if (!dash || !dash.some(v => v > 0)) { for (let i = 1; i < pts.length; i++) v3Seg(pts[i - 1], pts[i], w, c); return; }
-  let k = 0, left = dash[0], on = true;
-  for (let i = 1; i < pts.length; i++) {
-    let a = pts[i - 1];
-    const b = pts[i];
-    let L = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    while (L > 1e-9) {
-      const s = Math.min(L, left), q = [a[0] + (b[0] - a[0]) * s / L, a[1] + (b[1] - a[1]) * s / L];
-      if (on) v3Seg(a, q, w, c);
-      a = q; L -= s; left -= s;
-      if (left <= 1e-9) { k = (k + 1) % dash.length; left = dash[k] || 1e-3; on = !on; }
-    }
+const v3Depth = P => v3Dot(v3Sub(P, V3.cam.Er), V3.cam.f) - V3_NEAR * 2;
+/* a polyline (render frame) in front of the eye as one mitred ribbon, closed or not: each segment a quad whose ends
+   share their neighbours' miters, so the joins neither gap nor overlap (a translucent line keeps one alpha) */
+function v3Strip(P, closed, w, c) {
+  const n = P.length;
+  if (n < 2) return;
+  const at = i => closed ? P[(i + n) % n] : P[clamp(i, 0, n - 1)], last = closed ? n : n - 1;
+  for (let i = 0; i < last; i++) {
+    const A = at(i), B = at(i + 1), Ap = closed || i > 0 ? at(i - 1) : A, Bn = closed || i + 2 < n ? at(i + 2) : B;
+    v3Push(A, Ap, B, -1, w, c); v3Push(A, Ap, B, 1, w, c); v3Push(B, A, Bn, 1, w, c);
+    v3Push(A, Ap, B, -1, w, c); v3Push(B, A, Bn, 1, w, c); v3Push(B, A, Bn, -1, w, c);
   }
 }
-function v3Tri(ps, cs) {
-  const P = ps.map(p => v3R3(p[0], p[1]));
-  if (!P.every(v3Ahead)) return;
-  for (let i = 0; i < 3; i++) v3Push(P[i], P[i], 0, 0, 0, cs[i]);
+/* the longest chord of an arc's ring on screen this frame (device px), for the tests */
+let v3ArcMax = 0;
+/* a stroke of table points at height z: dashed (in metres), cut at the near plane, then ribbons */
+function v3Line(pts, w, c, dash, closed = false, z = 0.0012, arc = false) {
+  if (pts.length < 2) return;
+  const wd = w * V3.scale, R3 = p => [p[0], p[1], -z];
+  if (arc && V3.cam) for (let i = 1; i <= pts.length; i++) {
+    if (i === pts.length && !closed) break;
+    const a = v3Proj(pts[i - 1][0], pts[i - 1][1], z), b = v3Proj(pts[i % pts.length][0], pts[i % pts.length][1], z);
+    if (a && b) v3ArcMax = Math.max(v3ArcMax, Math.hypot(a[0] - b[0], a[1] - b[1]) * V3.scale);
+  }
+  /* the runs in front of the eye (a closed one that is all in front stays closed) */
+  const runs = [], P = pts.map(R3), ring = closed ? P.concat([P[0]]) : P;
+  let cur = [];
+  for (let i = 0; i < ring.length; i++) {
+    const B = ring[i], db = v3Depth(B);
+    if (i > 0) {
+      const A = ring[i - 1], da = v3Depth(A);
+      if ((da > 0) !== (db > 0)) { const t = da / (da - db), X = A.map((v, k) => v + (B[k] - v) * t); cur.push(X); if (db <= 0) { runs.push(cur); cur = []; } }
+    }
+    if (db > 0) cur.push(B);
+  }
+  if (cur.length) runs.push(cur);
+  const whole = closed && runs.length === 1 && runs[0].length === ring.length;
+  for (const run of runs) {
+    const r = whole ? run.slice(0, -1) : run;
+    if (!dash || !dash.some(v => v > 0)) { v3Strip(r, whole, wd, c); continue; }
+    /* dashes along the run, measured on the bed as the 2D view measures them */
+    const pl = whole ? r.concat([r[0]]) : r;
+    let k = 0, left = dash[0], on = true, piece = [pl[0]];
+    for (let i = 1; i < pl.length; i++) {
+      let a = pl[i - 1];
+      const b = pl[i];
+      let L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      while (L > 1e-9) {
+        const st = Math.min(L, left), q = a.map((v, j) => v + (b[j] - v) * st / L);
+        if (on) piece.push(q);
+        a = q; L -= st; left -= st;
+        if (left <= 1e-9) { if (on && piece.length > 1) v3Strip(piece, false, wd, c); k = (k + 1) % dash.length; left = dash[k] || 1e-3; on = !on; piece = [a]; }
+      }
+    }
+    if (on && piece.length > 1) v3Strip(piece, false, wd, c);
+  }
+}
+function v3Tri(ps, cs, z = 0.0012) {
+  const P = ps.map(p => [p[0], p[1], -z]);
+  if (!P.every(q => v3Depth(q) > 0)) return;
+  for (let i = 0; i < 3; i++) v3Push(P[i], P[i], P[i], 0, 0, cs[i]);
 }
 /* the overlays of one frame, in draw()'s order, through the recorder */
 function v3Overlays(now, aiming, c, ghost, ghostOk, dropping, list) {
   const keepCtx = ctx, keepView = view;
-  v3OvN = 0;
+  v3OvN = 0; v3ArcMax = 0; V3.ghost = null;
   V3.flat = true; ctx = V3R; view = viewBase; V3R.reset();
   try {
     if (state === 'aim' && game.inHand === 'kitchen' && human()) {
@@ -14839,6 +14897,8 @@ function v3Frame(now) {
   /* where each ball is drawn: the carried ghost lifted, the settling cue ball, far to near */
   const R = BALL_R, drawn = list.map(b => ({ n: b.n, x: b.x, y: b.y, z: R + (b.n === 0 && sh ? V3_LIFT * sh : 0), a: 1 }));
   if (ghost && human()) drawn.push({ n: 0, x: placeAt[0], y: placeAt[1], z: R + V3_LIFT * bih.h, a: ghostOk ? 0.96 : 0.5, lift: bih.h });
+  /* the guide's ghost ball: a faint ball where the cue ball will meet, white, or the illegal colour */
+  if (aiming && V3.ghost) drawn.push({ n: -1, x: V3.ghost.x, y: V3.ghost.y, z: R, a: V3_GHOST_A, ghost: V3.ghost.legal ? [0.96, 0.96, 0.93] : v3Col(ILLEGAL).slice(0, 3) });
   for (const o of drawn) o.d = v3Dot(v3Sub([o.x, o.y, -o.z], C.Er), C.f);
   const vis = drawn.filter(o => o.d > V3_NEAR + R);
   vis.sort((p, q) => q.d - p.d);
@@ -14850,6 +14910,7 @@ function v3Frame(now) {
   gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad); attr(pr, 'q', 2, 2, 0);
   const key = [-LIGHT[0], -LIGHT[1]];
   for (const o of vis) {
+    if (o.ghost) continue;
     const lift = clamp((o.z - R) / V3_LIFT, 0, 1), dx = o.x - TL / 2, dy = o.y - TW / 2, zc = o.z, t = zc / (LAMP_H - zc), lean = R * (0.2 + 0.7 * lift);
     const bx = o.x + dx * t + key[0] * lean, by = o.y + dy * t + key[1] * lean, grow = (1 + 0.6 * lift) * (1 + 0.1 * Math.min(1, Math.hypot(dx, dy) / 1.2));
     const mx = (o.x + bx) / 2, my = (o.y + by) / 2;
@@ -14866,8 +14927,8 @@ function v3Frame(now) {
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     gl.uniformMatrix4fv(pr.u.M, false, C.M); gl.uniform2fv(pr.u.VP, [t3d.width / 2, t3d.height / 2]);
     gl.bindBuffer(gl.ARRAY_BUFFER, V3.ovBuf); gl.bufferData(gl.ARRAY_BUFFER, v3Ov.subarray(0, v3OvN), gl.STREAM_DRAW);
-    attr(pr, 'A', 3, 13, 0); attr(pr, 'B', 3, 13, 3); attr(pr, 'st', 3, 13, 6); attr(pr, 'c', 4, 13, 9);
-    gl.drawArrays(gl.TRIANGLES, 0, v3OvN / 13);
+    attr(pr, 'P', 3, V3_OVF, 0); attr(pr, 'Q', 3, V3_OVF, 3); attr(pr, 'N', 3, V3_OVF, 6); attr(pr, 'sw', 2, V3_OVF, 9); attr(pr, 'c', 4, V3_OVF, 11);
+    gl.drawArrays(gl.TRIANGLES, 0, v3OvN / V3_OVF);
     off(pr);
   }
   /* the balls */
@@ -14882,10 +14943,11 @@ function v3Frame(now) {
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, V3.markTex); gl.uniform1i(pr.u.K, 2);
   gl.bindBuffer(gl.ARRAY_BUFFER, V3.quad); attr(pr, 'q', 2, 2, 0);
   for (const o of vis) {
-    const P = PAINT[o.n] || PAINT[0], m = orient[o.n] || IDENT, Cw = [o.x, o.y, -o.z];
+    const P = o.ghost ? { base: '#fff', caps: [] } : PAINT[o.n] || PAINT[0], m = orient[o.n] || IDENT, Cw = [o.x, o.y, -o.z];
+    gl.depthMask(!o.ghost);
     gl.uniform3fv(pr.u.C, Cw); gl.uniform3fv(pr.u.Cv, toV(Cw)); gl.uniform1f(pr.u.R, R);
     gl.uniform3fv(pr.u.Ax0, [m[0], m[3], m[6]]); gl.uniform3fv(pr.u.Ax1, [m[1], m[4], m[7]]); gl.uniform3fv(pr.u.Ax2, [m[2], m[5], m[8]]);
-    gl.uniform3fv(pr.u.base, v3Col(P.base).slice(0, 3));
+    gl.uniform3fv(pr.u.base, o.ghost || v3Col(P.base).slice(0, 3));
     for (let i = 0; i < 3; i++) {
       const cp = P.caps[i];
       gl.uniform4fv(pr.u['cap' + i], cp ? [cp[0], cp[1], 0, 1] : [0, 2, 0, 0]);
@@ -14897,6 +14959,7 @@ function v3Frame(now) {
     gl.uniform1f(pr.u.alpha, o.a);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
+  gl.depthMask(true);
   off(pr);
   gl.disable(gl.BLEND);
   /* the cue: behind the ball on the aim, raised a little at least (it clears the rails), pulled back by power */
@@ -14930,12 +14993,12 @@ function v3Frame(now) {
   if (V3.ms.length > 600) V3.ms.shift();
   V3.poses.push([V3.cam.E[0], V3.cam.E[1], V3.cam.E[2], V3.cam.T[0], V3.cam.T[1], state, V3.cam.phase, V3.cam.mu, now]);
   if (V3.poses.length > 2000) V3.poses.shift();
-  V3.drawn = vis.map(o => ({ n: o.n, x: o.x, y: o.y, a: o.a }));
+  V3.drawn = vis.filter(o => !o.ghost).map(o => ({ n: o.n, x: o.x, y: o.y, a: o.a }));
 }
 /* tests and diagnostics: the view's state, the camera, the mappings and the frame times */
 const v3Info = () => ({ live: V3.live, ok: V3.ok, soft: V3.soft, renderer: V3.renderer, scale: V3.scale, cuts: V3.cuts, moves: V3.moves, frames: V3.frames, k: V3.k,
   phase: V3.cam ? V3.cam.phase : null, moving: !!V3.mv, overview: V3.ovOn, top2d: V3.top2d, roomMs: V3.roomMs, lampA: V3.lampA,
-  canvas: [t3d.width, t3d.height], box: V3.box && { ...V3.box }, overlay: v3OvN / 13,
+  canvas: [t3d.width, t3d.height], box: V3.box && { ...V3.box }, overlay: v3OvN / V3_OVF, arcMax: v3ArcMax, ghost: V3.ghost,
   cam: V3.cam && { E: V3.cam.E.slice(), T: V3.cam.T.slice(), yaw: V3.cam.yaw, pitch: V3.cam.pitch, dist: V3.cam.dist, F: V3.cam.F, phase: V3.cam.phase, mu: V3.cam.mu }, drawn: V3.drawn || [] });
 Object.defineProperty(felt, 'view3', { get: v3Info, enumerable: true });
 Object.assign(felt, {

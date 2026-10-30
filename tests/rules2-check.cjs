@@ -361,4 +361,61 @@ const call = (g, c) => S.withCall(g, c);
   check('CPU: answers a push-out with take or pass', ['take', 'pass'].includes(ch), ch);
   check('CPU: spots an 8 on the break', S.cpuOption(S.judge(S.newGame('8', rules('8-wpa')), res(S.newGame('8', rules('8-wpa')), { first: 1, potted: [8], rails: rails4 })), 'medium') === 'spot');
 }
+/* ---- a ball off the table (a jump over a cushion, sim 1a: pocketOf -1) ----
+   a foul in every game (WPA General Rules; WPBSA Section 3 Rule 12; UMB; bumper's house rule);
+   the turn passes. Spotted or not by the game's rules: house sets and 14.1 and rotation spot it on
+   the foot spot, WPA 8, 9 and 10-ball leave it off but for the game ball (9 and 10 spot it; the 8
+   off a shot that is not the break loses), snooker spots a colour and leaves a red off, carom and
+   bumper pool put it back. A called ball that flew off is not a pot. */
+{
+  const off = (g, n, first) => res(g, { first, potted: [n], pocketOf: { [n]: -1 } });
+  const cases = [];
+  const pool = (kind, ruleset, left, n, spotted) => {
+    const g = midGame(kind, left, rules(ruleset)), j = S.judge(g, off(g, n, left[0]));
+    cases.push([ruleset, n, !!j.verdict.foul, j.turn !== g.turn, on(j, n) === spotted, j.winner, JSON.stringify(j.verdict.off)]);
+    return j;
+  };
+  pool('8', '8-house', [3, 4, 11, 8], 4, true);
+  pool('8', '8-wpa', [3, 4, 11, 8], 4, false);
+  pool('9', '9-house', [3, 5, 9], 5, true);
+  pool('9', '9-wpa', [3, 5, 9], 5, false);
+  pool('9', '9-wpa', [3, 5, 9], 9, true);
+  pool('10', '10-wpa', [2, 6, 10], 6, false);
+  pool('10', '10-wpa', [2, 6, 10], 10, true);
+  pool('straight', 'straight-wpa', [2, 6, 10, 12], 6, true);
+  pool('rotation', 'rotation', [2, 6, 10], 6, true);
+  const ok = cases.every(c => c[2] && c[3] && c[4] && c[5] === null && c[6] === `[${c[1]}]`);
+  check('off the table, pocket games: a foul and the turn passes; spotted under house rules, 14.1 and rotation, left off under WPA 8, 9 and 10-ball but for the 9 and 10 (spotted); verdict.off names it',
+    ok, JSON.stringify(cases));
+  /* the 8: lost off any shot but the break, spotted off the break */
+  const g8 = midGame('8', [3, 11, 8], rules('8-wpa'), { open: false, groups: ['solids', 'stripes'] }), j8 = S.judge(g8, off(g8, 8, 3));
+  const b8 = S.newGame('8', rules('8-house')), jb8 = S.judge(b8, Object.assign(res(b8, { first: 1, potted: [8, 2], pocketOf: { 8: -1, 2: 0 } }), { rails: { 1: 1, 2: 1, 3: 1, 4: 1 } }));
+  check('off the table: the 8 off a shot that is not the break loses the rack (WPA 8-ball); off the break it is spotted and the game goes on',
+    j8.winner === 1 - g8.turn && /left the table/.test(j8.verdict.why) && jb8.winner === null && on(jb8, 8) && !!jb8.verdict.foul, JSON.stringify({ w: j8.winner, why: j8.verdict.why, b: [jb8.winner, on(jb8, 8), jb8.verdict.foul] }));
+  /* a 9 or 10 that flew off never wins, even called */
+  const g9 = midGame('9', [9], rules('9-wpa')), j9 = S.judge(g9, off(g9, 9, 9));
+  const g10 = S.withCall(midGame('10', [10], rules('10-wpa')), { ball: 10, pocket: 2 }), j10 = S.judge(g10, off(g10, 10, 10));
+  check('off the table: the game ball flown off is no win (9-ball, a called 10), spotted, a foul', j9.winner === null && on(j9, 9) && j9.verdict.foul && j10.winner === null && on(j10, 10) && j10.verdict.foul,
+    JSON.stringify([j9.verdict, j10.verdict.foul]));
+  /* the cue ball off the table: the scratch's ball in hand */
+  const gc = midGame('9', [3, 9], rules('9-wpa')), jc = S.judge(gc, res(gc, { first: 3, potted: [0], pocketOf: { 0: -1 } }));
+  check('off the table: the cue ball flown off is a foul with ball in hand anywhere (9-ball WPA), worded as such', jc.verdict.foul === 'the cue ball left the table' && jc.inHand === 'table' && jc.turn !== gc.turn, JSON.stringify(jc.verdict));
+  /* snooker: a colour off is spotted, a red stays off; a foul worth at least 4, the colour's value when more */
+  const sg = S.snookerGame(), red = sg.balls.find(b => S.isRed(b.n)).n;
+  Object.assign(sg, { breakShot: false });
+  const sr = S.judge(sg, Object.assign(res(sg, { first: red, potted: [red], pocketOf: { [red]: -1 } }), { seq: [red] }));
+  const sc = S.judge(sg, Object.assign(res(sg, { first: red, potted: [62], pocketOf: { 62: -1 } }), { seq: [red] }));
+  check('off the table, snooker: a foul; a red off stays off, a colour off is spotted; the penalty 4, or the colour\'s value (the black, 7)',
+    !!sr.verdict.foul && !on(sr, red) && sr.verdict.pen === 4 && !!sc.verdict.foul && on(sc, 62) && sc.verdict.pen === 7, JSON.stringify([sr.verdict.foul, sr.verdict.pen, sc.verdict.foul, sc.verdict.pen]));
+  /* snooker: the cue ball jumping a ball before its first contact is a jump shot (Section 3 Rule 10) */
+  const sj = S.judge(sg, Object.assign(res(sg, { first: red }), { seq: [red], over: [61] }));
+  check('snooker: a cue ball that jumped a ball before hitting the ball on is a foul (a jump shot), at the jumped ball\'s value', sj.verdict.foul === 'a jump shot' && sj.verdict.pen === 6, JSON.stringify(sj.verdict));
+  /* carom and bumper pool: a ball off comes back, a foul */
+  const cg = S.caromGame(); cg.breakShot = false;
+  const cj = S.judge(cg, Object.assign(res(cg, { first: S.C_RED, potted: [S.C_RED], pocketOf: { [S.C_RED]: -1 } }), { seq: [S.C_RED] }));
+  const bg = S.newGame('bumper'); bg.opening = 0;
+  const bj = S.judge(bg, Object.assign(res(bg, { potted: [32], pocketOf: { 32: -1 } }), { cue: 21 }));
+  check('off the table, carom and bumper pool: a foul, the ball comes back', !!cj.verdict.foul && on(cj, S.C_RED) && !!bj.verdict.foul && on(bj, 32), JSON.stringify([cj.verdict.foul, bj.verdict.foul]));
+  S.setTable('7');
+}
 done();

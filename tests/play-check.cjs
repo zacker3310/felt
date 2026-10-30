@@ -289,6 +289,42 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     await page.evaluate(() => document.activeElement.blur());
   }
 
+  /* a jump (sim 1a): a firm centre hit with the cue at 50 degrees leaves the bed (the same strike
+     and steps the page runs, stepped here to see the flight); the live roll ends byte for byte
+     where simulateShot says, and every ball is back on the bed */
+  if ((await page.evaluate(() => felt.state)) === 'aim') {
+    const js = { x: 0, y: 0.1, e: 0.87 };
+    /* the clearest way from the cue ball: the angle whose metre of line passes farthest from every ball and cushion */
+    const jang = await page.evaluate(() => {
+      const c = felt.game.balls.find(b => b.n === 0);
+      let best = 0, bestD = -1;
+      for (let a = 0; a < 2 * Math.PI; a += 0.05) {
+        let d = Infinity;
+        for (let t = 0.05; t <= 1; t += 0.05) {
+          const x = c.x + Math.cos(a) * t, y = c.y + Math.sin(a) * t;
+          d = Math.min(d, x, TL - x, y, TW - y);
+          for (const b of felt.game.balls) if (b.on && b.n !== 0) d = Math.min(d, Math.hypot(b.x - x, b.y - y) - 2 * BALL_R);
+        }
+        if (d > bestD) { bestD = d; best = a; }
+      }
+      return best;
+    });
+    const exp4 = await page.evaluate(([s, a]) => {
+      const shot = { angle: a, power: 0.45, spin: s }, t = strike(newTable(felt.game.balls), shot.angle, shot.power, shot.spin), c = t.balls.find(b => b.n === 0);
+      let z = 0, lands = 0;
+      while (stepTable(t)) { z = Math.max(z, c.z || 0); lands += t.hits.filter(h => h[0] === 'land').length; t.hits.length = 0; }
+      return { res: JSON.stringify(simulateShot(felt.game.balls, shot)), z, lands };
+    }, [js, jang]);
+    await page.evaluate(([s, a]) => { felt.speed = 40; felt.shoot(a, 0.45, s); }, [js, jang]);
+    await settled(page);
+    const live4 = await page.evaluate(() => ({ res: JSON.stringify(Object.assign({}, felt.lastResult)), up: felt.lastResult.balls.some(b => b.z !== undefined || b.vz !== undefined) }));
+    const sameRes = (() => { const a = JSON.parse(live4.res), b = JSON.parse(exp4.res); return JSON.stringify(a.balls) === JSON.stringify(b.balls) && JSON.stringify(a.potted) === JSON.stringify(b.potted) && a.steps === b.steps; })();
+    check('jump: a firm stroke with the cue raised 50 degrees down a clear line flies (its bottom 1 cm up or more, landing on the slate) and plays live byte for byte as simulateShot (balls, pots, steps); every ball ends on the bed',
+      sameRes && exp4.z > 0.01 && exp4.lands >= 1 && !live4.up, JSON.stringify({ z: exp4.z, lands: exp4.lands, sameRes, up: live4.up }));
+  } else check('jump: the live jump equals simulateShot', false, 'not on an aim turn');
+  /* the jump may end the rack: a rematch puts a live game back under the menu */
+  if ((await page.evaluate(() => felt.state)) === 'over') { await page.click('#rematch'); await page.waitForFunction(() => felt.state !== 'over', null, { timeout: 10000 }); }
+
   /* 7. vs CPU on hard: miss on purpose, the foul banner shows, the CPU places and shoots */
   await page.click('#menuBtn');
   await page.click('#exitBtn');

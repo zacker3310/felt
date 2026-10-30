@@ -13,11 +13,11 @@ suites had missed (now fixed, `qa-check`), so a green suite is evidence, not pro
 | Phase | Status | Where it lives, what pins it |
 |---|---|---|
 | 1 Audit | Done | `.buildloop/audit/T4-audit.md`: F1-F17, all fixed except F13 (verified, watch on phones). `audit-check` holds one regression per fix |
-| 2 Realistic physics | Done, with limits | Per-table records (`POOL_PHYS`, `SNOOKER_PHYS`, `CAROM_PHYS`); spin decay from pooltool's source (F10), spin in place (F9), cue elevation 0-60 deg for swerve and masse. `physics-check`, `level-cue.cjs` (level shots byte-identical to before) |
+| 2 Realistic physics | Done, with limits | Per-table records (`POOL_PHYS`, `SNOOKER_PHYS`, `CAROM_PHYS`); spin decay from pooltool's source (F10), spin in place (F9), cue elevation 0-60 deg for swerve and masse; jump shots (build 2026-10-30g: a vertical axis, `b.z`/`b.vz`, ballistic flight, slate bounces, balls off the table). `physics-check`, `level-cue.cjs` (level shots byte-identical to before) |
 | 3 Rules engine | Done | `RULESETS` / `RULE_MODULES`: 8, 9, 10-ball, 14.1, rotation (house and WPA), bumper, snooker (with free ball, miss and put-back, F17), carom, ring games for 3-4 players. `rules-check`, `rules2-check`, `snooker-check` |
 | 4 Called shots | Done | `game.call`, `callNeed`, `callResult`, option prompts (push-out, break fouls), settings `calls`, event-locked rules. `called-check` |
 | 5 Career | Done, with limits | `Career` engine (300 players, 12 tiers, every bracket format, 52-week rankings, sponsors, rivals, shop, Hall of Fame, 6 slots, atomic saves, v1 migration) and its screens (6d). Abandon = forfeit (F5). `career-check`, `career2-check` |
-| 6 Intelligent AI | Done, with limits | `cpuProfile` and nine archetypes; noise on inputs only, never on balls; banks and combos; human think time (F8). `ai-check`, `ai2-check` |
+| 6 Intelligent AI | Done, with limits | `cpuProfile` and nine archetypes; noise on inputs only, never on balls; banks and combos; human think time (F8); hard's two-shot planning, one-rail kick pots, jumps and swerves (2026-10-30g). `ai-check`, `ai2-check` |
 | 7 Game modes | Done | Quick tournament (all pocket games, snooker, carom), AI exhibition, party for 2-4, practice, drills, trick shots, daily, tutorials. `modes-check`, `drills-check`, `solo-check`, `tutorial-check` |
 | 8 Settings | Done | Grouped pages (gameplay, controls, graphics, look, audio and haptics, accessibility, about), sv 3 with a lossless migration and backup. `settings-check` |
 | 9 Premium UX | Done | iOS list and push pages everywhere, 44 px targets, 4.5:1 text, no blur, home scrolls instead of crushing. `boot-check`, `qa-check` |
@@ -30,12 +30,21 @@ suites had missed (now fixed, `qa-check`), so a green suite is evidence, not pro
 
 ## Not met, or met only in part
 
-- Physics: no jump shots (the sim is 2D). The CPU plays only a level cue. Spin decays at pooltool's current
-  10.9 rad/s^2, not the older ~38 the audit first quoted (a one-field change if wanted, then re-solve tricks).
+- Physics: jump shots are in (2026-10-30g), with limits: the ball-table restitution is one number (E_SLATE 0.5,
+  Alciatore) and the dead band under which the cloth takes a vertical impact (V_SLATE 1 m/s) is felt's choice,
+  not a measurement; no air drag; a flying ball meets a cushion as if on the bed while its bottom is under the
+  nose and clears it above (no glancing contact on the nose's top); a ball past the noses away from a mouth is
+  off the table at once (it never lands back on the bed from the rail); contacts in the air have no friction;
+  the scooped jump (a miscue, a foul) is not modelled. The jump-arc guide is top-down only (the 3D view draws
+  none yet). Spin decays at pooltool's current 10.9 rad/s^2, not the older ~38 the audit first quoted (a
+  one-field change if wanted, then re-solve tricks).
 - Snooker: the miss rule is a fixed approximation of a referee's judgement; simultaneous contact is not modelled;
   WPBSA rule numbers 3.12 and 3.13 in the comments were cited without access to the rulebook and need checking.
-- AI: kicks are only played as safeties, never aimed at a pot; no planning beyond the next shot; the position
-  player differs in its knobs but barely in its shot choice.
+- AI: hard plans two shots ahead only for its finalists, one rail for kick pots (no two-rail kicks), jumps and
+  swerves only round a single blocker, and no masse. Against the old hard level it pots more from the same
+  positions, but head to head it is only level to slightly ahead (13/24 seeded racks in `ai2-check`, 32/64 in a
+  longer paired run): hard-against-hard racks are mostly won by the breaker. The position player differs in its
+  knobs but barely in its shot choice.
 - Career: AI players keep no rivalries with each other; no fatigue or travel time.
 - Drills: pool table only (no snooker or carom drills); stored solutions for the 7 ft regulation table only; no Show me.
 - Looks: ball sets apply to pool only; frames show on the career hub card, not the home card.

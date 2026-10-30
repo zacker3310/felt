@@ -827,8 +827,9 @@ check('bumper: back on a pool table every pool global is rebuilt and the posts a
     same && !('e' in sp0) && !('e' in spBad) && spE.e === S.ELEV_MAX && Math.abs(S.ELEV_MAX - Math.PI / 3) < 1e-15, JSON.stringify({ sp0, spE, spBad }));
 
   /* the elevated strike: speed cos th of the level one, a centre hit spinless, side split into
-     english (cos th) and travel-axis spin (sin th) */
-  const st = (spin, a = 0) => S.strike(S.newTable([S.newBall(0, 0.5, S.TW / 2)]), a, 0.4, spin).balls[0];
+     english (cos th) and travel-axis spin (sin th). Power 0.25 keeps the 45 degree stroke under
+     the jump threshold (below), where the slate takes the downward part and nothing else changes */
+  const st = (spin, a = 0) => S.strike(S.newTable([S.newBall(0, 0.5, S.TW / 2)]), a, 0.25, spin).balls[0];
   const lv = st({ x: 0.8, y: 0.2 }), up = st({ x: 0.8, y: 0.2, e: Math.PI / 4 }), mid = st({ x: 0, y: 0, e: Math.PI / 4 }), mid0 = st(0);
   const c45 = Math.SQRT1_2, k = 2.5 * Math.hypot(lv.vx, lv.vy) / R;
   check('elevated strike: the ball leaves at cos th of the level speed; a centre hit carries no spin at any elevation; english is cos th of the level, the rest of the side about the line of travel, follow unchanged',
@@ -857,6 +858,103 @@ check('bumper: back on a pool table every pool global is rebuilt and the posts a
   const e1 = eshot(), e2 = eshot();
   S.setTable('carom'); S.setTable('snooker'); S.setTable('7');
   check('elevated shots are deterministic: the same result twice and after carom and snooker and back', e1 === e2 && e2 === eshot());
+
+  /* ---- jump shots (sim 1a): the vertical axis ---- */
+  /* the threshold: a stroke drives the ball into the slate at v sin th (v its speed along the cue);
+     at V_SLATE or more it rebounds at E_SLATE of that and leaves the bed, under it the strike is the
+     swerve stroke exactly. Byte for byte: the sim with the jump cut out plays every sub-threshold
+     raised stroke the same, and every stroke over it differently */
+  const noJump = [], plain = loadSim(src => { if (!src.includes('if (vd >= V_SLATE &&')) noJump.push('jump test'); return src.replace('if (vd >= V_SLATE &&', 'if (false &&'); });
+  const lone = (P, x = 0.5) => [P.newBall(0, x, P.TW / 2), P.newBall(3, 1.5, P.TW / 2 + 0.2), P.newBall(5, 1.2, P.TW / 2 - 0.15)];
+  const v04 = S.speedOf(0.4), th04 = Math.asin(S.V_SLATE / v04);
+  const at = (P, e, pw = 0.4, sp = {}) => JSON.stringify(P.simulateShot(lone(P), { angle: 0.06, power: pw, spin: Object.assign({ x: 0, y: 0 }, sp, { e }) }));
+  const subs = [[th04 - 0.01, 0.4], [0.3, 0.3], [0.5, 0.25], [0.2, 0.6], [1.0, 0.2]], overs = [[th04 + 0.01, 0.4], [0.8, 0.5], [0.3, 1]];
+  const subSame = subs.every(([e, pw]) => at(S, e, pw) === at(plain, e, pw) && at(S, e, pw, { x: 0.5, y: -0.3 }) === at(plain, e, pw, { x: 0.5, y: -0.3 }));
+  const overDiff = overs.every(([e, pw]) => at(S, e, pw) !== at(plain, e, pw));
+  const below = S.strike(S.newTable(lone(S)), 0, 0.4, { x: 0, y: 0, e: th04 - 0.01 }).balls[0], above = S.strike(S.newTable(lone(S)), 0, 0.4, { x: 0, y: 0, e: th04 + 0.01 }).balls[0];
+  check(`jump threshold: the ball leaves the bed when v sin th reaches ${S.V_SLATE} m/s (power 0.4: ${(th04 / DEG).toFixed(1)} degrees; full power: ${(Math.asin(S.V_SLATE / S.speedOf(1)) / DEG).toFixed(1)}), rebounding at ${S.E_SLATE} of it; below it every raised stroke plays byte for byte as the sim without jumps, above it none does`,
+    !noJump.length && subSame && overDiff && !('z' in below) && !('vz' in below) && above.z === 0 && Math.abs(above.vz - S.E_SLATE * v04 * Math.sin(th04 + 0.01)) < 1e-12,
+    JSON.stringify({ noJump, subSame, overDiff, below, above }));
+  /* a level stroke never jumps, however hard; nor does a raised one that strikes below the equator */
+  const lev = S.strike(S.newTable(lone(S)), 0, 1, { x: 0, y: 0.6 }).balls[0], under = S.strike(S.newTable(lone(S)), 0, 1, { x: 0, y: -1, e: 0.15 }).balls[0];
+  check('jump threshold: a level cue never leaves the bed (full power, follow), nor a raised cue striking below the equator',
+    !('z' in lev) && !('z' in under) && S.speedOf(1) * Math.sin(0.15) > S.V_SLATE, JSON.stringify({ lev, under }));
+
+  /* the flight: ballistic (z = vz t - g t^2 / 2 from the bounce off the slate), no cloth (the
+     horizontal speed and every spin held), then bounces at E_SLATE of each landing until one comes
+     in under V_SLATE and settles it */
+  const fl = S.strike(S.newTable([S.newBall(0, 0.4, S.TW / 2)]), 0, 0.7, { x: 0, y: 0, e: 45 * DEG }), fc = fl.balls[0];
+  const vz0 = fc.vz, vh0 = fc.vx, w0 = [fc.wx, fc.wy, fc.wz], lands = [];
+  let zErr = 0, held = true, t = 0, landed = false, peak = 0;
+  while (S.stepTable(fl)) {
+    t += S.SIM_DT;
+    const l = fl.hits.find(h => h[0] === 'land');
+    if (l) { lands.push(l[1]); landed = true; }
+    if (!landed && fc.z > 0) {
+      zErr = Math.max(zErr, Math.abs(fc.z - (vz0 * t - S.G * t * t / 2)));
+      held = held && fc.vx === vh0 && fc.vy === 0 && fc.wx === w0[0] && fc.wy === w0[1] && fc.wz === w0[2];
+      peak = Math.max(peak, fc.z);
+    }
+    fl.hits.length = 0;
+    if (fc.vz === undefined && landed) break;
+  }
+  check('jump flight: ballistic within 1 micron of vz t - g t^2 / 2, its peak vz^2 / 2g; no cloth in the air (the horizontal speed and every spin held exactly)',
+    zErr < 1e-6 && held && Math.abs(peak - vz0 * vz0 / (2 * S.G)) < 2e-4 && peak > 0.05, JSON.stringify({ zErr, held, peak, vz0 }));
+  const decay = lands.slice(1).every((v, i) => Math.abs(v - S.E_SLATE * lands[i]) < 0.02 * lands[i]);
+  check('jump bounces: each landing comes in at E_SLATE of the one before, every bounce at or above V_SLATE, and the first under it settles the ball (z and vz undefined, out of its JSON)',
+    lands.length >= 2 && decay && lands.slice(0, -1).every(v => v >= S.V_SLATE) && lands[lands.length - 1] < S.V_SLATE && fc.z === undefined && fc.vz === undefined && !/"v?z"/.test(JSON.stringify(fc)) && fc.on,
+    JSON.stringify(lands));
+
+  /* over a ball: the cue ball jumps a ball on its line and hits the one beyond, the jumped ball untouched */
+  const jb = [S.newBall(0, 0.4, S.TW / 2), S.newBall(2, 0.75, S.TW / 2), S.newBall(1, 1.4, S.TW / 2)];
+  const jr = S.simulateShot(jb, { angle: 0, power: 0.62, spin: { x: 0, y: 0, e: 0.75 } }), flat = S.simulateShot(jb, { angle: 0, power: 0.62, spin: { x: 0, y: 0, e: 0.2 } });
+  check('a jump clears a blocking ball and lands: the first contact is the cue ball on the one beyond (resultOf over names the ball jumped); without the jump the blocker is hit; every ball ends on the bed',
+    jr.first === 1 && JSON.stringify(jr.over) === '[2]' && JSON.stringify(jr.contacts[0]) === '[0,1]' && flat.first === 2 && !('over' in flat) && !jr.balls.some(b => b.z !== undefined || b.vz !== undefined) && !/"v?z"/.test(JSON.stringify(jr.balls)),
+    JSON.stringify({ first: jr.first, over: jr.over, contacts: jr.contacts, flat: flat.first }));
+
+  /* off the table: hard and steep, the cue ball clears the far cushion (its bottom over the nose,
+     (1 + NOSE_S) R) and is gone: a pot into no pocket (-1), with no pocket sound */
+  const offT = S.strike(S.newTable([S.newBall(0, S.TL - 0.6, S.TW / 2)]), 0, 1, { x: 0, y: 0, e: S.ELEV_MAX }), kinds = new Set();
+  let zAtRail = null;
+  for (let live = true; live;) { live = S.stepTable(offT); for (const h of offT.hits) kinds.add(h[0]); offT.hits.length = 0; const b = offT.balls[0]; if (b.on && b.x > S.TL - R && zAtRail === null) zAtRail = b.z; }
+  const offR = S.resultOf(offT);
+  check('a ball over the rail leaves the table: higher than the nose at the cushion, it flies over, potted into no pocket (pocketOf -1), its hit an off, not a pocket',
+    zAtRail > S.cushionTop() && offR.potted.includes(0) && offR.pocketOf[0] === -1 && kinds.has('off') && !kinds.has('pocket') && !kinds.has('rail'), JSON.stringify({ zAtRail, top: S.cushionTop(), potted: offR.potted, kinds: [...kinds] }));
+  /* a low flyer still meets the cushion: the same stroke softer, the ball below the nose there, comes back off it */
+  const lowT = S.strike(S.newTable([S.newBall(0, S.TL - 0.2, S.TW / 2)]), 0, 0.4, { x: 0, y: 0, e: 0.6 });
+  let lowZ = null, lowRail = false;
+  while (S.stepTable(lowT)) { if (lowT.hits.some(h => h[0] === 'rail')) { lowRail = true; if (lowZ === null) lowZ = lowT.balls[0].z || 0; } lowT.hits.length = 0; }
+  check('a flying ball lower than the nose meets the cushion and stays on the table', lowRail && lowZ < S.cushionTop() && lowT.balls[0].on, JSON.stringify({ lowZ, lowRail }));
+
+  /* judged in every game kind: the cue ball off the table is a foul (a scratch's ball in hand, the D at snooker), the shooter's turn over */
+  const offFoul = [];
+  for (const kind of ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper']) {
+    const g = S.newGame(kind);
+    Object.assign(g, { breakShot: false, opening: 0, inHand: null });
+    const cueN = kind === 'carom' ? S.C_CUE[0] : kind === 'bumper' ? S.B_MARK[0] : 0, cb = g.balls.find(b => b.n === cueN);
+    const r = S.simulateShot(g.balls, { angle: Math.atan2(S.TW / 2 - cb.y, -cb.x) + Math.PI, power: 1, spin: { x: 0, y: 0, e: S.ELEV_MAX }, ball: cueN });
+    const j = r.pocketOf[cueN] === -1 ? S.judge(g, r) : null;
+    offFoul.push([kind, r.pocketOf[cueN], j && j.verdict.foul, j && j.turn !== g.turn, j && (kind === 'snooker' ? j.inHand === 'D' : kind === 'carom' || kind === 'bumper' ? j.balls.find(b => b.n === cueN).on : !!j.inHand)]);
+    S.setTable('7');
+  }
+  check('the cue ball jumped off the table is a foul in every game kind, the turn passes and the cue ball comes back (in hand; the D at snooker; respotted at carom and bumper pool)',
+    offFoul.every(x => x[1] === -1 && x[2] && x[3] && x[4]), JSON.stringify(offFoul));
+
+  /* no airborne pot: a ball flying over a pocket's hole does not drop while it is in the air; the
+     same line along the bed drops it */
+  S.setTable('7');
+  const P2 = S.POCKETS[2], cx0 = S.TL - 0.32, cy0 = 0.32, ang = Math.atan2(P2[1] - cy0, P2[0] - cx0);
+  const hi = S.strike(S.newTable([S.newBall(0, cx0, cy0)]), ang, 0.8, { x: 0, y: 0, e: S.ELEV_MAX });
+  let overHole = false;
+  while (S.stepTable(hi)) { const b = hi.balls[0]; if (b.on && b.z > 0 && Math.hypot(b.x - P2[0], b.y - P2[1]) < S.POCKET_R[2]) overHole = true; }
+  const rHi = S.resultOf(hi), rLo = S.simulateShot([S.newBall(0, cx0, cy0)], { angle: ang, power: 0.3, spin: 0 });
+  check('no airborne pot: a ball in the air over a pocket\'s hole flies on (here off the table) instead of dropping; rolled, the same line drops it',
+    overHole && rHi.pocketOf[0] === -1 && rLo.pocketOf[0] === 2, JSON.stringify({ overHole, hi: rHi.pocketOf, lo: rLo.pocketOf }));
+
+  /* determinism and the live loop's view: a jump plays the same twice and after a round of the tables */
+  const jj = () => JSON.stringify(S.simulateShot(jb, { angle: 0.01, power: 0.7, spin: { x: 0.3, y: 0.2, e: 0.8 } }));
+  const j1 = jj(); S.setTable('carom'); S.setTable('snooker'); S.setTable('7');
+  check('jump shots are deterministic: the same result twice and after carom and snooker and back', j1 === jj());
 }
 
 done();

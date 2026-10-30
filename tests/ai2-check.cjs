@@ -17,7 +17,13 @@
    - think time: bounded, short on an obvious pot and the break, longer on hard pots and
      safeties, the search sliced so no single step is long;
    - every game kind takes a profile; hard beats easy over whole racks; personalities against
-     each other always finish.
+     each other always finish;
+   - hard's planning and shot-making: the raised cue gated by level and archetype (easy never,
+     a bare medium never, hard and the shot-making archetypes; never at snooker), a jump over a
+     ball on the line, one-rail kick pots solved through the physics and called with the kick flag
+     (and how often they drop over seeded blocked layouts), and the strength measured against a
+     frozen copy of the hard level before them (OLD_HARD): offence from the same mid-rack
+     positions, and a head-to-head over seeded racks, each seed played from both seats.
    Mid-game positions come from medium against medium 8-ball games; the games and the position
    sweeps run on worker threads. */
 'use strict';
@@ -61,6 +67,66 @@ function play(kind, profs, seed, first) {
   }
   return { winner: g.winner, shots, bad };
 }
+/* the hard level as it was before two-shot planning, kick pots and the raised cue (CPU_LEVELS.hard
+   of build 2026-10-30e, frozen), as a made profile the search takes whole */
+const OLD_HARD = { sims: 120, lines: 12, ladder: [0.85, 1.25, 1.8], spin: 5,
+  spins: [[0, 0.6, 1], [0, -0.6, 1], [0.45, 0, 1], [-0.45, 0, 1], [0, 0, 0.7], [0, 0, 1.4]], safe: 20, safeBar: 250, robust: 4, place: 6, minCos: 0.2,
+  position: true, look: true, retry: true, noise: 0.0009, pnoise: 0.01, brk: 1 };
+const oldHard = () => Object.assign({}, OLD_HARD, S.CPU_NEUTRAL, { made: 'cpu', level: 'hard', d: {} });
+/* a game past the break with only the listed balls ([n, x, y]) on the table */
+function layout(pl, kind = '9', rules) {
+  S.setTable('7'); S.setPockets('regulation');
+  const g = S.newGame(kind, rules ? { rules } : undefined);
+  g.breakShot = false; g.inHand = null;
+  for (const b of g.balls) b.on = false;
+  for (const [n, x, y] of pl) Object.assign(g.balls.find(b => b.n === n), { x, y, on: true });
+  return g;
+}
+/* seeded blocked layouts: the cue ball walled off its ball by two balls side by side across the line */
+function blocked(count, seed) {
+  const rnd = S.rng(seed), out = [];
+  while (out.length < count) {
+    const c = [0.3 + rnd() * 1.4, 0.15 + rnd() * 0.7], o = [0.3 + rnd() * 1.4, 0.15 + rnd() * 0.7], d = Math.hypot(o[0] - c[0], o[1] - c[1]);
+    if (d < 0.5) continue;
+    const ux = (o[0] - c[0]) / d, uy = (o[1] - c[1]) / d, m = 0.45;
+    const pl = [[0, ...c], [1, ...o], [2, c[0] + ux * d * m - uy * 0.03, c[1] + uy * d * m + ux * 0.03], [3, c[0] + ux * d * m + uy * 0.03, c[1] + uy * d * m - ux * 0.03], [9, 0.15, 0.5]];
+    S.setTable('7');
+    if (pl.some(([, x, y]) => x < 0.05 || x > S.TL - 0.05 || y < 0.05 || y > S.TW - 0.05)) continue;
+    out.push(pl);
+  }
+  return out;
+}
+/* hard's kick pots over seeded blocked layouts (calls with flags): how often it plays one, and how many drop with the kick called */
+function kicks(count, seed) {
+  let played = 0, made = 0, flagged = 0;
+  for (const pl of blocked(count, seed)) {
+    const g = layout(pl, '9', { ruleset: '9-house', call: { mode: 'all', detail: 'rails' } }), s = S.cpuShot(g, 5, 'hard');
+    if (s.intent.type !== 'kickpot') continue;
+    played++;
+    if (s.call && s.call.kick) flagged++;
+    const j = S.judge(S.withCall(g, s.call), S.simulateShot(g.balls, s));
+    if (j.verdict.call.made && !j.verdict.foul) made++;
+  }
+  return { kicks: true, played, made, flagged };
+}
+/* offence from shared mid-rack positions: the profile shoots until it loses the table */
+function offence(prof, kind, count) {
+  const pos = positions(count, kind);
+  let pots = 0, outs = 0;
+  pos.forEach((g0, i) => {
+    let g = g0;
+    const me = g.turn;
+    for (let k = 0; k < 15 && g.winner === null && g.turn === me; k++) {
+      const s = S.cpuShot(g, 31 * i + k, prof);
+      if (g.inHand) g = S.placeCue(g, s.place[0], s.place[1]);
+      const n = S.judge(g, S.simulateShot(g.balls, s));
+      if (n.turn === me && !n.verdict.foul) pots += n.verdict.potted.length;
+      g = n;
+    }
+    if (g.winner === me) outs++;
+  });
+  return { pots, outs };
+}
 /* one archetype over the shared positions: what it chose, and whether it kept the table */
 function sweep(arch, level, count) {
   const pos = positions(count), out = { arch, types: {}, q: [], kept: 0, think: 0, calls: [] };
@@ -75,7 +141,9 @@ function sweep(arch, level, count) {
   return out;
 }
 if (!isMainThread) {
-  parentPort.postMessage(workerData.map(j => j.sweep ? sweep(j.arch, j.level, j.count) : Object.assign(j, play(j.kind, j.profs, j.seed, j.first))));
+  const prof = p => p === 'old' ? oldHard() : p;
+  parentPort.postMessage(workerData.map(j => j.sweep ? sweep(j.arch, j.level, j.count) : j.kicks ? kicks(j.count, j.seed)
+    : j.off ? Object.assign(j, offence(prof(j.off), j.kind, j.count)) : Object.assign(j, play(j.kind, j.profs.map(prof), j.seed, j.first))));
   return;
 }
 const { check, done } = require('./lib.cjs');
@@ -100,6 +168,12 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
   }
   for (const [i, [a, b]] of [['shotmaker', 'defender'], ['defender', 'defender'], ['banker', 'grinder'], ['potter', 'positional']].entries())
     jobs.push({ kind: i % 2 ? '9' : '8', seed: 500 + i, profs: [{ level: 'medium', arch: a }, { level: 'medium', arch: b }], first: 0, tag: 'mix' });
+  /* hard against the old hard: each seed from both seats (the breaker the same), 8 and 9-ball;
+     offence from 20 shared positions per game; kick pots over 24 blocked layouts */
+  const H2H = 12;
+  for (let i = 0; i < 2 * H2H; i++) jobs.push({ kind: (i >> 1) % 2 ? '9' : '8', seed: 700 + (i >> 1), profs: i % 2 ? ['old', 'hard'] : ['hard', 'old'], hard: i % 2, first: (700 + (i >> 1)) % 2, tag: 'h2h' });
+  for (const kind of ['8', '9']) for (const off of ['hard', 'old']) jobs.push({ off, kind, count: 20, tag: 'off' });
+  jobs.push({ kicks: true, count: 24, seed: 99 });
   const pending = runAll(jobs);
 
   /* ---- the bare levels are the levels ---- */
@@ -197,6 +271,27 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
   const brkT = S.cpuThinkMs(brk, { intent: { type: 'break', q: 1 } }, 'medium', 1);
   check('think time: the break is brief; ball in hand adds a little', brkT < 1200 && th('pot', 0.5, 'medium', 1, Object.assign({}, g0, { inHand: 'table' })) > th('pot', 0.5), String(brkT));
   check('think time: the grinder and the defender take longer than the potter over the same shot', th('pot', 0.5, { arch: 'grinder' }) > th('pot', 0.5, { arch: 'potter' }) && th('safety', 0, { arch: 'defender' }) > th('safety', 0, { arch: 'potter' }));
+  /* ---- the raised cue and kick pots: gated, and working ---- */
+  const G = p => S.cpuProfile(p);
+  check('the raised cue: never on easy (a shot-maker\'s either) or a bare medium; hard sometimes, the shot-making and aggressive archetypes from medium; never at snooker; kick pots on hard and the bank-minded',
+    !G('easy').elev && !G({ level: 'easy', arch: 'shotmaker' }).elev && !G('medium').elev && !G({ level: 'medium', arch: 'allround' }).elev && G('hard').elev > 0 && G({ level: 'medium', arch: 'shotmaker' }).elev > 0 &&
+    G({ level: 'medium', arch: 'potter' }).elev > 0 && !S.cpuRecord(G('hard'), 'snooker').elev && G('hard').kickPot > 0 && G({ level: 'medium', arch: 'banker' }).kickPot > 0 && !G('medium').kickPot && !G({ level: 'medium', arch: 'defender' }).kickPot,
+    JSON.stringify(['easy', 'medium', 'hard'].map(l => [l, G(l).elev, G(l).kickPot, G(l).plan])));
+  /* a ball on the line of an easy pot (the 2 between the cue ball and the 1); no kick wanted */
+  const JL = [[0, 0.7, 0.5], [1, 1.45, 0.3], [2, 1.0, 0.425], [9, 0.3, 0.85]], jg = layout(JL);
+  const jumps = [['easy'], ['medium'], [{ level: 'easy', arch: 'shotmaker' }], [{ level: 'medium', arch: 'shotmaker' }], [Object.assign({}, G('hard'), { kickPot: 0 })]].map(([p]) => {
+    const s = S.cpuShot(jg, 3, p), r = S.simulateShot(jg.balls, s);
+    return { type: s.intent.type, e: s.spin.e || 0, over: r.over || [], potted: r.potted };
+  });
+  check('elevation gating over a ball on the line: easy and medium play level; the medium shot-maker raises the cue and jumps it; hard (kick pots aside) jumps it and pots the 1',
+    jumps.slice(0, 3).every(j => !j.e) && jumps[3].type === 'jump' && jumps[3].e > 0.5 && jumps[3].over.includes(2) && jumps[4].type === 'jump' && jumps[4].over.includes(2) && jumps[4].potted.includes(1) && !jumps[4].potted.includes(0),
+    JSON.stringify(jumps));
+  /* a kick pot: the 1 behind a wall of two balls, called with the kick flag */
+  const kg = layout([[0, 0.9, 0.55], [1, 1.731, 0.2], [2, 1.15, 0.45], [3, 1.15, 0.51], [9, 0.3, 0.8]], '9', { ruleset: '9-house', call: { mode: 'all', detail: 'rails' } });
+  const ks = S.cpuShot(kg, 3, 'hard'), kr = S.simulateShot(kg.balls, ks), kj = S.judge(S.withCall(kg, ks.call), kr);
+  check('kick pots: walled off its ball, hard kicks it in off one cushion, called with the kick flag (the cue ball\'s cushion before the ball), the call made and the table kept',
+    ks.intent.type === 'kickpot' && ks.call.kick === true && kr.kick === 1 && kj.verdict.call.made && kj.turn === kg.turn && !kj.verdict.foul, JSON.stringify({ intent: ks.intent, call: ks.call, kick: kr.kick, call2: kj.verdict.call }));
+
   /* ---- every game kind takes a profile ---- */
   const kinds = [];
   S.setTable('bumper', 'octagon');
@@ -229,6 +324,16 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
     JSON.stringify(Object.fromEntries(Object.values(sw).map(r => [r.arch, Math.round(r.think / NPOS)]))));
   const he = res.filter(r => r.tag === 'he'), hw = he.filter(r => r.winner === r.hard).length;
   check(`hard beats easy over ${he.length} racks of 8 and 9-ball (personalities on both sides)`, hw >= Math.ceil(he.length * 0.7) && he.every(r => !r.bad), `${hw}/${he.length}`);
+  const kk = res.find(r => r.kicks);
+  check(`kick pots over 24 seeded blocked layouts: hard plays them, every one called as a kick, and most drop (${kk.made}/${kk.played})`,
+    kk.played >= 5 && kk.flagged === kk.played && kk.made >= 0.7 * kk.played, JSON.stringify(kk));
+  const off = Object.fromEntries(['8', '9'].flatMap(k => ['hard', 'old'].map(p => [k + p, res.find(r => r.tag === 'off' && r.kind === k && r.off === p)])));
+  check(`strength, offence: from the same 20 mid-rack positions of each game the new hard pots more and runs out at least as often as the old (8-ball ${off['8hard'].pots}/${off['8hard'].outs} vs ${off['8old'].pots}/${off['8old'].outs}, 9-ball ${off['9hard'].pots}/${off['9hard'].outs} vs ${off['9old'].pots}/${off['9old'].outs}: pots/run-outs)`,
+    off['8hard'].pots + off['9hard'].pots > off['8old'].pots + off['9old'].pots && off['8hard'].outs + off['9hard'].outs >= off['8old'].outs + off['9old'].outs, JSON.stringify(off));
+  const hh = res.filter(r => r.tag === 'h2h'), nw = hh.filter(r => r.winner === r.hard).length;
+  console.log(`    head-to-head: new hard ${nw}/${hh.length} racks against the old hard (${(100 * nw / hh.length).toFixed(0)}%)`);
+  check(`strength, head-to-head: the new hard wins at least half of ${hh.length} seeded racks against the old hard, each seed from both seats (${nw}/${hh.length}); every rack finishes`,
+    nw * 2 >= hh.length && hh.every(r => r.winner !== null && !r.bad), JSON.stringify(hh.map(r => [r.kind, r.seed, r.hard, r.winner, r.shots])));
   const mix = res.filter(r => r.tag === 'mix');
   check('personalities against each other always finish (no endless safety exchange)', mix.every(r => r.winner !== null && !r.bad), JSON.stringify(mix.map(r => [r.profs.map(p => p.arch).join('-'), r.shots, r.winner])));
   /* the slicing, measured once the worker threads are done (they share the cores): no

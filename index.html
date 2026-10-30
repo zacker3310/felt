@@ -1550,7 +1550,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   </div>
   <div id="elevPop" role="dialog" aria-label="Cue elevation" hidden>
     <b id="elevVal">Level</b>
-    <div id="elevSlider" role="slider" tabindex="0" aria-label="Cue elevation: raise the cue and side spin curves the ball. Up and down arrows move it." aria-valuemin="0" aria-valuemax="60" aria-valuenow="0" aria-valuetext="level"><span id="elevFill"></span><span id="elevCue"></span></div>
+    <div id="elevSlider" role="slider" tabindex="0" aria-label="Cue elevation: raise the cue and side spin curves the ball; raised steeply and struck firmly, the ball jumps. Up and down arrows move it." aria-valuemin="0" aria-valuemax="60" aria-valuenow="0" aria-valuetext="level"><span id="elevFill"></span><span id="elevCue"></span></div>
     <button id="elevLevel">Level</button>
   </div>
   <div id="msg" class="sr" role="status" aria-live="polite"></div>
@@ -2435,6 +2435,20 @@ const spinA = () => 2.5 * MU_SP * G;
    place until spinA() takes it, and a ball or cushion that meets it meanwhile feels it */
 const STOP_V = 0.01;
 const MAX_SIM_T = 60;
+/* The vertical axis (jump shots). A ball is on the bed unless it carries z, the height of its
+   bottom above the cloth (m), and vz, its vertical speed (m/s, up +); both are present only while
+   it is off the bed or bouncing, and undefined once it settles (JSON leaves it out), so a shot that
+   never leaves the bed has exactly the balls it always had. The slate under the cloth returns a vertical impact at E_SLATE,
+   the ball-table restitution of Dr Dave Alciatore's jump-shot analysis (billiards.colostate.edu,
+   the jump shot technical proofs and videos: a cue ball rebounds off the cloth-covered slate at
+   about half its impact speed). Slower than V_SLATE the cloth takes the impact without a rebound
+   (a dead band, felt's choice: a ball dropped from 5 cm, 1 m/s, barely bounces on a pool cloth),
+   so a gentle raised stroke stays on the bed and a bounce that has decayed below it settles. The
+   same law is the strike's jump threshold (strike, 1d). The cushion's nose is NOSE_S R above a
+   resting ball's centre, (1 + NOSE_S) R above the cloth: a flying ball whose bottom is higher
+   clears it (cushionTop). */
+const E_SLATE = 0.5, V_SLATE = 1.0;
+const cushionTop = () => BALL_R * (1 + NOSE_S);
 const BALL_E = 0.94;
 const THROW_A = 0.00995, THROW_B = 0.108, THROW_C = 1.088;   /* ball-ball friction a + b exp(-c slip) */
 const CUSH_MU_ALONG = 0.1;        /* the extra grip along the rail, over the table's CUSH_MU */
@@ -2696,7 +2710,7 @@ function rail(b, nx, ny) {
   [ux, uy, uz] = noseSlip(b, tx, ty, rx, ry, rz);
   const ut = ux * tx + uy * ty;
   rub(b, ut * tx, ut * ty, 0, load, CUSH_MU_ALONG, 3.5, rx, ry, rz);
-  rub(b, slipX(b), slipY(b), 0, load * NOSE_S, MU_SLIDE, 3.5, 0, 0, R);
+  if (b.vz === undefined) rub(b, slipX(b), slipY(b), 0, load * NOSE_S, MU_SLIDE, 3.5, 0, 0, R);
   const s = Math.hypot(b.vx, b.vy);
   if (s > V_CAP) { b.vx *= V_CAP / s; b.vy *= V_CAP / s; }
   return vn;
@@ -2747,6 +2761,10 @@ function hitBalls(tab, a, b) {
     kick(a, -ux * f, -uy * f, -uz * f, R * nx, R * ny, 0);
     kick(b, ux * f, uy * f, uz * f, -R * nx, -R * ny, 0);
   }
+  metBalls(tab, a, b, vn);
+}
+/* the record of a contact between a and b at normal speed vn */
+function metBalls(tab, a, b, vn) {
   const cue = a.n === tab.cue ? a : b.n === tab.cue ? b : null;
   if (cue) tab.seq.push((cue === a ? b : a).n);
   if (cue && tab.first === null) { tab.first = (cue === a ? b : a).n; tab.kick = tab.rails[tab.cue] || 0; }
@@ -2754,6 +2772,39 @@ function hitBalls(tab, a, b) {
   const lo = Math.min(a.n, b.n), hi = Math.max(a.n, b.n), key = lo * 64 + hi;
   if (!tab.met[key]) { tab.met[key] = true; tab.contacts.push([lo, hi]); }
   tab.hits.push(['ball', vn]);
+}
+/* a pair of which one at least is off the bed (1a): their centres are BALL_R above each bottom,
+   so they touch only when the centres are within 2 R in three dimensions, and a ball flying over
+   another clears it. Touching, the line of centres tilts, and the normal impulse (BALL_E, equal
+   masses) runs along it: a ball landing on another's crown is sent up and on. A ball on the bed
+   is held down by the slate, so it takes only the impulse's upward part; lifted, it leaves the
+   bed (and settles again by the same law). No friction between the two in the air. */
+function hitAir(tab, a, b) {
+  const R = BALL_R, za = a.z || 0, zb = b.z || 0;
+  let nx = b.x - a.x, ny = b.y - a.y, nz = zb - za;
+  const d2 = nx * nx + ny * ny + nz * nz;
+  if (d2 >= 4 * R * R) {
+    /* the cue ball passing over a ball before its first contact: a jump over it (tab.over, the
+       balls in the order jumped; snooker's rules read it, the pocket games allow it) */
+    const c = a.n === tab.cue ? a : b.n === tab.cue ? b : null, o = c === a ? b : a;
+    if (c && c.vz !== undefined && tab.first === null && !(tab.over || []).includes(o.n)) (tab.over = tab.over || []).push(o.n);
+    return;
+  }
+  if (d2 < 1e-24) return;
+  const d = Math.sqrt(d2), push = (2 * R - d) / 2;
+  nx /= d; ny /= d; nz /= d;
+  a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+  if (a.vz !== undefined) a.z = Math.max(0, za - nz * push);
+  if (b.vz !== undefined) b.z = Math.max(0, zb + nz * push);
+  const vn = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny + ((a.vz || 0) - (b.vz || 0)) * nz;
+  if (vn <= 0) return;
+  const J = (1 + BALL_E) / 2 * vn;
+  a.vx -= J * nx; a.vy -= J * ny; b.vx += J * nx; b.vy += J * ny;
+  for (const [o, jz] of [[a, -J * nz], [b, J * nz]]) {
+    if (o.vz !== undefined) o.vz += jz;
+    else if (jz > 0.02) { o.z = 0; o.vz = jz; }
+  }
+  metBalls(tab, a, b, vn);
 }
 
 /* ---- 1d. the table in motion ---- */
@@ -2782,7 +2833,15 @@ function newTable(balls, cue = 0) {
    to the slower forward speed is atan(tan s / cos th). The spin is Leckie and Greenspan's cue
    strike as pooltool (physics/resolve/stick_ball/instantaneous_point) runs it, offsets in the
    cue's frame; the speed keeps felt's two-mass form above. Elevation 0 runs the level code below,
-   unchanged. */
+   unchanged.
+   The jump. The ball takes the impulse along the cue, so it is driven into the slate at
+   vd = v sin th; the slate returns E_SLATE of it when vd reaches V_SLATE (the dead band, 1a), and
+   the ball leaves the bed: the legal jump, an elevated cue striking the ball above its equator
+   (the tip's contact point at oy cos th + sqrt(1 - ox^2 - oy^2) sin th radii above the centre;
+   a scoop under the ball, a miscue and a foul, is not modelled). The cloth grips it through that
+   bounce (the impulse (1 + E_SLATE) vd at MU_SLIDE, the landing's rub in air()), which turns some
+   of the slide into roll. Below the threshold the strike is the swerve and masse stroke above,
+   exactly: the bed takes the downward part and nothing else changes. */
 function strike(tab, angle, power, spin) {
   const c = tab.balls.find(b => b.n === tab.cue), sp = spinOf(spin), ox = sp.x * TIP_MAX, oy = sp.y * TIP_MAX;
   const v = speedOf(power) * (1 + CUE_RATIO) / (1 + CUE_RATIO + 2.5 * TIP_LOSS * (ox * ox + oy * oy));
@@ -2792,6 +2851,11 @@ function strike(tab, angle, power, spin) {
     c.vx = Math.cos(a) * vh; c.vy = Math.sin(a) * vh;
     c.wx = k * (oy * dy + ox * se * dx); c.wy = k * (ox * se * dy - oy * dx); c.wz = -k * ox * ce;
     tab.hits.push(['cue', vh]);
+    const vd = v * se;
+    if (vd >= V_SLATE && oy * ce + Math.sqrt(Math.max(0, 1 - ox * ox - oy * oy)) * se > 0) {
+      c.z = 0; c.vz = E_SLATE * vd;
+      rub(c, slipX(c), slipY(c), 0, (1 + E_SLATE) * vd, MU_SLIDE, 3.5, 0, 0, BALL_R);
+    }
     return tab;
   }
   const a = angle - SQUIRT * sp.x;
@@ -2818,11 +2882,47 @@ function cloth(b, dt) {
   const dw = spinA() * dt;
   b.wz = b.wz > 0 ? Math.max(0, b.wz - dw) : Math.min(0, b.wz + dw);
 }
-const still = b => b.vx === 0 && b.vy === 0 && b.wx === 0 && b.wy === 0 && b.wz === 0;
+const still = b => b.vx === 0 && b.vy === 0 && b.wx === 0 && b.wy === 0 && b.wz === 0 && b.vz === undefined;
+/* back on the bed: the vertical axis gone (1a). Set undefined, never deleted: a deleted field turns
+   the ball into a slow dictionary object for the engine (every later step pays for it), and JSON
+   leaves an undefined field out, so a ball that has landed reads exactly as one that never left */
+function grounded(b) { b.z = undefined; b.vz = undefined; }
 function pot(tab, b, k, v) {
   b.on = false; b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0;
+  if (b.vz !== undefined) grounded(b);
   tab.potted.push(b.n); tab.pocketOf[b.n] = k;
   tab.hits.push(['pocket', v, k]);   /* the pocket rides along for the page's sound (2) */
+}
+/* a flying ball that crossed a cushion above its nose, nowhere near a mouth: it is off the table
+   (it lands on the rail or the floor, and a ball at rest anywhere but the bed is off the table:
+   WPA General Rules). Recorded as a pot into no pocket (pocketOf -1), as bumper pool and carom
+   record a ball that escapes; each game's rules judge it (1e). No pocket sound: hit 'off'. */
+function offTable(tab, b) {
+  const v = Math.hypot(b.vx, b.vy);
+  pot(tab, b, -1, v);
+  tab.hits[tab.hits.length - 1] = ['off', v];
+}
+/* one step of a ball off the bed: no cloth under it (no friction, no swerve; its spin is carried
+   through untouched), gravity on its height, and the landing. The slate returns E_SLATE of an
+   impact of V_SLATE or more (a bounce); a slower one settles it. Either way the cloth grips it
+   through the impact (the normal impulse (1 + e) vin at MU_SLIDE, the cushion's own rub), and the
+   landing is a hit ('land', for the sound). Returns nothing; the ball keeps z and vz while it
+   bounces, and loses both when it settles. */
+function air(tab, b, dt) {
+  b.z += b.vz * dt - 0.5 * G * dt * dt; b.vz -= G * dt;
+  if (b.z > 0) return;
+  const vin = -b.vz, e = vin >= V_SLATE ? E_SLATE : 0;
+  rub(b, slipX(b), slipY(b), 0, (1 + e) * vin, MU_SLIDE, 3.5, 0, 0, BALL_R);
+  tab.hits.push(['land', vin]);
+  if (e) { b.z = 0; b.vz = e * vin; } else grounded(b);
+}
+/* a ball over a mouth or a hole (a centre past the nose line there is the pocket's, not the rail's) */
+function overMouth(b) {
+  for (let k = 0; k < POCKETS.length; k++) {
+    const p = POCKETS[k], m = POCKET_AIM[k], w = (k === 1 || k === 4 ? SIDE_W : CORNER_W) / 2 + BALL_R;
+    if ((b.x - p[0]) ** 2 + (b.y - p[1]) ** 2 < (POCKET_R[k] + BALL_R) ** 2 || (MOUTHS.length && (b.x - m[0]) ** 2 + (b.y - m[1]) ** 2 < w * w)) return true;
+  }
+  return false;
 }
 /* The cloth is pulled down over the radiused slate edge into the hole, so for POCKET_LIP
    around a hole the bed falls away. The slope is gentle (a moving ball rolls over it as if
@@ -2840,7 +2940,7 @@ function stepTable(tab) {
   const dt = SIM_DT, B = tab.balls, R = BALL_R, R2 = 4 * R * R, lo = R + 1e-6, edge = Math.max(lo, HOLE_IN + 1e-6);
   for (const b of B) {
     if (!b.on || still(b)) continue;
-    cloth(b, dt);
+    if (b.vz !== undefined) air(tab, b, dt); else cloth(b, dt);
     b.x += b.vx * dt; b.y += b.vy * dt;
     /* the kitchen rule: did the cue ball's centre reach the head string by first contact */
     if (b.n === tab.cue && b.x >= HEAD_X && tab.first === null) tab.crossed = true;
@@ -2855,7 +2955,7 @@ function stepTable(tab) {
       if (!b.on) continue;
       const dx = b.x - a.x, dy = b.y - a.y;
       if (dx * dx + dy * dy >= R2 || (sa && still(b))) continue;
-      hitBalls(tab, a, b);
+      if (a.vz !== undefined || b.vz !== undefined) hitAir(tab, a, b); else hitBalls(tab, a, b);
     }
   }
   let moving = false;
@@ -2865,7 +2965,10 @@ function stepTable(tab) {
     if (BUMPERS.length && !still(b) && bumperStep(tab, b)) continue;
     /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
     if (BED_LINES ? !bedIn(b.x, b.y, lo) : b.x < lo || b.x > TL - lo || b.y < edge || b.y > TW - edge) {
-      for (let k = 0; k < CUSH.length; k++) {
+      /* a flying ball (1a) clears the cushions once its bottom is over the nose, never drops while
+         it flies, and past the noses away from every mouth it is off the table */
+      const fly = b.z > 0, over = fly && b.z >= cushionTop();
+      for (let k = 0; !over && k < CUSH.length; k++) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
         if (v) {
           if (tab.first !== null) tab.railAfter = true;
@@ -2876,13 +2979,14 @@ function stepTable(tab) {
         }
       }
       /* snooker's rounded jaws (1j); none on any other table */
-      for (const q of JAW_ARCS) {
+      for (const q of over ? [] : JAW_ARCS) {
         const v = hitPost(b, q[0], q[1], q[2]);
         if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['jaw', v]); }
       }
       /* the drop: a centre over a hole, or past the nose line (only a mouth lets it get there).
          A centre off the bed and nowhere near a mouth means something got through: pot it. */
       const off = BED_LINES ? !bedIn(b.x, b.y, 0) : b.x < 0 || b.x > TL || b.y < 0 || b.y > TW;
+      if (fly) { if (off && !overMouth(b)) { offTable(tab, b); continue; } moving = true; continue; }
       let hole = -1, near = -1, nd = Infinity;
       for (let k = 0; k < POCKETS.length; k++) {
         const p = POCKETS[k], dx = b.x - p[0], dy = b.y - p[1], d2 = dx * dx + dy * dy;
@@ -2898,7 +3002,8 @@ function stepTable(tab) {
     }
     if (!still(b)) {
       const v2 = b.vx * b.vx + b.vy * b.vy;
-      if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) {
+      if (b.vz !== undefined) moving = true;
+      else if (v2 < STOP_V * STOP_V && slipX(b) ** 2 + slipY(b) ** 2 < 1e-12) {
         const k = onLip(b);
         if (k >= 0) { pot(tab, b, k, Math.sqrt(v2)); continue; }
         b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0;
@@ -2908,7 +3013,7 @@ function stepTable(tab) {
   }
   tab.t += dt; tab.steps++;
   if (!moving) { tab.end = 'rest'; return false; }
-  if (tab.t >= MAX_SIM_T) { for (const b of B) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; } tab.end = 'timeout'; return false; }
+  if (tab.t >= MAX_SIM_T) { for (const b of B) { b.vx = 0; b.vy = 0; b.wx = 0; b.wy = 0; b.wz = 0; if (b.vz !== undefined) grounded(b); } tab.end = 'timeout'; return false; }
   return true;
 }
 /* The result of a shot. Besides the rules' fields: pocketOf (ball number to pocket index),
@@ -2919,12 +3024,13 @@ function stepTable(tab) {
    from a ball grazing the nose by the pocket) and seq (the struck ball's own contacts in order: -1
    a cushion nose, else the ball it met, every impact; carom's count is read from it) and railSeq
    (every cushion-nose contact of every ball, in order, as [ball, cushion index]: the called-shot
-   checks and the break's rail counts read it). All
+   checks and the break's rail counts read it) and, only when the cue ball jumped one, over (the
+   balls it passed over before its first contact, 1a). All
    deterministic: trick-shot goals and carom points are judged from them. */
 function resultOf(tab) {
   return { balls: tab.balls.map(b => Object.assign({}, b)), cue: tab.cue, first: tab.first, railAfter: tab.railAfter, crossed: tab.crossed, potted: tab.potted.slice(), pocketOf: Object.assign({}, tab.pocketOf), end: tab.end, t: tab.t, steps: tab.steps,
     rails: Object.assign({}, tab.rails), kick: tab.kick, contacts: tab.contacts.map(c => c.slice()), railAt: Object.fromEntries(Object.entries(tab.railAt).map(([n, p]) => [n, p.slice()])), seq: tab.seq.slice(),
-    railSeq: tab.railSeq.map(c => c.slice()) };
+    railSeq: tab.railSeq.map(c => c.slice()), ...(tab.over ? { over: tab.over.slice() } : null) };
 }
 function simulateShot(balls, shot) {
   const tab = strike(newTable(balls, shot.ball || 0), shot.angle, shot.power, shot.spin || 0);
@@ -2964,6 +3070,12 @@ function simulateShot(balls, shot) {
      safetyPots  balls potted on a declared safety: 'stay' or 'spot'
      foulHand    a foul's ball in hand: 'table', or 'position' (the cue ball stays where it is;
                  a scratch gives ball in hand behind the head string)
+     offSpot     object balls driven off the table (a jump shot over a cushion, 1a): 'spot' (on
+                 the foot spot after the shot, as 14.1's WPA rules and house rules have it) or
+                 'stay' (WPA 8-ball, 9-ball and 10-ball: not spotted, except the game ball, which
+                 9-ball and 10-ball spot and 8-ball spots on the break and loses on any other shot).
+                 Driving any ball off the table is a foul in every game; the cue ball off the
+                 table is a scratch.
      score       points: null, 'count' (a point a ball, 14.1) or 'numbers' (each ball its number)
      race        points to win, for a game with a score
      players     the players at the table, 2 to 4 (only a ring ruleset takes more than 2)
@@ -2977,21 +3089,21 @@ function simulateShot(balls, shot) {
    the two-player sets; ringRulesets() the ring ones. */
 const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation'];
 const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
-  pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2 };
+  pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2, offSpot: 'spot' };
 const RULESETS = {
   '8-house': { game: '8', name: '8-ball, house rules', source: 'felt house rule', breakAny: true,
     description: 'Hit one of your group first, pot it to carry on. No calls unless your settings ask for them. An 8 on the break is spotted and the breaker carries on.' },
-  '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option',
+  '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option', offSpot: 'stay',
     description: 'Call every shot that is not obvious, and the 8 always with its pocket. A legal break pots a ball or drives four to the cushions. An 8 on the break: spot it or re-rack.' },
   '9-house': { game: '9', name: '9-ball, house rules', source: 'felt house rule', gameBallBreak: 'win', threeFoul: 'loss',
     description: 'Lowest ball first. A legal 9 wins, early or on the break. Three fouls in a row lose.' },
-  '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', missed: 'option',
+  '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', missed: 'option', offSpot: 'stay',
     description: 'Lowest ball first, any legal 9 wins. Push out on the shot after the break; your opponent may hand it back. A legal break pots a ball or drives four to the cushions. Three fouls lose.' },
   '10-wpa': { game: '10', name: '10-ball, WPA', source: 'WPA world standardized rules', calls: 'all', obvious: false, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
-    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option',
+    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option', offSpot: 'stay',
     description: 'Lowest ball first, and call every shot, obvious or not. The 10 wins only when called; on the break or early it is spotted. Push out after the break. Three fouls lose.' },
   '10-house': { game: '10', name: '10-ball, obvious shots free', source: 'felt house rule', calls: 'all', obvious: true, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
-    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option',
+    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option', offSpot: 'stay',
     description: 'WPA 10-ball, except that an obvious shot is called for you from your aim.' },
   'straight-wpa': { game: 'straight', name: 'Straight pool (14.1), WPA', source: 'WPA world standardized rules', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option',
     threeFoul: 'minus15', missed: 'spot', safetyPots: 'spot', foulHand: 'position', score: 'count', race: 50,
@@ -3187,12 +3299,17 @@ function judge(g, r) {
   const m = RULE_MODULES[g.kind] || RULE_MODULES[8];
   return m.judge(g, r);
 }
-/* the pocket games' fouls: a scratch; on a push-out nothing else; no ball hit; the wrong ball
-   first; from the kitchen, a ball behind the head string first; no ball potted and none to a
-   cushion after contact (not on the break) */
-function poolFoul(g, r, R, targets, push) {
+/* the object balls a shot drove off the table (1a: pocketOf -1; the cue ball off is a scratch) */
+const offOf = r => r.potted.filter(x => x !== 0 && (r.pocketOf || {})[x] === -1);
+/* the pocket games' fouls: a scratch (the cue ball off the table is one); a ball driven off the
+   table (WPA General Rules, on a push-out too); on a push-out nothing else; no ball hit; the
+   wrong ball first; from the kitchen, a ball behind the head string first; no ball potted and none
+   to a cushion after contact (not on the break). r.potted holds what dropped in a pocket only:
+   poolBase takes the balls off the table out of it. */
+function poolFoul(g, r, R, targets, push, off = []) {
   const pot = r.potted.filter(x => x !== 0);
-  if (r.potted.includes(0)) return 'scratch';
+  if (r.potted.includes(0)) return (r.pocketOf || {})[0] === -1 ? 'the cue ball left the table' : 'scratch';
+  if (off.length) return `the ${off[0]} left the table`;
   if (push) return null;
   if (r.first === null) return 'no ball hit';
   const firstBall = g.balls.find(b => b.n === r.first);
@@ -3207,9 +3324,17 @@ function poolBase(g, r) {
   n.rules = R;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0 }));
   n.shots++;
+  /* balls off the table (1a) are not pots: out of the result the rules read, and back on the foot
+     spot when the rules spot them (the game ball always: judge8 loses it off a shot that is not
+     the break) */
+  const off = offOf(r), gb = gameBallOf(g);
+  if (off.length) {
+    r = Object.assign({}, r, { potted: r.potted.filter(x => !off.includes(x)) });
+    spotAll(n.balls, off.filter(x => R.offSpot === 'spot' || x === gb));
+  }
   const pot = r.potted.filter(x => x !== 0), push = !!(g.call && g.call.push && g.pushAvail && !g.breakShot);
   const need = push ? null : callNeed(g);
-  return { R, n, me, op: nextOf(g, me), pot, push, need, scratch: r.potted.includes(0), foul: poolFoul(g, r, R, legalTargets(g), push), call: callResult(g, r, need) };
+  return { R, n, me, op: nextOf(g, me), pot, off, push, need, scratch: r.potted.includes(0), foul: poolFoul(g, r, R, legalTargets(g), push, off), call: callResult(g, r, need) };
 }
 /* the balls racked again for the same game, the score, the race, the best runs and the call
    history kept: breaker breaks */
@@ -3247,6 +3372,7 @@ function poolEnd(g, b, o) {
   n.verdict = { foul, keep: !!o.keep && !o.option, win: o.win == null ? null : o.win, why: o.why || '', potted, scratch: b.scratch, grouped: !!o.grouped,
     twoFouls: o.win == null && !!R.threeFoul && R.threeFoul !== 'minus15' && n.fouls && n.fouls[n.turn] >= 2, call: c, push: b.push, option: n.option ? n.option.kind : null,
     scored: o.scored || 0, rerack: again, threeFouls: !!o.threeFouls, illegalBreak: !!o.illegalBreak };
+  if (b.off.length) n.verdict.off = b.off.slice();
   return n;
 }
 /* ---- 8-ball ---- */
@@ -3258,7 +3384,9 @@ function judge8(g, r) {
     foul = 'illegal break'; illegalBreak = true;
     if (R.badBreak === 'rerack') option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak', 'break'] };
   }
-  if (pot.includes(8)) {
+  /* the 8 off the table: spotted on the break (poolBase spots it), the game lost on any other shot (WPA 8-ball) */
+  if (b.off.includes(8) && !g.breakShot) { win = op; why = 'the 8 left the table'; }
+  else if (pot.includes(8)) {
     if (g.breakShot) { if (R.gameBallBreak === 'option' && !foul) option = { kind: 'eightBreak', who: me, choices: ['spot', 'rerack'] }; else spot(n.balls, 8); }
     else if (!foul && cleared && (!need || (call.made && call.ball === 8))) { win = me; why = 'the 8, legally'; }
     else { win = op; why = foul ? 'the 8 went down on a foul' : !cleared ? 'the 8 went down before the group was clear' : call.safety ? 'the 8 went down on a safety' : 'the 8 went down in an uncalled pocket'; }
@@ -3488,15 +3616,20 @@ function rng(seed) {
    safe: safety simulations when the best pot scores under safeBar. robust: finalists re-run slightly mis-hit.
    place: ball-in-hand spots kept. minCos: thinnest cut considered. position: score the leave.
    look: hard's extras (second options, a simulated next shot). noise: aim error, radians, one
-   standard deviation; pnoise: cue speed error, a fraction. brk: break power. */
+   standard deviation; pnoise: cue speed error, a fraction. brk: break power.
+   Hard's planning and shot-making (absent on the other levels, which play exactly as before):
+   plan: two-shot look-ahead, the next shots from each finalist's leave simulated (the best
+   `plan` of them) and the finalist scored on the best; kickPot: one-rail kick pots (0-1, the
+   willingness); elev: the raised cue (0-1): a jump over a ball on the line, a swerve round it;
+   special: how many kick, jump and swerve lines a turn tries. */
 const CPU_LEVELS = {
   easy: { sims: 10, lines: 3, ladder: [1.3], spin: 0, spins: [], safe: 2, safeBar: 250, robust: 0, place: 2, minCos: 0.5,
     position: false, look: false, retry: false, noise: 0.0055, pnoise: 0.06, brk: 0.85 },
   medium: { sims: 40, lines: 8, ladder: [1, 1.5], spin: 3, spins: [[0, 0.5, 1], [0, -0.5, 1]], safe: 8, safeBar: 150, robust: 2, place: 4, minCos: 0.3,
     position: true, look: false, retry: true, noise: 0.004, pnoise: 0.03, brk: 0.95 },
-  hard: { sims: 120, lines: 12, ladder: [0.85, 1.25, 1.8], spin: 5,
+  hard: { sims: 150, lines: 12, ladder: [0.85, 1.25, 1.8], spin: 5,
     spins: [[0, 0.6, 1], [0, -0.6, 1], [0.45, 0, 1], [-0.45, 0, 1], [0, 0, 0.7], [0, 0, 1.4]], safe: 20, safeBar: 250, robust: 4, place: 6, minCos: 0.2,
-    position: true, look: true, retry: true, noise: 0.0009, pnoise: 0.01, brk: 1 },
+    position: true, look: true, retry: true, noise: 0.0009, pnoise: 0.01, brk: 1, plan: 3, kickPot: 1, elev: 0.5, special: 3 },
 };
 /* ---- personalities: cpuProfile ----
    Every CPU plays from a profile: a level's record (above) plus the knobs a personality turns.
@@ -3520,12 +3653,17 @@ const CPU_LEVELS = {
                             safeties tried again as push-outs
      bank, kick, combo      0-1: one-rail banks and two-ball combinations proposed as pots (their
                             calls carry the flag), kicks tried first among safeties
+     plan                   the two-shot look-ahead's breadth (next shots simulated per finalist):
+                            the level's, and on a look-ahead personality at least 1, more with depth
+     kickPot, elev, special one-rail kick pots, the raised cue (jump, swerve; never on easy) and
+                            how many such lines a turn tries: the level's, plus the bank-minded's
+                            kick pots and the creative and aggressive players' raised cue
      think                  the visible think time's multiplier (cpuThinkMs)
      nscale, pscale         the noise multipliers the bumper and carom searches take */
 const CPU_ARCH = {
   allround: {},
-  potter: { risk: 0.3, safety: -0.2, take: -0.08, push: -2, think: 0.7 },
-  shotmaker: { risk: 0.4, safety: -0.15, minCos: -0.1, combo: 0.8, bank: 0.4, posW: -0.3, think: 0.8 },
+  potter: { risk: 0.3, safety: -0.2, take: -0.08, push: -2, think: 0.7, elev: 0.3 },
+  shotmaker: { risk: 0.4, safety: -0.15, minCos: -0.1, combo: 0.8, bank: 0.4, posW: -0.3, think: 0.8, elev: 0.6 },
   defender: { risk: -0.3, safety: 0.45, dsafe: 6, take: 0.12, push: 3, kick: 0.6, think: 1.3 },
   positional: { depth: 1, posW: 0.5, dspin: 2, think: 1.15 },
   breaker: { brk: 0.1, risk: 0.1, think: 0.85 },
@@ -3558,6 +3696,10 @@ function cpuProfile(x, ctx) {
   if (a.dspin) { P.spin = base.spin + a.dspin; if (!base.spins.length) P.spins = CPU_LEVELS.medium.spins; }
   const depth = clamp((base.position ? 1 : 0) + (base.look ? 1 : 0) + (a.depth || 0) + (pos > 0.3 ? 1 : 0), 0, 2);
   P.position = depth >= 1; P.look = depth >= 2;
+  P.plan = P.look ? Math.max(base.plan || 0, 1) + (a.depth || 0) : 0;
+  P.kickPot = clamp((base.kickPot || 0) + ((a.kick || 0) >= 1 ? 1 : 0), 0, 1);
+  P.elev = lv === 'easy' ? 0 : clamp((base.elev || 0) + (a.elev || 0), 0, 1);
+  P.special = P.kickPot || P.elev ? Math.max(base.special || 0, 2) : 0;
   P.posW = clamp(1 + (a.posW || 0) + 0.8 * pos, 0.3, 2);
   P.brk = x.breakChoice && has(x.breakChoice.power) ? clamp(x.breakChoice.power + (a.brk || 0) / 2, 0.6, 1) : clamp(base.brk + (a.brk || 0), 0.6, 1);
   P.take = clamp(0.3 + (a.take || 0) - 0.15 * risk, 0.1, 0.6);
@@ -3577,6 +3719,7 @@ function cpuRecord(P, kind) {
   if (kind === 'snooker') {
     const s = SNK_CPU[P.level] || SNK_CPU.medium, L = Object.assign({}, P, s);
     if (s.safe !== undefined && P.d.safe) L.safe = Math.max(1, s.safe + P.d.safe);
+    if (L.elev) L.elev = 0;   /* a jump over a ball is a foul at snooker */
     return L;
   }
   const T = kind === 'bumper' ? CPU_BUMPER : kind === 'carom' ? CPU_CAROM : null;
@@ -3589,7 +3732,7 @@ function cpuRecord(P, kind) {
    a safety, a kick, a bank or a combination; a little more with ball in hand; times the
    personality's pace and a seeded jitter. The search's own time counts toward it (the page holds
    only for what is left), and the player can tap to skip it. */
-const CPU_THINK = { break: 900, pot: 650, bank: 2000, combo: 2200, safety: 1900, kick: 2300, push: 1600, blind: 1300, carom: 1500, bumper: 1100 };
+const CPU_THINK = { break: 900, pot: 650, bank: 2000, combo: 2200, safety: 1900, kick: 2300, push: 1600, blind: 1300, carom: 1500, bumper: 1100, kickpot: 2300, jump: 2100, swerve: 2100 };
 function cpuThinkMs(g, shot, prof, seed) {
   const P = cpuProfile(prof), it = (shot && shot.intent) || { type: 'blind', q: 0.5 };
   let ms = CPU_THINK[it.type] || 1300;
@@ -3695,6 +3838,7 @@ function cpuCoast(tab) {
     }
     if (b.on) { b.x = clamp(x, lo, hx); b.y = clamp(y, lo, hy); }
     b.vx = 0; b.vy = 0;
+    if (b.vz !== undefined) grounded(b);
   }
   tab.end = 'rest';
 }
@@ -3833,6 +3977,206 @@ function cpuComboLines(balls, cx, cy, targets, L) {
   }
   return out;
 }
+/* one-rail kick pots (L.kickPot > 0): the cue ball off a cushion into ball t, sending it into
+   pocket k. The ghost (where the cue ball must be at contact) is mirrored across the line the cue
+   ball's centre meets that cushion on and aimed at; the cushion point must not be in a mouth, both
+   legs and the object ball's way to the mouth clear, and the cut, seen along the second leg, no
+   thinner than minCos. l.aim(psi) gives the cue angle for an object-ball line psi (aim correction
+   moves the ghost, then the mirror). The ghost's depth from that line is divided by the rubber's
+   restitution at about 2 m/s, as the banks' (a ball leaves a cushion steeper than it came): the
+   first guess, which cpuKickAim then solves through the physics; the search steers it further by
+   secant steps on the object ball's direction (cpuSearch). q is the chance under the level's
+   noise, measured on the solved stroke mis-hit (below), times the willingness; a kick no mis-hit
+   still makes is dropped. The call carries the kick flag. */
+function cpuKickLines(balls, cx, cy, targets, L) {
+  const out = [], lo = BALL_R, hx = TL - BALL_R, hy = TW - BALL_R, e = clamp(RAIL_E[0] - 2 * RAIL_E[1], RAIL_E[2], RAIL_E[0]);
+  const mirror = (gx, gy, axis, at) => axis ? [gx, at - (gy - at) / e] : [at - (gx - at) / e, gy];
+  for (const n of targets) {
+    const t = balls.find(b => b.n === n);
+    if (!t || !t.on) continue;
+    for (let k = 0; k < POCKET_AIM.length; k++) {
+      const p = POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4, psi = Math.atan2(p[1] - t.y, p[0] - t.x);
+      const entry = -(Math.cos(psi) * m[0] + Math.sin(psi) * m[1]);
+      if (entry < (side ? 0.55 : 0.5) || !cpuClear(balls, t.x, t.y, p[0], p[1], n)) continue;
+      const gx = t.x - 2 * BALL_R * Math.cos(psi), gy = t.y - 2 * BALL_R * Math.sin(psi);
+      if (gx < lo || gx > hx || gy < lo || gy > hy) continue;
+      for (const [axis, at] of [[0, lo], [0, hx], [1, lo], [1, hy]]) {
+        const [mx, my] = mirror(gx, gy, axis, at), ex = mx - cx, ey = my - cy, u = axis ? (at - cy) / ey : (at - cx) / ex;
+        if (!(u > 0.02 && u < 0.98)) continue;
+        const rx = cx + ex * u, ry = cy + ey * u;
+        if (POCKET_AIM.some((q, j) => Math.hypot(q[0] - rx, q[1] - ry) < (j === 1 || j === 4 ? SIDE_W : CORNER_W) / 2 + 1.5 * BALL_R)) continue;
+        if (!cpuClear(balls, cx, cy, rx, ry, -1) || !cpuClear(balls, rx, ry, gx, gy, n)) continue;
+        const l2 = Math.hypot(gx - rx, gy - ry), cos = ((gx - rx) * Math.cos(psi) + (gy - ry) * Math.sin(psi)) / Math.max(l2, 1e-6);
+        if (cos < L.minCos + 0.1) continue;
+        const d1 = Math.hypot(rx - cx, ry - cy) + l2, d2 = Math.hypot(p[0] - t.x, p[1] - t.y), w = 0.03 * (side ? entry : Math.sqrt(entry));
+        const tol = w * 2 * BALL_R * cos / (Math.max(d1, 0.1) * Math.max(d2, 0.05)) / 3;
+        out.push({ n, k, cx, cy, tx: t.x, ty: t.y, gx, gy, psi0: psi, psi, angle: Math.atan2(my - cy, mx - cx), cos, d1: d1 * 1.25, d2, q: Math.tanh(0.8 * tol / L.noise) * L.kickPot, kick: true, special: true });
+      }
+    }
+  }
+  return out.sort((a, b) => b.q - a.q).slice(0, 4);
+}
+/* a kick pot line made ready to play (cpuSearch, phase A, before its first stroke): solved through
+   the physics at the power it is played at (the rebound's angle moves with the speed), its aim
+   then refined, and its chance measured. A generator: it yields after each small simulation (a
+   lone ball, or the cue ball and the object ball), so the turn stays sliced; false when it cannot
+   be made. */
+function* cpuKickPrep(l, balls, L) {
+  const { cx, cy } = l, e = clamp(RAIL_E[0] - 2 * RAIL_E[1], RAIL_E[2], RAIL_E[0]);
+  /* the power: the object ball to the mouth with pace to spare, through the cut and the rubber */
+  const C = cpuCal, vHit = cpuSpeedFor(l.d2 + 0.3) * 1.3 / (0.95 * Math.max(l.cos, 0.25)) / e;
+  let pw = cpuPower(Math.sqrt(vHit * vHit * C.keep * C.keep + 2 * C.roll * l.d1) / C.keep);
+  const a1 = yield* cpuKickAim(cx, cy, l.angle, pw, l.gx, l.gy), t0 = balls.find(b => b.n === l.n);
+  let sol = a1 === null ? null : yield* cpuKickSolve(cx, cy, a1, pw, t0, l.psi0);
+  /* the object ball's pace measured on the solved stroke: short of what the pot needs, the stroke
+     is scaled to it (once) and the aim solved again at the new power */
+  const vObj = cpuSpeedFor(l.d2 + 0.3) * 1.3, vGot = sol ? cpuKickErr(cx, cy, sol.a, pw, t0, l.psi0, true) : null;
+  if (sol) yield;
+  if (sol && vGot && vGot < vObj && pw < 1) {
+    pw = cpuPower(cpuSpeedAt(pw) * Math.min(2.5, vObj / vGot));
+    sol = yield* cpuKickSolve(cx, cy, sol.a, pw, t0, l.psi0);
+  }
+  if (sol === null) return false;
+  /* the chance: the stroke mis-hit by 1.5 of the level's aim and speed errors each way, and the
+     share of the four whose object ball still leaves inside the mouth's window (its half width
+     seen from the object ball): the rebound's angle moves with the speed as well as the aim */
+  const a = sol.a, side = l.k === 1 || l.k === 4, entry = -(Math.cos(l.psi0) * CPU_MOUTH_N[l.k][0] + Math.sin(l.psi0) * CPU_MOUTH_N[l.k][1]);
+  const win = 0.03 * (side ? entry : Math.sqrt(entry)) / Math.max(l.d2, 0.05);
+  let inside = 0;
+  for (const [da, dp] of [[1.5 * L.noise, 0], [-1.5 * L.noise, 0], [0, 1.5 * L.pnoise], [0, -1.5 * L.pnoise]]) {
+    const er = cpuKickErr(cx, cy, a + da, cpuPower(cpuSpeedAt(pw) * (1 + dp)), t0, l.psi0);
+    if (er !== null && Math.abs(er) < win) inside++;
+    yield;
+  }
+  if (!inside) return false;
+  Object.assign(l, { angle: a, aim: () => a, kOff: 0, kHist: [], q: 0.8 * inside / 4 * L.kickPot, plans: [{ p: pw }, { p: pw }, { p: pw }] });
+  return true;
+}
+/* a kick's aim, solved through the physics in two stages (cpuKickAim, then cpuKickSolve): the cue ball alone struck at angle a and power p, its
+   signed miss of the ghost (gx, gy) where it passes it after its first cushion (+ to the left of
+   its way), or null when it never gets there with some pace (0.4 m/s); cpuKickAim runs secant steps on the angle from the
+   mirror's guess until the miss is under a millimetre (at most 5 runs, each a lone ball) */
+function cpuKickMiss(cx, cy, a, p, gx, gy) {
+  const tab = strike(newTable([Object.assign(newBall(0, cx, cy))]), a, p, 0), b = tab.balls[0];
+  let best = Infinity, miss = null;
+  for (let i = 0; i < 4800 && stepTable(tab); i++) {
+    if (!b.on) return null;
+    if (!tab.rails[0]) continue;
+    if (tab.rails[0] > 1) break;
+    const d = Math.hypot(b.x - gx, b.y - gy), v = Math.hypot(b.vx, b.vy);
+    if (d < best) { best = d; miss = v > 0.4 ? ((gx - b.x) * b.vy - (gy - b.y) * b.vx) / v : null; }
+    else if (d > best + 0.05) break;
+  }
+  return best < 0.3 ? miss : null;
+}
+function* cpuKickAim(cx, cy, a0, p, gx, gy) {
+  let a = a0, m = cpuKickMiss(cx, cy, a, p, gx, gy), pa = null, pm = null;
+  yield;
+  for (let i = 0; i < 4 && m !== null && Math.abs(m) > 0.001; i++) {
+    const step = pm !== null && Math.abs(m - pm) > 1e-9 ? -m * (a - pa) / (m - pm) : 0.004 * -Math.sign(m);
+    pa = a; pm = m; a += clamp(step, -0.05, 0.05);
+    m = cpuKickMiss(cx, cy, a, p, gx, gy);
+    yield;
+  }
+  return m !== null && Math.abs(m) < 0.004 ? a : null;
+}
+/* then with the object ball t there: the error of its direction off psi0 when the cue ball meets
+   it after the cushion (null: it met nothing, or something else first), solved by secant steps to
+   under 2 mrad; returns the angle and the sensitivity (radians of object ball per radian of aim) */
+function cpuKickErr(cx, cy, a, p, t, psi0, speed) {
+  const tab = strike(newTable([newBall(0, cx, cy), Object.assign({}, t, { vx: 0, vy: 0 })]), a, p, 0), o = tab.balls[1];
+  for (let i = 0; i < 4800 && stepTable(tab); i++) {
+    if (tab.first !== null) return tab.first === t.n && tab.rails[0] && (o.vx || o.vy) ? (speed ? Math.hypot(o.vx, o.vy) : wrapAngle(Math.atan2(o.vy, o.vx) - psi0)) : null;
+  }
+  return null;
+}
+function* cpuKickSolve(cx, cy, a0, p, t, psi0) {
+  let a = a0, m = cpuKickErr(cx, cy, a, p, t, psi0), pa = null, pm = null, k = 0;
+  yield;
+  for (let i = 0; i < 5 && m !== null && (Math.abs(m) > 0.002 || !k); i++) {
+    const step = pm !== null && Math.abs(m - pm) > 1e-9 ? -m * (a - pa) / (m - pm) : -m / 40;
+    if (pm !== null && Math.abs(a - pa) > 1e-9) k = Math.abs((m - pm) / (a - pa));
+    pa = a; pm = m; a += clamp(step, -0.02, 0.02);
+    m = cpuKickErr(cx, cy, a, p, t, psi0);
+    yield;
+  }
+  return m !== null && Math.abs(m) < 0.004 && k > 0 ? { a, k } : null;
+}
+/* the raised cue's flight (sim 1a), as strike plays a centre hit at elevation e and power p:
+   { vh, vz } after the bounce off the slate (0 vz when the stroke stays on the bed) */
+function cpuFlight(p, e) {
+  const v = speedOf(p), vd = v * Math.sin(e);
+  let vh = v * Math.cos(e);
+  if (vd < V_SLATE) return { vh, vz: 0 };
+  vh -= Math.min(MU_SLIDE * (1 + E_SLATE) * vd, vh / 3.5);
+  return { vh, vz: E_SLATE * vd };
+}
+/* the jump over a blocker db along the line (its centre w off it): the softest stroke at
+   elevation e whose cue ball passes it at least a ball's reach higher (3D contact needs the centres
+   2 R apart) and is down again before the ghost at d1, or null */
+function cpuJumpPower(e, db, w, d1) {
+  const R2 = 4 * BALL_R * BALL_R;
+  for (let p = 0.3; p <= 1.0001; p += 0.02) {
+    const f = cpuFlight(p, e);
+    if (!f.vz) continue;
+    const land = 2 * f.vz * f.vh / G;
+    if (land >= d1 - 2 * BALL_R) return null;
+    /* clear all the way past it: wherever the two could touch, the cue ball is high enough */
+    let ok = land > db + 2 * BALL_R;
+    for (let s = -2 * BALL_R; ok && s <= 2 * BALL_R + 1e-9; s += BALL_R / 4) {
+      const t = (db + s) / f.vh, z = f.vz * t - G * t * t / 2;
+      ok = z * z >= Math.max(0, R2 - w * w - s * s) + 0.006 * 0.006 && z > 0;
+    }
+    if (ok) return p;
+  }
+  return null;
+}
+/* the raised cue round a ball on the line (L.elev > 0): a pot whose way from the cue ball to the
+   ghost is blocked by one ball (the object ball's way to the mouth clear). Far enough out, a jump
+   over it (two elevations, each at the softest power that clears it and lands before the ghost);
+   a ball only partly in the way, a swerve: aimed past its free side by the angle that clears it
+   and once more, side spin toward the ghost and the cue raised 20 degrees, so the cloth curves it
+   back. Each carries plans: the shots phase A simulates in place of its power ladder. q is the
+   line's chance as a straight pot, a quarter of it (a jump) or a fifth (a swerve), times the
+   willingness. */
+const CPU_JUMP_E = [0.75, 0.95], CPU_SWERVE_E = 0.35;
+function cpuBlockLines(balls, cx, cy, targets, L) {
+  const out = [];
+  for (const n of targets) {
+    const t = balls.find(b => b.n === n);
+    if (!t || !t.on) continue;
+    for (let k = 0; k < POCKET_AIM.length; k++) {
+      const p = POCKET_AIM[k], m = CPU_MOUTH_N[k], side = k === 1 || k === 4, psi = Math.atan2(p[1] - t.y, p[0] - t.x);
+      const entry = -(Math.cos(psi) * m[0] + Math.sin(psi) * m[1]);
+      if (entry < (side ? 0.55 : 0.5) || !cpuClear(balls, t.x, t.y, p[0], p[1], n)) continue;
+      const gx = t.x - 2 * BALL_R * Math.cos(psi), gy = t.y - 2 * BALL_R * Math.sin(psi), ax = gx - cx, ay = gy - cy, d1 = Math.hypot(ax, ay);
+      if (d1 < 0.2 || gx < BALL_R || gx > TL - BALL_R || gy < BALL_R || gy > TW - BALL_R) continue;
+      const cos = (ax * Math.cos(psi) + ay * Math.sin(psi)) / d1;
+      if (cos < L.minCos + 0.1) continue;
+      const ux = ax / d1, uy = ay / d1, block = [];
+      for (const o of balls) {
+        if (!o.on || o.n === 0 || o.n === n) continue;
+        const a = (o.x - cx) * ux + (o.y - cy) * uy, w = (o.y - cy) * ux - (o.x - cx) * uy;
+        if (a > 0 && a < d1 && Math.abs(w) < 2 * BALL_R) block.push({ a, w });
+      }
+      if (block.length !== 1 || Math.hypot(t.x - gx, t.y - gy) < 1e-9) continue;
+      const b = block[0], d2 = Math.hypot(p[0] - t.x, p[1] - t.y), wm = 0.03 * (side ? entry : Math.sqrt(entry));
+      const q0 = Math.tanh(0.8 * wm * 2 * BALL_R * cos / (Math.max(d1, 0.1) * Math.max(d2, 0.05)) / L.noise);
+      const base = { n, k, cx, cy, tx: t.x, ty: t.y, psi0: psi, psi, angle: Math.atan2(ay, ax), cos, d1, d2, special: true };
+      const plans = [];
+      if (b.a > 0.18 && d1 - b.a > 0.15) for (const e of CPU_JUMP_E) { const pw = cpuJumpPower(e, b.a, b.w, d1); if (pw !== null) plans.push({ p: pw, spin: { x: 0, y: 0, e } }); }
+      if (plans.length) out.push(Object.assign({}, base, { q: 0.25 * q0 * L.elev, jump: true, plans }));
+      /* a swerve: the free side is away from the blocker's offset; aim past it there, english back */
+      if (Math.abs(b.w) > 0.4 * BALL_R && b.a > 0.12 && d1 - b.a > 0.25) {
+        const sd = b.w > 0 ? -1 : 1, off = sd * Math.asin(clamp((2 * BALL_R + 0.004 - Math.abs(b.w)) / b.a, 0, 0.5));
+        const pw = cpuPower(1.15 * cpuSpeedFor(d1 + d2 + 0.3));
+        const sw = [off, 1.5 * off].map(o => ({ p: pw, off: o, spin: { x: -sd * 0.7, y: 0, e: CPU_SWERVE_E } }));
+        out.push(Object.assign({}, base, { q: 0.2 * q0 * L.elev, swerve: true, plans: sw }));
+      }
+    }
+  }
+  return out.sort((a, b) => b.q - a.q).slice(0, 4);
+}
 /* legal first contacts; from the kitchen only balls past the head string, since a straight line
    from behind the string onto a ball behind it never crosses the string (judge's rule). Banks
    and kicks that do cross are left to the simulation, which judges them like any shot. */
@@ -3863,6 +4207,8 @@ function cpuChance(j, who, L) {
    that only gives the same safety back), so a makeable pot, or at least a shot that changes the table,
    wins over the next micro-safety. It never takes a legal shot down to a foul's score. */
 const CPU_DRY = 4, CPU_DRY_COST = 30, CPU_DRY_MAX = 100, CPU_STILL = 0.15;
+/* what a missed kick pot, jump or swerve is reckoned to cost (the opponent at the table) */
+const CPU_MISS = -200;
 function cpuDryCost(g, j, v) {
   const dry = (g.dry || 0) - CPU_DRY + 1;
   if (dry <= 0 || j.verdict.foul || j.turn === g.turn) return 0;
@@ -4003,11 +4349,26 @@ function* cpuSearch(g, seed, level = 'medium') {
       if (h > 1) { x /= h; y /= h; }
       out.spin = { x, y };
     }
+    /* a raised cue errs in its elevation too (drawn last, so a level shot's draws are unchanged) */
+    if (s.spin.e) out.spin.e = clamp(s.spin.e + gauss() * Math.max(0.01, 12 * L.noise), 0.05, ELEV_MAX);
     return out;
   };
   if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L), { type: 'break', q: 1 });
   const need = callNeed(g), safeCall = need ? { safety: true } : null;
-  const potCall = (base, l) => callNeed(base) ? Object.assign({ ball: cpuPotBall(l), pocket: l.k }, l.bank ? { bank: true } : l.combo ? { combo: true } : null) : null;
+  const potCall = (base, l) => callNeed(base) ? Object.assign({ ball: cpuPotBall(l), pocket: l.k }, l.bank ? { bank: true } : l.combo ? { combo: true } : l.kick ? { kick: true } : null) : null;
+  /* the cue angle for line l sending the object ball along psi: the ghost's, a kick's mirror, a swerve's offset */
+  const aimOf = (l, psi, pl) => (l.aim ? l.aim(psi) + l.kOff : cpuAim(l, psi)) + (pl && pl.off ? pl.off : 0);
+  /* a kick pot's aim: the object ball's direction error steers the cue angle, first by the
+     geometry (a shift of the cue ball's arrival over the unfolded path), then by secant steps
+     between the last two tries */
+  const kickLearn = (l, o) => {
+    if (o.first !== l.n || o.dir === null) return;
+    const err = wrapAngle(o.dir - l.psi0), h = l.kHist;
+    h.push([l.kOff, err]);
+    const [a1, e1] = h[h.length - 1], prev = h[h.length - 2];
+    const step = prev && Math.abs(e1 - prev[1]) > 1e-6 ? -e1 * (a1 - prev[0]) / (e1 - prev[1]) : e1 * 2 * BALL_R * l.cos / Math.max(l.d1, 0.2);
+    l.kOff = a1 + clamp(step, -0.03, 0.03);
+  };
   const targets = cpuTargets(g), cue = g.balls.find(b => b.n === 0), spots = g.inHand ? cpuSpots(g, targets, L) : [null];
   const recs = [];
   let sims = 0;
@@ -4016,8 +4377,11 @@ function* cpuSearch(g, seed, level = 'medium') {
     sims++;
     return { shot, j, dir: o.dir, first: o.r.first, value: cpuValue(g2, j, L), line: null };
   };
+  /* a kick pot, a jump or a swerve is simulated without the noise that makes it hard: it is worth
+     its simulated score only at its chance (the line's q), and a miss (CPU_MISS) the rest of the time */
+  const worth = (r, v) => r.line && r.line.special ? r.line.q * v + (1 - r.line.q) * CPU_MISS : v;
   const learn = (l, o, psi) => o.first === l.n && o.dir !== null && Math.abs(wrapAngle(o.dir - l.psi0)) < 0.2 ? psi - wrapAngle(o.dir - l.psi0) : psi;
-  const reserve = L.robust * (L.look ? 5 : 2);
+  const plan = L.plan || 0, reserve = L.robust * (L.look ? 5 + plan : 2);
 
   /* A: pot lines over the power ladder */
   const lines = [];
@@ -4029,19 +4393,38 @@ function* cpuSearch(g, seed, level = 'medium') {
     if (L.combo) for (const l of cpuComboLines(g.balls, cx, cy, targets, L)) lines.push(Object.assign(l, { place }));
   }
   lines.sort((a, b) => b.q - a.q);
-  for (const l of lines.slice(0, L.lines)) {
+  /* hard's (and a shot-maker's) kick pots, jumps and swerves: only when no straight pot is a fair
+     chance, from the cue ball or the best spot in hand, a few of them after the pot lines */
+  const special = [];
+  if (L.special && !(lines.length && lines[0].q >= 0.35)) for (const place of spots.slice(0, 1)) {
+    const cx = place ? place[0] : cue.x, cy = place ? place[1] : cue.y;
+    if (L.kickPot) for (const l of cpuKickLines(g.balls, cx, cy, targets, L)) special.push(Object.assign(l, { place }));
+    if (L.elev) for (const l of cpuBlockLines(g.balls, cx, cy, targets, L)) special.push(Object.assign(l, { place }));
+  }
+  special.sort((a, b) => b.q - a.q);
+  const ladder = L.ladder.map(f => ({ f }));
+  for (const l of lines.slice(0, L.lines).concat(special.slice(0, L.special || 0))) {
     let psi = l.psi, potted = false;
-    for (const f of L.ladder) {
+    /* a kick pot is solved through the physics first: its small simulations count against the budget */
+    if (l.kick) {
+      if (sims >= L.sims - reserve) continue;
+      const it = cpuKickPrep(l, g.balls, L);
+      let r;
+      while (!(r = it.next()).done) { sims++; yield; }
+      if (!r.value) continue;
+    }
+    const plans = l.plans || ladder;
+    for (const pl of plans) {
       if (sims >= L.sims - reserve) break;
-      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, f), spin: { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
-      o.line = l; o.f = f; recs.push(o);
+      const o = sim({ angle: aimOf(l, psi, pl), power: pl.p !== undefined ? pl.p : cpuPotPower(l, pl.f), spin: pl.spin || { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
+      o.line = l; o.f = pl.f || 1; recs.push(o);
       yield;
       potted = potted || o.j.verdict.potted.includes(cpuPotBall(l));
-      psi = learn(l, o, psi);
+      if (l.kick) { if (potted) break; kickLearn(l, o); } else psi = learn(l, o, psi);
     }
     if (L.retry && !potted && Math.abs(psi - l.psi) > 0.0005 && sims < L.sims - reserve) {
-      const o = sim({ angle: cpuAim(l, psi), power: cpuPotPower(l, L.ladder[0]), spin: { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
-      o.line = l; o.f = L.ladder[0]; recs.push(o);
+      const pl = plans[0], o = sim({ angle: aimOf(l, psi, pl), power: pl.p !== undefined ? pl.p : cpuPotPower(l, pl.f), spin: pl.spin || { x: 0, y: 0 }, place: l.place, call: potCall(g, l) });
+      o.line = l; o.f = pl.f || 1; recs.push(o);
       yield;
     }
     l.psi = psi;
@@ -4049,7 +4432,7 @@ function* cpuSearch(g, seed, level = 'medium') {
 
   /* B: spin and power variants on the lines that kept the turn, or potted the ball but lost the
      cue ball after it (draw or stun may save those) */
-  const seen = new Set(), keepers = recs.filter(r => r.value >= 300 || (r.j.verdict.scratch && r.j.verdict.potted.includes(cpuPotBall(r.line)))).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
+  const seen = new Set(), keepers = recs.filter(r => !r.line.special && (r.value >= 300 || (r.j.verdict.scratch && r.j.verdict.potted.includes(cpuPotBall(r.line))))).sort((a, b) => b.value - a.value).filter(r => !seen.has(r.line) && seen.add(r.line));
   for (const r of keepers.slice(0, L.spin)) {
     for (const [sx, sy, pf] of L.spins) {
       if (sims >= L.sims - reserve) break;
@@ -4087,22 +4470,34 @@ function* cpuSearch(g, seed, level = 'medium') {
     }
     r.mean = sum / w;
     if (L.look && r.j.turn === me && r.j.winner === null && sims < L.sims) {
-      const c = r.j.balls.find(b => b.n === 0), next = c.on ? cpuLines(r.j.balls, c.x, c.y, cpuTargets(r.j), L)[0] : null;
-      if (next) {
-        const o = sim({ angle: next.angle, power: cpuPotPower(next, 1.25), spin: { x: 0, y: 0 }, place: null, call: potCall(r.j, next) }, r.j);
+      const c = r.j.balls.find(b => b.n === 0), nexts = c.on ? cpuLines(r.j.balls, c.x, c.y, cpuTargets(r.j), L) : [];
+      if (plan && nexts.length) {
+        /* two-shot planning: the best `plan` next shots from the leave, each simulated (two powers
+           for the first), and the finalist scored on the best of them: its own pot and the
+           position it leaves in turn, in place of the leave's geometric chance */
+        let best = -Infinity;
+        for (const [i, next] of nexts.slice(0, plan).entries()) for (const f of i ? [1.25] : [1, 1.6]) {
+          if (sims >= L.sims) break;
+          const o = sim({ angle: next.angle, power: cpuPotPower(next, f), spin: { x: 0, y: 0 }, place: null, call: potCall(r.j, next) }, r.j);
+          yield;
+          best = Math.max(best, o.j.winner === me ? 1000 : o.value);
+        }
+        if (best > -Infinity) r.mean += clamp(0.3 * (best - 300), -120, 120);
+      } else if (nexts.length) {
+        const next = nexts[0], o = sim({ angle: next.angle, power: cpuPotPower(next, 1.25), spin: { x: 0, y: 0 }, place: null, call: potCall(r.j, next) }, r.j);
         yield;
         r.mean += o.value >= 300 || o.j.winner === me ? 40 : -40;
-      }
+      } else if (plan) r.mean -= 60;   /* nothing to pot next: a bad leave */
     }
     tested.push(r);
   }
   for (const r of recs) r.mean = r.value;
-  recs.sort((a, b) => b.value - a.value);
+  recs.sort((a, b) => worth(b, b.value) - worth(a, a.value));
   for (const r of recs.slice(0, L.robust)) yield* test(r);
   const pool = () => tested.length ? tested : recs;
 
   /* D: safeties and kicks when no pot is worth its risk */
-  if (L.safe && (!recs.length || pool().reduce((m, r) => Math.max(m, r.mean), -Infinity) < L.safeBar)) {
+  if (L.safe && (!recs.length || pool().reduce((m, r) => Math.max(m, worth(r, r.mean)), -Infinity) < L.safeBar)) {
     const safes = [], got = [];
     for (const place of spots.length > 2 ? [spots[0], spots[spots.length - 1]] : spots) safes.push(...cpuSafeties(g, place ? place[0] : cue.x, place ? place[1] : cue.y, targets, place));
     if (g.kind === 'snooker' && g.breakShot) safes.push(...snkBreaks(g));
@@ -4130,13 +4525,13 @@ function* cpuSearch(g, seed, level = 'medium') {
   const legal = r => !r.j.verdict.foul && !(r.j.winner !== null && r.j.winner !== me);
   const pick = [tested.filter(legal), recs.filter(legal), tested, recs].find(c => c.length);
   const lean = r => r.line ? L.riskBonus : (g.dry || 0) < CPU_DRY ? L.safeBonus : 0;
-  const best = pick.reduce((a, b) => b.mean + lean(b) > a.mean + lean(a) ? b : a), s = best.shot;
+  const best = pick.reduce((a, b) => worth(b, b.mean) + lean(b) > worth(a, a.mean) + lean(a) ? b : a), s = best.shot;
   return play(s, cpuIntent(best));
 }
 /* what a chosen candidate is, for the think time and the tests: a pot (bank, combo) with its chance, else a push, kick or safety */
 function cpuIntent(r) {
   const l = r.line, s = r.shot;
-  if (l) return { type: l.bank ? 'bank' : l.combo ? 'combo' : 'pot', q: l.q };
+  if (l) return { type: l.bank ? 'bank' : l.combo ? 'combo' : l.kick ? 'kickpot' : l.jump ? 'jump' : l.swerve ? 'swerve' : 'pot', q: l.q };
   return { type: s.call && s.call.push ? 'push' : s.kick ? 'kick' : 'safety', q: 0 };
 }
 /* the CPU's answer to a choice pending for it (game.option): the 8 on the break is spotted;
@@ -4262,6 +4657,7 @@ function bumperStep(tab, b) {
     if (v) { if (tab.first !== null) tab.railAfter = true; tab.hits.push(['rail', v, 'post']); }   /* a rail hit; 'post' for the sound */
   }
   const v = Math.hypot(b.vx, b.vy);
+  if (b.z > 0) return false;   /* a flying ball (1a) drops into a cup only once it lands */
   for (let k = 0; k < POCKETS.length; k++) {
     const p = POCKETS[k], r = POCKET_R[k] - CUP_LIP * Math.min(1, v / CUP_V);
     if ((b.x - p[0]) ** 2 + (b.y - p[1]) ** 2 < r * r) { pot(tab, b, k, v); return true; }
@@ -4942,10 +5338,12 @@ function snkFreeBalls(g) {
       is left. Level then: the black is re-spotted and the player who did not end it plays it
       from the D; the next score or foul wins. A frame can be conceded (concedeSnooker).
    8. A match is one frame or the best of three; the players take turns to break.
-   Jumped balls: the jump shot foul (Section 2, Jump Shot; Section 3 Rule 10, Fouls) cannot
-   happen in felt. The table is flat and two-dimensional: no ball leaves the bed's plane, so no
-   ball can jump another; a ball that escapes the table (the escape fail-safe in stepTable) is
-   judged as a ball off the table.
+   Jumped balls: felt's jump is an elevated cue driving the cue ball off the slate (1a, strike);
+   in snooker a cue ball that passes over any ball before it first hits one is a jump shot, a foul
+   (Section 2, Jump Shot; Section 3 Rule 10), at the value of the ball jumped or the ball on
+   (resultOf's over). The CPU never jumps at snooker (cpuRecord). A ball forced off the table (a jump over a cushion, or the
+   escape fail-safe in stepTable) is a foul at its value (Section 3 Rule 12): a colour comes back
+   on its spot, a red stays off, and the cue ball off the table is in hand in the D.
    The verdict: foul, pen (its points), pts (scored), keep, nom (the colour nominated), win,
    why, potted (balls that stayed down), back (colours re-spotted), scratch, brk (the break so far),
    ended (the break this shot ended, 0 when it goes on), frameOver ({ winner, score, frame, won,
@@ -4974,7 +5372,9 @@ function judgeSnooker(g, r) {
     if (!(pk[x] >= 0)) blame(`the ${snkName(x)} left the table`, x);
     else if (!fair(x)) blame(`potted the ${snkName(x)}`, x);
   }
-  if (scratch) blame('in-off');
+  if (scratch) blame(pk[0] === -1 ? 'the cue ball left the table' : 'in-off');
+  /* Section 2 (Jump Shot), Section 3 Rule 10: the cue ball jumped over a ball before it hit one */
+  if (r.over && r.over.length) blame('a jump shot', r.over[0]);
   /* Section 3 Rule 12: the free ball may not be left snookering the opponent on every ball on
      (unless only the pink and black remain). Nothing potted, so the next player is on what g was. */
   const pinkBlack = !redsBefore && colsBefore.join() === '61,62';
@@ -7510,12 +7910,12 @@ let ac = null, noiseBuf = null, bus = null, muted = false;
 /* the volumes (settings.vol, settings.volFx): bus carries the master volume times BUS_GAIN, and the
    table's sounds (FX_KINDS) go through fxBus into it, at their own volume; the UI's cues do not */
 let fxBus = null;
-const BUS_GAIN = 0.55, FX_KINDS = ['ball', 'cue', 'rail', 'jaw', 'post', 'pocket', 'brk', 'point'];
+const BUS_GAIN = 0.55, FX_KINDS = ['ball', 'cue', 'rail', 'jaw', 'post', 'pocket', 'brk', 'point', 'land'];
 try { muted = localStorage.getItem('felt.muted') === '1'; } catch (e) { }
 /* per kind: most voices sounding at once, shortest gap between two (s). brk is the break's layer
    (one at a time); tap, moment and full (the power bar at 100%) are the quiet UI sounds; point is
    carom's score, two soft clicks and a faint bell. */
-const VOICE = { ball: [8, 0.004], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], post: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35],
+const VOICE = { ball: [8, 0.004], cue: [1, 0.04], rail: [4, 0.02], jaw: [3, 0.03], post: [3, 0.03], pocket: [3, 0.05], brk: [1, 0.35], land: [2, 0.03],
   foul: [1, 0.3], turn: [1, 0.1], win: [1, 0.5], lose: [1, 0.5], tap: [2, 0.05], moment: [1, 0.4], point: [1, 0.3], full: [1, 0.2] };
 let voices = {}, crowd = {};
 /* the node budget: every node a voice makes is counted (made) and booked until its voice ends
@@ -7727,7 +8127,7 @@ function sfxAt(kind, v, t, x) {
   if (kind === 'rail' && x === 'post') kind = 'post';
   const lim = VOICE[kind];
   if (!Number.isFinite(v)) v = 1;   /* a kind without an intensity plays at full */
-  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw' || kind === 'post') && v < 0.1))) return;
+  if (!lim || ((kind === 'ball' && v < 0.04) || ((kind === 'rail' || kind === 'jaw' || kind === 'post' || kind === 'land') && v < 0.1))) return;
   const live = (voices[kind] || []).filter(e => e > t);
   if (live.length >= lim[0]) return;
   const c = crowd[kind] || { t: -1, e: 0 };
@@ -7771,6 +8171,11 @@ function sfxVoice(kind, v, t, duck, x, crowded) {
     /* a bumper post: rubber all round, a higher, rounder bonk */
     const s = clamp(v / 4, 0, 1) * duck;
     end = hit(t, sfxPick('rail'), bus, 0.7 * (0.04 + 0.96 * Math.pow(s, 1.2)), vary(1.45, 0.03), 900 + 3000 * s);
+  } else if (kind === 'land') {
+    /* a jumped ball landing (sim 1a): the slate's thud through the cloth, the cushion's take played
+       low and soft, and darker */
+    const s = clamp(v / 4, 0, 1) * duck;
+    end = hit(t, sfxPick('rail'), bus, 0.55 * (0.05 + 0.95 * Math.pow(s, 1.2)), vary(0.62, 0.03), 300 + 1500 * s);
   } else if (kind === 'pocket') {
     end = drop(t, clamp(v / 2.5, 0, 1), x);
   } else if (kind === 'foul') {
@@ -7968,7 +8373,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-30e';
+const BUILD = 'build 2026-10-30g';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -9333,6 +9738,11 @@ function drawHalo(X, Y, r, alpha = 1) {
    off, and the contact shade goes. (x, y): the ball in table metres; (X, Y, r): device px where it
    is drawn (the loupe's too). Reads TL and TW at call time. */
 const LAMP_H = 1.1, LIFT_H = 0.045;
+/* a ball off the bed (a jump, sim 1a: b.z, its bottom's height): its shadow lifts as a carried
+   ball's does (to LIFT_H, then held), and it is drawn larger, nearer the eye, growing less the
+   higher it goes. 0 and 1 on the bed. */
+const airLift = b => b.z > 0 ? Math.min(1, b.z / LIFT_H) : 0;
+const airGrow = b => b.z > 0 ? 1 + 0.6 * b.z / (b.z + 0.25) : 1;
 function drawCast(x, y, X, Y, r, lift = 0, alpha = 1) {
   const S = ballSprites(r), k = r / S.r, g = artCtx || ctx, m = r / BALL_R;
   const dx = x - TL / 2, dy = y - TW / 2, d = Math.hypot(dx, dy), zc = BALL_R + LIFT_H * lift, t = zc / (LAMP_H - zc);
@@ -9638,7 +10048,7 @@ function previewStart(ang, pw, sp, h, lens) {
   const full = newTable(balls, cn), solo = strike(newTable(balls.filter(b => b.n === cn), cn), ang, pw, sp);
   const S = { lens, full, solo, others: full.balls.filter(b => b.n !== cn), tab: solo, ball: solo.balls[0], safe: 0, s: 0,
     ev: false, cueDone: false, cl: 0, o: null, objDone: true, ol: 0, odx: 0, ody: 0,
-    cue: [], obj: null, first: null, crossed: c.x > HEAD_X, cuePot: -1, objPot: -1, objHit: false, cueStop: false, done: false };
+    cue: [], obj: null, first: null, crossed: c.x > HEAD_X, cuePot: -1, objPot: -1, objHit: false, cueStop: false, done: false, air: [], airDone: false };
   /* carom: count the cue ball's cushions (full guide only: the short one stays a stub) */
   if (game.kind === 'carom' && lens === PV_CAROM) Object.assign(S, { carom: game.need || 3, cc: 0, tail: 0, bounces: [] });
   return S;
@@ -9672,6 +10082,14 @@ function previewRun(S, ms) {
       }
     }
     tab.hits.length = 0;
+    /* a jump (sim 1a): the cue ball's flight and bounces, [x, y, z], until it settles on the bed */
+    if (!S.airDone) {
+      if (cue.on && cue.vz !== undefined) { const q = S.air[S.air.length - 1]; if (!q || cue.z === 0 || Math.hypot(cue.x - q[0], cue.y - q[1]) >= PV_GAP) S.air.push([cue.x, cue.y, cue.z]); }
+      else {
+        if (S.air.length) S.air.push([cue.x, cue.y, cue.on ? 0 : S.air[S.air.length - 1][2]]);
+        if (S.air.length || S.s > 2) S.airDone = true;
+      }
+    }
     if (!S.cueDone) {
       if (!cue.on) {
         S.cueDone = true; S.cuePot = tab.pocketOf[tab.cue];
@@ -9718,7 +10136,7 @@ function shotPreview(ang, h, full, budget = PV_BUDGET) {
   const sp = spinOf(cueSpin), lens = full ? (game.kind === 'carom' ? PV_CAROM : PV_FULL) : PV_SHORT, c = cueBall(), q = (v, s) => Math.round(v / s);
   let lay = `${lens[0]}`;
   for (const b of game.balls) if (b.n) lay += b.on ? `|${b.x},${b.y}` : '|-';
-  const key = `${q(ang, PV_SNAP)}|${q(pw, 0.001)}|${q(sp.x, 0.005)}|${q(sp.y, 0.005)}|${c.x},${c.y}|${lay}`;
+  const key = `${q(ang, PV_SNAP)}|${q(pw, 0.001)}|${q(sp.x, 0.005)}|${q(sp.y, 0.005)}|${q(sp.e || 0, 0.002)}|${c.x},${c.y}|${lay}`;
   const have = preview && preview.lay === lay;
   if (have && preview.key === key) { previewWork = null; return preview; }
   const t0 = performance.now(), W = previewWork;
@@ -9819,7 +10237,31 @@ function guideLines(c, ang) {
     }
   }
   if (POCKETS[P.cuePot]) guideRing(POCKETS[P.cuePot][0], POCKETS[P.cuePot][1], POCKET_R[P.cuePot] * view.k, cueCol, 2);
-  return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: legal ? P.obj : null };
+  if (P.air && P.air.length > 1 && !(V3.flat && V3.live)) drawJumpArc(P.air, full);
+  return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: legal ? P.obj : null, air: P.air && P.air.length > 1 ? P.air : null };
+}
+/* the jump's arc (the preview's air: the cue ball's flight and bounces, sim 1a), drawn top-down
+   with its height lifted up the screen (an oblique view: 1 cm high is 1 cm up), and a small dot
+   where it lands each time. The short guide shows the first landing only. */
+function drawJumpArc(air, full) {
+  const pts = [], lands = [];
+  for (let i = 0; i < air.length; i++) {
+    const p = air[i], s = toScreen(p[0], p[1]);
+    pts.push([s[0], s[1] - p[2] * view.k]);
+    if (i && p[2] === 0) lands.push(s);
+  }
+  if (full) {
+    ctx.beginPath();
+    pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]));
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 3.5; ctx.stroke();
+    ctx.strokeStyle = hcStyle(wa(0.7)); ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  for (const s of full ? lands : lands.slice(0, 1)) {
+    ctx.beginPath(); ctx.arc(s[0], s[1], 3, 0, Math.PI * 2);
+    ctx.fillStyle = wa(0.85); ctx.fill();
+  }
 }
 
 /* ---- 4e. the cue ---- */
@@ -9975,14 +10417,14 @@ function draw(now) {
   liftStep(now, ghost && human(), game.balls.find(b => b.n === 0));
   const sh = rp ? 0 : settleH(now);
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  list.forEach((b, i) => { const r = drawCast(b.x, b.y, pos[i][0] * dpr, pos[i][1] * dpr, rb, b.n === 0 ? sh : 0); if (b.n === 0 && !ghost) bih.sr = r; });
+  list.forEach((b, i) => { const r = drawCast(b.x, b.y, pos[i][0] * dpr, pos[i][1] * dpr, rb, b.n === 0 && sh ? sh : airLift(b)); if (b.n === 0 && !ghost) bih.sr = r; });
   /* no aim line from a ghost on an illegal spot (the ball is not there) */
   const c = cueBall(), aiming = !rp && (state === 'aim' || state === 'stroke' || (state === 'thinking' && cpuPlan)) && !!c && c.on && !dropping && !(ghost && !ghostOk);
   const gi = aiming ? guide(c, aimAngle) : null, gb = gameBall();
   drawPots(now);
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
   if (!rp) { drawHint(now); drawSolo(); drawCall(now); hudCall(); }
-  list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, b.n === 0 && sh ? rb * (1 + LIFT_GROW * sh) : rb, axesOf(orient[b.n] || IDENT)));
+  list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, b.n === 0 && sh ? rb * (1 + LIFT_GROW * sh) : rb * airGrow(b), axesOf(orient[b.n] || IDENT)));
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
   if (state === 'aim' && game.inHand && human() && !dropping && !rp) drawPlace(now);

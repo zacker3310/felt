@@ -75,7 +75,18 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   is `spin.e` (radians, 0 to `ELEV_MAX`, present only when above 0): `strike` tilts the side spin's axis, so the cloth
   curves a sliding ball (swerve, masse). Elevation 0 is the old level code; `tests/level-cue.cjs` pins it against the
   pre-F9/F10 build. The page sets it from the english pad (hold, right click, Page Up/Down; `#elevPop`); every shot
-  starts level, and the CPU plays level. Changing the cloth or the strike moves stored solutions: re-solve the tricks.
+  starts level. Changing the cloth or the strike moves stored solutions: re-solve the tricks.
+  Jump shots (sim 1a, `air`, `hitAir`): a raised stroke drives the ball into the slate at v sin e; at `V_SLATE` (1 m/s,
+  felt's dead band) or more, with the tip above the equator, it leaves the bed at `E_SLATE` (0.5, Alciatore) of that.
+  A ball off the bed carries `b.z` (its bottom's height) and `b.vz`; on the bed both are absent or `undefined` (never
+  `delete` them: a deleted field makes the ball a slow dictionary object and every later step pays). Ballistic flight,
+  no cloth, spin carried; bounces at `E_SLATE` until a landing under `V_SLATE` settles it (a `'land'` hit: the cushion
+  take, low and soft). In the air: 3D ball contacts (a ball flown over is clear; `resultOf(tab).over` lists the balls
+  the cue ball jumped before its first contact, present only then), cushions cleared above `cushionTop()`, no drop
+  until it lands, past the noses away from a mouth off the table (`offTable`: pocketOf -1, hit `'off'`). Under the
+  threshold every result is byte for byte the old one (physics-check rebuilds the sim without the jump to prove it);
+  no stored solution uses elevation. The guide draws the jump's arc (`drawJumpArc`, the preview's `air`); the 2D
+  view draws a flying ball larger with its shadow lifted (`airLift`, `airGrow`); the 3D view reads `b.z`.
 - Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
@@ -112,7 +123,11 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   above it). A game carries `game.rules` (`makeRules(kind, { ruleset, call, options, race, locked })`); `judge` hands
   each shot to its game's module in `RULE_MODULES` (`judge8`, `judgeLowest` for 9 and 10, `judgeStraight` for 14.1,
   `judgeRotation`, then bumper, snooker, carom), and the pocket games share `poolFoul`, `callResult`, `breakLegal`
-  and `poolEnd`: add a rule there or as an option, never a copy in one module. Kinds: '8', '9', '10', 'straight',
+  and `poolEnd`: add a rule there or as an option, never a copy in one module. A ball off the table (a jump, pocketOf
+  -1) is a foul everywhere: `poolBase` takes it out of the pots and `poolFoul` names it (the cue ball off is a
+  scratch); option `offSpot` ('spot' house, 14.1, rotation; 'stay' WPA 8, 9, 10, which spot only the game ball;
+  the 8 off a shot that is not the break loses); snooker spots a colour and leaves a red off, and a cue ball that
+  jumped a ball before its first contact is a jump shot foul (`r.over`); carom and bumper put the ball back. Kinds: '8', '9', '10', 'straight',
   'rotation' (`POCKET_KINDS`), 'bumper', 'snooker', 'carom'. The default rulesets ('8-house', '9-house') are the
   old felt rules exactly; WPA variants and 10-ball, 14.1 and rotation are opt-in. Pinned by `rules2-check`.
 - Called shots: `game.call` (`{ ball, pocket, safety, push, bank, kick, combo, auto }`) is a pure input judge reads;
@@ -137,6 +152,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   combos are called with their flags). The page takes it as `start(kind, { cpuProfile, hill })` (`o.level` may
   be left out). Think time (F8): `cpuThinkMs`, held in `think()` from the turn's start (`cpuReady`, `cpuT0`), a tap
   skips it (`cpuSkip`, `felt.cpuSkip()`), `felt.lastThink` records it. `ai2-check` pins it, `audit-check` A6.
+  Hard's extras (fields only `CPU_LEVELS.hard` has, so easy and medium play as before; profiles: `plan`, `kickPot`,
+  `elev`, `special`): two-shot planning (each finalist's best `plan` next shots simulated from its leave), one-rail
+  kick pots (`cpuKickLines`, solved through the physics in `cpuKickPrep`, a generator whose small sims count against
+  the budget; called with `kick`), and the raised cue (`cpuBlockLines`: a jump over, or a swerve round, one ball on
+  the line; easy never, medium only for the shot-maker and potter; never at snooker, `cpuRecord`). Kick, jump and
+  swerve lines are only tried when no straight pot is a fair chance, and are scored at their chance (`worth`,
+  `CPU_MISS`). Elevation errs like the other inputs. `ai2-check` measures it against a frozen `OLD_HARD`.
 - More modes (page 6f, home's Modes cards, `modesSheet` on the career's row builders): `start(kind, o)` with
   `o.mode` 'tourney' | 'exhibit' | 'party'. Quick tournament: `Career.lib` brackets (`makeBracket`, `outcome`), the
   player's matches raced on the table (`tourneyRackOver` from `finish()`), CPU-vs-CPU by `playModel` seeded by the

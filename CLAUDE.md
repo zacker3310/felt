@@ -185,7 +185,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   a ResizeObserver on the form's columns reruns `fitSetupRows` in a frame); the camera rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
   `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
 - Sound and haptics (sections 2, 2h): the table's sounds are real CC0 recordings in `sounds/` (`SFX_FILES`: 10 ball
-  clacks, 4 cue strikes, 3 cushions, 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
+  clacks, 4 cue strikes, 3 cushions (real knocks on a table's rubber, allberto and Lukas via Afterlight, at their own pitch), 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
   pinned GitHub-hosted sources by `node tools/make-sounds.cjs` and credited in `CREDITS.md` and Settings > About (Sound
   Credits). A new or changed take: rebuild, keep it in `sw.js`'s precache (bump `VERSION`) and in `CREDITS.md`, never an
   unlicensed file. `audioInit` builds the graph and `sfxLoad` fetches the files once and decodes them once per sample

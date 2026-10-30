@@ -92,7 +92,7 @@ function shape({ x, sr }) {
   const rollShape = shape(readWav(path.join(ROOT, 'sounds/roll.wav'))), rw = readWav(path.join(ROOT, 'sounds/roll.wav')).x;
   check('the roll loop is dark (no energy in 1.5 to 6 kHz to speak of) and seamless (its two ends meet)', rollShape.band < 0.05 && Math.abs(rw[0] - rw[rw.length - 1]) < 0.02, JSON.stringify({ band: rollShape.band, ends: [rw[0], rw[rw.length - 1]] }));
   const about = await page.evaluate(() => { showPrefs('about'); const r = { shown: !ppAbout.hidden && sfxCredits.getClientRects().length > 0, rows: sfxCredits.querySelectorAll('p').length, text: sfxCredits.textContent }; backToMenu(); return r; });
-  check('Settings > About shows the sound credits, a row per kind of sound, naming the authors', about.shown && about.rows >= 5 && ['Za-Games', 'bsumusictech', 'craigsmith', 'Kenney', 'Yarmonics', 'Caitlin_100', 'csaszi', 'RossJuterbock'].every(a => about.text.includes(a)), JSON.stringify(about));
+  check('Settings > About shows the sound credits, a row per kind of sound, naming the authors', about.shown && about.rows >= 5 && ['Za-Games', 'bsumusictech', 'craigsmith', 'allberto', 'Yarmonics', 'Caitlin_100', 'csaszi', 'RossJuterbock'].every(a => about.text.includes(a)), JSON.stringify(about));
 
   /* 1. loudness and brightness scale with the impact */
   const ball = await page.evaluate(async () => ({ soft: await __r([['ball', 0.3, 0.02]]), mid: await __r([['ball', 2, 0.02]]), hard: await __r([['ball', 6, 0.02]]) }));

@@ -21,6 +21,10 @@
    8. the aim's lines on red, green and blue cloth, read off the canvas: each line's width at half height within a
       device px of the 2D width (CSS px times the canvas scale), feathered edges, 3:1 against what it lies on; rings
       cut so no chord is over 3.5 device px up close; the call ring hidden behind its ball, shown in front of it.
+   9. the polish: a pot drops in 3D (below the bed over about 260 ms, then gone) on 8-ball corner and side, snooker and
+      bumper; a hit flash at its contact; the loupe under fine aim (size, place, cost); snooker's scoreboard on the
+      stage's top row off the bed; the callout over the far rail; the neighbours readable at pitch 8; a ball with b.z
+      drawn raised in 3D and top-down.
    7. frames while dragging the aim within budget (see the budget note below), the HUD's text over the
       3D view 4.5:1, targets 44 px, and landscape. FELT_SHOTS=<dir> saves screenshots. */
 'use strict';
@@ -433,6 +437,164 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     await lineShot('red', 30, 1.8); await frames(page, 3); await page.screenshot({ path: path.join(SHOTS, 'v3-aim-red-far.png') });
   }
   await t.ev(() => { settings.calls.highlight = true; setSetting('cloth', 'green'); });
+
+  /* ---- 9. the polish: drops, flashes, the loupe, the snooker scoreboard, the neighbours, a ball in the air ---- */
+  /* a pot: the ball, put on the lip of pocket k, is taken off and onPot called as frame() would; every frame after it
+     records the drop drawn (its height, its projection), until it is gone */
+  const dropRun = (kind, k, set = {}) => t.ev(async ([kind, k, set]) => {
+    for (const key of Object.keys(set)) setSetting(key, set[key]);
+    felt.speed = 1; settings.autoAim = false; setSetting('viewPitch', 20); setSetting('viewDist', 0.9); felt.start(kind);
+    await new Promise(r => setTimeout(r, 300));
+    const g = felt.game, P = POCKETS[k], A = POCKET_AIM[k] || P, u = [A[0] - TL / 2, A[1] - TW / 2], l = Math.hypot(u[0], u[1]);
+    u[0] /= l; u[1] /= l;
+    const n1 = g.balls.map(b => b.n).find(n => n !== 0 && n !== 70);
+    const b1 = g.balls.find(x => x.n === n1), c = g.balls.find(x => x.n === 0) || g.balls.find(x => x !== b1);
+    for (const x of g.balls) x.on = x === b1 || x === c;
+    Object.assign(b1, { x: A[0] - u[0] * 0.04, y: A[1] - u[1] * 0.04 }); Object.assign(c, { x: A[0] - u[0] * 0.7, y: A[1] - u[1] * 0.7 });
+    Object.assign(g, { breakShot: false, inHand: null });
+    aimAngle = Math.atan2(u[1], u[0]); hud(); V3.seat.set = false;
+    await new Promise(r => setTimeout(r, 200));
+    const t0 = performance.now(), rec = [];
+    b1.on = false; onPot(n1, k, [b1.x, b1.y], t0);
+    await new Promise(res => { const f = now => { const d = (V3.drops || []).find(o => o.n === n1); rec.push({ t: now - t0, d, inDrawn: V3.drawn.some(o => o.n === n1) }); if (now - t0 < 520) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+    const ds = rec.filter(r => r.d), last = ds[ds.length - 1];
+    return { n: ds.length, below: ds.filter(r => r.d.z < 0).length, first: ds[0] && ds[0].d, last: last && { t: last.t, z: last.d.z, u: last.d.u }, lowest: Math.min(...ds.map(r => r.d.z)),
+      sinks: ds.every((r, i) => !i || r.d.z <= ds[i - 1].d.z + 1e-9), after: rec.filter(r => !r.d && r.t > (last ? last.t : 0)).length, never: rec.every(r => !r.inDrawn),
+      onScreen: ds.every(r => r.d.s && r.d.s[0] >= felt.view3.box.left && r.d.s[0] <= felt.view3.box.left + felt.view3.box.width), R: BALL_R, ms: V3_DROP_MS };
+  }, [kind, k, set]);
+  for (const [kind, k, set, name] of [['8', 5, {}, '8-ball corner'], ['8', 4, {}, '8-ball side'], ['snooker', 5, { snookerTable: 'compact' }, 'snooker corner (rounded jaws)'], ['bumper', 0, { bumperTable: 'rect' }, 'bumper cup']]) {
+    const d = await dropRun(kind, k, set);
+    check(`pot (${name}): the ball drops in 3D over ${d.last ? d.last.t.toFixed(0) : '-'} ms (${d.n} frames, ${d.below} of them below the bed, lowest ${(d.lowest * 1000).toFixed(0)} mm), sinking every frame, then gone, never drawn on the table`,
+      d.n >= 5 && d.below >= 2 && d.lowest < -0.5 * d.R && d.sinks && d.last.t > d.ms * 0.7 && d.last.t < d.ms + 60 && d.after > 3 && d.never && d.onScreen, JSON.stringify(d));
+    if (SHOTS && kind === '8' && k === 5) { await dropRun(kind, k, set); await page.screenshot({ path: path.join(SHOTS, 'v3-drop.png') }); }
+  }
+  await t.ev(() => { felt.speed = 4; setSetting('snookerTable', 'compact'); setSetting('bumperTable', 'octagon'); });
+  /* a hit flash: a cushion's glow and a ball contact's ring, as onHits leaves them, drawn where they happened */
+  const fx = await t.ev(() => {
+    setSetting('viewPitch', 24); setSetting('viewDist', 1.1); settings.autoAim = false; felt.start('8');
+    const g = felt.game;
+    for (const b of g.balls) b.on = b.n === 0;
+    Object.assign(g.balls[0], { x: TL * 0.3, y: TW * 0.5 }); Object.assign(g, { breakShot: false, inHand: null });
+    aimAngle = 0; hud(); V3.seat.set = false; v3Update();
+    const gl = t3d.getContext('webgl2'), B = felt.view3.box, k = felt.view3.scale, x = TL * 0.62, y = TW * 0.4;
+    const px = s => { const o = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); return [...o.slice(0, 3)]; };
+    effects.length = 0;
+    let now = performance.now();
+    draw(now); const s = felt.v3Proj(x, y), base = px(s);
+    effects.push({ kind: 'rail', key: 'test', x, y, v: 3, t: now, d: 340 });
+    draw(now += 1); const lit = px(s), list = felt.view3.fx || V3.fx;
+    draw(now += 400); const gone = (V3.fx || []).length;
+    return { base, lit, list, gone, inBox: s[0] > B.left && s[0] < B.left + B.width && s[1] > B.top && s[1] < B.top + B.height };
+  });
+  const fxD = fx.lit.map((v, i) => v - fx.base[i]);
+  check(`flash: a cushion's glow shows in 3D at its contact (the pixel there ${fxD.join('/')} brighter, added as 2D's lighter), gone after its time`,
+    fx.list.length === 1 && fx.list[0].kind === 'rail' && fx.inBox && fxD.every(v => v >= 0) && fxD[1] > 12 && fx.gone === 0, JSON.stringify(fx));
+  /* the loupe: fine aim held, the contact in a lens off it, inside the stage */
+  const loupeRun = () => t.ev(async () => {
+    felt.speed = 1; settings.autoAim = false; setSetting('viewPitch', 24); setSetting('viewDist', 1.1); settings.guide = 'full';
+    felt.start('8');
+    const g = felt.game;
+    for (const b of g.balls) b.on = [0, 1, 5].includes(b.n);
+    Object.assign(g.balls.find(b => b.n === 1), { x: TL * 0.75, y: TW * 0.35 }); Object.assign(g.balls.find(b => b.n === 5), { x: TL * 0.24, y: TW * 0.7 });
+    Object.assign(g.balls[0], { x: TL * 0.47, y: TW * 0.49 }); Object.assign(g, { breakShot: false, inHand: null });
+    const c = g.balls[0], o = g.balls.find(b => b.n === 1), P = POCKET_AIM[2], ux = P[0] - o.x, uy = P[1] - o.y, L = Math.hypot(ux, uy);
+    const gx = o.x - ux / L * 2 * BALL_R, gy = o.y - uy / L * 2 * BALL_R;
+    aimAngle = Math.atan2(gy - c.y, gx - c.x); hud(); V3.seat.set = false; v3Update();
+    let now = performance.now();
+    const run = n => { for (let i = 0; i < n; i++) draw(now += 16); };
+    fineAim = false; run(20);
+    const off = !!V3.loupe;
+    fineAim = true; run(20);
+    const L1 = V3.loupe && { ...V3.loupe }, C = felt.v3Proj(gx, gy), B = felt.view3.box;
+    /* the lens's middle shows the contact magnified: the ghost ball's middle there, so it differs from the frame without */
+    const gl = t3d.getContext('webgl2'), k = felt.view3.scale, px = s => { const o = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); return [...o.slice(0, 3)]; };
+    const inL = L1 ? px([L1.x, L1.y + L1.r * 0.5]) : null;
+    const cost = () => { const N = 40, o = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); const t0 = performance.now(); for (let i = 0; i < N; i++) { draw(now += 16); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); } return (performance.now() - t0) / N; };
+    const ms = cost();
+    fineAim = false; run(20); const outL = L1 ? px([L1.x, L1.y + L1.r * 0.5]) : null; const base = cost();
+    const after = !!V3.loupe;
+    return { off, L1, after, d: L1 ? Math.hypot(L1.x - C[0], L1.y - C[1]) : 0, inside: L1 && L1.x - L1.r >= B.left - 4 && L1.x + L1.r <= B.left + B.width + 4 && L1.y - L1.r >= B.top - 4 && L1.y + L1.r <= B.top + B.height + 4, inL, outL, ms, base };
+  });
+  const lp = await loupeRun();
+  check(`loupe: in 3D shown while fine aim is held, gone when it is not, ${lp.L1 ? (2 * lp.L1.r).toFixed(0) : '-'} CSS px across (120 to 150), its centre ${lp.d.toFixed(0)} px from the contact (over its radius), inside the stage, the lens drawn`,
+    !lp.off && lp.L1 && lp.L1.a === 1 && 2 * lp.L1.r >= 110 && 2 * lp.L1.r <= 150 && lp.d > lp.L1.r && lp.inside && !lp.after && Math.max(...lp.inL.map((v, i) => Math.abs(v - lp.outL[i]))) > 20, JSON.stringify(lp));
+  const spL = await speedFactor(page), kL = s1.soft ? spL.f : 1;
+  check(`loupe: a 3D frame with it up ${lp.ms.toFixed(1)} ms, without ${lp.base.toFixed(1)} ms: under ${((s1.soft ? 26 : 16) * kL).toFixed(1)} ms (x${spL.f.toFixed(2)} for this runner) and at most twice the frame without it`,
+    lp.ms < (s1.soft ? 26 : 16) * kL && lp.ms < 2 * lp.base, JSON.stringify({ ms: lp.ms, base: lp.base }));
+  if (SHOTS) { await t.ev(() => { fineAim = true; }); await frames(page, 8); await page.screenshot({ path: path.join(SHOTS, 'v3-loupe.png') }); await t.ev(() => { fineAim = false; }); }
+  /* snooker's scoreboard: on the stage's top edge in 3D, inside the stage, clear of the 3D switch and of the bed as drawn */
+  const snk = await t.ev(async () => {
+    felt.speed = 4; setSetting('viewPitch', 24); setSetting('viewDist', 1.1); felt.start('snooker');
+    await new Promise(r => setTimeout(r, 400));
+    const q = snkBar.getBoundingClientRect(), B = felt.view3.box, v = viewBtn.getBoundingClientRect();
+    const bed = [[0, 0], [TL, 0], [TL, TW], [0, TW]].map(p => felt.v3Proj(p[0], p[1], 0));
+    /* the bed's quad as projected (corners behind the eye are clipped toward it: sample the edges instead) */
+    const inBed = (x, y) => { const u = felt.v3Unproj(x, y, 0); return !!u && u[0] >= 0 && u[0] <= TL && u[1] >= 0 && u[1] <= TW; };
+    let hits = 0;
+    for (let i = 0; i <= 10; i++) for (let j = 0; j <= 4; j++) if (inBed(q.left + q.width * i / 10, q.top + q.height * j / 4)) hits++;
+    return { live: felt.view3.live, shown: !snkBar.hidden, q: { l: q.left, t: q.top, r: q.right, b: q.bottom }, B, inside: q.left >= B.left && q.right <= B.left + B.width && q.top >= B.top && q.bottom <= B.top + B.height,
+      clearBtn: q.left >= v.right || q.right <= v.left || q.top >= v.bottom || q.bottom <= v.top, hits, bed: bed.map(p => p && p.slice(0, 2).map(Math.round)) };
+  });
+  check('snooker in 3D: the scoreboard sits on the stage\'s top edge, inside the stage, clear of the 3D switch and of the bed as the camera shows it',
+    snk.live && snk.shown && snk.inside && snk.clearBtn && snk.hits === 0 && snk.q.t - snk.B.top < 30, JSON.stringify(snk));
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-snooker.png') });
+  /* a moment's callout in 3D: over the far rail where the room shows, inside the stage, off the bed and the top row */
+  const co = await t.ev(async () => {
+    felt.start('8'); await new Promise(r => setTimeout(r, 300));
+    showCallout('Bank');
+    const q = callout.getBoundingClientRect(), B = felt.view3.box;
+    const inBed = (x, y) => { const u = felt.v3Unproj(x, y, 0); return !!u && u[0] >= 0 && u[0] <= TL && u[1] >= 0 && u[1] <= TW; };
+    let hits = 0;
+    for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) if (inBed(q.left + q.width * i / 8, q.top + q.height * j / 4)) hits++;
+    return { q: { l: q.left, t: q.top, r: q.right, b: q.bottom }, B, hits, inside: q.left >= B.left && q.right <= B.left + B.width && q.top >= B.top + 48 && q.bottom <= B.top + B.height };
+  });
+  check('callout in 3D: a moment is called out over the far rail, inside the stage, under the top row, off the bed', co.inside && co.hits === 0, JSON.stringify(co));
+  /* the neighbours at the lowest pitch: each one in view reads as a table (its lit rail and cloth against the wall above) */
+  const nb = await t.ev(async () => {
+    setSetting('viewPitch', 8); setSetting('viewDist', 1.1); felt.start('8');
+    await new Promise(r => setTimeout(r, 300));
+    V3.seat.set = false; aimAngle = 0.5; v3Update(); draw(performance.now());
+    const gl = t3d.getContext('webgl2'), B = felt.view3.box, k = felt.view3.scale, W = t3d.width, H = t3d.height;
+    const px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    const at = (sx, sy) => { const x = Math.round((sx - B.left) * k), y = H - 1 - Math.round((sy - B.top) * k); if (x < 0 || y < 0 || x >= W || y >= H) return null; const i = (y * W + x) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+    const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+    const out = [];
+    for (const [x, y] of V3.geo.near) {
+      const s = felt.v3Proj(x, y, 0.02), u = felt.v3Proj(x, y, 0.75), b = s && u && at(u[0], u[1]);
+      if (!b || !at(s[0], s[1])) continue;
+      let mx = 0;
+      for (let dy = -6; dy <= 6; dy++) { const q = at(s[0], s[1] + dy); if (q) mx = Math.max(mx, lum(q)); }
+      out.push({ x, y, ratio: (mx + 0.05) / (lum(b) + 0.05) });
+    }
+    return out;
+  });
+  check(`neighbours at pitch 8: ${nb.length} in view, each a table against the wall (lit rail and cloth over the wall above it: ${nb.map(n => n.ratio.toFixed(2) + ':1').join(', ')}, 2.5:1 at least)`,
+    nb.length >= 1 && nb.every(n => n.ratio >= 2.5), JSON.stringify(nb));
+  if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-low-neighbours.png') });
+  /* a ball in the air (a jump shot's b.z, the height of its bottom above the bed): drawn raised in both views, its shadow on the bed */
+  const air = await t.ev(() => {
+    setSetting('viewPitch', 24); setSetting('viewDist', 1.1); settings.autoAim = false; felt.start('8');
+    const g = felt.game, one = g.balls.find(b => b.n === 1);
+    for (const b of g.balls) b.on = b.n === 0 || b.n === 1;
+    Object.assign(g.balls[0], { x: TL * 0.3, y: TW * 0.5 }); Object.assign(one, { x: TL * 0.6, y: TW * 0.5 }); Object.assign(g, { breakShot: false, inHand: null });
+    aimAngle = 0.3; hud(); V3.seat.set = false; v3Update();
+    const gl = t3d.getContext('webgl2'), B = felt.view3.box, k = felt.view3.scale, H3 = 0.06;
+    const px3 = s => { const o = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); return [...o.slice(0, 3)]; };
+    const yellow = c => c[0] > 120 && c[1] > 90 && c[2] < c[1] * 0.6;
+    const top = felt.v3Proj(one.x, one.y, BALL_R + H3 + BALL_R * 0.5);
+    delete one.z; draw(performance.now()); const p0 = px3(top), z0 = V3.drawn.find(o => o.n === 1).z;
+    one.z = H3; draw(performance.now()); const p1 = px3(top), z1 = V3.drawn.find(o => o.n === 1).z;
+    /* top-down: the ball drawn a little larger (its yellow reaches further) */
+    setSetting('view', 'top'); v3Update(); layout();
+    const ctx2 = table.getContext('2d'), s = toScreen(one.x, one.y), r = BALL_R * view.k;
+    const count = () => { draw(performance.now()); const n = Math.ceil(r * 1.4 * dpr), d = ctx2.getImageData(Math.round(s[0] * dpr) - n, Math.round(s[1] * dpr) - n, 2 * n, 2 * n).data; let c = 0; for (let i = 0; i < d.length; i += 4) if (yellow([d[i], d[i + 1], d[i + 2]])) c++; return c; };
+    delete one.z; const c0 = count(); one.z = H3; const c1 = count();
+    delete one.z; setSetting('view', '3d'); v3Update();
+    return { z0, z1, p0, p1, c0, c1, R: BALL_R, H3 };
+  });
+  check(`air: a ball with b.z set draws raised in 3D (centre at ${(air.z1 * 1000).toFixed(0)} mm, its yellow where only the room or cloth was), and top-down a little larger (${air.c0} to ${air.c1} yellow px)`,
+    Math.abs(air.z0 - air.R) < 1e-9 && Math.abs(air.z1 - air.R - air.H3) < 1e-9 && !(air.p0[0] > 120 && air.p0[2] < air.p0[1] * 0.6) && air.p1[0] > 120 && air.p1[2] < air.p1[1] * 0.6 && air.c1 > air.c0 * 1.08, JSON.stringify(air));
+  await t.ev(() => { setSetting('viewPitch', 24); setSetting('viewDist', 1.1); felt.speed = 4; });
 
   /* ---- 7. frames, contrast, targets, landscape ---- */
   /* Budget: on a phone's GPU the view draws at the screen's full pixel ratio. Headless Chromium here

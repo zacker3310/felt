@@ -259,7 +259,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   (`PAINT`, `orient`), drawCast's shadows, the cue; the 2D overlays (guide, rings, calls, D, kitchen) run against the
   recorder `V3R` (`V3.flat` keeps the flat mapping) and become mitred, feathered ribbons at the 2D widths (`v3Strip`, the
   `over` shader), each path at one height (`v3PathZ`: bed, or a pocket marker on the rail tops), arcs cut to about
-  `V3_ARC_PX` on screen; the guide's ghost ball is a faint ball (`V3_GHOST_A`), not a ring. No context: top-down. Replays, the menu
+  `V3_ARC_PX` on screen; the guide's ghost ball is a faint ball (`V3_GHOST_A`), not a ring. A pot drops like the hero's
+  (`v3Drops`, `V3_DROP_MS` on the screen's clock, seen through the hole by the ball shader's `hole`); hit flashes are
+  drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
+  framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
+  with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
+  The snooker bar and the replay pill pin to the stage's top row in 3D (`V3_PIN_Y`), the callout over the far rail: any
+  new element placed from table geometry needs its 3D place too. No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes
   `tab`, `game` or `orient`. `felt.view3`, `felt.v3Proj`/`v3Unproj`, `felt.v3Ms`/`v3Poses` report it. Pinned by
   `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every

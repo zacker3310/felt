@@ -7584,7 +7584,7 @@ function sfxPick(k) {
 let rollG = null, rollF = null, roomG = null, rollTgt = 0, roomTgt = 0;
 /* the roll bed is off: its 1 s loop pulsed audibly (wuh wuh wuh) under every shot. Level 0 keeps the
    plumbing (and offline renders) but nothing is heard; the clacks carry the roll. */
-const ROLL_LVL = 0, ROOM_LVL = 0.02;
+const ROLL_LVL = 0, ROOM_LVL = 0;   /* the room tone is off too: its noise bed read as hiss during play */
 /* a looping source through a filter and a gain (silent until set) into out */
 function bed(c, buf, offset, type, freq, out) {
   const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
@@ -7968,7 +7968,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-30d';
+const BUILD = 'build 2026-10-30e';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {

@@ -132,7 +132,7 @@ function shape({ x, sr }) {
     const x = await soundRender([], 2, [[0, 6], [0.6, 1], [1, 0]]);
     return { fast: __an(x, 0.3, 0.6), slow: __an(x, 0.8, 1), gone: __an(x, 1.8, 2) };
   });
-  check('roll: louder fast than slow, and silent once the balls stop', roll.fast.rms > roll.slow.rms && roll.slow.rms > 0 && roll.gone.pk < 1e-4, JSON.stringify(roll));
+  check('roll: the roll bed is off (its loop pulsed): silent fast, slow and stopped', roll.fast.pk < 1e-4 && roll.slow.pk < 1e-4 && roll.gone.pk < 1e-4, JSON.stringify(roll));
 
   /* 4. the volumes and sound off */
   const vol = await page.evaluate(async () => {
@@ -161,7 +161,7 @@ function shape({ x, sr }) {
     const s = felt.sound;
     return { state: ac.state, rollMax, rollEnd: s.roll, rollGain: s.rollGain, nodesMax, peak: s.peak, cap: s.cap, made: s.made };
   });
-  check('live roll: the roll bed rises while the balls run and is back to zero once they stop', live.state === 'running' && live.rollMax > 0.01 && live.rollEnd === 0 && live.rollGain < 1e-3, JSON.stringify(live));
+  check('live roll: no roll bed while the balls run (it is off), nothing left once they stop', live.state === 'running' && live.rollMax === 0 && live.rollEnd === 0 && live.rollGain < 1e-3, JSON.stringify(live));
   const rp0 = await page.evaluate(() => {
     const names = ['createBufferSource', 'createGain', 'createBiquadFilter', 'createOscillator', 'createBuffer'], keep = {};
     let made = 0, moved = 0, last = rollTgt;
@@ -171,7 +171,7 @@ function shape({ x, sr }) {
     rollAt(ac.currentTime, 0);
     return { made, moved, own: names.filter(n => Object.prototype.hasOwnProperty.call(ac, n)), sfx: SFX && Object.fromEntries(Object.entries(SFX).map(([k, v]) => [k, Array.isArray(v) ? v.length : !!v])) };
   });
-  check('the roll path (rollAt, soundFrame) moves the bed and makes no audio nodes', rp0.made === 0 && rp0.moved > 20 && !rp0.own.length, JSON.stringify(rp0));
+  check('the roll path (rollAt, soundFrame) makes no audio nodes and never lifts the silenced bed', rp0.made === 0 && rp0.moved === 0 && !rp0.own.length, JSON.stringify(rp0));
   check('live: the page decoded every take once the context was made (10 balls, 4 cues, 3 cushions, 3 pockets, the break, the roll)', rp0.sfx && rp0.sfx.ball === 10 && rp0.sfx.cue === 4 && rp0.sfx.rail === 3 && rp0.sfx.pocket === 3 && rp0.sfx.break === 1 && rp0.sfx.roll === true, JSON.stringify(rp0.sfx));
   check('live break: the voices stay under the node cap', live.made > 20 && live.peak <= live.cap && live.nodesMax <= live.cap, JSON.stringify(live));
   const flood = await page.evaluate(() => {

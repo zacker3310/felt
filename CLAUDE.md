@@ -194,7 +194,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   +-3%, loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the pocket index,
   or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket, snooker's net and bumper's cup are the cushion and
   pocket takes played faster, brighter or cut short. Beds: the roll (the looped take under a low-pass, `rollAt`, from
-  `soundFrame`'s own rAF, no allocation) and the room tone. The UI cues stay small synthesised notes. A limiter and a
+  `soundFrame`'s own rAF, no allocation; `ROLL_LVL` 0, off: its loop pulsed audibly) and the room tone. The UI cues stay small synthesised notes. A limiter and a
   soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
   offline (`node tools/sound-render.cjs <dir>` writes WAVs, a break and run among them). Haptics map in 2h (`hapPlans`,
   impacts per `HAP_HIT`); the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and

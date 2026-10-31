@@ -93,7 +93,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   }
   S.setTable('7'); S.setPockets('regulation');
   check('trick shots: a known solution recorded for every challenge, and the page holds the same ones', S.TRICKS.every(c => KNOWN[c.id] && JSON.stringify(S.TRICK_SOLS[c.id]['7r']) === JSON.stringify(KNOWN[c.id])));
-  const shotOf = s => ({ angle: s[0], power: s[1], spin: { x: s[2], y: s[3] } });
+  const shotOf = s => ({ angle: s[0], power: s[1], spin: s[4] ? { x: s[2], y: s[3], e: s[4] * Math.PI / 180 } : { x: s[2], y: s[3] } });
   for (const c of S.TRICKS) {
     const b = S.trickBalls(c), s = KNOWN[c.id];
     const hit = S.trickJudge(c, S.simulateShot(b, shotOf(s)));
@@ -106,7 +106,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   for (const c of S.TRICKS) {
     const b = S.trickBalls(c), s = KNOWN[c.id];
     let n = 0;
-    for (let k = -3; k <= 3; k++) for (const dp of [-0.04, 0, 0.04]) if (S.trickJudge(c, S.simulateShot(b, shotOf([s[0] + k * 0.1 * D, Math.min(1, s[1] + dp), s[2], s[3]]))).ok) n++;
+    for (let k = -3; k <= 3; k++) for (const dp of [-0.04, 0, 0.04]) if (S.trickJudge(c, S.simulateShot(b, shotOf([s[0] + k * 0.1 * D, Math.min(1, s[1] + dp), s[2], s[3], s[4]]))).ok) n++;
     found.push(`${c.id}:${n}`);
   }
   check('solver: a search with simulateShot finds a solution for every challenge on the 7 ft regulation table', found.every(f => +f.split(':')[1] > 0), found.join(' '));
@@ -296,8 +296,8 @@ const KNOWN = require('./trick-solutions.json')['7r'];
     const days = [...Array(14).keys()].map(i => `2026-11-${String(i + 1).padStart(2, '0')}`);
     return { ids: days.map(d => felt.dailyTrick(d)), again: felt.dailyTrick('2026-11-03'), leap: [felt.dailyTrick('2026-12-31'), felt.dailyTrick('2027-01-01')] };
   });
-  check('daily shot: the same date always gives the same shot; fourteen days in a row give all fourteen, never the same two days running',
-    dpick.again === dpick.ids[2] && new Set(dpick.ids).size === S.TRICKS.length && dpick.ids.every((id, i) => !i || id !== dpick.ids[i - 1]) && dpick.leap[0] !== dpick.leap[1], JSON.stringify(dpick));
+  check('daily shot: the same date always gives the same shot; fourteen days in a row give all fourteen classic shots (never a jump or masse), never the same two days running',
+    dpick.again === dpick.ids[2] && new Set(dpick.ids).size === S.TRICKS.filter(c => !c.group).length && dpick.ids.every(id => !S.trickById(id).group) && dpick.ids.every((id, i) => !i || id !== dpick.ids[i - 1]) && dpick.leap[0] !== dpick.leap[1], JSON.stringify(dpick));
   await dp.evaluate(() => { felt.speed = 40; felt.today = '2026-10-25'; syncMenu(); });
   const tile0 = await dp.evaluate(() => ({ sum: dailySum.textContent, ball: dailyBall.textContent, name: dailyName.textContent, st: dailyBtn.dataset.daily }));
   const dIdle = () => dp.waitForFunction(() => felt.state === 'over', null, { timeout: 30000 });

@@ -1119,6 +1119,10 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .tcard:hover { background: var(--panel-3); border-color: #5a5a62; }
 .tcard .no { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tcard b { font-size: 15px; line-height: 1.2; }
+.tcard .lvl { margin-left: 6px; }
+.tgroups { margin: 16px 0; }
+.tgroup + .tgroup { margin-top: 8px; }
+.tgroup .tgrid { margin-top: 0; }
 .stars { margin: 0; color: #f2c94c; letter-spacing: 2px; font-size: 14px; line-height: 1.2; }
 .stars .off { color: var(--muted); }
 .stars.big { min-height: 0; border-radius: 0; background: none; color: #f2c94c; font-size: 26px; font-weight: 400; margin: 4px 0 14px; letter-spacing: 4px; }
@@ -1192,6 +1196,13 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #coachStep { margin: 0 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .01em; color: #f2c94c; }
 #coachText { margin: 0; font-size: 15px; line-height: 1.35; color: var(--text); }
 #coach.fresh { animation: coachIn .26s cubic-bezier(.2, .8, .2, 1) both; }
+/* the elevation tip (5s): the coach card's look, beside the english pad, once ever */
+#elevTip { position: fixed; z-index: 4; pointer-events: auto; left: 0; top: 0; width: max-content; max-width: min(300px, calc(100vw - 32px)); padding: 10px 14px 12px; border-radius: 16px;
+  background: rgba(22, 22, 24, .95); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5); animation: coachIn .26s cubic-bezier(.2, .8, .2, 1) both; }
+#elevTip[hidden] { display: none; }
+#elevTipHead { margin: 0 0 2px; font-size: 12px; font-weight: 600; letter-spacing: .01em; color: #f2c94c; }
+#elevTipText { margin: 0 0 8px; font-size: 15px; line-height: 1.35; color: var(--text); }
+#elevTipOk { min-height: 44px; min-width: 88px; padding: 0 16px; border-radius: 22px; border: 0; background: #fff; color: #141414; font: inherit; font-weight: 700; }
 @keyframes coachIn { from { opacity: 0; transform: translateY(6px) scale(.98); } }
 #coachRing { position: fixed; z-index: 3; left: 0; top: 0; border-radius: 16px; pointer-events: none;
   box-shadow: 0 0 0 2.5px #f2c94c, 0 0 0 6px rgba(242, 201, 76, .28); animation: ringPulse 1.6b ease-in-out infinite; }
@@ -1555,6 +1566,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <div id="elevSlider" role="slider" tabindex="0" aria-label="Cue elevation: raise the cue and side spin curves the ball; raised steeply and struck firmly, the ball jumps. Up and down arrows move it." aria-valuemin="0" aria-valuemax="60" aria-valuenow="0" aria-valuetext="level"><span id="elevFill"></span><span id="elevCue"></span></div>
     <button id="elevLevel">Level</button>
   </div>
+  <div id="elevTip" role="note" aria-live="polite" hidden><p id="elevTipHead">Raise the Cue</p><p id="elevTipText">Hold the english pad, or right click it, to raise the cue. Slide it up: high and firm jumps, high with side curves.</p><button id="elevTipOk">Got It</button></div>
   <div id="msg" class="sr" role="status" aria-live="polite"></div>
   <div id="coachRing" aria-hidden="true" hidden></div>
   <div id="coach" role="note" aria-live="polite" hidden><p id="coachStep"></p><p id="coachText"></p><button id="coachBtn" hidden>Show Me</button></div>
@@ -2321,7 +2333,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <p class="kicker">Solo</p>
     <h2 class="title" id="tricksTitle">Trick Shots</h2>
     <p class="sub" id="tricksSub"></p>
-    <div class="tgrid" id="trickGrid"></div>
+    <div class="tgroups" id="trickGrid"></div>
     <button class="ghost wide" id="tricksBack">Back</button>
   </div>
 </div>
@@ -4932,6 +4944,11 @@ const TRICK_ZONE = 0.07;
 const potIn = (r, n, ks) => r.potted.includes(n) && (!ks || ks.includes(r.pocketOf[n]));
 const touched = (r, n) => r.contacts.some(c => c[0] === n || c[1] === n);
 const upWhy = (r, ...ns) => { const up = ns.filter(n => !r.potted.includes(n)); return up.length ? `The ${up.join(' and the ')} stayed up.` : null; };
+/* the jump and masse group (below): every ball passed over before the first contact; a wall ball
+   touched; a curve that went over, into or round (a cushion first) its blocker */
+const jumped = (r, ...ns) => ns.every(n => (r.over || []).includes(n));
+const wallWhy = (r, ns) => { const n = ns.find(k => touched(r, k)); return n === undefined ? null : `The ${n} was touched.`; };
+const curveWhy = (r, n) => touched(r, n) ? `The ${n} was touched.` : jumped(r, n) ? `Curve round the ${n}, not over it.` : r.kick ? 'No rail first: curve the cue ball to the 1.' : null;
 function trickHelpers() {
   const R = BALL_R, F = 2 * R + RACK_GAP;
   const unit = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d, dy / d]; };
@@ -4947,6 +4964,11 @@ function trickHelpers() {
     /* u of the way from p to q, then d radii to the left of that line */
     along: (p, q, u, d = 0) => { const e = unit(p, q); return [p[0] + (q[0] - p[0]) * u - e[1] * d * R, p[1] + (q[1] - p[1]) * u + e[0] * d * R]; },
     off: (p, dx, dy) => [p[0] + dx * R, p[1] + dy * R],
+    /* d radii out from the ghost ball for pocket k (2 radii behind p on its line), along that
+       line turned deg: a cut of deg into pocket k from there */
+    cut: (p, k, deg, d) => { const u = unit(POCKET_AIM[k], p), g = [p[0] + u[0] * 2 * R, p[1] + u[1] * 2 * R], a = Math.atan2(u[1], u[0]) + deg * Math.PI / 180; return [g[0] + Math.cos(a) * d * R, g[1] + Math.sin(a) * d * R]; },
+    /* on the cloth against the bottom rail: x as a fraction of the length, gap radii off the cushion line */
+    rail: (fx, gap) => [fx * TL, TW - (1 + gap) * R],
   };
 }
 const TRICKS = [
@@ -4993,6 +5015,58 @@ const TRICKS = [
   { id: 'three', title: 'Three in One', goal: 'Pot the 1, the 2 and the 3 in one shot.',
     balls: T => { const b = T.lip(2, 1.8); return [[0, T.at(0.75, 0.6)], [1, b], [2, T.frozen(b, 2)], [3, T.lip(5, 2)]]; },
     check: r => upWhy(r, 1, 2, 3) },
+  /* Jump and Masse (group 'jump', .buildloop/spec/T5-jump-tricks.md): shots for the raised cue
+     (spin.e, 1a/1d). level grades them (easy, medium, hard: the solver's margin decides); elev is
+     the elevation the hint names, in whole degrees as the pad sets it; sweep is the solver's search
+     (tools/trick-solver.cjs): the elevations (degrees) and tips ([side, vertical]) to try. cueIn:
+     the cue ball's own pocket is the goal (pocket), so that drop is no scratch. A jump is read from
+     r.over (the balls the cue ball passed over before its first contact), a curve from r.kick (no
+     cushion before the first ball). */
+  { id: 'jhop', group: 'jump', level: 'easy', title: 'Jump Shot', elev: 50, pocket: 2,
+    goal: 'Jump the cue ball over the 2 and pot the 1 in the marked corner.',
+    sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
+    balls: T => { const b = T.lip(2, 10), c = T.cut(b, 2, 25, 30); return [[0, c], [1, b], [2, T.along(c, b, 0.22)]]; },
+    check: r => touched(r, 2) ? 'The 2 was touched.' : !jumped(r, 2) ? 'No jump: the cue ball has to fly over the 2.' : potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.' },
+  { id: 'jwall', group: 'jump', level: 'medium', title: 'Over the Wall', elev: 50, pocket: 2,
+    goal: 'Jump the wall of three and pot the 1 in the marked corner. Touch no wall ball.',
+    sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
+    balls: T => { const b = T.lip(2, 10), c = T.cut(b, 2, 30, 30); return [[0, c], [1, b], [2, T.along(c, b, 0.22, 2.0004)], [3, T.along(c, b, 0.22)], [4, T.along(c, b, 0.22, -2.0004)]]; },
+    check: r => wallWhy(r, [2, 3, 4]) || (!jumped(r, 3) && !jumped(r, 2) && !jumped(r, 4) ? 'No jump: fly the cue ball over the wall.' : potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
+  { id: 'jknievel', group: 'jump', level: 'hard', title: 'Evel Knievel', elev: 45, pocket: 2,
+    goal: 'Clear the row of four in one jump and pot the 1 in the marked corner.',
+    sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
+    balls: T => { const b = T.lip(2, 8), c = T.cut(b, 2, 15, 44); return [[0, c], [1, b], ...[2, 3, 4, 5].map((n, i) => [n, T.along(c, b, 0.22 + i * 0.075)])]; },
+    check: r => wallWhy(r, [2, 3, 4, 5]) || (!jumped(r, 2, 3, 4, 5) ? 'Clear every ball in the row.' : potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
+  { id: 'jbank', group: 'jump', level: 'hard', title: 'Jump and Bank', elev: 55,
+    goal: 'Jump the cue ball over the 2, then bank the 1 off a rail into any pocket.',
+    sweep: { e: [35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
+    balls: T => { const b = T.at(0.55, 0.12), c = T.at(0.35, 0.3); return [[0, c], [1, b], [2, T.along(c, b, 0.35)]]; },
+    check: r => touched(r, 2) ? 'The 2 was touched.' : !jumped(r, 2) ? 'No jump: the cue ball has to fly over the 2.' : upWhy(r, 1) || ((r.rails[1] || 0) < 1 ? 'No bank: the 1 must hit a rail.' : null) },
+  { id: 'jswerve', group: 'jump', level: 'hard', title: 'Half-Ball Swerve', elev: 20, pocket: 2,
+    goal: 'The 2 hides half the 1. Swerve round it and pot the 1 in the marked corner, no rail first.',
+    sweep: { e: [15, 20, 25, 30, 35], tips: [[0.6, 0], [-0.6, 0], [1, 0], [-1, 0], [0.8, 0.6], [-0.8, 0.6], [0.8, -0.6], [-0.8, -0.6]] },
+    balls: T => { const b = T.lip(2, 8), c = T.cut(b, 2, 0, 30); return [[0, c], [1, b], [2, T.along(c, b, 0.5, 1)]]; },
+    check: r => curveWhy(r, 2) || (potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
+  { id: 'jmingaud', group: 'jump', level: 'medium', title: 'Mingaud Massé', elev: 55, pocket: 2,
+    goal: 'The 2 sits right on the line. Massé round it, hard side and a little draw, and pot the 1.',
+    sweep: { e: [45, 50, 55, 60], tips: [[0.6, -0.8], [-0.6, -0.8], [0.8, -0.6], [-0.8, -0.6], [1, 0], [-1, 0], [0.8, 0], [-0.8, 0]] },
+    balls: T => { const b = T.lip(2, 4), c = T.cut(b, 2, 0, 16); return [[0, c], [1, b], [2, T.along(c, b, 0.3)]]; },
+    check: r => curveWhy(r, 2) || (potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
+  { id: 'jrail', group: 'jump', level: 'easy', title: 'Rail Massé', elev: 30, pocket: 5,
+    goal: 'The 2 is frozen to the rail. Massé out round it and back along the rail to pot the 1.',
+    sweep: { e: [30, 40, 50, 60], tips: [[0.6, 0], [-0.6, 0], [1, 0], [-1, 0], [0.6, 0.3], [-0.6, 0.3], [0.6, -0.3], [-0.6, -0.3]] },
+    balls: T => [[0, T.rail(0.62, 0.25)], [1, T.lip(5, 2.5)], [2, T.rail(0.76, 0.05)]],
+    check: r => curveWhy(r, 2) || (potIn(r, 1, [5]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
+  { id: 'jescape', group: 'jump', level: 'easy', title: 'Escape Massé', elev: 40, pocket: 3,
+    goal: 'The cue ball is trapped between the rail and the 2. Massé out without moving the 2 and pot the 1.',
+    sweep: { e: [30, 40, 50, 60], tips: [[0.6, 0], [-0.6, 0], [1, 0], [-1, 0], [0.6, 0.3], [-0.6, 0.3], [0.6, -0.3], [-0.6, -0.3]] },
+    balls: T => { const c = T.rail(0.25, 0.02); return [[0, c], [1, T.lip(3, 3)], [2, [c[0], c[1] - 2.0004 * BALL_R]]]; },
+    check: r => touched(r, 2) ? 'The 2 moved.' : jumped(r, 2) ? 'Massé round the 2, not over it.' : potIn(r, 1, [3]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.' },
+  { id: 'jboot', group: 'jump', level: 'medium', title: 'Massey\'s Boot', elev: 40, pocket: 2, cueIn: true,
+    goal: 'Mike Massey jumped a cue ball into a boot. Fly it over both guards into the marked corner, touching nothing.',
+    sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
+    balls: T => [[0, T.lip(2, 30)], [1, T.lip(2, 5.0002)], [2, T.lip(2, 2.9998)]],
+    check: r => r.contacts.length ? 'A ball was touched: the cue ball goes in on the fly.' : !jumped(r, 1) && !jumped(r, 2) ? 'No jump: fly the cue ball over the guards.' : potIn(r, 0, [2]) ? null : r.potted.includes(0) ? 'The cue ball went in the wrong pocket.' : 'The cue ball missed the pocket.' },
 ];
 const TRICK_SOLS = {
   long: { '7r': [-0.305433, 0.5, 0.6, 0], '9r': [-0.322886, 0.72, 0, 0], '7g': [-0.322886, 0.32, 0, 0], '9g': [-0.322886, 0.72, 0, 0] },
@@ -5009,6 +5083,15 @@ const TRICK_SOLS = {
   world: { '7r': [-0.855211, 0.85, 0, 0], '9r': [-0.898845, 0.6, 0, 0.6], '7g': [-0.855211, 0.85, 0, 0], '9g': [-0.890118, 0.72, 0, -0.6] },
   bank2: { '7r': [0.314159, 0.72, 0, 0.6], '9r': [0.322886, 0.85, 0.6, 0.6], '7g': [0.314159, 0.72, 0, 0.6], '9g': [0.296706, 0.85, -0.6, 0.6] },
   three: { '7r': [-0.829031, 1, 0.6, 0], '9r': [-1.064651, 1, 0, 0], '7g': [-0.951204, 0.85, 0, 0.6], '9g': [-0.942478, 0.72, 0, 1] },
+  jhop: { '7r': [-0.349066, 0.6, 0, -0.3, 50], '9r': [-0.349066, 0.6, 0, -0.3, 50], '7g': [-0.349066, 0.6, 0, -0.3, 50], '9g': [-0.349066, 0.6, 0, -0.3, 50] },
+  jwall: { '7r': [-0.261799, 0.56, 0, 0, 55], '9r': [-0.261799, 0.56, 0, 0, 45], '7g': [-0.261799, 0.56, 0, 0, 55], '9g': [-0.261799, 0.56, 0, 0, 50] },
+  jknievel: { '7r': [-0.523599, 0.72, 0, -0.3, 45], '9r': [-0.523599, 0.72, 0, -0.3, 45], '7g': [-0.523599, 0.72, 0, -0.3, 40], '9g': [-0.523599, 0.72, 0, -0.3, 40] },
+  jbank: { '7r': [-0.453786, 0.6, 0, -0.3, 55], '9r': [-0.453786, 0.6, 0, -0.3, 55], '7g': [-0.453786, 0.56, 0, 0, 55], '9g': [-0.453786, 0.6, 0, -0.3, 55] },
+  jswerve: { '7r': [-0.925025, 0.44, 0.8, -0.6, 20], '9r': [-0.925025, 0.44, 0.8, -0.6, 20], '7g': [-0.925025, 0.44, 0.8, -0.6, 20], '9g': [-0.925025, 0.44, 0.8, -0.6, 20] },
+  jmingaud: { '7r': [-1.553343, 0.52, 0.8, -0.6, 55], '9r': [-1.553343, 0.52, 0.8, -0.6, 55], '7g': [-1.361357, 0.44, 0.6, -0.8, 45], '9g': [-1.361357, 0.44, 0.6, -0.8, 45] },
+  jrail: { '7r': [-0.279253, 0.4, 0.6, 0, 30], '9r': [-0.244346, 0.56, 0.6, 0, 30], '7g': [-0.279253, 0.4, 0.6, 0, 30], '9g': [-0.261799, 0.4, 0.6, 0, 30] },
+  jescape: { '7r': [3.036873, 0.28, 0.6, 0, 40], '9r': [3.054326, 0.28, 0.6, 0, 30], '7g': [3.01942, 0.28, 0.6, 0, 40], '9g': [3.054326, 0.24, 0.6, 0, 30] },
+  jboot: { '7r': [-0.802851, 0.72, 0, 0, 40], '9r': [-0.802851, 0.72, 0, 0, 40], '7g': [-0.820305, 0.72, 0, 0, 40], '9g': [-0.820305, 0.72, 0, 0, 40] },
 };
 const trickById = id => TRICKS.find(c => c.id === id) || null;
 /* the layout's points for the current table: { n: [x, y] }, and the zone's centre */
@@ -5028,7 +5111,7 @@ function trickGame(c) {
 }
 /* judge one attempt: { ok, why } */
 function trickJudge(c, r) {
-  if (r.potted.includes(0)) return { ok: false, why: 'Scratch: the cue ball went down.' };
+  if (r.potted.includes(0) && !(c.cueIn && r.pocketOf[0] === c.pocket)) return { ok: false, why: r.pocketOf[0] === -1 ? 'The cue ball flew off the table.' : 'Scratch: the cue ball went down.' };
   const why = c.check(r, trickPoints(c));
   return why ? { ok: false, why } : { ok: true, why: '' };
 }
@@ -5037,8 +5120,14 @@ const trickStars = attempts => attempts <= 1 ? 3 : attempts <= 3 ? 2 : 1;
 /* the stored solution for the current table, as a shot, or null */
 function trickSol(c) {
   const s = (TRICK_SOLS[c.id] || {})[TABLE + (POCKETS_STYLE === 'generous' ? 'g' : 'r')];
-  return s ? { angle: s[0], power: s[1], spin: { x: s[2], y: s[3] } } : null;
+  return s ? { angle: s[0], power: s[1], spin: s[4] ? { x: s[2], y: s[3], e: s[4] * Math.PI / 180 } : { x: s[2], y: s[3] } } : null;
 }
+/* the trick list's groups, in order: the classics (no group) and the raised cue's shots */
+const TRICK_GROUPS = [{ id: 'classic', title: 'Classic Shots' }, { id: 'jump', title: 'Jump and Massé' }];
+const trickGroupOf = c => c.group || 'classic';
+const TRICK_LEVELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+/* what a challenge asks of the cue: the elevation to set, in a sentence (or '' on a level cue) */
+const trickHint = c => c.elev ? `Raise the cue to about ${c.elev}°.` : '';
 
 /* ---- 1i. shot moments: what a finished shot was, for the callouts and the game-over sheet ----
    shotMoments(g, r, n, run) reads the game before the shot (g), its result (r), the judged game
@@ -8378,7 +8467,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-31a';
+const BUILD = 'build 2026-10-31b';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -11720,6 +11809,8 @@ Object.defineProperties(felt, {
   replaying: { get: () => !!rp },
   replayOffer: { get: () => offer && { notable: offer.notable, label: replayLab.textContent, shown: !replayBtn.hidden } },
   cam: { get: () => ({ z: cam.z, x: cam.x, y: cam.y, mode: settings.camera, planned: !!(camPred && camPred.plan) }) },
+  /* the roll in play: each ball's height off the bed (jump shots, 1a), or null between shots */
+  airNow: { get: () => tab ? tab.balls.filter(b => b.on).map(b => ({ n: b.n, z: b.z || 0 })) : null },
 });
 
 /* ---- input ----
@@ -12218,6 +12309,7 @@ function setElev(deg) {
 }
 function openElev() {
   if (!spinOk()) return;
+  hideElevTip();
   elevPop.hidden = false;
   hudControls();
   const r = spinPad.getBoundingClientRect(), w = elevPop.offsetWidth, h = elevPop.offsetHeight, W = innerWidth, H = innerHeight;
@@ -12256,6 +12348,7 @@ elevPop.addEventListener('keydown', e => { if (e.key === 'Escape' || e.key === '
 elevLevel.addEventListener('click', () => { if (spinOk()) setElev(0); closeElev(); });
 addEventListener('pointerdown', e => { if (!elevPop.hidden && !elevPop.contains(e.target) && e.target !== spinPad) closeElev(); }, true);
 addEventListener('resize', closeElev);
+addEventListener('resize', () => { if (!elevTip.hidden) placeElevTip(); });
 
 /* pointing at the pad or the bar does not focus them, so the arrows keep aiming afterwards;
    Tab still reaches both */
@@ -12447,9 +12540,46 @@ function startTrick(id, again) {
   s.demo = false;
   if (solo && solo.kind === 'trick') s.power = markPower;
   beginSolo(() => trickGame(c), s);
-  flash('turn', c.title, c.goal, 2200);
-  say(`${c.title}. ${c.goal}`);
+  hideElevTip();
+  const hint = trickHint(c);
+  flash('turn', c.title, hint ? `${c.goal} ${hint}` : c.goal, 2200);
+  say(`${c.title}. ${c.goal}${hint ? ' ' + hint : ''}`);
+  if (hint) showElevTip();
 }
+/* The elevation tip: the first jump or masse challenge ever opened says where the raised cue is
+   (the english pad's hold, right click, Page Up and Down: 5 input), in a card by the pad, once.
+   It goes on Got It, when the elevation sheet opens, or once the turn is not the player's to aim
+   (hudControls); seen persists under ELEV_TIP_KEY ({ v: 1, seen }) the moment it shows, so it
+   never shows again. tests/lib.cjs marks it seen unless a suite opens with firstRun: true. */
+const ELEV_TIP_KEY = 'felt.elevTip.v1';
+let elevTipSeen = loadElevTip(), elevTipShows = 0;
+function loadElevTip() { try { const o = JSON.parse(localStorage.getItem(ELEV_TIP_KEY) || 'null'); return !!o && o.v === 1 && o.seen === true; } catch (e) { return false; } }
+function showElevTip() {
+  if (elevTipSeen || !spinOk()) return false;
+  elevTipSeen = true;
+  try { localStorage.setItem(ELEV_TIP_KEY, JSON.stringify({ v: 1, seen: true })); } catch (e) { }
+  elevTip.hidden = false; elevTipShows++;
+  placeElevTip();
+  say(elevTipText.textContent);
+  if (byKeys) elevTipOk.focus({ preventScroll: true });
+  return true;
+}
+/* beside the pad as the elevation sheet stands: over it upright, to its inner side on its side */
+function placeElevTip() {
+  const r = spinPad.getBoundingClientRect(), w = elevTip.offsetWidth, h = elevTip.offsetHeight, W = innerWidth, H = innerHeight;
+  let x, y;
+  if (document.documentElement.dataset.layout === 'portrait') { x = r.left + r.width / 2 - w / 2; y = r.top - h - 12; }
+  else { x = r.left + r.width / 2 > W / 2 ? r.left - w - 12 : r.right + 12; y = r.top + r.height / 2 - h / 2; }
+  elevTip.style.left = Math.round(clamp(x, 8, Math.max(8, W - w - 8))) + 'px';
+  elevTip.style.top = Math.round(clamp(y, 8, Math.max(8, H - h - 8))) + 'px';
+}
+function hideElevTip() {
+  if (elevTip.hidden) return;
+  const had = elevTip.contains(document.activeElement);
+  elevTip.hidden = true;
+  if (had) spinPad.focus({ preventScroll: true });
+}
+elevTipOk.addEventListener('click', () => hideElevTip());
 function pushUndo() {
   solo.undo.push(copyGame(game));
   if (solo.undo.length > UNDO_MAX) solo.undo.shift();
@@ -12586,15 +12716,25 @@ function showTricks() {
   closeSolo(); menu.classList.remove('show'); over.classList.remove('show');
   if (game.mode === 'trick' && !paused) { solo = null; state = 'menu'; game = newGame('8'); hud(); }
   const cards = TRICKS.map((c, i) => {
-    const b = document.createElement('button'), s = trickBest[c.id] || 0;
+    const b = document.createElement('button'), s = trickBest[c.id] || 0, lv = TRICK_LEVELS[c.level];
     b.className = 'tcard'; b.dataset.id = c.id;
-    b.innerHTML = `<span class="no">${i + 1}</span><b></b><span class="stars" aria-label="${s} of 3 stars">${starsHtml(s)}</span>`;
+    b.innerHTML = `<span class="no">${i + 1}${lv ? `<span class="lvl">${lv}</span>` : ''}</span><b></b><span class="stars" aria-label="${s} of 3 stars">${starsHtml(s)}</span>`;
     b.querySelector('b').textContent = c.title;
-    b.title = c.goal;
+    b.title = c.goal + (trickHint(c) ? ' ' + trickHint(c) : '');
     b.addEventListener('click', () => { audioOn(); startTrick(c.id); });
     return b;
   });
-  trickGrid.replaceChildren(...cards);
+  /* a group a section: its head (the HIG group header) over its grid of cards */
+  trickGrid.replaceChildren(...TRICK_GROUPS.map(gr => {
+    const sec = document.createElement('section'), h = document.createElement('h3'), grid = document.createElement('div');
+    sec.className = 'tgroup'; sec.dataset.group = gr.id;
+    h.className = 'ghead'; h.textContent = gr.title; h.id = 'tgHead-' + gr.id;
+    sec.setAttribute('aria-labelledby', h.id);
+    grid.className = 'tgrid';
+    grid.append(...cards.filter((_, i) => trickGroupOf(TRICKS[i]) === gr.id));
+    sec.append(h, grid);
+    return sec;
+  }).filter(sec => sec.lastChild.childElementCount));
   tricksSub.textContent = `${starTotal()} of ${TRICKS.length * 3} stars. Three for a make on the first try, two within three tries, one for any make.`;
   tricks.classList.add('show');
   if (byKeys) cards[0].focus({ preventScroll: true });
@@ -12666,7 +12806,7 @@ function hudSoloMenu() {
     const c = trickById(s.id);
     soloKind.textContent = s.daily ? `Daily shot, ${dayWords(s.daily.day)}` : `Trick shot ${TRICKS.indexOf(c) + 1} of ${TRICKS.length}`;
     soloTitle.textContent = c.title;
-    soloGoal.textContent = c.goal;
+    soloGoal.textContent = c.goal + (trickHint(c) ? ' ' + trickHint(c) : '');
     cells.push(['Tries', s.attempts], ['Best', `${trickBest[c.id] || 0} of 3`], ['All stars', `${starTotal()}/${TRICKS.length * 3}`]);
   }
   const key = JSON.stringify(cells);
@@ -12709,8 +12849,11 @@ const dayNum = s => { const [y, m, d] = s.split('-').map(Number); return Math.ro
 /* a 'YYYY-MM-DD' that names a real date ('2026-13-45' does not: Date.UTC would wrap it) */
 const realDay = s => { if (!DAY_RE.test(s)) return false; const [y, m, d] = s.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === d; };
 const dayWords = s => `${+s.slice(8)} ${MONTHS[+s.slice(5, 7) - 1]}`;
-/* five shots on each day (5 and the list's 14 share no factor): every shot in turn, never one twice running */
-const dailyTrick = (day = today()) => { const L = TRICKS.length; return TRICKS[(((dayNum(day) * 5) % L) + L) % L]; };
+/* five shots on each day (5 and the list's 14 share no factor): every shot in turn, never one twice running.
+   The daily is one of the classic shots (no group): a jump or masse needs the raised cue, taught in
+   its own group, and the classics' rotation stays as it was */
+const DAILY_TRICKS = TRICKS.filter(c => !c.group);
+const dailyTrick = (day = today()) => { const L = DAILY_TRICKS.length; return DAILY_TRICKS[(((dayNum(day) * 5) % L) + L) % L]; };
 let dailyRec = loadDaily();
 function loadDaily() {
   const d = { last: null, streak: 0, best: 0, made: false };
@@ -12805,6 +12948,7 @@ Object.defineProperties(felt, {
   solo: { get: () => solo },
   trickBest: { get: () => Object.assign({}, trickBest) },
   trickTries: { get: () => Object.assign({}, trickTries) },
+  elevTip: { get: () => ({ seen: elevTipSeen, shown: !elevTip.hidden, shows: elevTipShows }) },
   dailyRec: { get: () => Object.assign({}, dailyRec, { streakNow: dailyStreak() }) },
 });
 
@@ -16467,6 +16611,7 @@ const spinWords = s => {
 };
 /* the cheap part of the hud, called on every drag */
 function hudControls() {
+  if (!elevTip.hidden && !spinOk()) hideElevTip();
   const vert = document.documentElement.dataset.layout !== 'portrait', live = !!pull;
   const shown = live ? power : 0, pct = Math.round(shown * 100);
   powerFill.style.width = vert ? '' : pct + '%';

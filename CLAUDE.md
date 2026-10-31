@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `32/32 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `33/33 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -44,6 +44,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   which globals, and the exported shapes (`CUSH`, `CUSHION_POLYS`, `POCKETS`, `POCKET_R`, `POCKET_AIM`, `spinOf`).
 - Practice and trick shots: `game.mode` (`'practice' | 'trick'`), sim 1e+ and 1h, page section 5s; contract in
   `.buildloop/spec/T2.3-solo.md`. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
+  Two groups (`TRICK_GROUPS`, the list's `.tgroup` heads): the 14 classics (no `group`; the daily shot draws only from
+  them, `DAILY_TRICKS`) and Jump and Massé (`group: 'jump'`, contract and research `.buildloop/spec/T5-jump-tricks.md`):
+  each has a `level`, an `elev` in whole degrees for the hint (`trickHint`) and a `sweep` (elevations, tips) the solver
+  searches; its `TRICK_SOLS` entries carry a fifth field, the elevation in degrees, and the file's `margin` table
+  records each one's makes in the sweep (at least 20 on every table). `cueIn` (Massey's Boot) makes the cue ball's
+  own pocket the goal. The first jump challenge ever opened shows the elevation tip once (`#elevTip`,
+  `felt.elevTip.v1`; `tests/lib.cjs` marks it seen unless `firstRun: true`). Pinned by `jumptricks-check`.
 - Lesson and career: page section 6d (before boot). The lesson is a solo session (`solo.kind === 'lesson'`) that
   only watches the ordinary controls. The career screens (`careerSheet`, a stack of push pages in `PAGES`, rebuilt
   from `Career` reads by `cvRender`) sit over the engine below; the old 8-player ladder is gone, its record
@@ -85,7 +92,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   the cue ball jumped before its first contact, present only then), cushions cleared above `cushionTop()`, no drop
   until it lands, past the noses away from a mouth off the table (`offTable`: pocketOf -1, hit `'off'`). Under the
   threshold every result is byte for byte the old one (physics-check rebuilds the sim without the jump to prove it);
-  no stored solution uses elevation. The guide draws the jump's arc (`drawJumpArc`, the preview's `air`); the 2D
+  only the Jump and Massé trick shots' stored solutions use elevation. The guide draws the jump's arc (`drawJumpArc`, the preview's `air`); the 2D
   view draws a flying ball larger with its shadow lifted (`drawCast(..., z)`, `airOf`, `airScale`); the 3D view reads `b.z`; the arc is drawn top-down only (skipped while the 3D view is live).
 - Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.

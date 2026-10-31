@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* railbar-check: the bottom rail's row (page 6b2, placeRail): the 3D switch, snooker's scoreboard and the
+/* railbar-check: the bottom rail's row (page 6b2, placeRail): the 3D switch, the score keeper, snooker's scoreboard and the
    replay (its offer pill, the badge and Skip while one plays) sit together on the rail nearest the player,
    top-down on the table's bottom rail and in 3D on the stage's bottom row (V3_PIN_B).
    For every game and table (8-ball 7 ft and 9 ft, 9, 10, 14.1, rotation, bumper octagon and rectangle,
@@ -10,7 +10,8 @@
    - no item overlaps another; every target is 44 px and inside the stage;
    - top-down every item sits on the bottom rail (the scoreboard on it in snooker), in 3D on the bottom row;
    - the scoreboard shows whenever the replay does not (and gives way first when the rail is short).
-   Then the replay playing (the badge and Skip), and what rises clear of the row: the call bar (WPA 10-ball),
+   The score keeper (the players' chips) is always on the row, whole; a party of three and four too.
+   Then the replay playing (Skip, and its badge where there is room), and what rises clear of the row: the call bar (WPA 10-ball),
    the exhibition's bar, the practice tools and a tutorial's coach card. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
@@ -41,11 +42,11 @@ function audit() {
   });
   const box = q => ({ l: q.left, t: q.top, r: q.right, b: q.bottom });
   const items = [];
-  for (const el of [viewBtn, snkBar, replayBtn, replayBadge, replaySkip]) {
+  for (const el of [viewBtn, turnChip, snkBar, replayBtn, replayBadge, replaySkip]) {
     if (el.hidden || getComputedStyle(el).visibility === 'hidden') continue;
     const t = el.getBoundingClientRect();
     if (!t.width) continue;
-    const pill = el === snkBar ? t : el.firstElementChild.getBoundingClientRect();
+    const pill = el === snkBar || el === turnChip ? t : el.firstElementChild.getBoundingClientRect();
     items.push({ id: el.id, target: box(t), pill: box(pill), button: el.tagName === 'BUTTON' });
   }
   const fails = [];
@@ -67,7 +68,8 @@ function audit() {
     if (live ? cy < st.bottom - 52 || cy > st.bottom : cy < R.bottom - rail - 1 || cy > R.bottom + 1) fails.push(`${it.id} off the ${live ? 'bottom row' : 'bottom rail'} (${cy.toFixed(1)})`);
   }
   return { live, fails, items: items.map(i => [i.id, Math.round(i.pill.l), Math.round(i.pill.r), Math.round((i.pill.t + i.pill.b) / 2)]), holes: holes.length,
-    snk: !snkBar.hidden, snkShown: items.some(i => i.id === 'snkBar'), view: items.some(i => i.id === 'viewBtn'), offer: items.some(i => i.id === 'replayBtn'), text: snkBar.textContent };
+    chips: items.some(i => i.id === 'turnChip') && [...turnChip.querySelectorAll('.pchip')].filter(c => !c.hidden).every(c => c.scrollWidth <= c.clientWidth + 0.5),
+    free: felt.railBar.free, snk: !snkBar.hidden, snkShown: items.some(i => i.id === 'snkBar'), view: items.some(i => i.id === 'viewBtn'), offer: items.some(i => i.id === 'replayBtn'), text: snkBar.textContent };
 }
 /* the replay's offer as frame() makes it after a shot (the pill, its words), held for the check */
 function offerNow(notable) {
@@ -82,7 +84,7 @@ function clearOfRow(sel) {
   if (!el || el.hidden || !el.getClientRects().length) return { shown: false };
   const q = el.getBoundingClientRect(), st = stage.getBoundingClientRect();
   if (q.left < st.left - 0.5 || q.right > st.right + 0.5) return { shown: true, hits: ['outside the stage'], rect: [q.left, q.right] };
-  const hits = [viewBtn, snkBar, replayBtn, replayBadge, replaySkip].filter(e => !e.hidden && getComputedStyle(e).visibility !== 'hidden').map(e => [e.id, e.getBoundingClientRect()])
+  const hits = [viewBtn, turnChip, snkBar, replayBtn, replayBadge, replaySkip].filter(e => !e.hidden && getComputedStyle(e).visibility !== 'hidden').map(e => [e.id, e.getBoundingClientRect()])
     .filter(([, r]) => r.width && q.left < r.right - 0.5 && q.right > r.left + 0.5 && q.top < r.bottom - 0.5 && q.bottom > r.top + 0.5).map(([id]) => id);
   return { shown: true, hits, rect: [q.left, q.top, q.right, q.bottom].map(Math.round) };
 }
@@ -101,7 +103,8 @@ function clearOfRow(sel) {
       await frames(page, 3);
       const a = await page.evaluate(audit);
       if (a.live !== (view === '3d')) bad.push(`${name}: 3D ${a.live}`);
-      if (!a.view) bad.push(`${name}: no 3D switch`);
+      if (!a.view && a.free >= 50) bad.push(`${name}: no 3D switch, with ${Math.round(a.free)} px free`);
+      if (!a.chips) bad.push(`${name}: the score keeper is not on the row whole`);
       if (kind === 'snooker' && !a.snkShown) snkOff.push(name);
       a.fails.forEach(f => bad.push(`${name}: ${f}`));
       for (const notable of [false, true]) {
@@ -109,6 +112,7 @@ function clearOfRow(sel) {
         await page.waitForTimeout(350);   /* the pill scales in over 200 ms (rplIn) */
         const b = await page.evaluate(audit);
         if (!b.offer) bad.push(`${name}: the replay pill does not show${notable ? ' (gold)' : ''}`);
+        if (!b.chips) bad.push(`${name}: the score keeper gave way to the replay`);
         b.fails.forEach(f => bad.push(`${name} with the replay${notable ? ' (gold)' : ''}: ${f}`));
         if (kind === 'snooker' && !notable) seen.push(`${name}: ${b.snkShown ? 'scoreboard kept' : 'scoreboard gives way'}`);
       }
@@ -118,16 +122,40 @@ function clearOfRow(sel) {
       bad.length === 0, bad.slice(0, 8).join(' | '));
     check(`${size}: snooker's scoreboard shows on the ${view === '3d' ? 'bottom row' : 'bottom rail'} on both snooker tables (${seen.join(', ')})`, snkOff.length === 0, snkOff.join());
 
+    /* the controls: the chips gone from the strip, the fine-aim wheel takes their room (upright wide, on its side
+       tall), every control 44 px and on screen, the power bar still the biggest */
+    const ctlr = await page.evaluate(() => {
+      felt.start('8', { level: 'easy' });
+      const R = e => e.getBoundingClientRect(), wl = R(fineWheel), bar = R(powerBar), port = document.documentElement.dataset.layout === 'portrait';
+      const ctls = [menuBtn, spinPad, powerBar, fineWheel].map(R);
+      return { port, wheel: [Math.round(wl.width), Math.round(wl.height)], bar: [Math.round(bar.width), Math.round(bar.height)], offStrip: !ctl.contains(turnChip),
+        ok: ctls.every(r => Math.min(r.width, r.height) >= 44 && r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5),
+        barBig: ctls.every(r => r === ctls[2] || r.width * r.height < bar.width * bar.height) };
+    });
+    check(`${size}: the controls: no chips in the strip, the fine-aim wheel wide upright, tall on its side (${ctlr.wheel.join('x')}), the bar the biggest (${ctlr.bar.join('x')}), all 44 px and on screen`,
+      ctlr.offStrip && ctlr.ok && ctlr.barBig && (ctlr.port ? ctlr.wheel[0] >= 72 : ctlr.wheel[1] >= 112), JSON.stringify(ctlr));
     /* the replay playing: the badge and Skip on the row, Skip a 44 px target, apart and off the pockets (replays are drawn top-down) */
     await page.evaluate(() => { felt.start('8', { level: 'easy' }); felt.speed = 8; felt.shoot(0.02, 0.6, { x: 0, y: 0 }); });
     await page.waitForFunction(() => felt.state === 'aim' || felt.state === 'thinking' || felt.state === 'choose', null, { timeout: 30000 }).catch(() => { });
     const rp0 = await page.evaluate(() => { felt.speed = 0.05; return felt.replay(); });
     await page.waitForTimeout(500);   /* past the badge's and Skip's scale-in (rplIn) on a slow runner */
     const rp1 = await page.evaluate(audit);
-    const both = rp1.items.some(i => i[0] === 'replayBadge') && rp1.items.some(i => i[0] === 'replaySkip');
-    check(`${size}: a replay playing: its badge and Skip on the bottom rail, apart, off the pockets`, rp0 && both && rp1.fails.length === 0, JSON.stringify({ rp0, items: rp1.items, fails: rp1.fails }));
+    /* Skip always (the badge is only a label: it gives way on a short rail), the score keeper too */
+    const both = rp1.items.some(i => i[0] === 'replaySkip') && rp1.items.some(i => i[0] === 'turnChip') && (rp1.items.some(i => i[0] === 'replayBadge') || rp1.free < 50);
+    check(`${size}: a replay playing: Skip (and its badge where there is room) on the bottom rail with the score keeper, apart, off the pockets`, rp0 && both && rp1.fails.length === 0, JSON.stringify({ rp0, items: rp1.items, fails: rp1.fails }));
     await page.evaluate(() => { felt.skipReplay(); felt.speed = 8; });
 
+    /* a party of three and four (6f): every player's chip on the rail, whole, off the pockets */
+    const party = [];
+    for (const n of [3, 4]) {
+      await page.evaluate(n => { felt.party({ ruleset: 'rotation-ring', names: ['Ann', 'Bob', 'Cy', 'Dee'].slice(0, n) }); hoGo.click(); game.score = game.score.map((_, i) => 10 * i + 5); hud(); }, n);
+      await frames(page, 3);
+      const a = await page.evaluate(audit);
+      const shown = await page.evaluate(() => [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => e.textContent).join());
+      party.push({ n, shown, chips: a.chips, fails: a.fails });
+    }
+    check(`${size}: a party of three and four: every chip (name and points) on the row, whole, off the pockets`,
+      party.every(q => q.chips && q.fails.length === 0 && q.shown.split(',').length === q.n), JSON.stringify(party));
     /* what rises clear of the row: the call bar, the exhibition's bar, the practice tools, the coach's card */
     const clear = [];
     await page.evaluate(() => {

@@ -254,13 +254,15 @@ const artContrast = page => page.evaluate(() => {
         && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
       const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
       return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),
-        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout } };
+        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout,
+          onRail: (() => { const t = felt.tableRect(), y = chip.top + chip.height / 2; return turnChip.parentElement === stage && y >= t.bottom - RAIL * felt.view.k - 1 && y <= t.bottom + 1; })() } };
     }));
   }
   check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));
   check('the status line stays for screen readers: visually hidden, role status, aria-live polite', clean.every(c => c.msg.w <= 1 && c.msg.h <= 1 && c.msg.live === 'polite' && c.msg.role === 'status'), JSON.stringify(clean.map(c => c.msg)));
-  check('two player chips, the active one lit; in the strip they are as tall as the controls, in a column as wide', clean.every(c => c.chip.shown && c.chip.name === 'You' && c.chip.chips.length === 2 && c.chip.chips[0].on && !c.chip.chips[1].on
-    && c.chip.chips[1].name === 'CPU' && c.chip.chips.every(k => (c.chip.layout === 'portrait' ? k.h === 56 : k.h >= 36) && k.w >= 34)), JSON.stringify(clean.map(c => c.chip)));
+  check('two player chips, the active one lit, in the score keeper on the table\'s bottom rail (6b2): each chip a slim row, name and all, on the rail',
+    clean.every(c => c.chip.shown && c.chip.name === 'You' && c.chip.chips.length === 2 && c.chip.chips[0].on && !c.chip.chips[1].on
+    && c.chip.chips[1].name === 'CPU' && c.chip.onRail && c.chip.chips.every(k => k.h >= 18 && k.w >= 34)), JSON.stringify(clean.map(c => c.chip)));
 
   /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
      every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or
@@ -271,7 +273,8 @@ const artContrast = page => page.evaluate(() => {
     await page.waitForTimeout(150);
     lays.push(await page.evaluate(() => {
       const t = felt.tableRect(), R = el => el.getBoundingClientRect(), hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
-      const els = { chip: R(turnChip), menu: R(menuBtn), pad: R(spinPad), bar: R(powerBar), wheel: R(fineWheel), ctl: R(ctl), banner: R(stage) };
+      /* the score keeper (6b2) is on the table's bottom rail by design: railbar-check keeps it off the pockets */
+      const els = { menu: R(menuBtn), pad: R(spinPad), bar: R(powerBar), wheel: R(fineWheel), ctl: R(ctl), banner: R(stage) };
       const over = Object.keys(els).filter(k => k !== 'banner' && hit(els[k], t));
       const out = Object.keys(els).filter(k => els[k].left < -0.5 || els[k].top < -0.5 || els[k].right > innerWidth + 0.5 || els[k].bottom > innerHeight + 0.5);
       const small = ['menu', 'pad', 'bar', 'wheel'].filter(k => Math.min(els[k].width, els[k].height) < 44);
@@ -342,7 +345,7 @@ const artContrast = page => page.evaluate(() => {
       if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
       st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
       relayout();
-      const t = felt.tableRect(), rs = [menuBtn, turnChip, spinPad, powerBar, fineWheel].map(el => el.getBoundingClientRect());
+      const t = felt.tableRect(), rs = [menuBtn, spinPad, powerBar, fineWheel].map(el => el.getBoundingClientRect());
       const c = { left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), top: Math.min(...rs.map(r => r.top)), bottom: Math.max(...rs.map(r => r.bottom)) };
       const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
       const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };

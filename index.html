@@ -119,7 +119,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #t3d { position: fixed; left: 0; top: 0; display: block; pointer-events: none; }
 #t3d[hidden] { display: none; }
 /* its switch: a 44 px target on the bottom rail with the scoreboard and the replay (placeRail, 6b), a small capsule inside */
-#viewBtn { position: absolute; z-index: 1; left: 0; top: 0; width: 52px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto;
+#viewBtn { position: absolute; z-index: 1; left: 0; top: 0; width: 44px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto;
   transform: translate(-50%, -50%); }
 #viewBtn[hidden] { display: none; }
 #viewBtn > span { display: grid; place-items: center; min-width: 40px; height: min(28px, var(--ph, 28px)); translate: 0 var(--py, 0px); padding: 0 9px; border-radius: 14px; font-size: 13px; font-weight: 700; letter-spacing: .02em;
@@ -138,17 +138,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* text only a screen reader needs: the status line (#msg, live) and the english in words */
 .sr { position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
-/* portrait: the table edge to edge, one strip under it: english, power (the biggest), fine
-   aim, the turn chip and pause */
+/* portrait: the table edge to edge, one strip under it: english, power (the biggest), the fine
+   aim wheel (wide, where the turn chips stood before they moved onto the rail: 6b2) and pause */
 [data-layout="portrait"] #ui { grid-template: "stage" minmax(0, 1fr) "ctl" 56px / minmax(0, 1fr); }
 [data-layout="portrait"] #ctl { flex-direction: row; gap: 4px; }
 [data-layout="portrait"] #spinBox { order: 1; }
-[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 150px; }   /* fonts must not shrink the shot meter: the chip gives way */
-[data-layout="portrait"] #fineWheel { order: 3; height: 56px; }
-[data-layout="portrait"] #turnChip { order: 4; height: 56px; }
-[data-layout="portrait"] .pchip { width: 34px; height: 56px; }
+[data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 150px; }   /* fonts must not shrink the shot meter */
+[data-layout="portrait"] #fineWheel { order: 3; flex: 1 1 72px; min-width: 44px; max-width: 96px; height: 56px; }   /* the practice strip's undo and tools take some back */
 /* under 390 px wide the meter gives a little so pause stays on screen; short landscape trims the column */
-@media (max-width: 389px) { [data-layout="portrait"] #powerBar { min-width: 136px; } [data-layout="portrait"] .pchip { width: 32px; } }
+@media (max-width: 389px) { [data-layout="portrait"] #powerBar { min-width: 136px; } }
 [data-layout="portrait"] #menuBtn { order: 5; width: 44px; height: 56px; }
 [data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
 /* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
@@ -159,35 +157,39 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #menuBtn { width: var(--col); height: 44px; }
 [data-layout="wide"] #spinPad { width: var(--col); height: var(--col); }
 [data-layout="wide"] #powerBar { flex: 1; width: var(--col); min-height: 120px; }
-[data-layout="wide"] #fineWheel { width: var(--col); height: 84px; }
+[data-layout="wide"] #fineWheel { width: var(--col); height: 140px; }
 /* a bigger screen: a roomier frame and a wider column */
 @media (min-width: 700px) and (min-height: 600px) {
   [data-layout="wide"] #ui { --col: 64px; gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
   [data-layout="wide"] #ctl { gap: 10px; padding-bottom: 0; }
   [data-layout="wide"] #menuBtn { height: 48px; }
   [data-layout="wide"] #powerBar { max-height: 440px; }
-  [data-layout="wide"] #fineWheel { height: 104px; }
+  [data-layout="wide"] #fineWheel { height: 200px; }
   [data-layout="portrait"] #ui { gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); grid-template-rows: minmax(0, 1fr) 60px; }
   [data-layout="portrait"] #ctl { gap: 10px; }
   [data-layout="portrait"] #spinPad { width: 60px; height: 60px; }
   [data-layout="portrait"] #powerBar, [data-layout="portrait"] #fineWheel, [data-layout="portrait"] #menuBtn { height: 60px; }
 }
 
-/* ---- the player chips: one per player, as tall as the controls beside them: a short name over
-   what they are on (a ball of their group, one of each on an open table, the 8 once the group is
-   gone; in 9-ball the ball on, for the player to shoot). The player to shoot is lit with the turn
-   marker; a chip pulses while the CPU thinks and takes the illegal colour on two fouls. ---- */
-#turnChip { flex: none; display: flex; gap: 4px; }
+/* ---- the score keeper: a slim bar on the bottom rail (placed by placeRail, 6b2, with the 3D switch,
+   snooker's scoreboard and the replay), a chip per player: a short name and what they are on (a
+   ball of their group, one of each on an open table, the 8 once the group is gone; in 9-ball the
+   ball on, for the player to shoot; the score and race where the game counts points). The player
+   to shoot is lit with the turn marker; a chip pulses while the CPU thinks and takes the illegal
+   colour on two fouls. ---- */
+#turnChip { position: absolute; z-index: 1; left: 50%; top: 12px; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 2px; padding: 2px;
+  border-radius: 999px; background: rgba(15, 15, 16, .9); border: 1px solid var(--line); pointer-events: none; }
 #turnChip[hidden] { display: none; }
 .pchip[hidden] { display: none; }   /* .pchip's display: flex would otherwise beat the hidden attribute */
-.pchip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0;
-  border-radius: 12px; background: var(--panel); border: 1.5px solid var(--line); opacity: .62; font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
+.pchip { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 5px; min-width: 0; height: 20px; padding: 0 8px;
+  border-radius: 999px; background: transparent; border: 1px solid transparent; opacity: .62; font-size: 12px; font-weight: 700; line-height: 1; white-space: nowrap; }
 .pchip.on { opacity: 1; border-color: var(--signal); background: var(--panel-2); box-shadow: inset 0 0 0 1px rgba(192, 57, 43, .35); }
 .pchip .pn { max-width: 100%; overflow: hidden; text-overflow: clip; }
 .pchip .pb { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 12px; }
+.pchip .pb:empty { display: none; }
 .pchip .dot { width: 12px; height: 12px; }
 .pchip .dot.ring { margin: 0 1px; }
-.pchip .num { margin-left: 2px; font-variant-numeric: tabular-nums; }
+.pchip .num { margin-left: 1px; font-variant-numeric: tabular-nums; }
 /* carom: the points in the player's ball colour, then the race, smaller */
 .pchip .num.c40, .pchip .num.c41 { margin: 0; font-size: 13px; }
 .pchip .num.c40 { color: #f7f4ea; }
@@ -197,25 +199,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pchip.warn .pn { color: var(--illegal); }
 .pchip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
 @keyframes chipPulse { 50% { border-color: #8a8a94; background: var(--panel-3); } }
-[data-layout="wide"] #turnChip { flex-direction: column; width: var(--col); }
-[data-layout="wide"] .pchip { width: var(--col); height: 42px; }
-/* a short landscape screen: the column trims chips, wheel and the meter's floor so it all fits */
-@media (max-height: 420px) { [data-layout="wide"] .pchip { height: 38px; } [data-layout="wide"] #fineWheel { height: 64px; } [data-layout="wide"] #powerBar { min-height: 96px; } }
-/* a party of three or four (6f, .many): every player's chip in the room two take. Portrait: two
-   by two, each a short name over its score or ball on; landscape: a slim row each down the column.
-   The race (.of) is left to the pause menu, which lists everyone. */
-#turnChip.many .pchip { gap: 2px; border-radius: 9px; font-size: 11px; }
-#turnChip.many .pchip .dot { width: 10px; height: 10px; }
-#turnChip.many .pchip .num { margin-left: 0; }
+/* a short landscape screen: the column trims the wheel and the meter's floor so it all fits */
+@media (max-height: 420px) { [data-layout="wide"] #fineWheel { height: 112px; } [data-layout="wide"] #powerBar { min-height: 96px; } }
+/* a party of three or four (6f, .many): every player's chip on the rail, closer set; the race (.of)
+   is left to the pause menu, which lists everyone */
+#turnChip.tight .pchip { padding: 0 5px; gap: 3px; }
+#turnChip.many .pchip { padding: 0 4px; gap: 2px; font-size: 11px; }
 #turnChip.many .pchip .of { display: none; }
-#turnChip.many .pchip .pb { min-height: 10px; }
-[data-layout="portrait"] #turnChip.many { display: grid; grid-template-columns: repeat(2, auto); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 3px; }
-[data-layout="portrait"] #turnChip.many .pchip { height: auto; min-height: 0; }
-[data-layout="wide"] #turnChip.many { gap: 3px; }
-[data-layout="wide"] #turnChip.many .pchip { height: 24px; flex-direction: row; gap: 3px; padding: 0 2px; }
-/* a slim row has room for a name and a score: the ball on stays on the table (and the lit chip) */
-[data-layout="wide"] #turnChip.many .pb:has(.num) .dot { display: none; }
-@media (max-height: 420px) { [data-layout="wide"] #turnChip.many .pchip { height: 21px; } }
 
 /* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
 #gameNow { margin: 0 0 14px; }
@@ -291,6 +281,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #replayBadge { pointer-events: none; }
 #replayBadge i { font-style: normal; color: var(--muted); padding-left: 6px; border-left: 1px solid #55555e; }
 #replaySkip > span { padding: 0 14px; }
+/* a short rail (placeRail): the icon alone, its words in the label */
+.rpl.bare > span, #replayBtn.bare > span, #replaySkip.bare > span { padding: 0 9px; }
+.rpl.bare b, .rpl.bare i { display: none; }
+#replaySkip.bare b { display: inline; }
 @keyframes rplIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.94); } }
 #powerBar.rp { cursor: default; border-style: dashed; background: var(--panel); }
 #powerBar.rp:not(.live) #powerLab::after { content: none; }
@@ -1384,17 +1378,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .cc, .cc:active { transition: none; transform: none; } }
 
 /* ---- snooker: the scoreboard on the bottom rail (the break, the ball on, the points left; placeRail
-   gives it its place and its width, ending in an ellipsis when the rail is short), the concession in
+   gives it its place, setting it closer and dropping its least parts when the rail is short), the concession in
    the pause menu, the setup's red ball ---- */
-#snkBar { position: absolute; z-index: 1; top: 12px; left: 50%; transform: translate(-50%, -50%); display: block; max-width: calc(100% - 8px); overflow: hidden; text-overflow: ellipsis;
+#snkBar { position: absolute; z-index: 1; top: 12px; left: 50%; transform: translate(-50%, -50%); display: block; max-width: calc(100% - 8px); overflow: hidden;
   padding: 2px 10px; border-radius: 999px; background: rgba(15, 15, 16, .9); border: 1px solid var(--line); font-size: 12px; line-height: 16px; font-weight: 600;
   color: var(--text); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
 #snkBar[hidden] { display: none; }
 #snkBar span { display: inline-flex; align-items: center; gap: 4px; vertical-align: top; }
 #snkBar span + span { margin-left: 10px; }
-/* a short rail: closer set before it ends in an ellipsis */
+/* a short rail: closer set, then its least part dropped (placeRail) */
 #snkBar.tight { padding: 2px 8px; }
 #snkBar.tight span + span { margin-left: 6px; }
+#snkBar span.cut { display: none; }
 #snkBar .k { color: var(--muted); font-weight: 500; }
 #snkBar .dot { width: 10px; height: 10px; }
 #snkBar .warn { color: var(--illegal); }
@@ -1528,6 +1523,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   <div id="stage"><div id="banner" aria-hidden="true"><b id="bannerHead"></b><span id="bannerSub"></span></div>
     <div id="callout" aria-hidden="true"><span id="calloutText"></span></div>
     <div id="snkBar" aria-hidden="true" hidden></div>
+    <!-- the score keeper (6b2): a chip per player on the bottom rail, the player to shoot lit -->
+    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pb"></span></div></div>
     <!-- the called shot (section 5c): what is called, the shot-type flags (custom detail), Safety and Push out -->
     <div id="callBar" role="group" aria-label="Your call" hidden>
       <button id="callPill"><span id="callText">Call your shot</span><small id="callSub">Tap a ball, then a pocket</small></button>
@@ -1556,7 +1553,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <button class="icon" id="undoBtn" aria-label="Undo the last shot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <button class="icon" id="toolBtn" aria-label="Practice tools: ball in hand, reset, edit" aria-expanded="false" aria-controls="tools"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></button>
     </div>
-    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pb"></span></div></div>
     <div id="spinBox">
       <div id="spinPad" role="slider" tabindex="0" aria-label="English: where the cue tip hits the cue ball. Arrow keys move it, R centres it. Hold it, right click it or press Page Up and Page Down to raise the cue." aria-valuetext="center"><span id="spinTip"></span><span id="elevTag" aria-hidden="true" hidden></span></div>
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
@@ -8427,7 +8423,7 @@ let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
 const V3_PIN_B = 26;
 /* the bottom rail's row (placeRail, 6b): RAIL_PAD px kept clear of each pocket's hole and jaws, RAIL_GAP px between
    two of its items, and the scoreboard never narrower than SNK_MIN px (it gives way to the others first) */
-const RAIL_PAD = 6, RAIL_GAP = 6, SNK_MIN = 110;
+const RAIL_PAD = 4, RAIL_GAP = 6, SNK_MIN = 110;
 const V3_PITCH = [8, 70], V3_DIST = [0.45, 3.2], V3_PITCH0 = 24, V3_DIST0 = 1.1;
 const V3 = { ok: null, gl: null, live: false, flat: false, soft: false, renderer: '', yaw: 0, px: NaN, py: NaN, seat: { shot: undefined, turn: -1, plan: null, set: false },
   cuts: 0, k: 100, cam: null, box: null, scale: 1, ms: [], frames: 0, poses: [], lost: false,
@@ -8481,7 +8477,7 @@ function appSize() {
   if (!sizeProbe) {
     sizeProbe = document.createElement('div');
     sizeProbe.setAttribute('aria-hidden', 'true');
-    sizeProbe.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;visibility:hidden;pointer-events:none;z-index:-1;padding-top:env(safe-area-inset-top,0px)';
+    sizeProbe.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;visibility:hidden;pointer-events:none;z-index:-1;padding-top:env(safe-area-inset-top,0px);padding-bottom:var(--sab,0px)';
     document.body.appendChild(sizeProbe);
   }
   const r = sizeProbe.getBoundingClientRect();
@@ -8496,6 +8492,8 @@ function appSize() {
 }
 /* the top safe-area inset as laid out (the status bar a page under a translucent bar sits beneath) */
 const insetTop = () => (sizeProbe ? parseFloat(getComputedStyle(sizeProbe).paddingTop) || 0 : 0);
+/* the bottom one (--sab: the home indicator), as laid out: the bottom rail's row keeps its targets above it (6b2) */
+const insetBottom = () => (sizeProbe ? parseFloat(getComputedStyle(sizeProbe).paddingBottom) || 0 : 0);
 /* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
    (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
    crisp). sizeSig() changes whenever any of that does; boot re-lays out when it has. */
@@ -16589,6 +16587,8 @@ function hudSnooker() {
   snkBar.dataset.key = key;
   snkBar.replaceChildren(...parts.map(([k, val, ds, warn, cls]) => {
     const sp = document.createElement('span');
+    /* what a short rail drops first (placeRail): the points left, then the frame, then the warning; never the break or the ball on */
+    sp.dataset.p = k === 'Break' || k === 'On' ? 0 : k.endsWith(' left') ? 3 : k.startsWith('Frame') ? 2 : 1;
     if (k) { const e = document.createElement('i'); e.className = 'k'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
     for (const n of ds || []) sp.appendChild(dotEl(n));
     if (val) { const e = document.createElement('b'); if (k === 'Break') numRoll(e, 'snkBreak', val); else e.textContent = val; if (warn || cls) e.className = warn ? 'warn' : cls; sp.appendChild(e); }
@@ -16596,23 +16596,26 @@ function hudSnooker() {
   }));
   placeRail(true);
 }
-/* ---- 6b2. the bottom rail's row: the 3D switch, snooker's scoreboard and the replay (its offer pill,
-   or the badge and Skip while one plays) sit together on the rail nearest the player, the one at the
+/* ---- 6b2. the bottom rail's row: the 3D switch, the score keeper (the players' chips, #turnChip),
+   snooker's scoreboard and the replay (its offer pill, or the badge and Skip while one plays) sit
+   together on the rail nearest the player, the one at the
    screen's foot (upright the head rail, between the two corner pockets; on its side the near long rail,
    a corner to the side pocket and the side pocket to a corner), each wholly inside one stretch of it
    between pockets: the bed's span along it less every hole and its jaws (POCKETS, POCKET_R, MOUTHS,
    RAIL_PAD more), so no hole is ever under one. The replay takes the right end of the last stretch,
-   the switch the left end of the first, and the scoreboard the middle of the first stretch with room
-   for it, else the widest gap left, shrunk to it with an ellipsis; under SNK_MIN px it gives way
-   (hidden while the replay shows, as it always was), so the order of priority is the replay, the
-   switch, the scoreboard. Each target is 44 px, kept inside the stage; its pill is as tall as the
+   the switch the left end of the first, the score keeper the room next to it (whole, always: the
+   switch and then the replay give way to it), and the scoreboard the middle of the first stretch
+   with room for it, set closer and then without its least parts (the points left, the frame, the
+   warning) where it does not fit; never without the break and the ball on, it gives way instead
+   (as it did while the replay showed), so the order of priority is the score keeper, the replay,
+   the scoreboard's break and ball on (the switch gives way to them), the switch, the rest. Each target is 44 px, kept inside the stage; its pill is as tall as the
    rail allows (--ph) and sits on the rail's middle (--py). In 3D (4o) the rail moves with the camera:
    the row is pinned to the stage's foot (V3_PIN_B), and the stretches are the stage's width less the
    pockets as the camera projects them into it (laid out again only when that changes). The call bar,
    the exhibition's bar, the free-ball pick and the tools rise clear of the row (--rail-lift).
    felt.railBar reports the layout. Called every frame (frameBody); it measures and writes only when
    what it lays out has changed, or when forced (a new layout, new words, the replay). ---- */
-let railKey = '', railStage = null, railTop = Infinity;
+let railKey = '', railStage = null, railTop = Infinity, railSafe = Infinity;
 /* the stretches [x0, x1] (CSS px) of the row [top, bottom] clear of every pocket */
 function railSpans(x0, x1, top, bot, holes) {
   let spans = [[x0, x1]];
@@ -16636,85 +16639,134 @@ function railHoles(at) {
   return out;
 }
 function placeRail(force) {
-  if (force || !railStage) { const r = stage.getBoundingClientRect(); railStage = { left: r.left, top: r.top, width: r.width, height: r.height }; }
+  if (force || !railStage) {
+    const r = stage.getBoundingClientRect();
+    railStage = { left: r.left, top: r.top, width: r.width, height: r.height };
+    railSafe = appSize()[1] - insetBottom();   /* nothing to touch under the home indicator */
+  }
   const st = railStage, sb = st.top + st.height, live = V3.live;
   let ty, py, ph, segs;
   if (live) {
     /* 3D: the stage's bottom row, the stage's width less the pockets in it as the camera has them */
-    ty = sb - V3_PIN_B; py = ty; ph = 30;
+    ty = Math.min(sb - V3_PIN_B, railSafe - 22); py = ty; ph = 30;
     const holes = railHoles((x, y) => { const q = v3Proj(x, y, 0); return q ? [q[0], q[1]] : null; });
     segs = railSpans(st.left + 6, st.left + st.width - 6, ty - 22, ty + 22, holes);
   } else {
     /* top-down: the bottom rail of the fitted table (camRect's foot is the rail's outer edge) */
     const B = viewBase, R = camRect(), rk = RAIL * B.k, mid = R.bottom - rk / 2;
     ph = clamp(Math.round(rk + 2), 24, 30);
-    ty = Math.min(mid, sb - 22); py = Math.min(mid, sb - ph / 2);
+    ty = Math.min(mid, sb - 22, railSafe - 22); py = Math.min(mid, sb - ph / 2);
     const a = screenIn(B, 0, 0), b = screenIn(B, TL, TW);
     segs = railSpans(Math.min(a[0], b[0]), Math.max(a[0], b[0]), ty - 22, R.bottom, railHoles((x, y) => screenIn(B, x, y)));
   }
   const rpl = rp ? [replaySkip, replayBadge] : offer ? [replayBtn] : [];
   const key = [live, st.left, st.top, st.width, st.height, ty, py, ph, segs.map(s => s.map(Math.round)).join(';'), viewBtn.hidden, snkBar.hidden, snkBar.dataset.key,
-    rpl.map(e => e.id + e.hidden).join(), replayBtn.hasAttribute('data-notable'), replaySlow.hidden, settings.text].join('|');
+    rpl.map(e => e.id + e.hidden).join(), replayBtn.hasAttribute('data-notable'), replaySlow.hidden, settings.text, settings.marks,
+    turnChip.hidden, turnChip.className, turnChip.textContent, [pchip0, pchip1, pchip2, pchip3].map(e => +e.hidden).join('')].join('|');
   if (!force && key === railKey) return;
   railKey = key;
   railTop = ty - 22;
   stage.style.setProperty('--rail-lift', Math.max(0, Math.round(sb - (ty - 22) + 2)) + 'px');
   const used = [], out = { live, ty, py, segs: segs.map(s => s.slice()), items: {} };
-  /* the free gaps of a stretch, after what is placed */
+  /* the free gaps of a stretch, after what is placed (used: [x0, x1, id]) */
   const gaps = s => used.reduce((g, [lo, hi]) => g.flatMap(([a, b]) => [[a, Math.min(b, lo - RAIL_GAP)], [Math.max(a, hi + RAIL_GAP), b]]).filter(([a, b]) => b - a > 1), [s.slice()]);
-  const put = (w, right) => {
+  const put = (w, right, id) => {
     for (const s of right ? segs.slice().reverse() : segs) {
       const g = gaps(s), f = right ? g.reverse().find(([a, b]) => b - a >= w) : g.find(([a, b]) => b - a >= w);
       if (!f) continue;
       const x = right ? f[1] - w : f[0];
-      used.push([x, x + w]);
+      used.push([x, x + w, id]);
       return x + w / 2;
     }
     return null;
   };
+  /* an item given way: off the row, its room free again */
+  const drop = el => { for (let i = used.length - 1; i >= 0; i--) if (used[i][2] === el.id) used.splice(i, 1); el.style.visibility = 'hidden'; delete out.items[el.id]; };
   const at = (el, x, y, p) => {
     el.style.left = (x - st.left).toFixed(1) + 'px'; el.style.top = (y - st.top).toFixed(1) + 'px';
     if (p !== undefined) { el.style.setProperty('--py', p.toFixed(1) + 'px'); el.style.setProperty('--ph', ph + 'px'); }
     el.style.visibility = '';
   };
-  /* the replay first (the right end), then the switch (the left end) */
-  for (const el of rpl) {
-    if (el.hidden) continue;
-    el.style.setProperty('--ph', ph + 'px');
-    const x = put(Math.max(44, el.offsetWidth), true);
-    if (x === null) { el.style.visibility = 'hidden'; continue; }
-    at(el, x, ty, py - ty); out.items[el.id] = x;
-  }
-  if (!viewBtn.hidden) {
-    const x = put(52, false);
-    if (x === null) viewBtn.style.visibility = 'hidden';
-    else { at(viewBtn, x, ty, py - ty); out.items.viewBtn = x; }
-  }
+  /* the replay at the right end, the switch at the left, the score keeper next to it. Short of room, step by
+     step: the chips set closer (.tight), the replay's words left to its icon and label (.bare), then the switch
+     gives way (Settings > Graphics > Table View still turns 3D on). The score keeper never gives way: the players
+     and what they are on are always on the rail. */
+  const vis = [...rpl, viewBtn, turnChip].filter(e => !e.hidden);
+  const lay = (tight, icon) => {
+    used.length = 0;
+    for (const e of vis) { e.style.visibility = ''; delete out.items[e.id]; }
+    turnChip.classList.toggle('tight', tight);
+    let ok = true;
+    for (const el of rpl) {
+      if (el.hidden) continue;
+      el.classList.toggle('bare', icon);
+      el.style.setProperty('--ph', ph + 'px');
+      const x = put(Math.max(44, el.offsetWidth), true, el.id);
+      if (x === null) { el.style.visibility = 'hidden'; ok = false; continue; }
+      at(el, x, ty, py - ty); out.items[el.id] = x;
+    }
+    if (!viewBtn.hidden) {
+      const x = put(44, false, viewBtn.id);
+      if (x === null) { viewBtn.style.visibility = 'hidden'; ok = false; } else { at(viewBtn, x, ty, py - ty); out.items.viewBtn = x; }
+    }
+    if (!turnChip.hidden) {
+      const w = turnChip.offsetWidth, y = live ? ty : Math.min(py, sb - turnChip.offsetHeight / 2 - 1);
+      let x = put(w, false, turnChip.id);
+      if (x === null && out.items.viewBtn !== undefined) { drop(viewBtn); ok = false; x = put(w, false, turnChip.id); }
+      for (const el of rpl.slice().reverse()) if (x === null && out.items[el.id] !== undefined) { drop(el); ok = false; x = put(w, false, turnChip.id); }
+      if (x === null) { const g = segs.reduce((a, b) => (b[1] - b[0] > a[1] - a[0] ? b : a), [st.left, st.left + st.width]); x = (g[0] + g[1]) / 2; used.push([x - w / 2, x + w / 2, turnChip.id]); ok = false; }
+      at(turnChip, x, y);
+      out.items.turnChip = x;
+    }
+    return ok;
+  };
+  let lv = 0;
+  for (const [tight, icon] of [[false, false], [true, false], [true, true]]) { if (lay(tight, icon)) break; lv++; }
+  out.level = lv;
   /* the scoreboard: the middle of the first stretch it fits in whole (in 3D the start of its gap, off the cue
-     drawn up the middle), set closer if it fits no other way, else the widest gap, shrunk to it */
+     drawn up the middle); where it does not, set closer, then without its least parts one by one (the points
+     left, the frame, the warning: data-p), never under SNK_MIN px or without the break and the ball on */
   if (!snkBar.hidden) {
     const find = () => {
-      snkBar.style.maxWidth = 'none';
-      const w = snkBar.scrollWidth + 2;
-      let best = null;
-      for (const s of segs) for (const [a, b] of gaps(s)) {
-        if (best && best.w >= w) break;
-        if (b - a >= w) best = { x: live ? a + w / 2 : clamp((s[0] + s[1]) / 2, a + w / 2, b - w / 2), w };
-        else if (b - a >= SNK_MIN && (!best || b - a > best.w)) best = { x: (a + b) / 2, w: b - a };
-      }
-      return best && best.w >= w ? best : (snkBar.classList.contains('tight') ? best : null);
+      const w = snkBar.offsetWidth + 1;
+      if (w < SNK_MIN && snkBar.querySelector('span.cut')) return null;
+      for (const s of segs) for (const [a, b] of gaps(s)) if (b - a >= w) return { x: live ? a + w / 2 : clamp((s[0] + s[1]) / 2, a + w / 2, b - w / 2), w };
+      return null;
     };
+    const parts = [...snkBar.children];
+    snkBar.style.maxWidth = 'none';
     snkBar.classList.remove('tight');
+    parts.forEach(e => e.classList.remove('cut'));
     let best = find();
-    if (!best) { snkBar.classList.add('tight'); best = find(); }
+    if (!best) snkBar.classList.add('tight');
+    for (const p of [null, 3, 2, 1]) {
+      if (best) break;
+      if (p !== null) parts.filter(e => +e.dataset.p === p).forEach(e => e.classList.add('cut'));
+      best = find();
+    }
+    /* still no room: the switch gives way to the break and the ball on (Settings > Graphics > Table View has it) */
+    if (!best && out.items.viewBtn !== undefined) {
+      drop(viewBtn);
+      /* the score keeper moves up into the switch's room, set closer */
+      if (out.items.turnChip !== undefined) {
+        drop(turnChip);
+        turnChip.classList.add('tight');
+        const x = put(turnChip.offsetWidth, false, turnChip.id);
+        if (x !== null) { at(turnChip, x, live ? ty : Math.min(py, sb - turnChip.offsetHeight / 2 - 1)); out.items.turnChip = x; }
+      }
+      best = find();
+    }
+    out.cut = parts.filter(e => e.classList.contains('cut')).length;
     if (!best) { snkBar.style.visibility = 'hidden'; out.items.snkBar = null; }
     else {
       snkBar.style.maxWidth = Math.floor(best.w) + 'px';
       at(snkBar, best.x, live ? ty : Math.min(py, sb - snkBar.offsetHeight / 2 - 1));
-      used.push([best.x - best.w / 2, best.x + best.w / 2]);
+      used.push([best.x - best.w / 2, best.x + best.w / 2, snkBar.id]);
       out.items.snkBar = best.x;
     }
   }
+  /* the widest room left on the row (railbar-check: an item given way had no room) */
+  out.free = Math.max(0, ...segs.flatMap(g => gaps(g).map(([a, b]) => b - a)));
   felt.railBar = out;
 }
 const spinWords = s => {
@@ -17109,7 +17161,7 @@ function placeCoach() {
   const pts = M.pts.map(q => toScreen(q[0], q[1]));
   /* snooker's scoreboard on the bottom rail stays in sight, and the card never covers the rail's row (the 3D switch, the replay) */
   if (!snkBar.hidden) { const q = snkBar.getBoundingClientRect(); if (q.width) pts.push([q.left + q.width / 2, q.top + q.height / 2], [q.left + 10, q.top + q.height / 2], [q.right - 10, q.top + q.height / 2]); }
-  const row = [snkBar, viewBtn, replayBtn, replayBadge, replaySkip].filter(e => !e.hidden && e.style.visibility !== 'hidden').map(e => e.getBoundingClientRect()).filter(q => q.width);
+  const row = [snkBar, turnChip, viewBtn, replayBtn, replayBadge, replaySkip].filter(e => !e.hidden && e.style.visibility !== 'hidden').map(e => e.getBoundingClientRect()).filter(q => q.width);
   const rr = BALL_R * view.k + 26;
   let best = null;
   for (const fy of [0, 0.5, 1]) for (const fx of [0, 0.5, 1]) {

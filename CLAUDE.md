@@ -293,11 +293,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
   framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
   with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
-  The bottom rail's row (6b2, `placeRail`, `felt.railBar`): the 3D switch, the snooker scoreboard and the replay (pill, badge,
-  Skip) sit together on the rail at the screen's foot (upright the head rail, on its side the near long rail), each inside
-  one stretch between pockets (the bed's span less every hole and its jaws, `RAIL_PAD`); priority replay, switch, then the
-  scoreboard (set closer, then ellipsised, hidden under `SNK_MIN`). In 3D the row pins to the stage's bottom (`V3_PIN_B`),
-  dodging the pockets as projected. The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
+  The bottom rail's row (6b2, `placeRail`, `felt.railBar`): the 3D switch, the score keeper (`#turnChip`, the players' chips
+  `pchip0`-`pchip3` as a slim bar: name and what they are on, score/race, the shooter lit; party chips `.many`), the snooker
+  scoreboard and the replay (pill, badge, Skip) sit together on the rail at the screen's foot (upright the head rail, on its
+  side the near long rail), each inside one stretch between pockets (the bed's span less every hole and its jaws,
+  `RAIL_PAD`). Short of room, in order: chips `.tight`, the replay's words dropped (`.bare`), the switch gives way, the
+  badge gives way, the scoreboard set closer and its least parts cut (`data-p`: points left, frame, warning; never the break
+  or the ball on). The score keeper never gives way. In 3D the row pins to the stage's bottom (`V3_PIN_B`), dodging the
+  pockets as projected. The controls strip/column no longer holds the chips: the fine-aim wheel takes their room (upright
+  72-96 px wide, on its side 112-200 px tall; the power bar stays the biggest control). The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
   3D place too, and nothing on a rail may cover a pocket (`railbar-check`). No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes

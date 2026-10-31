@@ -23,7 +23,7 @@
       cut so no chord is over 3.5 device px up close; the call ring hidden behind its ball, shown in front of it.
    9. the polish: a pot drops in 3D (below the bed over about 260 ms, then gone) on 8-ball corner and side, snooker and
       bumper; a hit flash at its contact; the loupe under fine aim (size, place, cost); snooker's scoreboard on the
-      stage's top row off the bed; the callout over the far rail; the neighbours readable at pitch 8; a ball with b.z
+      stage's bottom row (V3_PIN_B) off the bed; the callout over the far rail; the neighbours readable at pitch 8; a ball with b.z
       drawn raised in 3D and top-down.
    7. frames while dragging the aim within budget (see the budget note below), the HUD's text over the
       3D view 4.5:1, targets 44 px, and landscape. FELT_SHOTS=<dir> saves screenshots. */
@@ -522,7 +522,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   check(`loupe: a 3D frame with it up ${lp.ms.toFixed(1)} ms, without ${lp.base.toFixed(1)} ms: under ${((s1.soft ? 26 : 16) * kL).toFixed(1)} ms (x${spL.f.toFixed(2)} for this runner) and at most twice the frame without it`,
     lp.ms < (s1.soft ? 26 : 16) * kL && lp.ms < 2 * lp.base, JSON.stringify({ ms: lp.ms, base: lp.base }));
   if (SHOTS) { await t.ev(() => { fineAim = true; }); await frames(page, 8); await page.screenshot({ path: path.join(SHOTS, 'v3-loupe.png') }); await t.ev(() => { fineAim = false; }); }
-  /* snooker's scoreboard: on the stage's top edge in 3D, inside the stage, clear of the 3D switch and of the bed as drawn */
+  /* snooker's scoreboard: on the stage's bottom row in 3D (with the 3D switch), inside the stage, clear of the switch and of the bed as drawn */
   const snk = await t.ev(async () => {
     felt.speed = 4; setSetting('viewPitch', 24); setSetting('viewDist', 1.1); felt.start('snooker');
     await new Promise(r => setTimeout(r, 400));
@@ -535,10 +535,10 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     return { live: felt.view3.live, shown: !snkBar.hidden, q: { l: q.left, t: q.top, r: q.right, b: q.bottom }, B, inside: q.left >= B.left && q.right <= B.left + B.width && q.top >= B.top && q.bottom <= B.top + B.height,
       clearBtn: q.left >= v.right || q.right <= v.left || q.top >= v.bottom || q.bottom <= v.top, hits, bed: bed.map(p => p && p.slice(0, 2).map(Math.round)) };
   });
-  check('snooker in 3D: the scoreboard sits on the stage\'s top edge, inside the stage, clear of the 3D switch and of the bed as the camera shows it',
-    snk.live && snk.shown && snk.inside && snk.clearBtn && snk.hits === 0 && snk.q.t - snk.B.top < 30, JSON.stringify(snk));
+  check('snooker in 3D: the scoreboard sits on the stage\'s bottom row, inside the stage, clear of the 3D switch and of the bed as the camera shows it',
+    snk.live && snk.shown && snk.inside && snk.clearBtn && snk.hits === 0 && snk.B.top + snk.B.height - snk.q.b < 30, JSON.stringify(snk));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-snooker.png') });
-  /* a moment's callout in 3D: over the far rail where the room shows, inside the stage, off the bed and the top row */
+  /* a moment's callout in 3D: over the far rail where the room shows, inside the stage, off the bed and the bottom row */
   const co = await t.ev(async () => {
     felt.start('8'); await new Promise(r => setTimeout(r, 300));
     showCallout('Bank');
@@ -546,9 +546,9 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     const inBed = (x, y) => { const u = felt.v3Unproj(x, y, 0); return !!u && u[0] >= 0 && u[0] <= TL && u[1] >= 0 && u[1] <= TW; };
     let hits = 0;
     for (let i = 0; i <= 8; i++) for (let j = 0; j <= 4; j++) if (inBed(q.left + q.width * i / 8, q.top + q.height * j / 4)) hits++;
-    return { q: { l: q.left, t: q.top, r: q.right, b: q.bottom }, B, hits, inside: q.left >= B.left && q.right <= B.left + B.width && q.top >= B.top + 48 && q.bottom <= B.top + B.height };
+    return { q: { l: q.left, t: q.top, r: q.right, b: q.bottom }, B, hits, inside: q.left >= B.left && q.right <= B.left + B.width && q.top >= B.top + 4 && q.bottom <= B.top + B.height - 52 };
   });
-  check('callout in 3D: a moment is called out over the far rail, inside the stage, under the top row, off the bed', co.inside && co.hits === 0, JSON.stringify(co));
+  check('callout in 3D: a moment is called out over the far rail, inside the stage, over the bottom row, off the bed', co.inside && co.hits === 0, JSON.stringify(co));
   /* the neighbours at the lowest pitch: each one in view reads as a table (its lit rail and cloth against the wall above) */
   const nb = await t.ev(async () => {
     setSetting('viewPitch', 8); setSetting('viewDist', 1.1); felt.start('8');

@@ -390,11 +390,12 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   const rp1 = await page.evaluate(() => felt.replayResult && JSON.stringify(felt.replayResult.balls.map(b => [b.n, b.on, b.x, b.y])) === JSON.stringify(felt.lastResult.balls.map(b => [b.n, b.on, b.x, b.y])));
   check('replay: the snooker shot is recorded with its table (size, ball) and replays to the same result', rp0.ok && rp0.rec[0] === 'snooker' && rp0.rec[1] === 'compact' && rp0.rec[2] === 0.02625 && rp1, JSON.stringify({ rp0, rp1 }));
   check('game screen: targets 44 px, text 4.5:1 (the scoreboard too)', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
-  /* landscape: the scoreboard stays on the table's top rail, inside the stage */
+  /* landscape: the scoreboard stays on the table's bottom rail (the near long rail), inside the stage, between the pockets */
   await page.setViewportSize({ width: 956, height: 440 });
   await page.waitForTimeout(300);
-  const land = await page.evaluate(() => { const b = snkBar.getBoundingClientRect(), t = felt.tableRect(), s = stage.getBoundingClientRect(); return { b: [b.top, b.bottom, b.left, b.right], t, s: [s.left, s.right], ok: b.top >= t.top - 2 && b.bottom <= t.top + RAIL * felt.view.k + 4 && b.left >= s.left && b.right <= s.right }; });
-  check('956x440: the scoreboard sits on the top rail, inside the stage', land.ok, JSON.stringify(land));
+  const land = await page.evaluate(() => { const b = snkBar.getBoundingClientRect(), t = felt.tableRect(), s = stage.getBoundingClientRect(); return { b: [b.top, b.bottom, b.left, b.right], t, s: [s.left, s.right], ok: (b.top + b.bottom) / 2 >= t.bottom - RAIL * felt.view.k && (b.top + b.bottom) / 2 <= t.bottom && b.left >= s.left && b.right <= s.right
+    && POCKETS.every((p, i) => { const c = felt.toScreen(p[0], p[1]), r = POCKET_R[i] * felt.view.k; return Math.hypot(Math.max(b.left - c[0], 0, c[0] - b.right), Math.max(b.top - c[1], 0, c[1] - b.bottom)) >= r; }) }; });
+  check('956x440: the scoreboard sits on the bottom rail, inside the stage, off every pocket', land.ok, JSON.stringify(land));
   await page.setViewportSize({ width: 440, height: 956 });
   await page.waitForTimeout(300);
   /* the pause menu: Concede; the frame goes to the other player and the game is over */

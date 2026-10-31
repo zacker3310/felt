@@ -290,7 +290,7 @@ async function portrait() {
   await T.page.waitForTimeout(300);
   check('How to play, Snooker: "Play the snooker tutorial" starts it on the compact snooker table', await ev(T, () => felt.tut && felt.tut.id === 'snooker' && TABLE === 'snooker' && SNOOKER_SIZE === 'compact' && felt.game.on === 'red' && !snkBar.hidden));
   const cs = await coachClear(T);
-  check('snooker step 1: the coach rings the scoreboard on the top rail ("On Red") and keeps off it', cs.ring && coachOk(cs) && await ev(T, () => {
+  check('snooker step 1: the coach rings the scoreboard on the bottom rail ("On Red") and keeps off it', cs.ring && coachOk(cs) && await ev(T, () => {
     const a = coachRing.getBoundingClientRect(), b = snkBar.getBoundingClientRect(), c = coach.getBoundingClientRect();
     return a.left <= b.left && a.right >= b.right && a.top <= b.top && a.bottom >= b.bottom && /On\s*Red/.test(snkBar.textContent) && !(c.left < b.right && c.right > b.left && c.top < b.bottom && c.bottom > b.top);
   }), JSON.stringify(cs));

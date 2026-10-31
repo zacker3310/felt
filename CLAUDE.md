@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `33/33 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `34/34 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -94,7 +94,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   threshold every result is byte for byte the old one (physics-check rebuilds the sim without the jump to prove it);
   only the Jump and Massé trick shots' stored solutions use elevation. The guide draws the jump's arc (`drawJumpArc`, the preview's `air`); the 2D
   view draws a flying ball larger with its shadow lifted (`drawCast(..., z)`, `airOf`, `airScale`); the 3D view reads `b.z`; the arc is drawn top-down only (skipped while the 3D view is live).
-- Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
+- Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the bottom rail, laid out by 6b2's `placeRail`);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
   After a foul the player fouled chooses through `game.option` (`snkFoul`/`snkMiss`/`snkFree`, `chooseSnooker`,
@@ -293,8 +293,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
   framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
   with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
-  The snooker bar and the replay pill pin to the stage's top row in 3D (`V3_PIN_Y`), the callout over the far rail: any
-  new element placed from table geometry needs its 3D place too. No context: top-down. Replays, the menu
+  The bottom rail's row (6b2, `placeRail`, `felt.railBar`): the 3D switch, the snooker scoreboard and the replay (pill, badge,
+  Skip) sit together on the rail at the screen's foot (upright the head rail, on its side the near long rail), each inside
+  one stretch between pockets (the bed's span less every hole and its jaws, `RAIL_PAD`); priority replay, switch, then the
+  scoreboard (set closer, then ellipsised, hidden under `SNK_MIN`). In 3D the row pins to the stage's bottom (`V3_PIN_B`),
+  dodging the pockets as projected. The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
+  the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
+  3D place too, and nothing on a rail may cover a pocket (`railbar-check`). No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes
   `tab`, `game` or `orient`. `felt.view3`, `felt.v3Proj`/`v3Unproj`, `felt.v3Ms`/`v3Poses` report it. Pinned by
   `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every

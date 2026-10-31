@@ -354,8 +354,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #powerFill { width: 100%; height: 0; background: linear-gradient(180deg, #cfc6b2, var(--cream)); }
 [data-layout="wide"] #powerFill.hot { background: linear-gradient(180deg, #cfc6b2, var(--cream) 60%, var(--signal)); }
 [data-layout="wide"] #powerMark { width: 100%; height: 2px; background: linear-gradient(90deg, rgba(236, 236, 238, .6) 0 9px, transparent 9px calc(100% - 9px), rgba(236, 236, 238, .6) calc(100% - 9px)); }
-[data-layout="wide"] #powerLab { writing-mode: vertical-rl; padding: 10px 0; }
-[data-layout="wide"] #powerBar.live #powerLab { writing-mode: horizontal-tb; align-items: flex-end; justify-content: center; }
+/* on its side the words stay upright: two short lines over the chevrons turned to point the way of the pull */
+[data-layout="wide"] #powerLab { flex-direction: column; gap: 8px; padding: 0 4px; text-align: center; line-height: 1.25; text-wrap: balance;
+  text-shadow: 0 0 2px var(--panel-2), 0 0 3px var(--panel-2), 0 0 4px var(--panel-2); }   /* the words cut the last-power tick where it crosses them */
+[data-layout="wide"] #powerBar:not(.live) #powerLab::after { display: block; transform: rotate(90deg); letter-spacing: -1px; }
+[data-layout="wide"] #powerBar.live #powerLab { align-items: center; justify-content: flex-end; padding-bottom: 10px; }
 
 /* the boot's one-time notice (a CPU game left by closing the app): over the foot of the home,
    not in the way of it, gone on OK or after a while */

@@ -19,12 +19,14 @@ by several independent projects.
 | `ball-8.wav`, `cue-4.wav`, `roll.wav` | [BILLIARD pool shots- CsG.wav](https://freesound.org/people/csaszi/sounds/350918/) | csaszi | CC0 1.0 | [YoussefSah05/septhuit](https://github.com/YoussefSah05/septhuit/blob/2a18ca17a9b5379c36ecb2b262666cc4d18776b2/assets/audio/CREDITS.md) `ball_08`, `cue_06`, `roll_00` |
 | `ball-9.wav` | [Billiards.wav](https://freesound.org/people/13FPanska_Marval_Lukas/sounds/379327/) | 13FPanska_Marval_Lukas | CC0 1.0 | [melpomenex/Afterlight](https://github.com/melpomenex/Afterlight/blob/cdb806be84fd7afcb85630d0311d46af29c874fb/public/audio/pool/PROVENANCE.md) `ball-soft-1.wav` |
 | `cue-1.wav`, `cue-2.wav`, `cue-3.wav` | [S02-22 Billiards cue stick hits ball.wav](https://freesound.org/people/craigsmith/sounds/675330/) | craigsmith | CC0 1.0 | [melpomenex/Afterlight](https://github.com/melpomenex/Afterlight/blob/cdb806be84fd7afcb85630d0311d46af29c874fb/public/audio/pool/PROVENANCE.md) `cue-hard-1`, `cue-hard-2`; [imehc/mftp](https://github.com/imehc/mftp/blob/59409ffb5ebee843857fe704d65f2591c41be3eb/src/features/games/billiards/audio/ATTRIBUTION.md) `cue-1` |
-| `rail-1.wav`, `rail-2.wav`, `rail-3.wav` | [Impact Sounds](https://kenney.nl/assets/impact-sounds) `impactSoft_medium_000` to `_002`, raised in pitch, each with a muffled click from `ball-1`, `ball-5` or `ball-4`'s recording | Kenney | CC0 1.0 ([License.txt](https://github.com/series-ai/jam-ready-assets/blob/ab1b21fe61bc3adeb759c286e770033563f18a97/kenney-impact-sounds/audio/License.txt)) | [YoussefSah05/septhuit](https://github.com/YoussefSah05/septhuit/blob/2a18ca17a9b5379c36ecb2b262666cc4d18776b2/assets/audio/CREDITS.md) `cushion_00` to `_02` |
+| `rail-1.wav`, `rail-2.wav` | [8 ball - billiard.wav](https://freesound.org/people/allberto/sounds/147578/) | allberto | CC0 1.0 | [melpomenex/Afterlight](https://github.com/melpomenex/Afterlight/blob/cdb806be84fd7afcb85630d0311d46af29c874fb/public/audio/pool/PROVENANCE.md) `cushion-1`, `cushion-2` |
+| `rail-3.wav` | [Billiards.wav](https://freesound.org/people/13FPanska_Marval_Lukas/sounds/379327/) | 13FPanska_Marval_Lukas | CC0 1.0 | [melpomenex/Afterlight](https://github.com/melpomenex/Afterlight/blob/cdb806be84fd7afcb85630d0311d46af29c874fb/public/audio/pool/PROVENANCE.md) `cushion-3` |
 | `pocket-1.wav` | [B_1 pool ball falling.wav](https://freesound.org/people/Yarmonics/sounds/441857/) | Yarmonics (Stuart Bowditch) | CC0 1.0 | [melpomenex/Afterlight](https://github.com/melpomenex/Afterlight/blob/cdb806be84fd7afcb85630d0311d46af29c874fb/public/audio/pool/PROVENANCE.md) `pocket-1.wav` |
 | `pocket-2.wav`, `pocket-3.wav` | [Potting snooker balls.mp3](https://freesound.org/people/Caitlin_100/sounds/365525/) | Caitlin_100 | CC0 1.0 | [YoussefSah05/septhuit](https://github.com/YoussefSah05/septhuit/blob/2a18ca17a9b5379c36ecb2b262666cc4d18776b2/assets/audio/CREDITS.md) `pocket_00`, `pocket_02` |
 
-The cushion is the one sound not recorded on a pool table: no licensed recording of a clean
-cushion hit was found, so it is Kenney's soft impact (material foley) with a ball click under it.
+The cushions are a ball knocking a real table's rubber cushion, at the recording's own pitch,
+from the slices Afterlight cut from those two recordings (its PROVENANCE.md names each slice's
+source and CC0 licence).
 The UI's cues (a foul, a win, the turn, the power bar's tick) are synthesised in the page.
 
 The app shows a short version of this list in Settings > About > Sound Credits.

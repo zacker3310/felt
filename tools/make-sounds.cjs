@@ -4,8 +4,8 @@
    into the cache directory (any downloaded file is only ever read as audio data). Every output is
    a slice of one recording: high-passed (room rumble), faded in over 1 ms and out over its tail,
    and levelled across its family (the attack energy matched, the loudest at -1 dBFS), written as
-   16-bit mono 44.1 kHz PCM. The cushion is Kenney's soft impact raised in pitch with a muffled ball
-   click under it; the roll is a quiet stretch of a rolling ball made into a seamless loop
+   16-bit mono 44.1 kHz PCM. The cushion is a ball knocking a real table's rubber cushion (allberto's
+   and 13FPanska_Marval_Lukas's recordings), at its own pitch, the room's tail shortened; the roll is a quiet stretch of a rolling ball made into a seamless loop
    (played forwards then backwards, so both joins are continuous).
    Usage: node tools/make-sounds.cjs [cache-dir]   (writes ./sounds) */
 'use strict';
@@ -31,7 +31,8 @@ const SRC = {
   bsu5: SH + 'ball_05.wav', bsu7: SH + 'ball_07.wav',    /* bsumusictech, freesound 62331 */
   csz8: SH + 'ball_08.wav', csz6: SH + 'cue_06.wav', roll: SH + 'roll_00.wav',   /* csaszi, freesound 350918 */
   cue1: AL + 'cue-hard-1.wav', cue2: AL + 'cue-hard-2.wav', cue3: MF + 'cue-1.wav',   /* craigsmith, freesound 675330 */
-  ken0: SH + 'cushion_00.wav', ken1: SH + 'cushion_01.wav', ken2: SH + 'cushion_02.wav',   /* Kenney, Impact Sounds impactSoft_medium_000-002 */
+  alb1: AL + 'cushion-1.wav', alb2: AL + 'cushion-2.wav',   /* allberto, freesound 147578 (8 ball - billiard.wav) */
+  luk3: AL + 'cushion-3.wav',                            /* 13FPanska_Marval_Lukas, freesound 379327 */
   yar: AL + 'pocket-1.wav',                              /* Yarmonics, freesound 441857 */
   cait0: SH + 'pocket_00.wav', cait2: SH + 'pocket_02.wav'   /* Caitlin_100, freesound 365525 */
 };
@@ -43,9 +44,8 @@ const FAMILIES = {
     ['bsu4', 0.001, 0.080], ['bsu5', 0.001, 0.040, { fade: 0.02 }], ['bsu7', 0.001, 0.080], ['csz8', 0.001, 0.087],
     ['lukas', 0.004, 0.085], ['bsu0', 0.001, 0.068]],
   cue: [['cue1', 0.001, 0.130], ['cue2', 0.004, 0.150], ['cue3', 0.001, 0.150], ['csz6', 0.041, 0.115]],
-  rail: [['ken0', 0, 0.115, { pitch: 2.2, hp: 80, click: ['za', 0.001, 0.04, 0.3, 1800] }],
-    ['ken1', 0, 0.150, { pitch: 2.0, hp: 80, click: ['bsu4', 0.001, 0.04, 0.45, 1700] }],
-    ['ken2', 0, 0.132, { pitch: 2.4, hp: 80, click: ['bsu2', 0.005, 0.045, 0.3, 1900] }]],
+  rail: [['alb1', 0, 0.090, { hp: 100, tau: 0.035 }], ['alb2', 0, 0.085, { hp: 100, tau: 0.025, fade: 0.03 }],
+    ['luk3', 0.004, 0.100, { hp: 100, tau: 0.03 }]],
   pocket: [['yar', 0, 0.70, { hp: 60, fade: 0.1 }], ['cait0', 0, 0.64, { hp: 60, fade: 0.12 }], ['cait2', 0, 0.62, { hp: 60, fade: 0.14 }]],
   break: [['ross', 0.003, 0.260, { fade: 0.06 }]]
 };

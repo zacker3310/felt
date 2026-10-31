@@ -5,7 +5,7 @@
    Every other same-origin GET is cache-first. Nothing beyond the origin is ever fetched or
    cached. Bump VERSION when the precache list changes; activate deletes every older cache. */
 'use strict';
-const VERSION = 'felt-v5';
+const VERSION = 'felt-v6';
 const NAV_TIMEOUT_MS = 2500;
 const PRECACHE = [
   './',

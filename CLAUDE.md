@@ -86,7 +86,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   until it lands, past the noses away from a mouth off the table (`offTable`: pocketOf -1, hit `'off'`). Under the
   threshold every result is byte for byte the old one (physics-check rebuilds the sim without the jump to prove it);
   no stored solution uses elevation. The guide draws the jump's arc (`drawJumpArc`, the preview's `air`); the 2D
-  view draws a flying ball larger with its shadow lifted (`airLift`, `airGrow`); the 3D view reads `b.z`.
+  view draws a flying ball larger with its shadow lifted (`drawCast(..., z)`, `airOf`, `airScale`); the 3D view reads `b.z`; the arc is drawn top-down only (skipped while the 3D view is live).
 - Snooker: `game.kind === 'snooker'`, sim 1j, page 5k (words, Concede) and 6b (the scoreboard on the top rail);
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
@@ -207,7 +207,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   a ResizeObserver on the form's columns reruns `fitSetupRows` in a frame); the camera rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
   `hero-check` (final frame = `simulateShot`, frames, contrast, spare room, layout).
 - Sound and haptics (sections 2, 2h): the table's sounds are real CC0 recordings in `sounds/` (`SFX_FILES`: 10 ball
-  clacks, 4 cue strikes, 3 cushions, 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
+  clacks, 4 cue strikes, 3 cushions (real knocks on a table's rubber, allberto and Lukas via Afterlight, at their own pitch), 3 pockets, a break, the roll's loop; 16-bit mono WAV, about 360 KB), built from
   pinned GitHub-hosted sources by `node tools/make-sounds.cjs` and credited in `CREDITS.md` and Settings > About (Sound
   Credits). A new or changed take: rebuild, keep it in `sw.js`'s precache (bump `VERSION`) and in `CREDITS.md`, never an
   unlicensed file. `audioInit` builds the graph and `sfxLoad` fetches the files once and decodes them once per sample
@@ -281,7 +281,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   (`PAINT`, `orient`), drawCast's shadows, the cue; the 2D overlays (guide, rings, calls, D, kitchen) run against the
   recorder `V3R` (`V3.flat` keeps the flat mapping) and become mitred, feathered ribbons at the 2D widths (`v3Strip`, the
   `over` shader), each path at one height (`v3PathZ`: bed, or a pocket marker on the rail tops), arcs cut to about
-  `V3_ARC_PX` on screen; the guide's ghost ball is a faint ball (`V3_GHOST_A`), not a ring. No context: top-down. Replays, the menu
+  `V3_ARC_PX` on screen; the guide's ghost ball is a faint ball (`V3_GHOST_A`), not a ring. A pot drops like the hero's
+  (`v3Drops`, `V3_DROP_MS` on the screen's clock, seen through the hole by the ball shader's `hole`); hit flashes are
+  drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
+  framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
+  with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
+  The snooker bar and the replay pill pin to the stage's top row in 3D (`V3_PIN_Y`), the callout over the far rail: any
+  new element placed from table geometry needs its 3D place too. No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes
   `tab`, `game` or `orient`. `felt.view3`, `felt.v3Proj`/`v3Unproj`, `felt.v3Ms`/`v3Poses` report it. Pinned by
   `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every

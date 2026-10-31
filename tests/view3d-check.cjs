@@ -578,6 +578,11 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     for (const b of g.balls) b.on = b.n === 0 || b.n === 1;
     Object.assign(g.balls[0], { x: TL * 0.3, y: TW * 0.5 }); Object.assign(one, { x: TL * 0.6, y: TW * 0.5 }); Object.assign(g, { breakShot: false, inHand: null });
     aimAngle = 0.3; hud(); V3.seat.set = false; v3Update();
+    /* the 1's number circles (its local z poles) turned to its sides, square to the camera: start() rolls every ball to a
+       random orientation (randomOrient, Math.random), and with a pole toward the eye the sampled pixel is the ivory
+       circle, not the yellow (the CI failure: p1 [255, 255, 255]) */
+    const ca = Math.cos(aimAngle), sa = Math.sin(aimAngle);
+    orient[1] = [ca, 0, sa, sa, 0, -ca, 0, 1, 0];
     const gl = t3d.getContext('webgl2'), B = felt.view3.box, k = felt.view3.scale, H3 = 0.06;
     const px3 = s => { const o = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); return [...o.slice(0, 3)]; };
     const yellow = c => c[0] > 120 && c[1] > 90 && c[2] < c[1] * 0.6;

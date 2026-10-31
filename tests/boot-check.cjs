@@ -254,15 +254,15 @@ const artContrast = page => page.evaluate(() => {
         && [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())).map(el => el.id || el.className);
       const m = msg.getBoundingClientRect(), chip = turnChip.getBoundingClientRect();
       return { size: innerWidth + 'x' + innerHeight, cards: ['p0', 'p1'].filter(id => seen(document.getElementById(id))), text, tray: felt.view.tray, band: !!document.getElementById('trayBand'),
-        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(turnChip), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout,
-          onRail: (() => { const t = felt.tableRect(), y = chip.top + chip.height / 2; return turnChip.parentElement === stage && y >= t.bottom - RAIL * felt.view.k - 1 && y <= t.bottom + 1; })() } };
+        msg: { w: m.width, h: m.height, live: msg.getAttribute('aria-live'), role: msg.getAttribute('role') }, chip: { h: chip.height, shown: seen(pchip0), name: turnChip.dataset.name, chips: [...document.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => ({ h: Math.round(e.getBoundingClientRect().height), w: Math.round(e.getBoundingClientRect().width), on: e.classList.contains('on'), name: e.firstChild.textContent })), ctlH: Math.round(spinPad.getBoundingClientRect().height), layout: document.documentElement.dataset.layout,
+          onRail: (() => { const t = felt.tableRect(), q = pchip0.getBoundingClientRect(), y = q.top + q.height / 2; return turnChip.parentElement === stage && y >= t.bottom - RAIL * felt.view.k - 1 && y <= t.bottom + 1; })() } };
     }));
   }
   check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));
   check('the status line stays for screen readers: visually hidden, role status, aria-live polite', clean.every(c => c.msg.w <= 1 && c.msg.h <= 1 && c.msg.live === 'polite' && c.msg.role === 'status'), JSON.stringify(clean.map(c => c.msg)));
-  check('two player chips, the active one lit, in the score keeper on the table\'s bottom rail (6b2): each chip a slim row, name and all, on the rail',
+  check('two player chips, the active one lit, in the score keeper on the table\'s bottom rail (6b2): each chip inlaid on the wood, name and all',
     clean.every(c => c.chip.shown && c.chip.name === 'You' && c.chip.chips.length === 2 && c.chip.chips[0].on && !c.chip.chips[1].on
-    && c.chip.chips[1].name === 'CPU' && c.chip.onRail && c.chip.chips.every(k => k.h >= 18 && k.w >= 34)), JSON.stringify(clean.map(c => c.chip)));
+    && c.chip.chips[1].name === 'CPU' && c.chip.onRail && c.chip.chips.every(k => k.h >= 11 && k.w >= 30)), JSON.stringify(clean.map(c => c.chip)));
 
   /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
      every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or
@@ -350,7 +350,10 @@ const artContrast = page => page.evaluate(() => {
       const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
       const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };
       const ctlSafe = c.left >= safe.l - 0.5 && c.right <= safe.r + 0.5 && c.top >= safe.t - 0.5 && c.bottom <= safe.b + 0.5;
-      const tableSafe = t.left >= safe.l - 0.5 && t.right <= safe.r + 0.5 && t.top >= safe.t - 0.5 && t.bottom <= innerHeight + 0.5;
+      /* the bed and the balls inside the safe area; the rails may run under an inset (the status bar, the island) */
+      const a = felt.toScreen(0, 0), b = felt.toScreen(TL, TW);
+      const tableSafe = Math.min(a[0], b[0]) >= safe.l - 0.5 && Math.max(a[0], b[0]) <= safe.r + 0.5 && Math.min(a[1], b[1]) >= safe.t - 0.5 && Math.max(a[1], b[1]) <= safe.b + 0.5
+        && t.left >= -0.5 && t.right <= innerWidth + 0.5 && t.top >= -0.5 && t.bottom <= innerHeight + 0.5;
       return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe };
     }, ins);
   }
@@ -376,14 +379,14 @@ const artContrast = page => page.evaluate(() => {
   }
   console.log('side pockets, ball px: ' + sides.map(e => `${e.key} ${e.pk[0]}${e.size} ${e.ball}`).join(', '));
   check('side pockets: every side hole and its ring inside the rail, SIDE_WOOD from its outer edge, at every listed viewport, both pocket styles, 7 and 9 ft', sides.every(e => e.wood.every(v => v >= e.min - 0.01)), JSON.stringify(sides.filter(e => !e.wood.every(v => v >= e.min - 0.01))));
-  check('side pockets: the table fits by its rail alone (no ball size lost to the pockets)', sides.every(e => Math.abs(e.loss) < 0.01), JSON.stringify(sides.filter(e => Math.abs(e.loss) >= 0.01)));
+  check('side pockets: the table fits by its rail alone (no ball size lost to the pockets; a rail run under an inset only gains)', sides.every(e => e.loss < 0.01), JSON.stringify(sides.filter(e => e.loss >= 0.01)));
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; felt.start('8'); });
   await page.evaluate(() => { document.getElementById('insets').remove(); relayout(); });
   console.log('ball px (before -> now): ' + Object.keys(BEFORE).map(k => `${k} ${BEFORE[k]} -> ${sizes[k].ball}`).join(', '));
   check('ball: at least 20 px across at 956x440 with the iOS insets', sizes['956x440 ios'].ball >= 20, JSON.stringify(sizes['956x440 ios']));
   check('ball: at every listed viewport no smaller than before', Object.keys(BEFORE).every(k => sizes[k].ball >= BEFORE[k]), JSON.stringify(sizes));
-  check('insets: every control inside the safe area; the table inside it but for its bottom rail (home indicator)', Object.values(sizes).every(s => s.ctlSafe && s.tableSafe), JSON.stringify(sizes));
+  check('insets: every control inside the safe area; the bed inside it, the table on the screen (its rails may run under an inset)', Object.values(sizes).every(s => s.ctlSafe && s.tableSafe), JSON.stringify(sizes));
 
   /* game over at 844x390: the sheet fits the screen; its dark dots are ringed to 3:1 */
   await page.evaluate(() => { stats.potted = [[8, 7, 4, 2, 1], [6, 3, 15]]; felt.forceWin(0); });

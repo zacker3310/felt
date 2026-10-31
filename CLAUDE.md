@@ -173,7 +173,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   both players CPU (`exhib`, `humanP`), `o.seed` is `cpuSeed`, the speed bar sets `felt.speed`. Party: 2 to 4 players
   on a ring ruleset (`ring: true`, `rules.players`, `playersOf`/`nextOf` in sim 1e; `rulesetsFor` lists only
   two-player sets), the handoff sheet when the turn passes; with 3 or 4 players every player has a turn chip
-  (`pchip0`-`pchip3`, `chipCount`, `#turnChip.many`: two by two in portrait, slim rows in landscape). The tournament
+  (`pchip0`-`pchip3`, `chipCount`, `#turnChip.many`: inlaid on the rail, 6b2). The tournament
   plays 8, 9, 10, 14.1, rotation, snooker and carom (`T_KINDS`, `tRaces`): 14.1 and carom race to points in one game
   (`tmatch.units` 'points', need 1), snooker in frames. Pinned by `modes-check`.
 - How to play (page 6, `TABS`, `HELP_KINDS`, `showHelp(kind)`): fifteen topics, one push page each (rules rows, fine
@@ -293,17 +293,25 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
   framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
   with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
-  The bottom rail's row (6b2, `placeRail`, `felt.railBar`): the 3D switch, the score keeper (`#turnChip`, the players' chips
-  `pchip0`-`pchip3` as a slim bar: name and what they are on, score/race, the shooter lit; party chips `.many`), the snooker
-  scoreboard and the replay (pill, badge, Skip) sit together on the rail at the screen's foot (upright the head rail, on its
-  side the near long rail), each inside one stretch between pockets (the bed's span less every hole and its jaws,
-  `RAIL_PAD`). Short of room, in order: chips `.tight`, the replay's words dropped (`.bare`), the switch gives way, the
-  badge gives way, the scoreboard set closer and its least parts cut (`data-p`: points left, frame, warning; never the break
-  or the ball on). The score keeper never gives way. In 3D the row pins to the stage's bottom (`V3_PIN_B`), dodging the
-  pockets as projected. The controls strip/column no longer holds the chips: the fine-aim wheel takes their room (upright
-  72-96 px wide, on its side 112-200 px tall; the power bar stays the biggest control). The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
+  The bottom rail's row (6b2, `placeRail`, `felt.railBar`) is an inlay: the 3D switch, the score keeper (a chip per player,
+  `pchip0`-`pchip3` placed one by one; `#turnChip` is only their frame), the snooker scoreboard and the replay (pill, badge,
+  Skip) are words and glyphs on the wood of the rail at the screen's foot (upright the head rail, on its side the near long
+  rail), each on a small recess of the wood's own dark (`--inlay`, `INLAY_A`; 4.5:1 for the dimmed words on every RAILS
+  look), sized to the wood band (`--ph`, `--rf` 11 or 12 px, `--dot`), never over the cushion, a pocket's hole or jaws
+  (`RAIL_PAD`) or a sight (`railSights`, `SIGHT_PAD`): each sits in its own gap between them, centred. The shooter is white
+  at 700, the other dimmed; no rings. The score keeper and scoreboard pack into the gaps nearest the rail's middle (a chip
+  per gap if need be; a party too many carries on along the far rail), the replay takes the outermost gap on the right,
+  the switch the left. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
+  dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,
+  then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
+  In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected. The table: `fitTable`
+  lets the rails (never the bed) run under a safe-area inset on the status-bar or island side (`tableExt`, `railFit`,
+  `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px); `sizeSig`
+  carries the insets and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
+  holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar
+  stays the biggest control). The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
-  3D place too, and nothing on a rail may cover a pocket (`railbar-check`). No context: top-down. Replays, the menu
+  3D place too, and nothing on a rail may cover a pocket or a diamond (`railbar-check`). No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes
   `tab`, `game` or `orient`. `felt.view3`, `felt.v3Proj`/`v3Unproj`, `felt.v3Ms`/`v3Poses` report it. Pinned by
   `view3d-check` (real touches at 393x852, the roll's pose every frame, `simulateShot` and top-down byte for byte, every

@@ -316,7 +316,7 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   await page.setViewportSize({ width: 375, height: 667 });
   check('party HUD: three or four players, a chip each (name and points) in turn order, the shooter lit, all inside the screen at 375x667, 440x956 and 956x440, nothing overlapping or clipped',
     chipFit.length === 6 && chipFit.every(c => c.chips === c.n && c.names.join() === ['Ann', 'Bob', 'Cy', 'Dee'].slice(0, c.n).join() && c.nums.join() === [5, 15, 25, 35].slice(0, c.n).join()
-      && c.on.every((x, i) => x === (i === c.n - 1)) && c.inView && c.apart && c.ctlIn && c.ctlApart && c.whole && c.dw && c.minH >= 20), JSON.stringify(chipFit));
+      && c.on.every((x, i) => x === (i === c.n - 1)) && c.inView && c.apart && c.ctlIn && c.ctlApart && c.whole && c.dw && c.minH >= 11), JSON.stringify(chipFit));
   const two = await ev(() => { felt.party({ ruleset: '9-ring', names: ['Ann', 'Bob'] }); hoGo.click(); hud(); return { shown: [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden).length, many: turnChip.classList.contains('many') }; });
   check('party HUD: a party of two keeps the two ordinary chips', two.shown === 2 && !two.many, JSON.stringify(two));
 

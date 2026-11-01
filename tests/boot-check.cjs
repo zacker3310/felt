@@ -356,7 +356,18 @@ const artContrast = page => page.evaluate(() => {
       const a = felt.toScreen(0, 0), b = felt.toScreen(TL, TW);
       const tableSafe = Math.min(a[0], b[0]) >= safe.l - 0.5 && Math.max(a[0], b[0]) <= safe.r + 0.5 && Math.min(a[1], b[1]) >= safe.t - 0.5 && Math.max(a[1], b[1]) <= safe.b + 0.5
         && t.left >= -0.5 && t.right <= innerWidth + 0.5 && t.top >= -0.5 && t.bottom <= innerHeight + 0.5;
-      return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe };
+      /* rounded glass (a phone with a home indicator, upright): the strip's end buttons stand in from the sides and
+         clear the display's corner (modelled as a 62 pt radius, the Pro Max's; each button's own corner rounding counted) */
+      let glass = true, gutter = null;
+      if (document.documentElement.dataset.layout === 'portrait' && px('--sab') > 0) {
+        gutter = +Math.min(c.left, innerWidth - c.right).toFixed(1);
+        const R = 62, inGlass = (x, y) => { const cx = Math.min(Math.max(x, R), innerWidth - R), cy = Math.min(Math.max(y, R), innerHeight - R); return Math.hypot(x - cx, y - cy) <= R; };
+        glass = gutter >= 10 && [menuBtn, spinPad, powerBar, fineWheel].every(el => {
+          const r = el.getBoundingClientRect(), br = parseFloat(getComputedStyle(el).borderBottomLeftRadius) || 0, k = br * (1 - Math.SQRT1_2);
+          return inGlass(r.left + k, r.bottom - k) && inGlass(r.right - k, r.bottom - k);
+        });
+      }
+      return { ball: +felt.ballPx.toFixed(2), ctlSafe, tableSafe, glass, gutter };
     }, ins);
   }
   /* the side pockets sit inside the rail: at each listed viewport (insets simulated), both pocket
@@ -389,6 +400,7 @@ const artContrast = page => page.evaluate(() => {
   check('ball: at least 20 px across at 956x440 with the iOS insets', sizes['956x440 ios'].ball >= 20, JSON.stringify(sizes['956x440 ios']));
   check('ball: at every listed viewport no smaller than before', Object.keys(BEFORE).every(k => sizes[k].ball >= BEFORE[k]), JSON.stringify(sizes));
   check('insets: every control inside the safe area; the bed inside it, the table on the screen (its rails may run under an inset)', Object.values(sizes).every(s => s.ctlSafe && s.tableSafe), JSON.stringify(sizes));
+  check('rounded glass: upright with a home indicator, the controls strip stands 10 px or more in from each side and every control clears the display corner', Object.values(sizes).every(s => s.glass), JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, { glass: v.glass, gutter: v.gutter }]))));
 
   /* game over at 844x390: the sheet fits the screen; its dark dots are ringed to 3:1 */
   await page.evaluate(() => { stats.potted = [[8, 7, 4, 2, 1], [6, 3, 15]]; felt.forceWin(0); });

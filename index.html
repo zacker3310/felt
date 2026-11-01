@@ -148,7 +148,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* portrait: the table edge to edge, one strip under it: english, power (the biggest), the fine
    aim wheel (wide, where the turn chips stood before they moved onto the rail: 6b2) and pause */
 [data-layout="portrait"] #ui { grid-template: "stage" minmax(0, 1fr) "ctl" 56px / minmax(0, 1fr); }
-[data-layout="portrait"] #ctl { flex-direction: row; gap: 4px; }
+/* a phone with a home indicator has rounded glass: the strip stands in from the sides (12 px at a 34 px inset,
+   none on a square-cornered phone), so its end buttons clear the display's corners */
+[data-layout="portrait"] #ctl { flex-direction: row; gap: 4px; padding: 0 max(0px, calc(var(--sab, 0px) * 0.35)); }
 [data-layout="portrait"] #spinBox { order: 1; }
 [data-layout="portrait"] #powerBar { order: 2; flex: 1; height: 56px; min-width: 150px; }   /* fonts must not shrink the shot meter */
 [data-layout="portrait"] #fineWheel { order: 3; flex: 1 1 72px; min-width: 44px; max-width: 96px; height: 56px; }   /* the practice strip's undo and tools take some back */

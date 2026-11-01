@@ -231,6 +231,8 @@ check('run out: the 8 to win at the end of a visit of seven; break and run when 
   await hp.evaluate(() => { window.__taps = 0; hapTick.addEventListener('click', () => { window.__taps++; }); felt.start('8'); });
   const pre = await hp.evaluate(() => { sfx('foul', 1); sfx('ball', 5); return { taps: __taps, armed: felt.haptics.armed, via: felt.haptics.viaSwitch }; });
   check('haptics: nothing before the first gesture', pre.taps === 0 && !pre.armed && pre.via, JSON.stringify(pre));
+  /* the pre-gesture foul's second tick is due 190 ms on: let it pass before arming, or it lands in the burst's count */
+  await hp.waitForTimeout(300);
   await hp.keyboard.press('Shift');
   const h = await hp.evaluate(async () => {
     spinPad.focus();

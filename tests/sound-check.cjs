@@ -94,6 +94,13 @@ function shape({ x, sr }) {
   const about = await page.evaluate(() => { showPrefs('about'); const r = { shown: !ppAbout.hidden && sfxCredits.getClientRects().length > 0, rows: sfxCredits.querySelectorAll('p').length, text: sfxCredits.textContent }; backToMenu(); return r; });
   check('Settings > About shows the sound credits, a row per kind of sound, naming the authors', about.shown && about.rows >= 5 && ['Za-Games', 'bsumusictech', 'craigsmith', 'allberto', 'Yarmonics', 'Caitlin_100', 'csaszi', 'RossJuterbock'].every(a => about.text.includes(a)), JSON.stringify(about));
 
+  /* the unlock: a game begun with no tap on the table (the setup's Break, a script) gets its audio from the next real
+     gesture anywhere (WebKit unlocks in touchend, click or keydown, never in pointerdown); a synthetic click does not count */
+  const unlock = await page.evaluate(() => { ac = null; felt.start('8'); hapTick.click(); return ac === null; });
+  await page.keyboard.press('Shift');
+  const unl = await page.evaluate(() => ({ made: !!ac, state: ac && ac.state }));
+  check('audio: a real keydown or tap anywhere makes and runs the context; the haptics\' synthetic click does not', unlock && unl.made && unl.state === 'running', JSON.stringify({ unlock, unl }));
+
   /* 1. loudness and brightness scale with the impact */
   const ball = await page.evaluate(async () => ({ soft: await __r([['ball', 0.3, 0.02]]), mid: await __r([['ball', 2, 0.02]]), hard: await __r([['ball', 6, 0.02]]) }));
   check('ball: a harder hit peaks higher (soft < mid < hard)', ball.soft.pk > 0 && ball.soft.pk < ball.mid.pk && ball.mid.pk < ball.hard.pk && ball.hard.pk > 4 * ball.soft.pk, JSON.stringify(ball));

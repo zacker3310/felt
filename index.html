@@ -8168,10 +8168,17 @@ function audioOn() {
     if (muted) return;
     const A = window.AudioContext || window.webkitAudioContext;
     if (!A) return;
+    /* iOS 17+: a 'playback' audio session, so the ring/silent switch does not mute the table (Web Audio
+       defaults to 'ambient', which the switch silences with no sign on screen) */
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { }
     try { audioInit(new A()); } catch (e) { ac = null; return; }
   }
-  if (ac.state === 'suspended') ac.resume();
+  if (ac.state !== 'running') ac.resume().catch(() => { });
 }
+/* WebKit unlocks audio only inside a touchend, click or keydown: pointerdown (a touchstart) does not count, so a
+   game begun from the setup's Break and played on the table alone could stay silent. Any such gesture anywhere
+   turns it on (a real one: the haptics' own synthetic click is not a gesture; once made, audioOn only resumes a context the system interrupted: a call, Siri, an alarm) */
+for (const ev of ['touchend', 'click', 'keydown']) document.addEventListener(ev, e => { if (e.isTrusted && (!ac || ac.state !== 'running')) audioOn(); }, { capture: true, passive: true });
 /* gain node with a fast attack and an exponential tail, starting at t */
 function env(t, peak, attack, decay) {
   const g = ac.createGain();
@@ -8518,7 +8525,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-11-01a';
+const BUILD = 'build 2026-11-01b';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {

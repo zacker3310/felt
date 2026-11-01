@@ -221,7 +221,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   pinned GitHub-hosted sources by `node tools/make-sounds.cjs` and credited in `CREDITS.md` and Settings > About (Sound
   Credits). A new or changed take: rebuild, keep it in `sw.js`'s precache (bump `VERSION`) and in `CREDITS.md`, never an
   unlicensed file. `audioInit` builds the graph and `sfxLoad` fetches the files once and decodes them once per sample
-  rate (a hit before they are in is skipped; no fetch from file://; with sound off no context and no fetch). A hit is
+  rate (a hit before they are in is skipped; no fetch from file://; with sound off no context and no fetch). The context is
+  made or resumed by any real touchend, click or keydown (WebKit never unlocks in pointerdown; synthetic clicks ignored), and
+  `navigator.audioSession.type = 'playback'` keeps iOS's silent switch from muting the table. A hit is
   `hit()`: a take picked by `sfxPick` (a hash of the impact, never the same take twice running), low-pass, gain, rate
   +-3%, loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the pocket index,
   or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket, snooker's net and bumper's cup are the cushion and

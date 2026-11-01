@@ -209,6 +209,18 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
     return { before, after, attr, dur, both, off: reducedMotion() };
   });
   check('Graphics: Reduce motion makes the page (sheets come in at once) and the canvas (reducedMotion) still; both switches show it', !mo.before && mo.after && mo.attr === 'reduce' && parseFloat(mo.dur) < 0.01 && mo.both.join() === 'true,true' && !mo.off, JSON.stringify(mo));
+  /* the opening (6o): Graphics > Opening Animation, on by default, a real tap turns it off and it is stored */
+  await p.evaluate(() => { showMenu(); openSheet(prefsSheet, prefsBack); prefsPage('gfx'); });
+  await p.waitForTimeout(400);
+  const in0 = await p.evaluate(() => ({ on: settings.intro, aria: tgIntro.getAttribute('aria-checked'), label: tgIntro.textContent.trim(), shown: !!tgIntro.getClientRects().length }));
+  await p.evaluate(() => tgIntro.scrollIntoView({ block: 'center' }));
+  await p.click('#tgIntro');
+  const in1 = await p.evaluate(() => ({ on: settings.intro, aria: tgIntro.getAttribute('aria-checked'), stored: JSON.parse(localStorage.getItem('felt.settings')).intro, sv: settings.sv }));
+  await p.click('#tgIntro');
+  const in2 = await p.evaluate(() => ({ on: settings.intro, stored: JSON.parse(localStorage.getItem('felt.settings')).intro }));
+  check('Graphics: Opening Animation is on by default; a tap turns it off (shown and stored, sv stays 3) and on again', in0.on === true && in0.aria === 'true' && in0.label === 'Opening Animation' && in0.shown
+    && in1.on === false && in1.aria === 'false' && in1.stored === false && in1.sv === 3 && in2.on === true && in2.stored === true, JSON.stringify({ in0, in1, in2 }));
+  await p.evaluate(() => backToMenu());
   await p.evaluate(() => backToMenu());
 
   /* ---- 6. Audio: the volumes are the graph's gains ---- */

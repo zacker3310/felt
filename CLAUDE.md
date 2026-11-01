@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `34/34 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
+| test | `npm test` | `35/35 suites, N/N checks  ok` (about 8 min; CPU match games, play-check and stress-check dominate) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -329,6 +329,28 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
   opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check`.
+- Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 3.6 s on a cold launch at home, never on a
+  return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the
+  home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script
+  drops it with `settings.intro` false (Settings > Graphics > Opening Animation, `tgIntro` in `BOOL_TOGS`, default on, sv
+  stays 3) or `window.feltNoIntro`. The scene is `#introArt` (aria-hidden, under the header) drawn by the hero's
+  renderer (`heroPrep`, `heroStill(d, W, H, C, false)`, `heroDraw` with `h.flat`/`h.cueOff`) on two cameras of its own
+  (`introCams`: low behind the shot, cut at the cue ball's first contact to high over the table), 8-ball on the 9 ft
+  table's solved `HERO_SHOTS` break through the real `strike`/`stepTable` (the last frame is `simulateShot`'s). The
+  lamp (`introLight`: the pool's dark, cone, shade and dust, painted once at full size; a frame only offsets them by the
+  swing) and the level (`introScene`: the canvas's CSS opacity over the home's #09090a, not a painted wash); the camera's
+  slow move is a CSS scale on the canvas (`introCamMove`), never a resample. Timeline `IT`; the wordmark is the real
+  `#menuTitle` (`introPose`: dims, lands large in the safe area's middle with a spring and the `.introSheen` sweep, glides
+  home as the cards rise). Built in tasks while the first frame holds (`introBuild`; `INTRO_PREP_MAX` of its own work,
+  else straight home), at the device's pixel ratio (up to 3), then rAF frames to the end and none after; the table's own
+  `frameBody` waits meanwhile (`INTRO_LIVE`). Any tap, click or key skips it (`introSkip`, a 200 ms glide) and
+  `introGuard` swallows the gesture to its click (unlocking audio itself, since the page's listener never sees it);
+  hidden or resized: it ends at once. Reduce Motion: no scene, `introFade` (the cards fade in under the wordmark, 240 ms).
+  Sound only if audio is already running (`introSound` plays the roll's `tab.hits` in step). `.introDone` keeps `homeIn`
+  from replaying until the home is next left. `felt.intro`, `felt.introSeek(t)` (one moment, held), `felt.introSkip`,
+  `felt.introMeasure`. `tests/lib.cjs` skips it unless a suite opens with `intro: true`. Pinned by `intro-check` (first
+  frame = the launch image's pixels, `simulateShot`, skip and swallow, no rAF after, budget, Reduce Motion, setting
+  off, visibility, layout at six sizes with insets) and `settings-check`.
 
 ## Conventions
 

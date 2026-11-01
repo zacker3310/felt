@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-layout="wide">
+<html lang="en" data-layout="wide" class="intro">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
@@ -40,6 +40,9 @@
 <link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/launch/launch-1320x2868.png">
 <link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: landscape)" href="icons/launch/launch-2868x1320.png">
 <!-- launch:end -->
+<script>/* the opening (6o): <html class="intro"> holds the home at the launch image's frame (the wordmark alone)
+   from the first paint; with the setting off, or on a test page (window.feltNoIntro), the home shows as it always has */
+(function () { var s = null; try { s = JSON.parse(localStorage.getItem('felt.settings') || 'null'); } catch (e) { } if (window.feltNoIntro || (s && s.intro === false)) document.documentElement.classList.remove('intro'); })();</script>
 <script>/* offline + installable: register the service worker over http(s) only (file:// skips it) */
 if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 <title>felt</title>
@@ -603,6 +606,18 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 #menu.show:not([data-paused]) .newgame > :is(#playLab, #playRow) { animation-delay: .025s; }
 #menu.show:not([data-paused]) .newgame > :is(#modeLab, #modeRow) { animation-delay: .05s; }
 #menu.show:not([data-paused]) .newgame > :is(#soloLab, .solos) { animation-delay: .075s; }
+/* the opening (6o): from the first paint the home is the launch image's frame, the wordmark alone on
+   the home's colour; the scene plays on #introArt under the header, then the cards rise in (--ik) */
+#introArt { display: none; }
+html.intro #introArt { display: block; position: fixed; left: 0; top: 0; width: 100%; height: var(--app-h, 100%); z-index: 0; pointer-events: none; }
+html.intro #menu { overflow: hidden; }
+html.intro #menu .sheet.home { position: relative; z-index: 1; }
+html.intro #menu .newgame > :not(.brand), html.intro #menu .brand .foot { opacity: var(--ik, 0); translate: 0 var(--iy, 0px); animation: none !important; }
+html.intro .overlay.show:not(#menu) { visibility: hidden; }
+html:is(.introFade, .introDone) #menu .newgame > :not(.brand) { animation: none !important; }
+html.introFade #menu .newgame > :not(.brand), html.introFade #menu .brand .foot { transition: opacity .24s ease-out; }
+#menuTitle.introSheen { color: transparent; -webkit-background-clip: text; background-clip: text; background-size: 300% 100%; background-position: var(--sx, 0%) 0;
+  background-image: linear-gradient(100deg, #f5f5f7 0 41%, #ffffff 46%, #fff1d6 50%, #ffffff 54%, #b9b9be 59% 100%); }
 /* on its side: the eight games four to a row, then the modes beside the solo list */
 @media (orientation: landscape) and (min-width: 560px) {
   #menu:not([data-paused]) { --gut: 24px; }
@@ -1602,6 +1617,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 </div>
 
 <div class="overlay show" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+  <canvas id="introArt" aria-hidden="true"></canvas>
   <div class="sheet home">
     <div class="pausePart">
       <p class="kicker" id="soloKind">Paused</p>
@@ -1849,6 +1865,11 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="tog" id="tgMotion" role="switch" aria-checked="false"><span>Reduce Motion</span><i aria-hidden="true"></i></button>
       </div>
       <p class="gfoot">On: no sliding sheets, swings or pulses, whatever the system says. Off: follows the system setting.</p>
+      <h3 class="ghead" id="inLab">Opening</h3>
+      <div class="group" role="group" aria-labelledby="inLab">
+        <button class="tog" id="tgIntro" role="switch" aria-checked="true" aria-describedby="inNote"><span>Opening Animation</span><i aria-hidden="true"></i></button>
+      </div>
+      <p class="gfoot" id="inNote">A break under the lamp each time felt opens, then the home. A tap skips it. With Reduce Motion the home simply fades in.</p>
     </section>
     <!-- Audio and haptics -->
     <section class="pan" id="ppAud" aria-labelledby="prefsTitle" hidden>
@@ -8525,7 +8546,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-11-01b';
+const BUILD = 'build 2026-11-01c';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -11676,6 +11697,7 @@ function frame(now) {
 }
 function frameBody(now) {
   if (document.hidden) { frame.last = undefined; return; }   /* hidden: nothing steps (F11) */
+  if (INTRO_LIVE.includes(intro.state)) { frame.last = undefined; return; }   /* the opening (6o) covers the home: the table under it waits */
   const dtMs = clamp(now - (frame.last || now), 0, 50);   /* never backwards, at most 50 ms */
   frame.last = now;
   stepKeyPull(now);
@@ -13335,7 +13357,7 @@ function loadSettings() {
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
     hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
-    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', view: 'top', viewPitch: V3_PITCH0, viewDist: V3_DIST0, viewAfter: 'pull' };
+    cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', view: 'top', viewPitch: V3_PITCH0, viewDist: V3_DIST0, viewAfter: 'pull', intro: true };
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     let o = JSON.parse(raw || '{}') || {};
@@ -13346,7 +13368,7 @@ function loadSettings() {
     settingsExtra = keepExtra(o);
     if (['right', 'left'].includes(o.hand)) s.hand = o.hand;
     if (['mid', 'edge'].includes(o.bar)) s.bar = o.bar;
-    for (const k of ['replays', 'reduceMotion', 'marks', 'hcAim', 'keyShoot']) if (typeof o[k] === 'boolean') s[k] = o[k];
+    for (const k of ['replays', 'reduceMotion', 'marks', 'hcAim', 'keyShoot', 'intro']) if (typeof o[k] === 'boolean') s[k] = o[k];
     for (const k of ['vol', 'volFx']) if (typeof o[k] === 'number' && Number.isFinite(o[k])) s[k] = clamp(Math.round(o[k] / 5) * 5, 0, 100);
     if (TEXT_SIZES.includes(o.text)) s.text = o.text;
     /* the table view (4o): top-down or 3D, and the 3D camera's pitch (degrees) and distance (metres), clamped */
@@ -13522,7 +13544,7 @@ const LOCKABLE = ['calls.mode', 'calls.detail', 'safety', 'eight', 'obvious', 'c
 for (const [k, opts] of SEGS) for (const [btn, v] of opts) btn.addEventListener('click', () => setSetting(k, v));
 for (const [btn, k] of TOGS) btn.addEventListener('click', () => setSetting('calls.' + k, !settings.calls[k]));
 /* the sv 3 switches: settings[key] (Reduce motion is on two pages, Graphics and Accessibility) */
-const BOOL_TOGS = [[tgMotion, 'reduceMotion'], [tgMotion2, 'reduceMotion'], [tgMarks, 'marks'], [tgHcAim, 'hcAim'], [tgKeyShoot, 'keyShoot']];
+const BOOL_TOGS = [[tgMotion, 'reduceMotion'], [tgMotion2, 'reduceMotion'], [tgIntro, 'intro'], [tgMarks, 'marks'], [tgHcAim, 'hcAim'], [tgKeyShoot, 'keyShoot']];
 for (const [btn, k] of BOOL_TOGS) btn.addEventListener('click', () => setSetting(k, !settings[k]));
 /* the volume sliders: the value shows as it moves, and is stored as it moves */
 const VOLS = [[volMaster, volMasterVal, 'vol'], [volFx, volFxVal, 'volFx']];
@@ -14238,12 +14260,12 @@ function heroPlane(x, C, T, h, uLo, uHi) {
 const heroURange = (T, pts) => { const us = pts.map(([x, y]) => (x * T.c + y * T.s) * T.K - T.u0); return [Math.max(0, Math.min(...us) - 2), Math.min(T.img.width, Math.max(...us) + 2)]; };
 function heroPath(x, C, pts, z) { pts.forEach(([a, b], i) => { const p = heroProj(C, a, b, z); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.closePath(); }
 const mixRgb = (hex, k, to = [0, 0, 0]) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`; };
-function heroStill(d, W, H) {
+function heroStill(d, W, H, C0 = null, vignette = true) {
   /* a taller hero (spare room on a short form, hero.fit) sees more of the table: the camera
      rises and draws back, and the fit takes the whole table down to the words */
   const txt = heroTxtH(W), tall = clamp((H / W - 0.66) / 0.5, 0, 1), top = H * (0.13 - 0.03 * tall);
   const box = { x: W * 0.04, y: top, w: W * 0.92, h: H * 0.62 + (H - 0.8 * txt - top - H * 0.62) * tall };
-  const g = d.geo, C = heroCamera(d, W, H, box, tall);
+  const g = d.geo, C = C0 || heroCamera(d, W, H, box, tall);   /* the opening (6o) brings its own cameras */
   const tex = heroTexture(d), T = heroTurned(tex, g, C.yaw), bg = document.createElement('canvas'), fg = document.createElement('canvas');
   bg.width = fg.width = W; bg.height = fg.height = H;
   const x = bg.getContext('2d'), RW = railLook(), hC = g.h;
@@ -14291,8 +14313,9 @@ function heroStill(d, W, H) {
   /* fg: the rail and rubber nearer than the nearest nose, which a ball against them sits behind */
   const nd = Math.min(...g.noses.map(([a, b]) => (a * T.c + b * T.s) * T.K - T.u0)), y = fg.getContext('2d');
   y.save(); y.beginPath(); heroPath(y, C, g.outline, hC); heroPath(y, C, g.noses, hC); y.clip('evenodd'); heroPlane(y, C, T, hC, uA, nd); y.restore();
-  /* the vignette: corners and edges falling away */
-  const vg = document.createElement('canvas'); vg.width = W; vg.height = H;
+  /* the vignette: corners and edges falling away (the opening lights its own: none here) */
+  const vg = document.createElement('canvas'); vg.width = vignette ? W : 1; vg.height = vignette ? H : 1;
+  if (!vignette) return { C, bg, fg, vg, W, H };
   const z = vg.getContext('2d');
   gr = z.createRadialGradient(W / 2, H * 0.42, Math.min(W, H) * 0.35, W / 2, H * 0.42, Math.hypot(W, H) * 0.62);
   gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.55)');
@@ -14325,7 +14348,7 @@ function heroPotT(run, pt) {
 }
 function heroDraw(t, h = hero, cv = setupHeroArt) {
   const d = h.data, run = h.run, A = h.art, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
-  const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));
+  const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still || h.flat ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));   /* flat: the opening moves its canvas instead (6o) */
   const c0 = d.balls.find(b => b.n === d.shot.ball), fc = heroProj(C, c0.x, c0.y, g.R), F0 = heroProj(C, g.TL * 0.6, g.TW / 2, 0);
   const fx = (fc[0] + F0[0]) / 2, fy = (fc[1] + F0[1]) / 2, Z = p => [fx + (p[0] - fx) * z, fy + (p[1] - fy) * z, p[2]];
   x.setTransform(1, 0, 0, 1, 0, 0);
@@ -14389,8 +14412,10 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
     }
   } finally { artCtx = null; }
   x.setTransform(1, 0, 0, 1, 0, 0);
-  x.drawImage(A.fg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
-  if (!still) heroCue(x, C, g, d, t, Z, z);
+  /* the near rail (the opening's, 6o: cut to its painted box, at fgAt) */
+  if (A.fgAt) { if (A.fg.width > 1) x.drawImage(A.fg, fx - fx * z + A.fgAt[0] * z, fy - fy * z + A.fgAt[1] * z, A.fg.width * z, A.fg.height * z); }
+  else x.drawImage(A.fg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
+  if (!still && !h.cueOff) heroCue(x, C, g, d, t, Z, z);   /* cueOff: the opening's high camera (6o) */
   x.setTransform(1, 0, 0, 1, 0, 0);
   x.drawImage(A.vg, 0, 0);
 }
@@ -19456,6 +19481,486 @@ function powerTick(live) {
 Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo.busy, hold: mo.hold, runs: mo.runs, last: mo.last && Object.assign({}, mo.last), heroAt: mo.heroAt,
   rolls: mo.rolls, fulls: mo.fulls, drags: mo.drags.slice(), dragging: !!(sg && sg.mode && sg.mode !== 'none'), spring: SPRING }) });
 
+/* ---- 6o. the opening ----
+   A cold open of about 3.6 s on a cold launch at home (never on a return from the background, never
+   over a game), then the home. Settings > Graphics > Opening Animation (settings.intro) turns it off.
+   From the first paint <html class="intro"> holds the home at the launch image's frame: the wordmark
+   alone on the home's colour (the head's script drops the class at once with the setting off, or
+   on a test page: window.feltNoIntro, tests/lib.cjs unless a suite asks for intro: true). So iOS's
+   startup image, the first paint and the opening's first frame are the same pixels.
+   The scene (#introArt, under the header, aria-hidden, never focused) is the setup hero's renderer
+   (4m) on its own cameras: 8-ball on the 9 ft table, HERO_SHOTS' solved break, played by the sim
+   (strike, stepTable; the last frame is simulateShot's). Timeline (IT, ms from the moment it is
+   built): the frame held; the wordmark dims; a lamp flickers on and swings over the table in the
+   dark (a pool of light that moves with it, its cone and the dust in it); the cue draws back and
+   strikes, seen low from behind the shot; a cut to the high camera the moment the cue ball meets
+   the rack, the pots dropping as the hero's do; the lamp lowers and the wordmark lands large in the
+   middle with a weighty settle and a sheen across it; then it glides to its place in the header as
+   the scene fades and the cards rise in under it. Nothing is built before boot: the stills, the
+   sprites and the roll are made in tasks while the first frame holds, then rAF frames to the end,
+   and none after. Any tap, click or key skips it (a short glide home) and is swallowed with the
+   rest of its gesture, so it never lands on a card; the page hidden, or a resize, ends it at once.
+   Reduce Motion: no scene, the cards fade in under the wordmark in 240 ms. Silent first: with
+   sound on and audio already running (a desktop that allows it) the strike and the break play from
+   the roll's own hits, in step. A view only: it never writes game, tab or the settings.
+   felt.intro reports it; felt.introSeek(t) draws one moment and holds (tests, the frame strips). */
+const INTRO_KIND = '8', INTRO_ARGS = ['9', 'octagon', 'regulation'];
+const IT = { hold: 240, dim: 420, lamp: 360, lampMs: 760, hero: 480, land: 2300, sheen: 2560, sheenMs: 640, out: 3080, outMs: 540, skipMs: 200 };
+const INTRO_END = IT.out + IT.outMs, INTRO_PREP_MAX = 3000, INTRO_LAMP_H = 1.0, INTRO_LIVE = ['prep', 'play', 'out'];
+const intro = { state: 'off', mode: null, why: null, t0: 0, raf: 0, frames: 0, ms: [], data: null, run: null, art: null, arts: null, cut: 0, hits: 0,
+  home: null, mid: null, skip: null, swallow: 0, size: '', prepT0: 0, prepMs: 0, endAt: 0, last: { t: '', o: '', sx: '', ik: '', cv: '', ct: '', co: '' }, motes: null, cleared: false };
+/* the canvas's layout size and pixel ratio (a resize while it plays ends it) */
+const introSize = () => [introArt.clientWidth, introArt.clientHeight, Math.min(3, pixelRatio())].join();
+const easeIO3 = u => u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
+/* the two cameras on the hero's table d, fitted to a W x H canvas: low behind the shot, then high */
+function introCams(d, W, H) {
+  const g = d.geo, L = g.TL, side = W > H, b = d.balls.find(o => o.n === d.shot.ball), a = d.shot.angle, dx = Math.cos(a), dy = Math.sin(a);
+  const fit = (C, pts, box) => {
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (const p of pts) { const q = heroProj(C, p[0], p[1], p[2]); x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); }
+    const F = Math.min(box.w / (x1 - x0), box.h / (y1 - y0));
+    C.F = F; C.cx = box.x + box.w / 2 - F * (x0 + x1) / 2; C.cy = box.y + box.h / 2 - F * (y0 + y1) / 2;
+    return C;
+  };
+  /* low: down behind the cue ball and a little to its side, a long lens on the rack */
+  const back = side ? 1.7 : 1.3, E0 = [b.x - dx * back - dy * 0.14, b.y - dy * back + dx * 0.14, side ? 0.55 : 0.5];
+  const rack = d.balls.filter(o => o !== b), rc = [rack.reduce((s, o) => s + o.x, 0) / rack.length, rack.reduce((s, o) => s + o.y, 0) / rack.length];
+  const C0 = heroCam(E0, [rc[0], rc[1] + (b.y - rc[1]) * 0.3, 0], 0.025);
+  {
+    const ps = rack.map(o => heroProj(C0, o.x, o.y, g.R)), cb = heroProj(C0, b.x, b.y, g.R), rx0 = Math.min(...ps.map(p => p[0])), rx1 = Math.max(...ps.map(p => p[0]));
+    const ry = ps.reduce((s, p) => s + p[1], 0) / ps.length, rxm = (rx0 + rx1) / 2;
+    /* the rack a good part of the width, the cue ball low in the frame */
+    const F = Math.min((side ? 0.24 : 0.36) * W / (rx1 - rx0), (side ? 0.46 : 0.4) * H / Math.max(1e-6, cb[1] - ry));
+    C0.F = F; C0.cx = W * 0.54 - F * (rxm * 0.75 + cb[0] * 0.25); C0.cy = H * (side ? 0.3 : 0.38) - F * ry;
+  }
+  /* high: steeply over the head of the table (on its side, over the long rail), the whole table in view */
+  const C1 = side ? heroCam([L * 0.5 + 0.2, -1.05, 2.5], [L * 0.5, g.TW * 0.54, 0], 0) : heroCam([0.04 * L, g.TW / 2 + 0.12, 2.75], [L * 0.56, g.TW / 2, 0], 0);
+  fit(C1, g.outline.map(([x, y]) => [x, y, g.h]), side ? { x: W * 0.12, y: H * 0.08, w: W * 0.76, h: H * 0.86 } : { x: W * 0.04, y: H * 0.13, w: W * 0.92, h: H * 0.8 });
+  return [C0, C1];
+}
+/* the lamp on art A (camera i): the dark round its pool, and on the low camera its shade, cone and the dust */
+function introLight(d, A, i) {
+  const C = A.C, g = d.geo, W = A.W, H = A.H, mx = g.TL / 2, my = g.TW / 2;
+  /* the pool: an oval on the bed under the lamp (1.2 m along the table, 0.78 m across), as projected */
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  for (let k = 0; k < 32; k++) { const a = k / 32 * 2 * Math.PI, p = heroProj(C, mx + 1.2 * Math.cos(a), my + 0.78 * Math.sin(a), 0); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const ex = (x0 + x1) / 2, ey = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2;
+  /* the lamp hangs at the top of the frame (on the low camera its shade is in view): the pool swings
+     with it, by at most `reach` px; every layer is painted at full size once, so a frame only moves it */
+  const ap = heroProj(C, mx, my, INTRO_LAMP_H), cord = Math.max(H * 0.18, ap[1] + H * 0.1), len = Math.hypot(ex - ap[0], ey - ap[1]);
+  const ang = i === 0 ? Math.atan2(ey - ap[1], ex - ap[0]) : Math.PI / 2, reach = i === 0 ? (cord + len) * 0.5 : H * 0.25;
+  const pad = Math.ceil(0.075 * reach) + 4, mask = document.createElement('canvas');
+  mask.width = W + 2 * pad; mask.height = H + 2 * pad;
+  const m = mask.getContext('2d');
+  m.setTransform(rx * 1.12, 0, 0, ry * 1.12, ex + pad, ey + pad);
+  const gr = m.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(9,9,10,0)'); gr.addColorStop(0.5, 'rgba(9,9,10,0.04)'); gr.addColorStop(0.82, 'rgba(9,9,10,0.36)'); gr.addColorStop(1, 'rgba(9,9,10,0.66)');
+  m.fillStyle = gr; m.fillRect(-60, -60, 120, 120);
+  const L = { mask, pad, reach, ex, ey, rx, ry, ang, cone: null, dx: Math.cos(ang + Math.PI / 2), dy: Math.sin(ang + Math.PI / 2) };
+  if (i === 0) {
+    /* the cone of light from the shade's rim to the pool, soft-edged (nested layers, added) */
+    const rim = C.F * 0.2 / ap[2], hw = rx * 0.98, ca = Math.cos(ang), sa = Math.sin(ang);
+    const pts = [[0, -rim], [0, rim], [len, -hw], [len, hw]].map(([u, v]) => [ap[0] + u * ca - v * sa, ap[1] + u * sa + v * ca]);
+    const bx0 = Math.floor(Math.max(-pad, Math.min(...pts.map(p => p[0])))), bx1 = Math.ceil(Math.min(W + pad, Math.max(...pts.map(p => p[0]))));
+    const by0 = Math.floor(Math.max(-pad, Math.min(...pts.map(p => p[1])))), by1 = Math.ceil(Math.min(H + pad, Math.max(...pts.map(p => p[1]))));
+    const cone = document.createElement('canvas');
+    cone.width = Math.max(1, bx1 - bx0); cone.height = Math.max(1, by1 - by0);
+    const c = cone.getContext('2d');
+    c.setTransform(ca, sa, -sa, ca, ap[0] - bx0, ap[1] - by0);
+    for (let k = 0; k < 9; k++) {
+      const f = 1 - k / 9, lg = c.createLinearGradient(0, 0, len, 0);
+      lg.addColorStop(0, 'rgba(255,230,186,0.026)'); lg.addColorStop(0.55, 'rgba(255,230,186,0.016)'); lg.addColorStop(1, 'rgba(255,230,186,0.007)');
+      c.fillStyle = lg; c.beginPath(); c.moveTo(0, -rim * f); c.lineTo(len, -hw * f); c.lineTo(len, hw * f); c.lineTo(0, rim * f); c.closePath(); c.fill();
+    }
+    /* the shade: a dark metal cone round the bulb, its rim lit from inside */
+    const sh = document.createElement('canvas'), sw = Math.ceil(rim * 2.6), shh = Math.ceil(rim * 2.2);
+    sh.width = sw; sh.height = shh;
+    const z = sh.getContext('2d'), cx = sw / 2, by = shh * 0.78;
+    const lg = z.createLinearGradient(cx - rim, 0, cx + rim, 0);
+    lg.addColorStop(0, '#060807'); lg.addColorStop(0.35, '#1d2a22'); lg.addColorStop(0.5, '#33473a'); lg.addColorStop(0.75, '#111813'); lg.addColorStop(1, '#040505');
+    z.fillStyle = lg; z.beginPath(); z.moveTo(cx - rim * 0.16, 0); z.lineTo(cx + rim * 0.16, 0); z.lineTo(cx + rim, by); z.ellipse(cx, by, rim, rim * 0.22, 0, 0, Math.PI); z.closePath(); z.fill();
+    const rg = z.createRadialGradient(cx, by, 0, cx, by, rim);
+    rg.addColorStop(0, 'rgba(255,246,222,1)'); rg.addColorStop(0.35, 'rgba(255,226,170,0.85)'); rg.addColorStop(1, 'rgba(255,196,120,0.15)');
+    z.fillStyle = rg; z.beginPath(); z.ellipse(cx, by, rim * 0.94, rim * 0.2, 0, 0, Math.PI * 2); z.fill();
+    /* a speck of dust in the light */
+    const dot = document.createElement('canvas'), dr = Math.max(2, Math.round(W / 260));
+    dot.width = dot.height = dr * 4;
+    const y = dot.getContext('2d'), dg = y.createRadialGradient(dr * 2, dr * 2, 0, dr * 2, dr * 2, dr * 2);
+    dg.addColorStop(0, 'rgba(255,240,215,0.9)'); dg.addColorStop(0.4, 'rgba(255,240,215,0.35)'); dg.addColorStop(1, 'rgba(255,240,215,0)');
+    y.fillStyle = dg; y.fillRect(0, 0, dr * 4, dr * 4);
+    Object.assign(L, { cone, coneAt: [bx0, by0], ap, rim, len, hw, cord, sh, shX: cx, shY: by, dot, dr, onScreen: ap[1] > -shh && ap[1] < H });
+  }
+  return L;
+}
+/* a mostly empty canvas (the near rail's fg) cut to its painted box: [canvas, [x, y]] (found on a quarter-scale copy) */
+function introCrop(cv) {
+  const q = 4, w = Math.ceil(cv.width / q), h = Math.ceil(cv.height / q), c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.drawImage(cv, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) if (d[4 * (j * w + i) + 3]) { if (i < x0) x0 = i; if (i > x1) x1 = i; if (j < y0) y0 = j; if (j > y1) y1 = j; }
+  const out = document.createElement('canvas');
+  if (x1 < 0) { out.width = out.height = 1; return [out, [0, 0]]; }
+  const X = Math.max(0, (x0 - 1) * q), Y = Math.max(0, (y0 - 1) * q);
+  out.width = Math.min(cv.width, (x1 + 2) * q) - X; out.height = Math.min(cv.height, (y1 + 2) * q) - Y;
+  out.getContext('2d').drawImage(cv, -X, -Y);
+  return [out, [X, Y]];
+}
+/* the title's ground: a soft dark round the landed wordmark */
+function introHalo(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.max(2, Math.ceil(w)); c.height = Math.max(2, Math.ceil(h));
+  const x = c.getContext('2d');
+  x.setTransform(c.width / 2, 0, 0, c.height / 2, c.width / 2, c.height / 2);
+  const gr = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(9,9,10,0.82)'); gr.addColorStop(0.55, 'rgba(9,9,10,0.5)'); gr.addColorStop(1, 'rgba(9,9,10,0)');
+  x.fillStyle = gr; x.fillRect(-1, -1, 2, 2);
+  return c;
+}
+/* the lamp's level, 0 (off) to 1: two flickers as the filament catches, then a warm rise */
+function introLampK(t) {
+  const u = t - IT.lamp;
+  if (u <= 0) return 0;
+  if (u < 50) return 0.5 * u / 50;
+  if (u < 100) return 0.12;
+  if (u < 160) return 0.72;
+  if (u < 210) return 0.3;
+  return 0.3 + 0.7 * ease(210, IT.lampMs, u);
+}
+/* its swing: a damped pendulum, radians */
+const introSwing = t => { const u = Math.max(0, t - IT.lamp) / 1000; return 0.07 * Math.exp(-u / 1.6) * Math.cos(2 * Math.PI * u / 1.9 + 0.3); };
+/* the wordmark at t: translate (CSS px), scale, opacity, the sheen's place (%) */
+function introPose(t) {
+  const M = intro.mid;
+  if (t < IT.hold) return [0, 0, 1, 1, 100];
+  if (t < IT.hold + IT.dim) { const e = ease(0, 1, (t - IT.hold) / IT.dim); return [0, 0, 1 - 0.035 * e, 1 - e, 100]; }
+  if (t < IT.land) return [0, 0, 0.965, 0, 100];
+  const sx = 100 * (1 - easeIO3(clamp((t - IT.sheen) / IT.sheenMs, 0, 1)));
+  if (t < IT.out) {
+    /* a weighty settle: down from above with a little overshoot, and in from a touch larger */
+    const s = (t - IT.land) / 1000, k = 1 - Math.exp(-7.5 * s) * (Math.cos(10.5 * s) + 0.71 * Math.sin(10.5 * s));
+    return [M.tx, M.ty - M.drop * (1 - k), M.s * (1.12 - 0.12 * k), clamp((t - IT.land) / 170, 0, 1), sx];
+  }
+  const e = easeIO3(clamp((t - IT.out) / IT.outMs, 0, 1));
+  return [M.tx * (1 - e), M.ty * (1 - e), M.s + (1 - M.s) * e, 1, sx];
+}
+/* the cards (0 hidden, 1 home) and the scene's opacity at t */
+const introCards = t => easeIO3(clamp((t - IT.out - 140) / 420, 0, 1));
+/* the canvas over the home's own colour (#09090a, the room's): its opacity is the lamp's level (dark
+   before it, lowered for the title) and the scene's fade at the end, so no frame paints a dark wash */
+const introScene = t => t < IT.lamp ? 1 : introLampK(t) * (1 - 0.4 * ease(IT.land - 150, IT.land + 450, t)) * (1 - ease(0, 1, (t - IT.out) / IT.outMs));
+function introApply(p, ik, cv, cam) {
+  const el = menuTitle, L = intro.last, ct = `scale(${cam[0].toFixed(4)})`, co = `${cam[1].toFixed(1)}% ${cam[2].toFixed(1)}%`, tr = `translate(${p[0].toFixed(2)}px, ${p[1].toFixed(2)}px) scale(${p[2].toFixed(4)})`, o = p[3].toFixed(3), sx = p[4].toFixed(1) + '%', k = ik.toFixed(3), c = cv.toFixed(3);
+  if (L.t !== tr) { el.style.transform = tr; L.t = tr; }
+  if (L.o !== o) { el.style.opacity = o; L.o = o; }
+  if (L.sx !== sx) { el.style.setProperty('--sx', sx); L.sx = sx; }
+  if (L.ik !== k) { menu.style.setProperty('--ik', k); menu.style.setProperty('--iy', ((1 - ik) * 12).toFixed(2) + 'px'); L.ik = k; }
+  if (L.cv !== c) { introArt.style.opacity = c; L.cv = c; }
+  if (L.ct !== ct) { introArt.style.transform = ct; L.ct = ct; }
+  if (L.co !== co) { introArt.style.transformOrigin = co; L.co = co; }
+}
+/* boot (7) asks: the full opening, the short fade, or nothing */
+function introBoot() {
+  const d = document.documentElement;
+  if (!d.classList.contains('intro')) { intro.why = 'off'; return; }
+  if (!settings.intro || window.feltNoIntro || state !== 'menu' || paused || document.hidden) { intro.why = 'not now'; d.classList.remove('intro'); return; }
+  if (reducedMotion()) { introFade(); return; }
+  intro.mode = 'full'; intro.state = 'prep'; intro.prepT0 = performance.now();
+  introListen(true);
+  menuTitle.style.transformOrigin = '50% 50%';
+  audioOn();   /* with sound on: a context, and the takes fetched; it plays only if the system already lets it */
+  introPrep();
+}
+/* Reduce Motion: the wordmark stays; the cards fade in under it */
+function introFade() {
+  const d = document.documentElement;
+  intro.mode = 'fade'; intro.state = 'fade'; intro.t0 = performance.now();
+  d.classList.add('introFade');
+  getComputedStyle(playRow).opacity;
+  d.classList.remove('intro');
+  intro.fadeMs = parseFloat(getComputedStyle(playRow).transitionDuration) * 1000;
+  let fin = false;
+  const end = () => { if (fin) return; fin = true; d.classList.remove('introFade'); introDone(); };
+  playRow.addEventListener('transitionend', end, { once: true });
+  setTimeout(end, 400);
+}
+function introDone() {
+  const d = document.documentElement;
+  intro.state = 'done'; intro.endAt = performance.now();
+  d.classList.add('introDone');
+  /* the cards' own rise (homeIn) stays off until the home is next left, so it does not play again now */
+  const mo2 = new MutationObserver(() => { if (!menu.classList.contains('show') || menu.dataset.paused !== undefined) { d.classList.remove('introDone'); mo2.disconnect(); } });
+  mo2.observe(menu, { attributes: true, attributeFilter: ['class', 'data-paused'] });
+}
+/* the build, a step a task, while the first frame holds */
+function* introBuild() {
+  const r = { width: introArt.clientWidth, height: introArt.clientHeight }, dp = Math.min(3, pixelRatio()), W = Math.max(1, Math.round(r.width * dp)), H = Math.max(1, Math.round(r.height * dp));
+  intro.size = introSize();
+  introArt.width = W; introArt.height = H;
+  useCloth();
+  const d = intro.data = heroPrep(INTRO_KIND, INTRO_ARGS);
+  intro.flat = true;
+  yield;
+  const cams = introCams(d, W, H);
+  intro.arts = [];
+  for (let i = 0; i < 2; i++) {
+    const A = heroStill(d, W, H, cams[i], false);
+    A.bg.getContext('2d').getImageData(0, 0, 1, 1);
+    const fg = A.fg;
+    [A.fg, A.fgAt] = introCrop(fg);
+    fg.width = fg.height = 0;
+    A.light = introLight(d, A, i);
+    /* where the camera's move centres (% of the canvas): the rack on the low one, the table's middle on the high */
+    const fp = i ? heroProj(A.C, d.geo.TL * 0.55, d.geo.TW / 2, 0) : heroProj(A.C, d.balls[1].x, d.balls[1].y, 0);
+    A.focus = [clamp(fp[0] / W * 100, 20, 80), clamp(fp[1] / H * 100, 20, 80)];
+    intro.arts.push(A);
+    yield;
+  }
+  intro.art = intro.arts[0];
+  /* the roll, recorded as the hero's is, with how many of its hits had sounded by each sample */
+  let keep = heroOn(d.args);
+  try { intro.run = heroRunStart(d); } finally { heroOff(keep); }
+  const run = intro.run;
+  run.hitN = [run.tab.hits.length];
+  while (!run.done) {
+    keep = heroOn(d.args);
+    const t0 = performance.now();
+    try {
+      while (!run.done && performance.now() - t0 < 30) {
+        let go = true;
+        for (let k = 0; k < HERO_SUB && go; k++) go = stepTable(run.tab);
+        heroSample(run); run.hitN.push(run.tab.hits.length);
+        if (!go) { run.done = true; run.final = resultOf(run.tab); run.S = Math.max(0.4, run.moveT); }
+      }
+    } finally { heroOff(keep); }
+    if (!run.done) yield;
+  }
+  /* the cut: the cue ball meets the rack */
+  const j = run.tab.hits.findIndex(h => h[0] === 'ball'), k = j < 0 ? 0 : run.hitN.findIndex(n => n > j);
+  intro.cut = j < 0 ? HERO_CUE_MS + 300 : heroPotT(run, { t: k * HERO_SUB * SIM_DT }) + 50;
+  /* the ball sprites (ballSprites, a quarter pixel apart) the frames will ask for, made now rather than in
+     a frame: on the low camera the sizes the roll passes through until the cut (the cue ball sweeps a wide
+     range fast: only the sizes at its samples), on the high one every size between its smallest and largest */
+  const kc = Math.max(1, k + 2), want = new Set(), hi = [Infinity, -Infinity];
+  for (let c = 0; c < 2; c++) {
+    const C = intro.arts[c].C, R = C.F * d.geo.R;
+    for (let i = c ? kc - 1 : 0; i < (c ? run.pos.length : Math.min(run.pos.length, kc + 1)); i++) {
+      const P = run.pos[i];
+      for (let b = 0; b < run.n; b++) {
+        const r = R / heroProj(C, P[2 * b], P[2 * b + 1], d.geo.R)[2];
+        if (c) { hi[0] = Math.min(hi[0], r); hi[1] = Math.max(hi[1], r); } else want.add(Math.round(r * 4));
+      }
+    }
+  }
+  for (let q = Math.floor(hi[0] * 4) - 1; q <= Math.ceil(hi[1] * 4) + 1; q++) want.add(q);
+  intro.sprites = want.size;
+  let n = 0;
+  for (const q of want) { ballSprites(q / 4); if (++n % 40 === 0) yield; }
+  /* the wordmark: its place in the header, and where it lands, large, in the middle of the safe area */
+  menuTitle.style.transform = '';
+  const h = menuTitle.getBoundingClientRect(), sat = insetTop(), sab = insetBottom(), vw = r.width, vh = r.height;
+  const s = Math.min(2.6, vw * 0.5 / h.width, (vh - sat - sab) * 0.16 / h.height), cy = sat + (vh - sat - sab) * (W > H ? 0.5 : 0.47);
+  intro.home = { x: h.left, y: h.top, w: h.width, h: h.height };
+  intro.mid = { tx: vw / 2 - (h.left + h.width / 2), ty: cy - (h.top + h.height / 2), s, drop: h.height * s * 0.5, cx: vw / 2, cy };
+  intro.halo = introHalo(h.width * s * 2.3 * dp, h.height * s * 2.6 * dp);
+  /* the dust: fixed places in the cone (a hash, never Math.random) */
+  intro.motes = Array.from({ length: 42 }, (_, i) => { const f = n => ((Math.sin((i + 1) * n) * 43758.5453) % 1 + 1) % 1; return [0.08 + 0.88 * f(12.9898), f(78.233) * 2 - 1, f(39.425) * 6.283, 0.35 + 0.65 * f(93.989), 0.6 + 0.8 * f(17.17)]; });
+}
+function introPrep() {
+  const it = intro.it = introBuild();
+  let work = 0;
+  const step = () => {
+    if (intro.it !== it || intro.state !== 'prep') return;
+    /* a slow device: the home rather than a long hold on the first frame (the build's own time, so
+       the page's first paint and the frames between its steps do not count; and a cap from boot) */
+    const now = performance.now();
+    if (work > INTRO_PREP_MAX || now - intro.prepT0 > 2.5 * INTRO_PREP_MAX) { intro.why = 'slow'; introFinish(); return; }
+    let r;
+    try { do r = it.next(); while (!r.done && performance.now() - now < 120); } catch (e) { console.error(e && e.stack ? e.stack : e); intro.why = 'error'; introFinish(); return; }
+    work += performance.now() - now;
+    intro.work = work;
+    if (!r.done) { setTimeout(step, 0); return; }
+    intro.prepMs = performance.now() - intro.prepT0;
+    /* laid out again while it was built (iOS reports its sizes late): build again for the new size */
+    if (introSize() !== intro.size && !intro.rebuilt) { intro.rebuilt = true; introPrep(); return; }
+    introStart();
+  };
+  setTimeout(step, 0);
+}
+function introStart() {
+  intro.state = 'play'; intro.t0 = performance.now(); intro.frames = 0; intro.ms = []; intro.hits = 0;
+  menuTitle.classList.add('introSheen');
+  introFrame(0);
+  introLoop();
+}
+const introLoop = () => { if (!intro.raf) intro.raf = requestAnimationFrame(introTick); };
+function introTick(now) {
+  intro.raf = 0;
+  if (intro.state !== 'play' && intro.state !== 'out') return;
+  if (document.hidden) { introFinish(); return; }
+  const t = now - intro.t0;
+  if (intro.state === 'out' ? t >= intro.skip.t1 : t >= INTRO_END) { introFinish(); return; }
+  introFrame(t);
+  introLoop();
+}
+/* one moment: the scene, then the wordmark, the cards and the scene's fade (the skip's glide home, if one) */
+function introFrame(t) {
+  const t1 = performance.now();
+  introDraw(t);
+  let p = introPose(t), ik = introCards(t), cv = introScene(t);
+  const S = intro.skip;
+  if (S) {
+    const e = easeIO3(clamp((t - S.t0) / (S.t1 - S.t0), 0, 1)), f = S.from;
+    p = [f[0] * (1 - e), f[1] * (1 - e), f[2] + (1 - f[2]) * e, f[3] + (1 - f[3]) * e, f[4] * (1 - e)];
+    ik = S.ik + (1 - S.ik) * e; cv = S.cv * (1 - e);
+  }
+  introApply(p, ik, cv, introCamMove(S ? S.t0 + (t - S.t0) * 0.3 : t));
+  if (felt.introMeasure) introArt.getContext('2d').getImageData(0, 0, 1, 1);
+  intro.frames++;
+  if (intro.ms.length < 2000) intro.ms.push(performance.now() - t1);
+}
+function introDraw(t) {
+  const x = introArt.getContext('2d'), W = introArt.width, H = introArt.height;
+  if (t < IT.lamp) { if (!intro.cleared) { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); intro.cleared = true; } return; }
+  intro.cleared = false;
+  const hT = Math.max(0, t - IT.hero), A = intro.art = intro.arts[hT >= intro.cut ? 1 : 0], L = A.light, sw = introSwing(t);
+  intro.cueOff = A !== intro.arts[0];
+  heroDraw(hT, intro, introArt);
+  introSound(hT);
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  /* the dark beyond the lamp's pool, swung with it (whole pixels: a plain copy, never a resample) */
+  const off = sw * L.reach, ox = Math.round(L.dx * off), oy = Math.round(L.dy * off);
+  x.drawImage(L.mask, ox - L.pad, oy - L.pad);
+  if (L.cone) {
+    /* the cone of light and the dust turning in it, carried with the swing; the shade on its cord */
+    x.globalCompositeOperation = 'lighter';
+    x.drawImage(L.cone, L.coneAt[0] + ox, L.coneAt[1] + oy);
+    const ax = L.ap[0] + sw * L.cord, ay = L.ap[1], ca = Math.cos(L.ang), sa = Math.sin(L.ang), M = intro.motes, dr = L.dr * 4, u0 = t / 1000;
+    for (let i = 0; i < M.length; i++) {
+      const m = M[i], u = (m[0] + 0.012 * Math.sin(u0 * 0.7 * m[4] + m[2])) % 1, w = L.rim + (L.hw - L.rim) * u, v = (m[1] + 0.05 * Math.sin(u0 * 1.1 * m[4] + m[2] * 2)) * w * 0.8, U = u * L.len;
+      const tw = 0.5 + 0.5 * Math.sin(u0 * 2.3 * m[4] + m[2]);
+      x.globalAlpha = m[3] * (0.25 + 0.75 * tw) * (1 - u * 0.6);
+      x.drawImage(L.dot, ax + U * ca - v * sa - dr / 2 + ox * u, ay + U * sa + v * ca - dr / 2 + oy * u, dr, dr);
+    }
+    x.globalCompositeOperation = 'source-over';
+    x.globalAlpha = 1;
+    if (L.onScreen) {
+      const r = sw * 0.55;
+      x.setTransform(Math.cos(r), Math.sin(r), -Math.sin(r), Math.cos(r), ax, ay);
+      x.drawImage(L.sh, -L.shX, -L.shY);
+      x.setTransform(1, 0, 0, 1, 0, 0);
+    }
+  }
+  /* the title's ground, where the wordmark lands */
+  const hk = ease(IT.land - 100, IT.land + 300, t);
+  if (hk > 0) {
+    /* where the middle of the screen is on the canvas under the camera's scale */
+    const cw = introArt.clientWidth || 1, ch = introArt.clientHeight || 1, dp = W / cw, hw = intro.halo.width, hh = intro.halo.height, [k, fx, fy] = introCamMove(t);
+    const cx = fx / 100 * cw + (intro.mid.cx - fx / 100 * cw) / k, cy = fy / 100 * ch + (intro.mid.cy - fy / 100 * ch) / k;
+    x.globalAlpha = 0.75 * hk;
+    x.drawImage(intro.halo, Math.round(cx * dp - hw / 2), Math.round(cy * dp - hh / 2));
+    x.globalAlpha = 1;
+  }
+}
+/* the camera's slow move, on the compositor (the canvas scaled, never resampled in a frame): in on the
+   rack until the cut, then from close in back out to the whole table as the balls spread */
+function introCamMove(t) {
+  const hT = t - IT.hero, A = intro.arts && intro.arts[hT >= intro.cut ? 1 : 0];
+  if (!A || t < IT.lamp) return [1, 50, 50];
+  const f = A.focus;
+  if (hT < intro.cut) return [1 + 0.06 * ease(0, intro.cut + IT.hero, t), f[0], f[1]];
+  return [1 + 0.12 * (1 - heroEaseIO(clamp((hT - intro.cut) / (HERO_CUE_MS + HERO_ROLL_MS - intro.cut), 0, 1))), f[0], f[1]];
+}
+/* the roll's hits as they happen, with sound on and audio already running (never before a gesture on iOS) */
+function introSound(hT) {
+  const run = intro.run;
+  if (hT < HERO_CUE_MS || !run || !run.done) return;
+  const s = hT >= HERO_CUE_MS + HERO_ROLL_MS ? Infinity : heroSimT(run, (hT - HERO_CUE_MS) / HERO_ROLL_MS);
+  const n = run.hitN[Math.min(run.hitN.length - 1, Math.floor(s / (HERO_SUB * SIM_DT)))];
+  if (n <= intro.hits) return;
+  const from = intro.hits;
+  intro.hits = n;
+  if (!ac || muted || ac.state !== 'running' || !SFX) return;
+  const keep = heroOn(intro.data.args);
+  try { for (let i = from; i < n; i++) { const h = run.tab.hits[i]; sfxAt(h[0], h[1], ac.currentTime + 0.005, h[2]); } } finally { heroOff(keep); }
+  intro.sounded = (intro.sounded || 0) + n - from;
+}
+/* a tap, a click or a key: a short glide home (before the scene is built: home at once) */
+function introSkip() {
+  intro.swallow = performance.now() + 700;
+  if (intro.state === 'prep') { intro.why = 'skipped'; introFinish(); return; }
+  if (intro.state !== 'play') return;
+  intro.why = 'skipped';
+  const t = performance.now() - intro.t0, L = intro.last;
+  intro.skip = { t0: t, t1: t + IT.skipMs, from: introPose(t), ik: +L.ik || 0, cv: L.cv === '' ? 1 : +L.cv };
+  intro.state = 'out';
+  introLoop();
+}
+/* the end: everything as the home has it, every frame stopped, the scene's memory let go */
+function introFinish() {
+  if (intro.raf) cancelAnimationFrame(intro.raf);
+  intro.raf = 0; intro.it = null;
+  const el = menuTitle;
+  el.classList.remove('introSheen');
+  for (const k of ['transform', 'opacity', 'transform-origin', '--sx']) el.style.removeProperty(k);
+  for (const k of ['--ik', '--iy']) menu.style.removeProperty(k);
+  for (const k of ['opacity', 'transform', 'transform-origin']) introArt.style.removeProperty(k);
+  document.documentElement.classList.remove('intro');
+  if (intro.arts) for (const A of intro.arts) for (const c of [A.bg, A.fg, A.vg, A.light.mask, A.light.cone || A.vg]) c.width = c.height = 0;
+  intro.arts = null; intro.art = null; intro.halo = null;
+  introArt.width = introArt.height = 0;
+  intro.last = { t: '', o: '', sx: '', ik: '', cv: '', ct: '', co: '' };
+  setTimeout(() => { if (performance.now() > intro.swallow) introListen(false); else setTimeout(() => introListen(false), intro.swallow - performance.now() + 20); }, 0);
+  introDone();
+}
+/* while it plays, a tap, click or key is its own: skip, and swallow the gesture to its end */
+const INTRO_EV = ['pointerdown', 'pointerup', 'pointercancel', 'mousedown', 'mouseup', 'touchstart', 'touchend', 'click', 'dblclick', 'contextmenu', 'keydown', 'keyup', 'wheel'];
+function introGuard(e) {
+  const live = INTRO_LIVE.includes(intro.state);
+  if (!live && performance.now() > intro.swallow) return;
+  if (live && (e.type === 'pointerdown' || e.type === 'mousedown' || e.type === 'touchstart' || e.type === 'keydown' || e.type === 'wheel')) introSkip();
+  /* stopped here, the page's own audio unlock (2) never sees this gesture: unlock from it instead */
+  if ((e.type === 'touchend' || e.type === 'click' || e.type === 'keydown') && e.isTrusted && (!ac || ac.state !== 'running')) audioOn();
+  if (e.cancelable) e.preventDefault();
+  e.stopImmediatePropagation();
+  intro.swallowed = (intro.swallowed || 0) + 1;
+  if (e.type === 'click' || e.type === 'keyup') intro.swallow = 0;
+  if (!live && !intro.swallow) introListen(false);
+}
+/* only while it can matter: a non-passive touch listener left on the window would hold every scroll for the main thread */
+function introListen(on) {
+  if (!!intro.listening === on) return;
+  intro.listening = on;
+  for (const ev of INTRO_EV) (on ? addEventListener : removeEventListener)(ev, introGuard, { capture: true, passive: false });
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden && INTRO_LIVE.includes(intro.state)) { intro.why = 'hidden'; introFinish(); } });
+addEventListener('resize', () => {
+  if (intro.state !== 'play') return;
+  if (introSize() !== intro.size) introSkip();
+});
+/* a moment of it, held (tests and the frame strips): the full timeline only */
+function introSeek(t) {
+  if (!intro.arts) return false;
+  if (intro.raf) cancelAnimationFrame(intro.raf);
+  intro.raf = 0; intro.state = 'seek'; intro.skip = null;
+  introFrame(t);
+  return true;
+}
+function introInfo() {
+  const r = intro.run, d = intro.data;
+  return { state: intro.state, mode: intro.mode, why: intro.why, frames: intro.frames, raf: !!intro.raf, ms: intro.ms.slice(), cut: intro.cut, prepMs: intro.prepMs, work: intro.work || 0, endAt: intro.endAt, t0: intro.t0,
+    end: INTRO_END, timeline: Object.assign({}, IT), size: intro.size, canvas: [introArt.width, introArt.height], home: intro.home && Object.assign({}, intro.home), mid: intro.mid && Object.assign({}, intro.mid),
+    key: d && d.key, args: INTRO_ARGS.slice(), shot: d && d.shot, start: d && d.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), drawn: intro.drawn ? intro.drawn.length : 0,
+    final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null,
+    hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening };
+}
+Object.defineProperty(felt, 'intro', { get: introInfo });
+felt.introSeek = introSeek;
+felt.introSkip = () => introSkip();
+felt.introMeasure = false;
+
 /* ============ 7. BOOT ============ */
 /* the career engine (1z) keeps its slots in localStorage; booting it copies the old ladder's
    record (felt.career.v1, still the 6d ladder's) to felt.career.v1.bak before anything else */
@@ -19490,6 +19995,8 @@ paintArt();
 /* a first run: the lesson is offered once (6d) */
 maybeOfferLesson();
 requestAnimationFrame(frame);
+/* the opening (6o): only schedules its build; the home is booted underneath */
+introBoot();
 window.booted = true;
 </script>
 </body>

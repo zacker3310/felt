@@ -2,7 +2,8 @@
    "N/M passed" trailer run-all parses. open() launches Chromium with software rendering,
    records console errors and network requests, and waits for boot (firstRun: true keeps the
    first-run lesson offer and the tutorials' first-Break offers, which every other suite skips;
-   motion: true keeps the 6m motion, which every other suite turns off).
+   motion: true keeps the 6m motion, which every other suite turns off; intro: true keeps the
+   opening, 6o, which every other suite skips).
    Taken from puttX. */
 'use strict';
 const URL = process.env.FELT_URL || 'http://127.0.0.1:4173/index.html';
@@ -17,13 +18,13 @@ function done() {
   console.log(`\n${p}/${results.length} passed`);
   process.exit(p === results.length ? 0 : 1);
 }
-async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init, firstRun = false, motion = false } = {}) {
+async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTouch = false, isMobile = false, deviceScaleFactor = 1, screen, init, firstRun = false, motion = false, intro = false, reducedMotion } = {}) {
   const pw = require('playwright-core');
   const browser = await pw.chromium.launch({
     executablePath: process.env.CHROMIUM || pw.chromium.executablePath(),
     args: ['--autoplay-policy=no-user-gesture-required'],
   });
-  const page = await browser.newPage({ viewport, hasTouch, isMobile, deviceScaleFactor, ...(screen ? { screen } : {}) });
+  const page = await browser.newPage({ viewport, hasTouch, isMobile, deviceScaleFactor, ...(screen ? { screen } : {}), ...(reducedMotion ? { reducedMotion } : {}) });
   /* the first-run lesson offer (a sheet over home) stays out of every suite but the one that
      asks for a first run: as if it had been seen, unless the page has its own record */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.lesson.v1')) localStorage.setItem('felt.lesson.v1', '{"v":1,"seen":true,"done":false}'); } catch (e) { } });
@@ -34,6 +35,9 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
   /* the page's motion (6m: the card-to-sheet morph, numbers rolling up) stays out of every suite
      but the ones that ask for it, so they measure finished screens and final numbers */
   if (!motion) await page.addInitScript(() => { window.feltNoMotion = true; });
+  /* the opening (6o: the lamp, the break, the wordmark) stays out of every suite but the one that
+     asks for it, so a suite finds the home at boot as it always has */
+  if (!intro) await page.addInitScript(() => { window.feltNoIntro = true; });
   if (init) await page.addInitScript(init);
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

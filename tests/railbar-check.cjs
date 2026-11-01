@@ -17,7 +17,12 @@
       inset its rails may run under), on its side the band across BAND_PX or less unless the column took its 24 px, and
       the bed inside the safe area.
    4. the controls, a replay playing, a party of three and four, and what rises clear of the row (the call bar, the
-      exhibition's bar, the practice tools, a tutorial's coach card). */
+      exhibition's bar, the practice tools, a tutorial's coach card).
+   5. the ball to play next (railNext) on the shooter's seat, 8-ball vs the CPU with the groups set, at 393x852, 440x956 and
+      956x440 (iOS insets) top-down and 393x852 in 3D: the ball the table rings (the call's ring, else auto aim's) by
+      number, in the ball set's colour (sampled; a stripe's ivory caps), its number 3:1 or more on its circle, the group
+      glyph on both seats, nothing over a pocket or a diamond, following the aim to another ball and a call; nothing
+      extra on the CPU's turn; 9-ball's seat the lowest ball. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -136,7 +141,91 @@ function inlayContrast() {
   }
   return out;
 }
+
+/* in the page: the shooter's seat and what the table rings (5): the call's ring (drawCall: the player's or the obvious
+   call from the aim) when there is one, else auto aim's (drawHint) */
+function nextNow() {
+  const c = felt.callState.call, ringed = c && c.ball != null ? c.ball : felt.hint ? felt.hint.n : null;
+  const seat = el => { const nb = el.querySelector('.nb'), g = el.querySelector('.grp'), r = nb && nb.getBoundingClientRect(), i = nb && nb.firstElementChild, cs = i && getComputedStyle(i);
+    return { id: el.id, on: el.classList.contains('on'), n: nb ? +nb.dataset.n : null, text: i ? i.textContent : null, grp: g ? g.className : null, words: el.children[1].textContent,
+      rect: r ? [r.left, r.top, r.width, r.height] : null, fg: cs && cs.color, bg: cs && cs.backgroundColor, font: cs ? parseFloat(cs.fontSize) : 0 }; };
+  return { ringed, seats: [pchip0, pchip1].map(seat), turn: game.turn, human: felt.state === 'aim' && !(cpuMode && game.turn === 1) };
+}
+/* a seat's ball against the ball set's colour: from a screenshot of it, the band (or the solid's body) left of the
+   number circle, and a stripe's ivory cap above it; the number against its circle by the computed colours */
+async function ballLooks(page, seat, want) {
+  const png = await page.screenshot({ clip: { x: seat.rect[0], y: seat.rect[1], width: seat.rect[2], height: seat.rect[3] }, scale: 'device' });
+  return page.evaluate(([b64, want, fg, bg]) => new Promise(res => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+      const W = im.width, H = im.height, avg = (x0, y0, x1, y1) => { const d = x.getImageData(Math.round(x0 * W), Math.round(y0 * H), Math.max(1, Math.round((x1 - x0) * W)), Math.max(1, Math.round((y1 - y0) * H))).data, s = [0, 0, 0];
+        for (let i = 0; i < d.length; i += 4) for (let k = 0; k < 3; k++) s[k] += d[i + k]; return s.map(v => Math.round(v / (d.length / 4))); };
+      const band = avg(0.1, 0.42, 0.17, 0.58), cap = avg(0.42, 0.07, 0.58, 0.15), dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+      const lum = q => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(q[0]) + 0.7152 * f(q[1]) + 0.0722 * f(q[2]); };
+      const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number), lf = lum(rgb(fg)), lb = lum(rgb(bg));
+      res({ band, cap, want: want.col, dBand: Math.round(dist(band, want.col)), dCap: Math.round(dist(cap, want.iv)), num: +((Math.max(lf, lb) + 0.05) / (Math.min(lf, lb) + 0.05)).toFixed(2) });
+    };
+    im.src = 'data:image/png;base64,' + b64;
+  }), [png.toString('base64'), want, seat.fg, seat.bg]);
+}
+async function nextBallChecks() {
+  for (const [w, h, ins, view, balls] of [[393, 852, null, 'top', 'classic'], [440, 956, [62, 0, 34, 0], 'top', 'tv'], [956, 440, [0, 62, 21, 62], 'top', 'classic'], [393, 852, null, '3d', 'vintage']]) {
+    const size = `${w}x${h}${ins ? ' (iOS insets)' : ''} ${view === '3d' ? '3D' : 'top-down'}, ${balls} balls`;
+    const t = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 3,
+      init: `try { localStorage.setItem('felt.looks.v1', '{"v":1,"own":["balls-tv","balls-vintage"]}'); localStorage.setItem('felt.settings', JSON.stringify({ sv: 3, cpu: true, view: '${view}', balls: '${balls}' })); } catch (e) { }` });
+    const { page } = t;
+    /* 8-ball vs the CPU, stripes for the player, a few balls on the table: the 11 and the 14 each on a line from the
+       cue ball (the middle of the bed) to a corner pocket, so aiming at either makes an obvious call (8-ball WPA calls) */
+    const setup = await page.evaluate(i => {
+      if (i) { const st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`; }
+      felt.start('8', { level: 'easy', rules: { ruleset: '8-wpa' } }); relayout();
+      Object.assign(game, { breakShot: false, open: false, groups: ['stripes', 'solids'], inHand: null, pushAvail: false });
+      const keep = { 0: [TL / 2, TW / 2], 8: [TL * 0.85, TW * 0.5], 4: [TL * 0.2, TW * 0.5], 6: [TL * 0.8, TW * 0.85] };
+      const via = (k, f) => [TL / 2 + (POCKET_AIM[k][0] - TL / 2) * f, TW / 2 + (POCKET_AIM[k][1] - TW / 2) * f];
+      keep[11] = via(0, 0.55); keep[14] = via(2, 0.55);
+      for (const b of game.balls) { const q = keep[b.n]; b.on = !!q; if (q) { b.x = q[0]; b.y = q[1]; } }
+      autoAim(); hud();
+      return { stripes: game.groups[0], look: look().balls };
+    }, ins);
+    await page.waitForTimeout(500);
+    const aimAt = n => page.evaluate(n => { const c = game.balls.find(b => b.n === 0), o = game.balls.find(b => b.n === n); aimAngle = Math.atan2(o.y - c.y, o.x - c.x); handAimed = true; aimLock = 'held'; aimAnim = null; }, n);
+    const read = async () => { await frames(page, 3); return page.evaluate(nextNow); };
+    const res = [];
+    for (const n of [11, 14]) { await aimAt(n); res.push(Object.assign(await read(), { aimed: n })); }
+    const a = res[1], me = a.seats.find(s => s.on), other = a.seats.find(s => !s.on);
+    const want = await page.evaluate(n => { const B = BALLSETS[look().balls]; const c = B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n); return { col: c, iv: B.ivory.match(/[0-9a-f]{2}/gi).map(v => parseInt(v, 16)) }; }, me.n || 14);
+    const looks = me.rect ? await ballLooks(page, me, want) : null;
+    const audit0 = await page.evaluate(audit);
+    check(`${size}: the shooter's seat shows the ball the table rings, by number (aimed at the 11: the ${res[0].seats.find(s => s.on).n}, rings the ${res[0].ringed}; at the 14: the ${me.n}, rings the ${a.ringed}), its words for VoiceOver ("${me.words}")`,
+      res.every(r => { const s = r.seats.find(q => q.on); return r.human && s.n === r.aimed && s.n === r.ringed && s.text === String(r.aimed); }) && me.words === 'Next: the 14, stripe' && !other.n && !other.words, JSON.stringify(res));
+    check(`${size}: the ball in the player's ball set's colour (band ${looks && looks.band} vs ${want.col}, off by ${looks && looks.dBand}), a stripe's ivory cap (off by ${looks && looks.dCap}), its number ${looks && looks.num}:1 on its circle at ${me.font} px`,
+      !!looks && looks.dBand <= 40 && looks.dCap <= 40 && looks.num >= 3 && me.font >= 7, JSON.stringify({ looks, me }));
+    check(`${size}: the group glyph on both seats (stripes for the shooter, solids for the CPU), the row off every pocket, jaw and diamond`,
+      me.grp === 'grp t' && other.grp === 'grp s' && audit0.chips && audit0.fails.length === 0, JSON.stringify({ me: me.grp, other: other.grp, fails: audit0.fails }));
+    /* a call set by taps (the 4, a solid: not the player's group, still what the table rings), then the CPU's turn */
+    await page.evaluate(() => felt.setCall({ ball: 4, pocket: 0 }));
+    const called = await read();
+    await page.evaluate(() => { felt.setCall(null); game.turn = 1; hud(); });
+    const cpu = await read();
+    await page.evaluate(() => { game.turn = 0; hud(); });
+    check(`${size}: a call set shows the called ball (the ${called.seats.find(s => s.on).n}, rings the ${called.ringed}); on the CPU's turn neither seat shows a ball to play, both keep the group`,
+      called.seats.find(s => s.on).n === 4 && called.ringed === 4 && cpu.seats.every(s => s.n === null && !s.words && s.grp), JSON.stringify({ called: called.seats, cpu: cpu.seats }));
+    /* 9-ball: the lowest ball on */
+    await page.evaluate(() => { felt.start('9', { level: 'easy' }); Object.assign(game, { breakShot: false, inHand: null, pushAvail: false }); for (const n of [1, 2]) game.balls.find(b => b.n === n).on = false; autoAim(); hud(); });
+    const nine = await read();
+    const s9 = nine.seats.find(s => s.on);
+    const want9 = await page.evaluate(() => { const B = BALLSETS[look().balls]; return { col: B.col && B.col[3] || colorOf(3), iv: [0, 0, 0] }; });
+    const l9 = s9.rect ? await ballLooks(page, s9, want9) : null;
+    const audit9 = await page.evaluate(audit);
+    check(`${size}: 9-ball: the shooter's seat shows the lowest ball, the 3 (${s9.n}), in its colour (off by ${l9 && l9.dBand}), off the pockets and diamonds`,
+      s9.n === 3 && s9.text === '3' && !!l9 && l9.dBand <= 40 && audit9.fails.length === 0, JSON.stringify({ nine, l9, fails: audit9.fails }));
+    check(`${size}: no console errors (the ball to play)`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
+    await t.browser.close();
+  }
+}
 (async () => {
+  await nextBallChecks();
   /* an inset applied after the first layout with no resize event (an iOS home-screen app, Zac's 430x932): the table is
      laid out again within the second (sizeSig carries the insets and the stage's size), never left under the controls */
   {
@@ -257,11 +346,11 @@ function inlayContrast() {
       await page.evaluate(n => { felt.party({ ruleset: 'rotation-ring', names: ['Ann', 'Bob', 'Cy', 'Dee'].slice(0, n) }); hoGo.click(); game.score = game.score.map((_, i) => 10 * i + 5); hud(); }, n);
       await frames(page, 3);
       const a = await page.evaluate(audit);
-      const shown = await page.evaluate(() => [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => e.textContent).join());
+      const shown = await page.evaluate(() => [...turnChip.querySelectorAll('.pchip')].filter(e => !e.hidden).map(e => e.textContent).join('|'));
       party.push({ n, shown, chips: a.chips, fails: a.fails });
     }
     check(`${size}: a party of three and four: every chip (name and points) on the row, whole, off the pockets`,
-      party.every(q => q.chips && q.fails.length === 0 && q.shown.split(',').length === q.n), JSON.stringify(party));
+      party.every(q => q.chips && q.fails.length === 0 && q.shown.split('|').length === q.n), JSON.stringify(party));
     /* what rises clear of the row: the call bar, the exhibition's bar, the practice tools, the coach's card */
     const clear = [];
     await page.evaluate(() => {

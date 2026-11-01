@@ -193,7 +193,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #turnChip { position: absolute; z-index: 1; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
 #turnChip[hidden] { display: none; }
 .pchip[hidden] { display: none; }   /* .pchip's display: flex would otherwise beat the hidden attribute */
-/* a seat on the rail: the player's balls (their group; on an open table a pearl pip), their points engraved, or
+/* a seat on the rail: the player's balls (their group, 8-ball's as its glyph, and a human shooter's ball to play next; an open table a hollow pip), their points engraved, or
    their racks as tally pips, inlaid in the wood; the player to shoot lit (full colour, the lamp's glow), the other
    dimmed. The name stays in the chip for VoiceOver and the tests (.pn, never shown): the toast says whose turn it is. */
 .pchip { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: max-content; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px;
@@ -203,6 +203,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pchip:not(.on) .pb { filter: saturate(.55); }
 .pchip .pn { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
 .pchip .pip, .pchip .tal i { display: block; width: calc(var(--dot, 10px) - 2px); height: calc(var(--dot, 10px) - 2px); border-radius: 50%; background: var(--ink, #ece4d6); box-shadow: 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+/* a seat with nothing to show (an open table, the other player at 9-ball): a hollow pearl ring, so it never reads as solids */
+.pchip .pip { background: transparent; box-shadow: inset 0 0 0 1.5px var(--ink, #ece4d6), inset 0 0 0 2.5px var(--ink-edge, rgba(25, 10, 4, .6)), 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+/* 8-ball's group, inlaid for both seats: solids a whole pearl disc, stripes pearl caps over a dark band (.grp.t) */
+.pchip .grp { display: block; flex: none; width: var(--dot, 10px); height: var(--dot, 10px); border-radius: 50%; background: var(--ink, #ece4d6); box-shadow: 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+.pchip .grp.t { background: linear-gradient(var(--ink, #ece4d6) 0 27%, var(--ink-edge, rgba(25, 10, 4, .6)) 27% 73%, var(--ink, #ece4d6) 73%); }
+/* the ball to play next (railNext), beside the shooter's group: a true little ball as tall as the seat, the player's ball
+   set's colour (a stripe's ivory caps), its number on the ivory circle (.nn), or the colour-blind mark (.cb) when marks
+   are on; its edge cut dark inside, like every inlay */
+.pchip .dot.nb { width: var(--ph, 22px); height: var(--ph, 22px); margin: 0; box-shadow: inset 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)), inset -1px -2px 2px rgba(0, 0, 0, .28); }
+.pchip .nb .nn, .pchip .nb .cb { position: absolute; inset: 19%; display: grid; place-items: center; border-radius: 50%; font: 800 calc(var(--ph, 22px) * .5)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-style: normal; letter-spacing: -.07em; font-variant-numeric: tabular-nums; text-shadow: none; }
+.pchip .nb .nn { background: var(--nb-iv, #f7f4ea); color: #141414; }
+.pchip .nb .nn.w { letter-spacing: -.1em; }
 .pchip .tal { display: flex; gap: 2px; margin-left: 2px; }
 .pchip .tal i { width: 5px; height: 5px; }
 .pchip .tal i.o { background: transparent; box-shadow: inset 0 0 0 1px var(--ink, #ece4d6), 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
@@ -1568,7 +1581,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <div id="callout" aria-hidden="true"><span id="calloutText"></span></div>
     <div id="snkBar" aria-hidden="true" hidden></div>
     <!-- the score keeper (6b2): a chip per player on the bottom rail, the player to shoot lit -->
-    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pb"></span></div></div>
+    <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pn nx"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pn nx"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pn nx"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pn nx"></span><span class="pb"></span></div></div>
     <!-- a choice the rules give a player: take the table or hand it back, re-rack, spot the 8 -->
     <!-- an AI exhibition (6f): pause and the speed, over the table's foot -->
     <div id="exBar" role="group" aria-label="Exhibition" hidden><span class="exLab" id="exLab">Exhibition</span><button id="exPause" aria-label="Pause the exhibition">Pause</button><button id="exS1" aria-pressed="true">1x</button><button id="exS2" aria-pressed="false">2x</button><button id="exS4" aria-pressed="false">4x</button></div>
@@ -11809,6 +11822,7 @@ function frameBody(now) {
   stepOffer();
   camStep(dtMs);
   v3Update();
+  railNextTick();
   placeRail();
   draw(now);
 }
@@ -13033,7 +13047,7 @@ function restartSolo() {
 function hudSolo() {
   const s = soloOf(), prc = !!s && s.kind === 'practice';
   soloCtl.hidden = !prc;
-  if (s) { pchip2.hidden = true; pchip3.hidden = true; turnChip.classList.remove('many'); }   /* a party's chips (6f) */
+  if (s) { pchip2.hidden = true; pchip3.hidden = true; turnChip.classList.remove('many'); for (const e of [pchip0, pchip1]) if (e.children[1].textContent) e.children[1].textContent = ''; }   /* a party's chips (6f); no ball to play (railNext) */
   if (s && (s.kind === 'lesson' || s.kind === 'tutorial')) { tools.hidden = true; editDone.hidden = true; turnChip.hidden = true; return true; }   /* the lesson and the tutorials: no chip, the coach speaks (6d) */
   tools.hidden = !(prc && s.tools && state === 'aim');
   toolBtn.setAttribute('aria-expanded', String(!tools.hidden));
@@ -16783,12 +16797,52 @@ function chipOf(p) {
   if (game.kind === 'bumper') { const mine = on.filter(n => bOwner(n) === p); return { balls: mine.length ? [mine[0]] : [], num: String(mine.length) }; }
   /* carom: the points in the player's ball colour, over the race */
   if (game.kind === 'carom') return { balls: [], num: String(game.score[p]), of: '/' + game.race, col: C_CUE[p] };
-  if (game.kind === 'straight' || game.kind === 'rotation') return { balls: game.kind === 'rotation' && p === game.turn && on.length ? [on[0]] : [], num: String(game.score[p]), of: '/' + game.race };
-  if (game.kind === '9' || game.kind === '10') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
+  /* the ball to play next, on the shooter's seat (railNext: a human's turn only); the CPU's seat shows what it always did */
+  const next = p === game.turn ? railNext() : null;
+  if (game.kind === 'straight' || game.kind === 'rotation') return { balls: game.kind === 'rotation' && p === game.turn && on.length && next === null ? [on[0]] : [], num: String(game.score[p]), of: '/' + game.race, next };
+  if (game.kind === '9' || game.kind === '10') return p === game.turn && on.length ? (next !== null ? { balls: [], num: '', next } : { balls: [on[0]], num: '' }) : { balls: [], num: '' };
   const gr = game.groups[p];
-  if (!gr) return { balls: [], num: '' };   /* open: no group yet, a neutral pip on the rail */
+  if (!gr) return { balls: [], num: '', next };   /* open: no group yet, a hollow pip on the rail (or the ball to play) */
+  /* the group as its glyph (solids, stripes), for both seats; on the 8 the 8 beside it, unless it is the ball to play */
   const left = on.filter(n => groupOf(n) === gr);
-  return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
+  return { grp: gr, balls: left.length || next === 8 ? [] : [8], num: '', next };
+}
+/* the ball to play next, for the rail's shooter seat (6b2): on a human's turn while aiming (the ball in hand too), in a
+   pocket game. 9-ball, 10-ball and rotation: the ball on (the lowest). 8-ball and 14.1: what the table rings, the called
+   ball (the player's call, or the obvious call from the aim: drawCall) when there is one, else auto aim's suggestion
+   (hint: drawHint). null for nothing (the CPU's turn, no suggestion, a replay, practice, a tutorial). */
+function railNext() {
+  if (rp || game.mode || tutOn() || game.winner !== null || state !== 'aim' || !human() || !POCKET_KINDS.includes(game.kind)) return null;
+  const on = n => n != null && game.balls.some(b => b.n === n && b.on);
+  if (game.kind !== '8' && game.kind !== 'straight') { const t = legalTargets(game); return t.length ? t[0] : null; }
+  const c = humanCall();
+  if (c && on(c.ball)) return c.ball;
+  return hint && on(hint.n) ? hint.n : null;
+}
+/* a pool ball's colour in the player's ball set (useBalls, 4: what the table paints), and the set's ivory */
+const setBall = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return { col: rgb(n >= 1 && n <= 15 && B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n)), iv: B.ivory }; };
+/* the ball to play as a true little ball (6b2): its colour, a stripe's caps, its number on the ivory circle (the mark when marks are on) */
+function nextBallEl(n) {
+  const d = document.createElement('span'), { col, iv } = setBall(n), m = settings.marks && markOf(n), i = document.createElement('i');
+  d.className = 'dot nb' + (n > 8 ? ' t' : ' s');
+  d.style.background = n > 8 ? `linear-gradient(${iv} 0 21%, ${col} 21% 79%, ${iv} 79%)` : col;
+  d.style.setProperty('--nb-iv', iv);
+  d.dataset.n = String(n);
+  i.className = m ? 'cb ' + (m[1] ? 'd' : 'l') : 'nn' + (n > 9 ? ' w' : '');
+  i.textContent = String(n);
+  d.appendChild(i);
+  return d;
+}
+/* VoiceOver's words for it: "Next: the 12, stripe" */
+const nextWords = n => n === null ? '' : `Next: the ${n}` + (n >= 1 && n <= 7 ? ', solid' : n >= 9 && n <= 15 ? ', stripe' : '');
+/* each frame (frameBody): the seats again when the ball to play has changed (the aim moved to another ball, a call set) */
+let railNextKey = '';
+function railNextTick() {
+  if (state === 'menu' || turnChip.hidden) { railNextKey = ''; return; }
+  const k = railNext() + '|' + look().balls + (settings.marks ? 'm' : '');
+  if (k === railNextKey) return;
+  railNextKey = k;
+  hudChip();
 }
 /* a party of three or four (6f): a chip for every player, in turn order, the player to shoot lit;
    the strip packs them two by two in portrait and stacks them slim in landscape (.many) */
@@ -16811,12 +16865,19 @@ function hudChip() {
     if (i >= n) continue;
     const p = n > 2 ? i : seatOf(i), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
     if (name.textContent !== nm) name.textContent = nm;
+    const nw = nextWords(c.next == null ? null : c.next), nx = name.nextSibling;
+    if (nx.textContent !== nw) nx.textContent = nw;
     const tally = rackTally(p);
-    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '') + (tally ? tally.join('/') : '') + (settings.marks ? 'm' : '');
+    const next = c.next == null ? null : c.next;
+    const key = (c.grp || '') + '|' + next + '|' + c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '') + (tally ? tally.join('/') : '') + (settings.marks ? 'm' : '') + (next !== null ? look().balls : '');
     if (box.dataset.key !== key) {
       box.dataset.key = key;
-      const els = c.balls.map(n => dotEl(n));
-      /* nothing to show yet (an open table, the other player at 9-ball): a pearl pip holds the seat */
+      /* 8-ball's group glyph first, then the ball to play (the shooter's, railNext), then the balls */
+      const els = [];
+      if (c.grp) { const t = document.createElement('span'); t.className = 'grp ' + (c.grp === 'stripes' ? 't' : 's'); t.title = c.grp; els.push(t); }
+      if (next !== null) els.push(nextBallEl(next));
+      els.push(...c.balls.map(n => dotEl(n)));
+      /* nothing to show yet (an open table, the other player at 9-ball): a hollow pearl pip holds the seat */
       if (!els.length && !c.num) { const t = document.createElement('span'); t.className = 'pip'; els.push(t); }
       if (c.num) { const t = document.createElement('span'); t.className = 'num' + (c.col ? ' c' + c.col : ''); numRoll(t, 'chip' + p, c.num); els.push(t); }
       if (c.of) { const t = document.createElement('span'); t.className = 'of'; t.textContent = c.of; els.push(t); }

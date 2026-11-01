@@ -319,7 +319,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   The bottom rail's row (6b2, `placeRail`, `felt.railBar`) is inlaid in the wood the way the sights are (pearl, `--ink`,
   its edge cut dark all round, `RAIL_EDGE`, `railInk`; no plates, no words shown): the 3D switch a cube glyph (bright when
   on), the replay an arrow glyph (brass when notable), each seat (`pchip0`-`pchip3`, `#turnChip` only their frame) the
-  player's balls (an open table or nothing to show: a pearl pip), points engraved (snooker, carom, 14.1, rotation), racks
+  player's balls (an open table or nothing to show: a hollow pearl pip; 8-ball's group a glyph on both seats, `.grp`:
+  solids a pearl disc, stripes pearl caps over a dark band), and on a human shooter's seat the ball to play next
+  (`railNext`: 8-ball and 14.1 the ball the table rings, the call's (`humanCall`, the obvious call from the aim too)
+  else auto aim's `hint`; 9, 10 and rotation the lowest; none on the CPU's turn, in practice or a replay) as a true
+  little ball (`nextBallEl`: `--ph` tall, the ball set's colour and ivory, its number on the ivory circle, the `.cb`
+  mark when `marks` is on; `nextWords` in the hidden `.nx`: "Next: the 12, stripe"; `railNextTick` each frame lays the
+  seats again when it changes), points engraved (snooker, carom, 14.1, rotation), racks
   of a career or tournament match as tally pips (`rackTally`); the shooter lit (full colour, the lamp's glow), the other
   dimmed. Player 1 sits left of the rail's middle, player 2 right (`seat`); snooker's ball on and break beside the shooter.
   Names and labels stay in the DOM visually hidden (`.inw`, `.pn`, `.rpl b`) for VoiceOver and the tests. Each inlay is

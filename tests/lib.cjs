@@ -37,7 +37,7 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
   if (init) await page.addInitScript(init);
   const errors = [], requests = [];
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  page.on('pageerror', e => errors.push(String(e)));
+  page.on('pageerror', e => errors.push(String(e.stack || e).split('\n').slice(0, 4).join(' <- ')));
   page.on('request', r => requests.push(r.url()));
   await page.goto(URL + query);
   await page.waitForFunction(() => window.booted === true, null, { timeout: 20000 });

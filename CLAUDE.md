@@ -334,23 +334,30 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script
   drops it with `settings.intro` false (Settings > Graphics > Opening Animation, `tgIntro` in `BOOL_TOGS`, default on, sv
   stays 3) or `window.feltNoIntro`. The scene is `#introArt` (aria-hidden, under the header) drawn by the hero's
-  renderer (`heroPrep`, `heroStill(d, W, H, C, false)`, `heroDraw` with `h.flat`/`h.cueOff`) on two cameras of its own
-  (`introCams`: low behind the shot, cut at the cue ball's first contact to high over the table), 8-ball on the 9 ft
-  table's solved `HERO_SHOTS` break through the real `strike`/`stepTable` (the last frame is `simulateShot`'s). The
-  lamp (`introLight`: the pool's dark, cone, shade and dust, painted once at full size; a frame only offsets them by the
-  swing) and the level (`introScene`: the canvas's CSS opacity over the home's #09090a, not a painted wash); the camera's
-  slow move is a CSS scale on the canvas (`introCamMove`), never a resample. Timeline `IT`; the wordmark is the real
-  `#menuTitle` (`introPose`: dims, lands large in the safe area's middle with a spring and the `.introSheen` sweep, glides
-  home as the cards rise). Built in tasks while the first frame holds (`introBuild`; `INTRO_PREP_MAX` of its own work,
-  else straight home), at the device's pixel ratio (up to 3), then rAF frames to the end and none after; the table's own
-  `frameBody` waits meanwhile (`INTRO_LIVE`). Any tap, click or key skips it (`introSkip`, a 200 ms glide) and
-  `introGuard` swallows the gesture to its click (unlocking audio itself, since the page's listener never sees it);
-  hidden or resized: it ends at once. Reduce Motion: no scene, `introFade` (the cards fade in under the wordmark, 240 ms).
-  Sound only if audio is already running (`introSound` plays the roll's `tab.hits` in step). `.introDone` keeps `homeIn`
-  from replaying until the home is next left. `felt.intro`, `felt.introSeek(t)` (one moment, held), `felt.introSkip`,
+  renderer (`heroPrep`, `heroStill(d, W, H, C, false, room)`, `heroDraw` with `h.flat`/`h.cueOff`, `A.pan`/`A.fgAt`) on
+  two cameras of its own (`introCams`): low behind the shot, its still running on above the frame (`intro.lift`) so the
+  opening starts on the lamp and tilts down to the rack (a whole-pixel window, `IT.pan`), then a cut at the cue ball's
+  first contact (a flash, `INTRO_FLASH_MS`, and a small shake) to high over the table. The game is the last one played
+  if it is a pocket game (`introKind`, `introArgs`: its table, pockets and solved `HERO_SHOTS` break), else 8-ball on 9 ft,
+  always in the player's look, through the real `strike`/`stepTable` (the last frame is `simulateShot`'s; the roll plays
+  `IT.roll` times as fast, `introHT`). The light: one enamel pendant (`INTRO_SHADES`, `introLight`: the fixture a layer
+  that settles on its cord, `introSwing`; its beam and the pool's dark, `introPool`, baked into the stills; dust in the
+  beam), the far room (`introRoom`: falloff, a bar back, soft bokeh) and the level (`introScene`: the canvas's CSS
+  opacity over the home's #09090a, not a painted wash); the camera's slow move is a CSS scale on the canvas
+  (`introCamMove`). Timeline `IT`; the wordmark is the real `#menuTitle` (`introPose`: dims, lands large in the safe
+  area's middle with a spring, `.introSheen` sweeps its `span` while it can be seen, glides home, then the cards rise:
+  the last frame is the home's own pixels). Built in tasks while the first frame holds (`introBuild`; `INTRO_PREP_MAX`
+  of its own work, else straight home), at the device's pixel ratio (up to 3; `felt.intro.memMB` what it holds, about
+  56 MB at 3x), then rAF frames to the end and none after; the table's own `frameBody` waits meanwhile (`INTRO_LIVE`).
+  Any tap, click or key skips it (`introSkip`, a 200 ms glide) and `introGuard` (on the window only while it can
+  matter, `introListen`) swallows the gesture to its click, unlocking audio itself; hidden or resized: it ends at once.
+  Reduce Motion: no scene, `introFade` (the cards fade in under the wordmark, 240 ms). Sound only if audio is already
+  running (`introSound` plays the roll's `tab.hits` in step). `.introDone` keeps `homeIn` from replaying until the home
+  is next left. `felt.intro`, `felt.introSeek(t)` (one moment, held), `felt.introEnd`, `felt.introSkip`,
   `felt.introMeasure`. `tests/lib.cjs` skips it unless a suite opens with `intro: true`. Pinned by `intro-check` (first
-  frame = the launch image's pixels, `simulateShot`, skip and swallow, no rAF after, budget, Reduce Motion, setting
-  off, visibility, layout at six sizes with insets) and `settings-check`.
+  frame = the launch image's pixels, `simulateShot` for the default and the last game, skip and swallow, no rAF after,
+  budget and memory, the wordmark's contrast on every cloth, the hand-over's pixels, Reduce Motion, setting off,
+  visibility, layout at six sizes with insets) and `settings-check`.
 
 ## Conventions
 

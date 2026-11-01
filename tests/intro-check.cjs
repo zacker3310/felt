@@ -70,7 +70,7 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
     && Math.abs(end.title[0] - end.i.home.x) < 0.5 && Math.abs(end.title[1] - end.i.home.y) < 0.5, JSON.stringify({ ran, end: { ...end, i: { ...end.i, ms: end.i.ms.length } } }));
   check('focus is never moved (VoiceOver users land on the home)', boot.focus && mid.focus && end.focus);
   /* 3. the sim's break */
-  const sim = await ev(() => { const a = felt.intro.args, k = heroOn(a); try { const H = heroSetup('8'), r = simulateShot(H.balls, H.shot); return { key: heroKey('8'), shot: H.shot, start: H.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), balls: r.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })), potted: r.potted }; } finally { heroOff(k); } });
+  const sim = await ev(() => { const a = felt.intro.args, k = heroOn(a); try { const H = heroSetup(felt.intro.kind), r = simulateShot(H.balls, H.shot); return { key: heroKey(felt.intro.kind), shot: H.shot, start: H.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), balls: r.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })), potted: r.potted }; } finally { heroOff(k); } });
   check(`the break is the sim's (${sim.key}): the last frame's rest positions are simulateShot's for the same layout and inputs, byte for byte, with ${sim.potted.length} ball(s) down`,
     JSON.stringify(sim.balls) === JSON.stringify(end.i.final) && JSON.stringify(sim.start) === JSON.stringify(end.i.start) && JSON.stringify(sim.shot) === JSON.stringify(end.i.shot) && sim.potted.length > 0 && !sim.potted.includes(0),
     JSON.stringify({ sim: sim.potted, page: end.i.potted }));
@@ -93,6 +93,7 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
   const ms = end.i.ms.slice(2).sort((a, b) => a - b), sp = await speedFactor(page), p95 = ms[Math.floor(ms.length * 0.95)], max = ms[ms.length - 1];
   check(`frames at dpr 3 (430x932, 1290x2796 px): 95% under ${(16.7 * sp.f).toFixed(1)} ms (${p95.toFixed(1)}), none over ${(50 * sp.f).toFixed(0)} (${max.toFixed(1)}), ${ms.length} frames (speed factor ${sp.f.toFixed(2)})`,
     ms.length > 40 && p95 < 16.7 * sp.f && max < 50 * sp.f, JSON.stringify(ms.slice(-8).map(v => +v.toFixed(1))));
+  check(`what it holds while it plays at dpr 3: ${end.i.memMB} MB of canvas (under 72), all let go at the end`, end.i.memMB > 0 && end.i.memMB < 72 && end.canvas.join() === '0,0');
   check('no console errors', P.errors.length === 0, P.errors.join(' | '));
   await P.browser.close();
 
@@ -103,7 +104,7 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
     felt.introSeek(1800);
     const flush = () => introArt.getContext('2d').getImageData(0, 0, 1, 1), time = f => { const out = []; for (let i = 0; i < 24; i++) { const t0 = performance.now(); f(1500 + i * 20); flush(); out.push(performance.now() - t0); } out.sort((a, b) => a - b); return out[12]; };
     time(t => introDraw(t));
-    const full = time(t => introDraw(t)), bare = time(t => heroDraw(t - IT.hero, intro, introArt));
+    const full = time(t => introDraw(t)), bare = time(t => heroDraw(introHT(t), intro, introArt));
     return { full, bare, r: full / bare };
   });
   check(`the lamp's overlay costs at most as much again as the hero renderer under it (opening ${rel.full.toFixed(1)} ms, hero alone ${rel.bare.toFixed(1)} ms)`, rel.r < 2, JSON.stringify(rel));
@@ -167,7 +168,7 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
       felt.introSeek(0);
       const home = menuTitle.getBoundingClientRect(), cv = introArt.getBoundingClientRect(), ps = getComputedStyle(document.documentElement);
       const ins = ['--sat', '--sar', '--sab', '--sal'].map(k => parseFloat(ps.getPropertyValue(k)) || 0);
-      felt.introSeek(2950);
+      felt.introSeek(felt.intro.timeline.out - 20);
       const land = menuTitle.getBoundingClientRect(), x = introArt.getContext('2d'), d = x.getImageData(0, 0, introArt.width, introArt.height).data;
       let s = 0, s2 = 0, n = 0;
       for (let i = 0; i < d.length; i += 4 * 97) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; s += v; s2 += v * v; n++; }
@@ -199,6 +200,48 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
     check(`${w}x${h}: its first frame is the launch image (${file}): the wordmark on the same device pixels (launch ${A.box}, first frame ${B.box}), the same colour behind, the cards not shown${real ? '' : ' (moment 0)'}`,
       A.w === B.w && A.h === B.h && near(A, B) && Math.abs(A.n - B.n) < A.n * 0.08 && B.bg.join() === A.bg.join(), JSON.stringify({ A, B }));
     await S.browser.close();
+  }
+  /* ---- the player's own game and look: the last game played (its table, its pockets, its solved break)
+     on their cloth; the wordmark keeps its contrast over every cloth; the hand-over into the header is
+     the home's own pixels ---- */
+  const diffPng = (page, a, b) => page.evaluate(async ([a, b]) => {
+    const load = async s => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
+    const p = await load(a), q = await load(b);
+    let s = 0, m = 0;
+    for (let i = 0; i < p.length; i += 4) for (let j = 0; j < 3; j++) { const d = Math.abs(p[i + j] - q[i + j]); s += d; if (d > m) m = d; }
+    return { mean: s / (p.length / 4 * 3), max: m };
+  }, [a.toString('base64'), b.toString('base64')]);
+  for (const [cloth, last, table, pockets] of [['green', null, '9', 'regulation'], ['red', '9', '7', 'regulation'], ['blue', 'straight', '9', 'generous']]) {
+    const set = JSON.stringify({ sv: 3, cloth, table, pockets, ...(last ? { last } : {}) });
+    const K = await phone(430, 932, { deviceScaleFactor: 2, init: `try { localStorage.setItem('felt.settings', ${JSON.stringify(set)}); } catch (e) { }` }), k = K.page;
+    await waitState(k, ['play']);
+    const r = await k.evaluate(() => {
+      const i = felt.intro, a = i.args, kk = heroOn(a);
+      let sim;
+      try { const H = heroSetup(i.kind), res = simulateShot(H.balls, H.shot); sim = { key: heroKey(i.kind), balls: res.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })), potted: res.potted }; } finally { heroOff(kk); }
+      felt.introSeek(i.timeline.out - 20);
+      const t = menuTitle.getBoundingClientRect(), dp = introArt.width / introArt.clientWidth, op = +introArt.style.opacity;
+      const d = introArt.getContext('2d').getImageData(Math.round(t.left * dp), Math.round(t.top * dp), Math.round(t.width * dp), Math.round(t.height * dp)).data;
+      const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+      let hi = 0;
+      for (let j = 0; j < d.length; j += 4) hi = Math.max(hi, lum([0, 1, 2].map(c => d[j + c] * op + [9, 9, 10][c] * (1 - op))));
+      return { kind: i.kind, key: i.key, sim, final: i.final, cloth: settings.cloth, ratio: (lum([245, 245, 247]) + 0.05) / (hi + 0.05), end: i.end };
+    });
+    check(`${cloth} cloth${last ? `, last game ${last} on the ${table} ft table` : ', no game yet (8-ball, 9 ft)'}: it plays that game's own solved break (${r.key}), the last frame simulateShot's with ${r.sim.potted.length} down`,
+      r.kind === (last || '8') && r.cloth === cloth && JSON.stringify(r.sim.balls) === JSON.stringify(r.final) && r.sim.potted.length > 0 && r.sim.key === r.key, JSON.stringify({ kind: r.kind, key: r.key, potted: r.sim.potted }));
+    check(`${cloth} cloth: the landed wordmark keeps ${r.ratio.toFixed(1)}:1 over the brightest of the scene behind it (4.5:1 or better)`, r.ratio >= 4.5, JSON.stringify({ ratio: r.ratio }));
+    if (cloth === 'green') {
+      /* the last moment against the home itself: the same pixels in the header and the cards */
+      await k.evaluate(e => felt.introSeek(e - 1), r.end);
+      await k.waitForTimeout(80);
+      const clip = { x: 0, y: 0, width: 430, height: 420 }, a = await k.screenshot({ clip });
+      await k.evaluate(() => felt.introEnd());
+      await k.waitForTimeout(200);
+      const b = await k.screenshot({ clip }), df = await diffPng(k, a, b);
+      check(`the hand-over has no jump: the opening's last frame and the home after it match (mean ${df.mean.toFixed(3)}, max ${df.max} per channel)`, df.mean < 0.5 && df.max <= 24, JSON.stringify(df));
+    }
+    check(`${cloth}: no console errors`, K.errors.length === 0, K.errors.join(' | '));
+    await K.browser.close();
   }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

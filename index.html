@@ -616,7 +616,7 @@ html.intro #menu .newgame > :not(.brand), html.intro #menu .brand .foot { opacit
 html.intro .overlay.show:not(#menu) { visibility: hidden; }
 html:is(.introFade, .introDone) #menu .newgame > :not(.brand) { animation: none !important; }
 html.introFade #menu .newgame > :not(.brand), html.introFade #menu .brand .foot { transition: opacity .24s ease-out; }
-#menuTitle.introSheen { color: transparent; -webkit-background-clip: text; background-clip: text; background-size: 300% 100%; background-position: var(--sx, 0%) 0;
+#menuTitle.introSheen > span { color: transparent; -webkit-background-clip: text; background-clip: text; background-size: 300% 100%; background-position: var(--sx, 0%) 0;
   background-image: linear-gradient(100deg, #f5f5f7 0 41%, #ffffff 46%, #fff1d6 50%, #ffffff 54%, #b9b9be 59% 100%); }
 /* on its side: the eight games four to a row, then the modes beside the solo list */
 @media (orientation: landscape) and (min-width: 560px) {
@@ -1651,7 +1651,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       </div>
     </div>
     <div class="newgame">
-      <header class="brand"><h1 id="menuTitle">felt<i>.</i></h1>
+      <header class="brand"><h1 id="menuTitle"><span>felt</span><i>.</i></h1>
         <nav class="foot" aria-label="More">
           <button class="nav" id="statsBtn" aria-label="Stats"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 19.5v-6M12 19.5v-15M18 19.5v-10"/></svg></button>
           <button class="nav" id="prefsBtn" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9.5M18.5 7H20M4 17h1.5M10.5 17H20"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg></button>
@@ -14250,7 +14250,7 @@ function heroPlane(x, C, T, h, uLo, uHi) {
     const ju = [(a[0] - b[0]) / (u - u0), (a[1] - b[1]) / (u - u0)], jv = [(m2[0] - m[0]) / 64, (m2[1] - m[1]) / 64];
     x.setTransform(ju[0], ju[1], jv[0], jv[1], m[0] - ju[0] * um - jv[0] * vc, m[1] - ju[1] * um - jv[1] * vc);
     /* a hair over the far neighbour, so no seam shows between bands */
-    const ext = 0.7 / per;
+    const ext = 1.2 / per;
     x.drawImage(T.img, u0, 0, u - u0 + ext, Hh, u0, 0, u - u0 + ext, Hh);
     u = u0;
   }
@@ -14260,7 +14260,7 @@ function heroPlane(x, C, T, h, uLo, uHi) {
 const heroURange = (T, pts) => { const us = pts.map(([x, y]) => (x * T.c + y * T.s) * T.K - T.u0); return [Math.max(0, Math.min(...us) - 2), Math.min(T.img.width, Math.max(...us) + 2)]; };
 function heroPath(x, C, pts, z) { pts.forEach(([a, b], i) => { const p = heroProj(C, a, b, z); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.closePath(); }
 const mixRgb = (hex, k, to = [0, 0, 0]) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`; };
-function heroStill(d, W, H, C0 = null, vignette = true) {
+function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
   /* a taller hero (spare room on a short form, hero.fit) sees more of the table: the camera
      rises and draws back, and the fit takes the whole table down to the words */
   const txt = heroTxtH(W), tall = clamp((H / W - 0.66) / 0.5, 0, 1), top = H * (0.13 - 0.03 * tall);
@@ -14275,6 +14275,7 @@ function heroStill(d, W, H, C0 = null, vignette = true) {
   let gr = x.createRadialGradient(mid[0], mid[1], 0, mid[0], mid[1], Math.max(W, H) * 0.75);
   gr.addColorStop(0, 'rgba(255,236,205,0.10)'); gr.addColorStop(1, 'rgba(255,236,205,0)');
   x.fillStyle = gr; x.fillRect(0, 0, W, H);
+  if (room) room(x, C, g, W, H);   /* the opening's far room (6o) */
   /* the bed (and everything at z 0) */
   const [uA, uB] = heroURange(T, g.outline);
   x.save(); x.beginPath(); heroPath(x, C, g.outline, 0); x.clip(); heroPlane(x, C, T, 0, uA, uB); x.restore();
@@ -14352,7 +14353,9 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
   const c0 = d.balls.find(b => b.n === d.shot.ball), fc = heroProj(C, c0.x, c0.y, g.R), F0 = heroProj(C, g.TL * 0.6, g.TW / 2, 0);
   const fx = (fc[0] + F0[0]) / 2, fy = (fc[1] + F0[1]) / 2, Z = p => [fx + (p[0] - fx) * z, fy + (p[1] - fy) * z, p[2]];
   x.setTransform(1, 0, 0, 1, 0, 0);
-  x.drawImage(A.bg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
+  /* the opening's tall still (6o): the rows in view, a whole-pixel window moved down it (A.pan) */
+  if (A.pan !== undefined) x.drawImage(A.bg, 0, A.pan, cv.width, cv.height, 0, 0, cv.width, cv.height);
+  else x.drawImage(A.bg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
   /* where every ball is: the rack before the strike, the recorded roll after, the rest at the end */
   const n = d.balls.length, list = [];
   let s = -1;
@@ -14413,7 +14416,7 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
   } finally { artCtx = null; }
   x.setTransform(1, 0, 0, 1, 0, 0);
   /* the near rail (the opening's, 6o: cut to its painted box, at fgAt) */
-  if (A.fgAt) { if (A.fg.width > 1) x.drawImage(A.fg, fx - fx * z + A.fgAt[0] * z, fy - fy * z + A.fgAt[1] * z, A.fg.width * z, A.fg.height * z); }
+  if (A.fgAt) { if (A.fg.width > 1) x.drawImage(A.fg, fx - fx * z + A.fgAt[0] * z, fy - fy * z + (A.fgAt[1] - (A.pan || 0)) * z, A.fg.width * z, A.fg.height * z); }
   else x.drawImage(A.fg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
   if (!still && !h.cueOff) heroCue(x, C, g, d, t, Z, z);   /* cueOff: the opening's high camera (6o) */
   x.setTransform(1, 0, 0, 1, 0, 0);
@@ -19504,13 +19507,19 @@ Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo
    sound on and audio already running (a desktop that allows it) the strike and the break play from
    the roll's own hits, in step. A view only: it never writes game, tab or the settings.
    felt.intro reports it; felt.introSeek(t) draws one moment and holds (tests, the frame strips). */
-const INTRO_KIND = '8', INTRO_ARGS = ['9', 'octagon', 'regulation'];
-const IT = { hold: 240, dim: 420, lamp: 360, lampMs: 760, hero: 480, land: 2300, sheen: 2560, sheenMs: 640, out: 3080, outMs: 540, skipMs: 200 };
+/* the game: the last one played if it is a pocket game (its table, its pockets and its solved break),
+   else 8-ball on the 9 ft table; always the player's look */
+const introKind = () => POCKET_KINDS.includes(settings.last) ? settings.last : '8';
+const introArgs = kind => kind === '8' && !POCKET_KINDS.includes(settings.last) ? ['9', settings.bumperTable, 'regulation'] : heroArgs(kind);
+const INTRO_FLASH_MS = 200;
+const IT = { hold: 140, dim: 360, lamp: 220, lampMs: 600, pan: 560, panMs: 640, hero: 700, roll: 1.2, land: 2300, sheen: 2440, sheenMs: 480, out: 2940, glide: 460, outMs: 640, skipMs: 200 };
+/* the shot's own clock (heroDraw's: the cue's stroke, then the roll) at the opening's t: the roll played IT.roll times as fast */
+const introHT = t => { const h = t - IT.hero; return h <= HERO_CUE_MS ? Math.max(0, h) : HERO_CUE_MS + (h - HERO_CUE_MS) * IT.roll; };
 const INTRO_END = IT.out + IT.outMs, INTRO_PREP_MAX = 3000, INTRO_LAMP_H = 1.0, INTRO_LIVE = ['prep', 'play', 'out'];
 const intro = { state: 'off', mode: null, why: null, t0: 0, raf: 0, frames: 0, ms: [], data: null, run: null, art: null, arts: null, cut: 0, hits: 0,
   home: null, mid: null, skip: null, swallow: 0, size: '', prepT0: 0, prepMs: 0, endAt: 0, last: { t: '', o: '', sx: '', ik: '', cv: '', ct: '', co: '' }, motes: null, cleared: false };
 /* the canvas's layout size and pixel ratio (a resize while it plays ends it) */
-const introSize = () => [introArt.clientWidth, introArt.clientHeight, Math.min(3, pixelRatio())].join();
+const introSize = () => [menu.clientWidth, menu.clientHeight, Math.min(3, pixelRatio())].join();
 const easeIO3 = u => u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
 /* the two cameras on the hero's table d, fitted to a W x H canvas: low behind the shot, then high */
 function introCams(d, W, H) {
@@ -19539,57 +19548,134 @@ function introCams(d, W, H) {
   return [C0, C1];
 }
 /* the lamp on art A (camera i): the dark round its pool, and on the low camera its shade, cone and the dust */
-function introLight(d, A, i) {
-  const C = A.C, g = d.geo, W = A.W, H = A.H, mx = g.TL / 2, my = g.TW / 2;
-  /* the pool: an oval on the bed under the lamp (1.2 m along the table, 0.78 m across), as projected */
+/* the far room on the low camera, painted into its still under the table: the wall falling away into
+   the dark, the warm band of a bar back across the room and its lights out of focus (soft discs, a
+   brighter rim, a hash for their places: the same room every launch) */
+function introRoom(x, C, g, W, H) {
+  const yf = heroProj(C, g.TL + g.rail, g.TW / 2, g.h)[1];
+  if (yf <= 0) return;
+  let gr = x.createLinearGradient(0, 0, 0, yf);
+  gr.addColorStop(0, 'rgba(4,4,5,0.9)'); gr.addColorStop(0.55, 'rgba(10,9,9,0.4)'); gr.addColorStop(1, 'rgba(26,21,17,0.0)');
+  x.fillStyle = gr; x.fillRect(0, 0, W, yf);
+  /* the bar back: a long warm glow at about two thirds of the wall */
+  const by = yf * 0.62, bh = yf * 0.2;
+  gr = x.createLinearGradient(0, by - bh, 0, by + bh);
+  gr.addColorStop(0, 'rgba(255,170,90,0)'); gr.addColorStop(0.5, 'rgba(255,170,90,0.07)'); gr.addColorStop(1, 'rgba(255,170,90,0)');
+  x.fillStyle = gr; x.fillRect(0, by - bh, W, 2 * bh);
+  const f = (i, n) => ((Math.sin((i + 1) * n) * 43758.5453) % 1 + 1) % 1, cols = ['255,176,96', '255,214,160', '255,196,128', '140,196,190', '255,128,96'];
+  x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 16; i++) {
+    const r = Math.min(W, H) * (0.018 + 0.05 * f(i, 7.31)), cx = W * f(i, 12.9898), cy = yf * (0.3 + 0.6 * f(i, 78.233)), a = 0.025 + 0.06 * f(i, 3.77) * (cy / yf), c = cols[Math.floor(f(i, 51.7) * cols.length)];
+    gr = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    gr.addColorStop(0, `rgba(${c},${a * 0.8})`); gr.addColorStop(0.7, `rgba(${c},${a})`); gr.addColorStop(0.88, `rgba(${c},${a * 1.12})`); gr.addColorStop(1, `rgba(${c},0)`);
+    x.fillStyle = gr; x.beginPath(); x.arc(cx, cy, r, 0, 2 * Math.PI); x.fill();
+  }
+  x.globalCompositeOperation = 'source-over';
+  /* and the floor of the room lost in the dark at the table's ends */
+  gr = x.createLinearGradient(0, yf * 0.9, 0, yf);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.35)');
+  x.fillStyle = gr; x.fillRect(0, yf * 0.9, W, yf * 0.1);
+}
+/* the light: one enamel pendant over the rack's end of the table, its rim INTRO_LAMP_H over the bed */
+const INTRO_SHADES = [0.74], INTRO_RIM_R = 0.15, INTRO_SHADE_H = 0.19;
+/* the pool's dark (the lamp's light falling off along and across the table), as projected, into a canvas
+   of W x H plus pad (a swing moves it by whole pixels) or straight onto x */
+function introPool(C, g, W, H, pad, x, k = 1) {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-  for (let k = 0; k < 32; k++) { const a = k / 32 * 2 * Math.PI, p = heroProj(C, mx + 1.2 * Math.cos(a), my + 0.78 * Math.sin(a), 0); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  for (let i = 0; i < 32; i++) { const a = i / 32 * 2 * Math.PI, p = heroProj(C, g.TL / 2 + 1.25 * Math.cos(a), g.TW / 2 + 0.8 * Math.sin(a), 0); x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
   const ex = (x0 + x1) / 2, ey = (y0 + y1) / 2, rx = (x1 - x0) / 2, ry = (y1 - y0) / 2;
-  /* the lamp hangs at the top of the frame (on the low camera its shade is in view): the pool swings
-     with it, by at most `reach` px; every layer is painted at full size once, so a frame only moves it */
-  const ap = heroProj(C, mx, my, INTRO_LAMP_H), cord = Math.max(H * 0.18, ap[1] + H * 0.1), len = Math.hypot(ex - ap[0], ey - ap[1]);
-  const ang = i === 0 ? Math.atan2(ey - ap[1], ex - ap[0]) : Math.PI / 2, reach = i === 0 ? (cord + len) * 0.5 : H * 0.25;
-  const pad = Math.ceil(0.075 * reach) + 4, mask = document.createElement('canvas');
-  mask.width = W + 2 * pad; mask.height = H + 2 * pad;
-  const m = mask.getContext('2d');
-  m.setTransform(rx * 1.12, 0, 0, ry * 1.12, ex + pad, ey + pad);
-  const gr = m.createRadialGradient(0, 0, 0, 0, 0, 1);
-  gr.addColorStop(0, 'rgba(9,9,10,0)'); gr.addColorStop(0.5, 'rgba(9,9,10,0.04)'); gr.addColorStop(0.82, 'rgba(9,9,10,0.36)'); gr.addColorStop(1, 'rgba(9,9,10,0.66)');
-  m.fillStyle = gr; m.fillRect(-60, -60, 120, 120);
-  const L = { mask, pad, reach, ex, ey, rx, ry, ang, cone: null, dx: Math.cos(ang + Math.PI / 2), dy: Math.sin(ang + Math.PI / 2) };
-  if (i === 0) {
-    /* the cone of light from the shade's rim to the pool, soft-edged (nested layers, added) */
-    const rim = C.F * 0.2 / ap[2], hw = rx * 0.98, ca = Math.cos(ang), sa = Math.sin(ang);
-    const pts = [[0, -rim], [0, rim], [len, -hw], [len, hw]].map(([u, v]) => [ap[0] + u * ca - v * sa, ap[1] + u * sa + v * ca]);
-    const bx0 = Math.floor(Math.max(-pad, Math.min(...pts.map(p => p[0])))), bx1 = Math.ceil(Math.min(W + pad, Math.max(...pts.map(p => p[0]))));
-    const by0 = Math.floor(Math.max(-pad, Math.min(...pts.map(p => p[1])))), by1 = Math.ceil(Math.min(H + pad, Math.max(...pts.map(p => p[1]))));
-    const cone = document.createElement('canvas');
-    cone.width = Math.max(1, bx1 - bx0); cone.height = Math.max(1, by1 - by0);
-    const c = cone.getContext('2d');
-    c.setTransform(ca, sa, -sa, ca, ap[0] - bx0, ap[1] - by0);
+  x.save();
+  x.setTransform(rx * 1.12, 0, 0, ry * 1.12, ex + pad, ey + pad);
+  const gr = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+  gr.addColorStop(0, 'rgba(9,9,10,0)'); gr.addColorStop(0.5, `rgba(9,9,10,${0.04 * k})`); gr.addColorStop(0.82, `rgba(9,9,10,${0.36 * k})`); gr.addColorStop(1, `rgba(9,9,10,${0.66 * k})`);
+  x.fillStyle = gr; x.fillRect(-60, -60, 120, 120);
+  x.restore();
+  return { ex, ey, rx, ry };
+}
+/* the lamp on art A (camera i). Its pool is baked into each still (the dark falling away along and across the
+   table); on the low camera the pendant, its cone and the dust are layers of their own, painted once and
+   moved by the swing in whole pixels */
+function introLight(d, A, i) {
+  const C = A.C, g = d.geo, W = A.W, H = A.H;
+  if (i === 1) { introPool(C, g, W, H, 0, A.bg.getContext('2d'), 0.62); return { mask: null, cone: null, fix: null }; }
+  /* a sway across the table (world metres per radian of swing: a metre of chain) and how it moves on screen */
+  const per = (px, py, pz) => { const a = heroProj(C, px, py, pz), b = heroProj(C, px, py + 0.1, pz); return [(b[0] - a[0]) * 10, (b[1] - a[1]) * 10]; };
+  const dPool = per(g.TL / 2, g.TW / 2, 0), dFix = per(g.TL * 0.78, g.TW / 2, INTRO_LAMP_H);
+  const pad = Math.ceil(0.08 * Math.max(Math.hypot(...dPool), Math.hypot(...dFix))) + 4;
+  introPool(C, g, W, H, 0, A.bg.getContext('2d'));
+  const L = { mask: null, pad, dPool, dFix, cone: null, fix: null, shades: [] };
+  /* the shades in view (a little margin), each: rim centre, rim radii, top, its pool on the bed */
+  for (const fx of INTRO_SHADES) {
+    const cx = g.TL * fx, cy = g.TW / 2, rim = heroProj(C, cx, cy, INTRO_LAMP_H), top = heroProj(C, cx, cy, INTRO_LAMP_H + INTRO_SHADE_H);
+    if (rim[2] < 0.3) continue;
+    const R = C.F * INTRO_RIM_R / rim[2], el = Math.abs(Math.atan2(INTRO_LAMP_H - C.E[2], Math.hypot(cx - C.E[0], cy - C.E[1])));
+    if (rim[0] < -2 * R || rim[0] > W + 2 * R || rim[1] < -R || rim[1] > H) continue;
+    const bed = heroProj(C, cx, cy, 0), bw = C.F * 0.55 / bed[2];
+    L.shades.push({ rim, top, R, Rt: C.F * 0.05 / top[2], e: Math.max(0.08, Math.sin(el)), bed, bw });
+  }
+  if (!L.shades.length) return L;
+  /* the fixture: each shade on its cord, up out of the frame, far to near */
+  const fix = document.createElement('canvas');
+  fix.width = W + 2 * pad; fix.height = H + 2 * pad;
+  const x = fix.getContext('2d');
+  x.translate(pad, pad);
+  let gr;
+  for (const s of [...L.shades].sort((p, q) => q.rim[2] - p.rim[2])) {
+    const { rim, top, R, Rt, e } = s, ry = R * e;
+    /* the stem and its brass collar */
+    x.fillStyle = '#0c0b0a'; x.fillRect(top[0] - Math.max(1, Rt * 0.12), -pad, Math.max(2, Rt * 0.24), top[1] + pad);
+    x.fillStyle = '#17150f'; x.fillRect(top[0] - Rt * 0.3, top[1] - Rt * 0.9, Rt * 0.6, Rt * 0.9);
+    /* the body: dark green enamel, lit along one flank, a soft specular stripe */
+    gr = x.createLinearGradient(rim[0] - R, 0, rim[0] + R, 0);
+    gr.addColorStop(0, '#07100b'); gr.addColorStop(0.28, '#183a28'); gr.addColorStop(0.4, '#4f7a62'); gr.addColorStop(0.47, '#1e4430'); gr.addColorStop(0.8, '#0c1f15'); gr.addColorStop(1, '#040806');
+    x.fillStyle = gr;
+    x.beginPath(); x.moveTo(top[0] - Rt, top[1]); x.bezierCurveTo(top[0] - Rt * 1.6, top[1] + (rim[1] - top[1]) * 0.55, rim[0] - R * 0.98, rim[1] - (rim[1] - top[1]) * 0.25, rim[0] - R, rim[1]);
+    x.ellipse(rim[0], rim[1], R, ry, 0, Math.PI, 0, true);
+    x.bezierCurveTo(rim[0] + R * 0.98, rim[1] - (rim[1] - top[1]) * 0.25, top[0] + Rt * 1.6, top[1] + (rim[1] - top[1]) * 0.55, top[0] + Rt, top[1]);
+    x.closePath(); x.fill();
+    /* the brass cap */
+    gr = x.createLinearGradient(top[0] - Rt, 0, top[0] + Rt, 0);
+    gr.addColorStop(0, '#5a4420'); gr.addColorStop(0.4, '#e6c47c'); gr.addColorStop(1, '#6b5126');
+    x.fillStyle = gr; x.beginPath(); x.ellipse(top[0], top[1], Rt, Math.max(1, Rt * e), 0, 0, Math.PI * 2); x.fill();
+    /* inside: the white enamel under the bulb, seen from below, and the bulb's hot core */
+    gr = x.createRadialGradient(rim[0], rim[1] - ry * 0.15, 0, rim[0], rim[1], R);
+    gr.addColorStop(0, 'rgba(255,250,236,1)'); gr.addColorStop(0.22, 'rgba(255,240,210,1)'); gr.addColorStop(0.7, 'rgba(242,214,166,1)'); gr.addColorStop(1, 'rgba(176,138,88,1)');
+    x.fillStyle = gr; x.beginPath(); x.ellipse(rim[0], rim[1], R * 0.97, ry * 0.97, 0, 0, Math.PI * 2); x.fill();
+    /* the rolled brass rim catching the light */
+    gr = x.createLinearGradient(rim[0] - R, 0, rim[0] + R, 0);
+    gr.addColorStop(0, '#6d5226'); gr.addColorStop(0.3, '#f3dc9e'); gr.addColorStop(0.5, '#b88f45'); gr.addColorStop(0.75, '#fff0c4'); gr.addColorStop(1, '#5c4520');
+    x.strokeStyle = gr; x.lineWidth = Math.max(1.2, R * 0.075); x.beginPath(); x.ellipse(rim[0], rim[1], R, ry, 0, 0, Math.PI * 2); x.stroke();
+  }
+  [L.fix, L.fixAt] = introCrop(fix);
+  fix.width = fix.height = 0;
+  /* the cones (from each rim to its pool, soft-edged in nested layers, added) and each rim's bloom */
+  /* (into the still itself: the beam holds still while the pendant settles on its cord) */
+  const c = A.bg.getContext('2d');
+  c.save();
+  c.globalCompositeOperation = 'lighter';
+  for (const s of L.shades) {
+    const { rim, R, bed, bw } = s, len = Math.hypot(bed[0] - rim[0], bed[1] - rim[1]), ang = Math.atan2(bed[1] - rim[1], bed[0] - rim[0]);
+    c.save(); c.translate(rim[0], rim[1]); c.rotate(ang);
     for (let k = 0; k < 9; k++) {
       const f = 1 - k / 9, lg = c.createLinearGradient(0, 0, len, 0);
-      lg.addColorStop(0, 'rgba(255,230,186,0.026)'); lg.addColorStop(0.55, 'rgba(255,230,186,0.016)'); lg.addColorStop(1, 'rgba(255,230,186,0.007)');
-      c.fillStyle = lg; c.beginPath(); c.moveTo(0, -rim * f); c.lineTo(len, -hw * f); c.lineTo(len, hw * f); c.lineTo(0, rim * f); c.closePath(); c.fill();
+      lg.addColorStop(0, 'rgba(255,230,186,0.024)'); lg.addColorStop(0.5, 'rgba(255,230,186,0.012)'); lg.addColorStop(1, 'rgba(255,230,186,0.004)');
+      c.fillStyle = lg; c.beginPath(); c.moveTo(0, -R * 0.95 * f); c.lineTo(len, -bw * f); c.lineTo(len, bw * f); c.lineTo(0, R * 0.95 * f); c.closePath(); c.fill();
     }
-    /* the shade: a dark metal cone round the bulb, its rim lit from inside */
-    const sh = document.createElement('canvas'), sw = Math.ceil(rim * 2.6), shh = Math.ceil(rim * 2.2);
-    sh.width = sw; sh.height = shh;
-    const z = sh.getContext('2d'), cx = sw / 2, by = shh * 0.78;
-    const lg = z.createLinearGradient(cx - rim, 0, cx + rim, 0);
-    lg.addColorStop(0, '#060807'); lg.addColorStop(0.35, '#1d2a22'); lg.addColorStop(0.5, '#33473a'); lg.addColorStop(0.75, '#111813'); lg.addColorStop(1, '#040505');
-    z.fillStyle = lg; z.beginPath(); z.moveTo(cx - rim * 0.16, 0); z.lineTo(cx + rim * 0.16, 0); z.lineTo(cx + rim, by); z.ellipse(cx, by, rim, rim * 0.22, 0, 0, Math.PI); z.closePath(); z.fill();
-    const rg = z.createRadialGradient(cx, by, 0, cx, by, rim);
-    rg.addColorStop(0, 'rgba(255,246,222,1)'); rg.addColorStop(0.35, 'rgba(255,226,170,0.85)'); rg.addColorStop(1, 'rgba(255,196,120,0.15)');
-    z.fillStyle = rg; z.beginPath(); z.ellipse(cx, by, rim * 0.94, rim * 0.2, 0, 0, Math.PI * 2); z.fill();
-    /* a speck of dust in the light */
-    const dot = document.createElement('canvas'), dr = Math.max(2, Math.round(W / 260));
-    dot.width = dot.height = dr * 4;
-    const y = dot.getContext('2d'), dg = y.createRadialGradient(dr * 2, dr * 2, 0, dr * 2, dr * 2, dr * 2);
-    dg.addColorStop(0, 'rgba(255,240,215,0.9)'); dg.addColorStop(0.4, 'rgba(255,240,215,0.35)'); dg.addColorStop(1, 'rgba(255,240,215,0)');
-    y.fillStyle = dg; y.fillRect(0, 0, dr * 4, dr * 4);
-    Object.assign(L, { cone, coneAt: [bx0, by0], ap, rim, len, hw, cord, sh, shX: cx, shY: by, dot, dr, onScreen: ap[1] > -shh && ap[1] < H });
+    c.restore();
+    const bl = c.createRadialGradient(rim[0], rim[1], R * 0.4, rim[0], rim[1], R * 2.6);
+    bl.addColorStop(0, 'rgba(255,226,170,0.16)'); bl.addColorStop(1, 'rgba(255,226,170,0)');
+    c.fillStyle = bl; c.fillRect(rim[0] - R * 2.6, rim[1] - R * 2.6, R * 5.2, R * 5.2);
   }
+  c.restore();
+  L.cone = true;
+  /* the dust: in the cone nearest the frame's middle */
+  const s = L.shades.reduce((p, q) => Math.abs(q.rim[0] - W / 2) < Math.abs(p.rim[0] - W / 2) ? q : p);
+  const dot = document.createElement('canvas'), dr = Math.max(2, Math.round(W / 300));
+  dot.width = dot.height = dr * 4;
+  const y = dot.getContext('2d'), dg = y.createRadialGradient(dr * 2, dr * 2, 0, dr * 2, dr * 2, dr * 2);
+  dg.addColorStop(0, 'rgba(255,240,215,0.9)'); dg.addColorStop(0.4, 'rgba(255,240,215,0.35)'); dg.addColorStop(1, 'rgba(255,240,215,0)');
+  y.fillStyle = dg; y.fillRect(0, 0, dr * 4, dr * 4);
+  Object.assign(L, { dot, dr, ap: s.rim, rim: s.R, len: Math.hypot(s.bed[0] - s.rim[0], s.bed[1] - s.rim[1]), hw: s.bw, ang: Math.atan2(s.bed[1] - s.rim[1], s.bed[0] - s.rim[0]) });
   return L;
 }
 /* a mostly empty canvas (the near rail's fg) cut to its painted box: [canvas, [x, y]] (found on a quarter-scale copy) */
@@ -19630,7 +19716,7 @@ function introLampK(t) {
   return 0.3 + 0.7 * ease(210, IT.lampMs, u);
 }
 /* its swing: a damped pendulum, radians */
-const introSwing = t => { const u = Math.max(0, t - IT.lamp) / 1000; return 0.07 * Math.exp(-u / 1.6) * Math.cos(2 * Math.PI * u / 1.9 + 0.3); };
+const introSwing = t => { const u = Math.max(0, t - IT.lamp) / 1000; return 0.03 * Math.exp(-u / 1.2) * Math.cos(2 * Math.PI * u / 1.9 + 0.3); };
 /* the wordmark at t: translate (CSS px), scale, opacity, the sheen's place (%) */
 function introPose(t) {
   const M = intro.mid;
@@ -19643,16 +19729,17 @@ function introPose(t) {
     const s = (t - IT.land) / 1000, k = 1 - Math.exp(-7.5 * s) * (Math.cos(10.5 * s) + 0.71 * Math.sin(10.5 * s));
     return [M.tx, M.ty - M.drop * (1 - k), M.s * (1.12 - 0.12 * k), clamp((t - IT.land) / 170, 0, 1), sx];
   }
-  const e = easeIO3(clamp((t - IT.out) / IT.outMs, 0, 1));
+  const e = easeIO3(clamp((t - IT.out) / IT.glide, 0, 1));
   return [M.tx * (1 - e), M.ty * (1 - e), M.s + (1 - M.s) * e, 1, sx];
 }
 /* the cards (0 hidden, 1 home) and the scene's opacity at t */
-const introCards = t => easeIO3(clamp((t - IT.out - 140) / 420, 0, 1));
+/* the cards rise once the wordmark is nearly home, so it never crosses them */
+const introCards = t => easeIO3(clamp((t - IT.out - IT.glide + 180) / (IT.outMs - IT.glide + 180), 0, 1));
 /* the canvas over the home's own colour (#09090a, the room's): its opacity is the lamp's level (dark
    before it, lowered for the title) and the scene's fade at the end, so no frame paints a dark wash */
-const introScene = t => t < IT.lamp ? 1 : introLampK(t) * (1 - 0.4 * ease(IT.land - 150, IT.land + 450, t)) * (1 - ease(0, 1, (t - IT.out) / IT.outMs));
+const introScene = t => t < IT.lamp ? 1 : introLampK(t) * (1 - 0.4 * ease(IT.land - 150, IT.land + 450, t)) * (1 - ease(0, 1, (t - IT.out) / IT.glide));
 function introApply(p, ik, cv, cam) {
-  const el = menuTitle, L = intro.last, ct = `scale(${cam[0].toFixed(4)})`, co = `${cam[1].toFixed(1)}% ${cam[2].toFixed(1)}%`, tr = `translate(${p[0].toFixed(2)}px, ${p[1].toFixed(2)}px) scale(${p[2].toFixed(4)})`, o = p[3].toFixed(3), sx = p[4].toFixed(1) + '%', k = ik.toFixed(3), c = cv.toFixed(3);
+  const el = menuTitle, L = intro.last, ct = `translate(${cam[3].toFixed(2)}px, ${cam[4].toFixed(2)}px) scale(${cam[0].toFixed(4)})`, co = `${cam[1].toFixed(1)}% ${cam[2].toFixed(1)}%`, tr = `translate(${p[0].toFixed(2)}px, ${p[1].toFixed(2)}px) scale(${p[2].toFixed(4)})`, o = p[3].toFixed(3), sx = p[4].toFixed(1) + '%', k = ik.toFixed(3), c = cv.toFixed(3);
   if (L.t !== tr) { el.style.transform = tr; L.t = tr; }
   if (L.o !== o) { el.style.opacity = o; L.o = o; }
   if (L.sx !== sx) { el.style.setProperty('--sx', sx); L.sx = sx; }
@@ -19696,29 +19783,44 @@ function introDone() {
 }
 /* the build, a step a task, while the first frame holds */
 function* introBuild() {
-  const r = { width: introArt.clientWidth, height: introArt.clientHeight }, dp = Math.min(3, pixelRatio()), W = Math.max(1, Math.round(r.width * dp)), H = Math.max(1, Math.round(r.height * dp));
+  const r = { width: menu.clientWidth, height: menu.clientHeight }, dp = Math.min(3, pixelRatio()), W = Math.max(1, Math.round(r.width * dp)), H = Math.max(1, Math.round(r.height * dp));
   intro.size = introSize();
   introArt.width = W; introArt.height = H;
   useCloth();
-  const d = intro.data = heroPrep(INTRO_KIND, INTRO_ARGS);
+  const kind = intro.kind = introKind(), d = intro.data = heroPrep(kind, introArgs(kind));
   intro.flat = true;
   yield;
   const cams = introCams(d, W, H);
+  /* the low camera's still runs on above the frame to take in the lamp over the rack: the opening starts
+     there and tilts down (the canvas is that much taller, moved on the compositor) */
+  const C0 = cams[0], g0 = d.geo, top = heroProj(C0, g0.TL * INTRO_SHADES[0], g0.TW / 2, INTRO_LAMP_H + INTRO_SHADE_H + 0.06)[1];
+  const X = Math.round(clamp(H * 0.14 - top, 0, H * 1.4)), Hc = H + X;
+  C0.cy += X;
+  intro.lift = X; intro.Hc = Hc;
   intro.arts = [];
   for (let i = 0; i < 2; i++) {
-    const A = heroStill(d, W, H, cams[i], false);
+    const A = heroStill(d, W, i ? H : Hc, cams[i], false, i === 0 ? introRoom : null);
     A.bg.getContext('2d').getImageData(0, 0, 1, 1);
     const fg = A.fg;
     [A.fg, A.fgAt] = introCrop(fg);
     fg.width = fg.height = 0;
     A.light = introLight(d, A, i);
+    if (i === 0) { A.cy0 = A.C.cy; A.pan = 0; }
     /* where the camera's move centres (% of the canvas): the rack on the low one, the table's middle on the high */
     const fp = i ? heroProj(A.C, d.geo.TL * 0.55, d.geo.TW / 2, 0) : heroProj(A.C, d.balls[1].x, d.balls[1].y, 0);
-    A.focus = [clamp(fp[0] / W * 100, 20, 80), clamp(fp[1] / H * 100, 20, 80)];
+    A.focus = [clamp(fp[0] / W * 100, 20, 80), clamp((fp[1] - (i ? 0 : X)) / H * 100, 20, 80)];
     intro.arts.push(A);
     yield;
   }
   intro.art = intro.arts[0];
+  /* the table art the stills were laid from (and its turned copy): not needed again, let go */
+  hero.tex = null;
+  /* the crack's flash: a warm white bloom */
+  const fl = intro.flash = document.createElement('canvas');
+  fl.width = fl.height = 128;
+  const fx = fl.getContext('2d'), fg2 = fx.createRadialGradient(64, 64, 0, 64, 64, 64);
+  fg2.addColorStop(0, 'rgba(255,252,240,0.95)'); fg2.addColorStop(0.18, 'rgba(255,236,200,0.55)'); fg2.addColorStop(0.5, 'rgba(255,214,160,0.12)'); fg2.addColorStop(1, 'rgba(255,214,160,0)');
+  fx.fillStyle = fg2; fx.fillRect(0, 0, 128, 128);
   /* the roll, recorded as the hero's is, with how many of its hits had sounded by each sample */
   let keep = heroOn(d.args);
   try { intro.run = heroRunStart(d); } finally { heroOff(keep); }
@@ -19739,7 +19841,10 @@ function* introBuild() {
   }
   /* the cut: the cue ball meets the rack */
   const j = run.tab.hits.findIndex(h => h[0] === 'ball'), k = j < 0 ? 0 : run.hitN.findIndex(n => n > j);
-  intro.cut = j < 0 ? HERO_CUE_MS + 300 : heroPotT(run, { t: k * HERO_SUB * SIM_DT }) + 50;
+  intro.hitT = j < 0 ? Infinity : heroPotT(run, { t: k * HERO_SUB * SIM_DT });
+  intro.cut = j < 0 ? HERO_CUE_MS + 300 : intro.hitT + 50;
+  const ci = d.balls.findIndex(o => o.n === d.shot.ball);
+  intro.hitAt = j < 0 ? null : [run.pos[k][2 * ci], run.pos[k][2 * ci + 1]];
   /* the ball sprites (ballSprites, a quarter pixel apart) the frames will ask for, made now rather than in
      a frame: on the low camera the sizes the roll passes through until the cut (the cue ball sweeps a wide
      range fast: only the sizes at its samples), on the high one every size between its smallest and largest */
@@ -19756,6 +19861,8 @@ function* introBuild() {
   }
   for (let q = Math.floor(hi[0] * 4) - 1; q <= Math.ceil(hi[1] * 4) + 1; q++) want.add(q);
   intro.sprites = want.size;
+  /* what the opening holds while it plays (its canvases, MB at 4 bytes a pixel) */
+  intro.memMB = +([introArt, intro.flash, ...intro.arts.flatMap(A => [A.bg, A.fg, A.vg, A.light.fix])].reduce((m, c) => m + (c ? c.width * c.height * 4 : 0), 0) / 1048576).toFixed(1);
   let n = 0;
   for (const q of want) { ballSprites(q / 4); if (++n % 40 === 0) yield; }
   /* the wordmark: its place in the header, and where it lands, large, in the middle of the safe area */
@@ -19791,7 +19898,6 @@ function introPrep() {
 }
 function introStart() {
   intro.state = 'play'; intro.t0 = performance.now(); intro.frames = 0; intro.ms = []; intro.hits = 0;
-  menuTitle.classList.add('introSheen');
   introFrame(0);
   introLoop();
 }
@@ -19816,6 +19922,9 @@ function introFrame(t) {
     p = [f[0] * (1 - e), f[1] * (1 - e), f[2] + (1 - f[2]) * e, f[3] + (1 - f[3]) * e, f[4] * (1 - e)];
     ik = S.ik + (1 - S.ik) * e; cv = S.cv * (1 - e);
   }
+  /* the sheen's gradient only while it can be seen: the wordmark is its plain self before it lands and once it has swept */
+  const sheen = S ? menuTitle.classList.contains('introSheen') && p[4] > 0.5 : t >= IT.land - 40 && t < IT.sheen + IT.sheenMs;
+  if (menuTitle.classList.contains('introSheen') !== sheen) menuTitle.classList.toggle('introSheen', sheen);
   introApply(p, ik, cv, introCamMove(S ? S.t0 + (t - S.t0) * 0.3 : t));
   if (felt.introMeasure) introArt.getContext('2d').getImageData(0, 0, 1, 1);
   intro.frames++;
@@ -19825,33 +19934,44 @@ function introDraw(t) {
   const x = introArt.getContext('2d'), W = introArt.width, H = introArt.height;
   if (t < IT.lamp) { if (!intro.cleared) { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); intro.cleared = true; } return; }
   intro.cleared = false;
-  const hT = Math.max(0, t - IT.hero), A = intro.art = intro.arts[hT >= intro.cut ? 1 : 0], L = A.light, sw = introSwing(t);
+  const hT = introHT(t), A = intro.art = intro.arts[hT >= intro.cut ? 1 : 0], L = A.light, sw = introSwing(t);
   intro.cueOff = A !== intro.arts[0];
+  /* the low camera starts on the lamp and tilts down to the table as the cue draws back: a window moved
+     down its tall still in whole pixels, the projection with it */
+  const pan = A.pan === undefined ? 0 : Math.round(intro.lift * easeIO3(clamp((t - IT.pan) / IT.panMs, 0, 1)));
+  if (A.pan !== undefined) { A.pan = pan; A.C.cy = A.cy0 - pan; }
   heroDraw(hT, intro, introArt);
   introSound(hT);
   x.setTransform(1, 0, 0, 1, 0, 0);
-  /* the dark beyond the lamp's pool, swung with it (whole pixels: a plain copy, never a resample) */
-  const off = sw * L.reach, ox = Math.round(L.dx * off), oy = Math.round(L.dy * off);
-  x.drawImage(L.mask, ox - L.pad, oy - L.pad);
   if (L.cone) {
-    /* the cone of light and the dust turning in it, carried with the swing; the shade on its cord */
+    /* the dust turning in the beam, then the pendant settling on its cord */
+    const px = Math.round(L.dPool[0] * sw), py = Math.round(L.dPool[1] * sw) - pan;
     x.globalCompositeOperation = 'lighter';
-    x.drawImage(L.cone, L.coneAt[0] + ox, L.coneAt[1] + oy);
-    const ax = L.ap[0] + sw * L.cord, ay = L.ap[1], ca = Math.cos(L.ang), sa = Math.sin(L.ang), M = intro.motes, dr = L.dr * 4, u0 = t / 1000;
+    const M = intro.motes, dr = L.dr * 4, u0 = t / 1000, ca = Math.cos(L.ang), sa = Math.sin(L.ang);
     for (let i = 0; i < M.length; i++) {
       const m = M[i], u = (m[0] + 0.012 * Math.sin(u0 * 0.7 * m[4] + m[2])) % 1, w = L.rim + (L.hw - L.rim) * u, v = (m[1] + 0.05 * Math.sin(u0 * 1.1 * m[4] + m[2] * 2)) * w * 0.8, U = u * L.len;
       const tw = 0.5 + 0.5 * Math.sin(u0 * 2.3 * m[4] + m[2]);
       x.globalAlpha = m[3] * (0.25 + 0.75 * tw) * (1 - u * 0.6);
-      x.drawImage(L.dot, ax + U * ca - v * sa - dr / 2 + ox * u, ay + U * sa + v * ca - dr / 2 + oy * u, dr, dr);
+      x.drawImage(L.dot, L.ap[0] + U * ca - v * sa - dr / 2 + px, L.ap[1] + U * sa + v * ca - dr / 2 + py, dr, dr);
     }
     x.globalCompositeOperation = 'source-over';
     x.globalAlpha = 1;
-    if (L.onScreen) {
-      const r = sw * 0.55;
-      x.setTransform(Math.cos(r), Math.sin(r), -Math.sin(r), Math.cos(r), ax, ay);
-      x.drawImage(L.sh, -L.shX, -L.shY);
-      x.setTransform(1, 0, 0, 1, 0, 0);
-    }
+    x.drawImage(L.fix, L.fixAt[0] + Math.round(L.dFix[0] * sw) - L.pad, L.fixAt[1] + Math.round(L.dFix[1] * sw) - L.pad - pan);
+  }
+  /* the break's crack: a flash at the contact, its sparks thrown out, gone in a fifth of a second */
+  const u = (hT - intro.hitT) / INTRO_FLASH_MS;
+  if (u >= 0 && u < 1 && intro.hitAt) {
+    const p = heroProj(A.C, intro.hitAt[0], intro.hitAt[1], intro.data.geo.R), r = A.C.F * intro.data.geo.R / p[2], s = r * (2.2 + 3.5 * u), f = intro.flash;
+    f.sq = clamp(A.C.E[2] / Math.hypot(A.C.E[0] - intro.hitAt[0], A.C.E[1] - intro.hitAt[1], A.C.E[2]), 0.15, 1);
+    x.globalCompositeOperation = 'lighter';
+    x.globalAlpha = (1 - u) * (1 - u);
+    x.drawImage(f, p[0] - s, p[1] - s, 2 * s, 2 * s);
+    /* and a ring of light running out across the cloth, flattened as the bed is */
+    x.globalAlpha = 0.35 * (1 - u);
+    x.strokeStyle = '#fff1d6'; x.lineWidth = Math.max(1, r * 0.08 * (1 - u));
+    x.beginPath(); x.ellipse(p[0], p[1] + r * 0.5, r * (1.4 + 4 * u), r * (1.4 + 4 * u) * f.sq, 0, 0, Math.PI * 2); x.stroke();
+    x.globalCompositeOperation = 'source-over';
+    x.globalAlpha = 1;
   }
   /* the title's ground, where the wordmark lands */
   const hk = ease(IT.land - 100, IT.land + 300, t);
@@ -19865,13 +19985,15 @@ function introDraw(t) {
   }
 }
 /* the camera's slow move, on the compositor (the canvas scaled, never resampled in a frame): in on the
-   rack until the cut, then from close in back out to the whole table as the balls spread */
+   rack until the cut, then from close in back out to the whole table as the balls spread; a small
+   shake on the cut, as the rack takes the cue ball (CSS px, dying away in a quarter second) */
 function introCamMove(t) {
-  const hT = t - IT.hero, A = intro.arts && intro.arts[hT >= intro.cut ? 1 : 0];
-  if (!A || t < IT.lamp) return [1, 50, 50];
-  const f = A.focus;
-  if (hT < intro.cut) return [1 + 0.06 * ease(0, intro.cut + IT.hero, t), f[0], f[1]];
-  return [1 + 0.12 * (1 - heroEaseIO(clamp((hT - intro.cut) / (HERO_CUE_MS + HERO_ROLL_MS - intro.cut), 0, 1))), f[0], f[1]];
+  const hT = introHT(t), A = intro.arts && intro.arts[hT >= intro.cut ? 1 : 0];
+  if (!A || t < IT.lamp) return [1, 50, 50, 0, 0];
+  const f = A.focus, q = (hT - intro.cut) / IT.roll / 1000, sh = q >= 0 && q < 0.26 ? 2.6 * Math.exp(-q / 0.07) : 0;
+  const dx = sh * Math.sin(q * 2 * Math.PI * 23), dy = sh * 0.6 * Math.sin(q * 2 * Math.PI * 31 + 1.3);
+  if (hT < intro.cut) return [1 + 0.05 * ease(IT.pan, IT.hero + 900, t), f[0], f[1], 0, 0];
+  return [1.004 + 0.12 * (1 - heroEaseIO(clamp((hT - intro.cut) / (HERO_CUE_MS + HERO_ROLL_MS - intro.cut), 0, 1))), f[0], f[1], dx, dy];
 }
 /* the roll's hits as they happen, with sound on and audio already running (never before a gesture on iOS) */
 function introSound(hT) {
@@ -19908,8 +20030,8 @@ function introFinish() {
   for (const k of ['--ik', '--iy']) menu.style.removeProperty(k);
   for (const k of ['opacity', 'transform', 'transform-origin']) introArt.style.removeProperty(k);
   document.documentElement.classList.remove('intro');
-  if (intro.arts) for (const A of intro.arts) for (const c of [A.bg, A.fg, A.vg, A.light.mask, A.light.cone || A.vg]) c.width = c.height = 0;
-  intro.arts = null; intro.art = null; intro.halo = null;
+  if (intro.arts) for (const A of intro.arts) for (const c of [A.bg, A.fg, A.vg, A.light.fix]) if (c) c.width = c.height = 0;
+  intro.arts = null; intro.art = null; intro.halo = null; intro.flash = null;
   introArt.width = introArt.height = 0;
   intro.last = { t: '', o: '', sx: '', ik: '', cv: '', ct: '', co: '' };
   setTimeout(() => { if (performance.now() > intro.swallow) introListen(false); else setTimeout(() => introListen(false), intro.swallow - performance.now() + 20); }, 0);
@@ -19952,13 +20074,14 @@ function introInfo() {
   const r = intro.run, d = intro.data;
   return { state: intro.state, mode: intro.mode, why: intro.why, frames: intro.frames, raf: !!intro.raf, ms: intro.ms.slice(), cut: intro.cut, prepMs: intro.prepMs, work: intro.work || 0, endAt: intro.endAt, t0: intro.t0,
     end: INTRO_END, timeline: Object.assign({}, IT), size: intro.size, canvas: [introArt.width, introArt.height], home: intro.home && Object.assign({}, intro.home), mid: intro.mid && Object.assign({}, intro.mid),
-    key: d && d.key, args: INTRO_ARGS.slice(), shot: d && d.shot, start: d && d.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), drawn: intro.drawn ? intro.drawn.length : 0,
+    kind: intro.kind, key: d && d.key, args: d && d.args.slice(), shot: d && d.shot, start: d && d.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), drawn: intro.drawn ? intro.drawn.length : 0,
     final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null,
-    hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening };
+    hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening, memMB: intro.memMB || 0 };
 }
 Object.defineProperty(felt, 'intro', { get: introInfo });
 felt.introSeek = introSeek;
 felt.introSkip = () => introSkip();
+felt.introEnd = () => { if (intro.state === 'seek') introFinish(); };
 felt.introMeasure = false;
 
 /* ============ 7. BOOT ============ */

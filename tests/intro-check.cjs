@@ -205,11 +205,16 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
      on their cloth; the wordmark keeps its contrast over every cloth; the hand-over into the header is
      the home's own pixels ---- */
   const diffPng = (page, a, b) => page.evaluate(async ([a, b]) => {
-    const load = async s => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
-    const p = await load(a), q = await load(b);
-    let s = 0, m = 0;
-    for (let i = 0; i < p.length; i += 4) for (let j = 0; j < 3; j++) { const d = Math.abs(p[i + j] - q[i + j]); s += d; if (d > m) m = d; }
-    return { mean: s / (p.length / 4 * 3), max: m };
+    const load = async s => { const bmp = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height; const g = c.getContext('2d'); g.drawImage(bmp, 0, 0); return g.getImageData(0, 0, c.width, c.height); };
+    const P = await load(a), p = P.data, q = (await load(b)).data, w = P.width;
+    let s = 0, m = 0, n = 0;
+    const box = [1e9, 1e9, -1, -1];
+    for (let i = 0; i < p.length; i += 4) for (let j = 0; j < 3; j++) {
+      const d = Math.abs(p[i + j] - q[i + j]); s += d; if (d > m) m = d;
+      if (d > 24 && (j === 0 || Math.max(...[0, 1, 2].slice(0, j).map(c => Math.abs(p[i + c] - q[i + c]))) <= 24)) { n++; const x = (i / 4) % w, y = Math.floor(i / 4 / w); box[0] = Math.min(box[0], x); box[1] = Math.min(box[1], y); box[2] = Math.max(box[2], x); box[3] = Math.max(box[3], y); }
+    }
+    /* where it differs (device pixels in the clip), so a failure on a runner names the element */
+    return { mean: s / (p.length / 4 * 3), max: m, over: n, box: n ? box : null };
   }, [a.toString('base64'), b.toString('base64')]);
   for (const [cloth, last, table, pockets] of [['green', null, '9', 'regulation'], ['red', '9', '7', 'regulation'], ['blue', 'straight', '9', 'generous']]) {
     const set = JSON.stringify({ sv: 3, cloth, table, pockets, ...(last ? { last } : {}) });
@@ -232,11 +237,17 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
     check(`${cloth} cloth: the landed wordmark keeps ${r.ratio.toFixed(1)}:1 over the brightest of the scene behind it (4.5:1 or better)`, r.ratio >= 4.5, JSON.stringify({ ratio: r.ratio }));
     if (cloth === 'green') {
       /* the last moment against the home itself: the same pixels in the header and the cards */
+      /* settled: no running animation or transition and two frames painted, so a slow runner shoots the same moment */
+      const settle = () => k.evaluate(async () => {
+        const t0 = performance.now(), raf = () => new Promise(r => requestAnimationFrame(() => r()));
+        while (performance.now() - t0 < 3000 && document.getAnimations().some(a => a.playState === 'running')) await raf();
+        await raf(); await raf();
+      });
       await k.evaluate(e => felt.introSeek(e - 1), r.end);
-      await k.waitForTimeout(80);
+      await k.waitForTimeout(80); await settle();
       const clip = { x: 0, y: 0, width: 430, height: 420 }, a = await k.screenshot({ clip });
       await k.evaluate(() => felt.introEnd());
-      await k.waitForTimeout(200);
+      await k.waitForTimeout(200); await settle();
       const b = await k.screenshot({ clip }), df = await diffPng(k, a, b);
       check(`the hand-over has no jump: the opening's last frame and the home after it match (mean ${df.mean.toFixed(3)}, max ${df.max} per channel)`, df.mean < 0.5 && df.max <= 24, JSON.stringify(df));
     }

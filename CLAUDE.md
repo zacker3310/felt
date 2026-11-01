@@ -364,7 +364,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
   opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check`.
-- Opening (page 6o, `introBoot` from boot, visual only): a cold open of 4.8 s on a cold launch at home, never on a
+- Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 4.5 s on a cold launch at home, never on a
   return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the
   home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script
   drops it with `settings.intro` false (Settings > Graphics > Opening Animation, `tgIntro` in `BOOL_TOGS`, default on, sv
@@ -375,11 +375,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   first contact (a flash, `INTRO_FLASH_MS`, and a small shake) to high over the table. The game is the last one played
   if it is a pocket game (`introKind`, `introArgs`: its table, pockets and solved `HERO_SHOTS` break), else 8-ball on 9 ft,
   always in the player's look, through the real `strike`/`stepTable` (the full run's rest is `simulateShot`'s). The roll
-  plays on the opening's own clock, never the hero's (`introClock`, `introRate`, `INTRO_RATE`; `heroDraw` takes
-  `h.simAt`/`h.potAt`, so pot drops and `introSound` run on it too): the approach at 0.8x real, slow motion at 0.4x from
-  just before the first contact through the rack opening (eased in and out), then 1.08x, never faster; it is not run
-  to rest on screen: the wordmark lands (`IT.land`, after the default break's two pots) over a table still rolling and
-  the scene fades under the glide. The light: one enamel pendant (`INTRO_SHADES`, `introLight`: the fixture a layer
+  plays on the opening's own clock, never the hero's (`introClock`; `heroDraw` takes `h.simAt`/`h.potAt`, so pot drops
+  and `introSound` run on it too): real time, one rate from the strike to the end, a sim second a screen second (no
+  slow motion, no ramps: Zac read any change of rate as the balls speeding up). The stroke is the opening's own
+  (`introCueGap` through heroDraw's `h.cueGap`; the hero keeps its stroke): a smooth backswing, a hold, the forward
+  stroke accelerating to about 8 m/s at contact, a follow-through that slows. The roll is not run to rest on screen:
+  the wordmark lands (`IT.land`, 3.48 s, as the default break's second pot drops) over a table still rolling and the
+  scene fades under the glide. The light: one enamel pendant (`INTRO_SHADES`, `introLight`: the fixture a layer
   that settles on its cord, `introSwing`; its beam and the pool's dark, `introPool`, baked into the stills; dust in the
   beam), the far room (`introRoom`: falloff, a bar back, soft bokeh) and the level (`introScene`: the canvas's CSS
   opacity over the home's #09090a, not a painted wash); the camera's slow move is a CSS scale on the canvas
@@ -395,7 +397,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   is next left. `felt.intro`, `felt.introSeek(t)` (one moment, held), `felt.introEnd`, `felt.introSkip`,
   `felt.introMeasure`. `tests/lib.cjs` skips it unless a suite opens with `intro: true`. Pinned by `intro-check` (first
   frame = the launch image's pixels, `simulateShot` for the default and the last game, each held moment byte for byte
-  the sim's state at its sim time, the clock's rates (never over 1.1x, slow motion over the contact, no snaps), skip and swallow, no rAF after,
+  the sim's state at its sim time, the clock's rate (1.0 within 0.01 at every 10 ms from the strike to the end), skip and swallow, no rAF after,
   budget and memory, the wordmark's contrast on every cloth, the hand-over's pixels, Reduce Motion, setting off,
   visibility, layout at six sizes with insets) and `settings-check`.
 

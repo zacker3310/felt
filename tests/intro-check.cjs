@@ -108,23 +108,20 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
     return { full, bare, r: full / bare };
   });
   check(`the lamp's overlay costs at most as much again as the hero renderer under it (opening ${rel.full.toFixed(1)} ms, hero alone ${rel.bare.toFixed(1)} ms)`, rel.r < 2, JSON.stringify(rel));
-  /* the opening's own clock: a touch under real time on the approach, slow motion through the first contact
-     and the rack opening, then real time at most; never faster than 1.1x, no snaps, and the roll not run to rest */
+  /* the opening's own clock: real time, one rate from the strike to the end (a sim second a screen second), the
+     roll not run to rest */
   const clk = await q.evaluate(() => {
     const i = felt.intro, out = [];
     for (let t = i.strikeAt; t <= i.end; t += 10) out.push([t, felt.introSim(t)]);
     const rate = [];
     for (let k = 1; k < out.length; k++) rate.push([out[k][0], (out[k][1] - out[k - 1][1]) / ((out[k][0] - out[k - 1][0]) / 1000), out[k][1]]);
-    return { rate, hitS: i.hitS, contactAt: i.contactAt, R: i.rate, pots: i.pots, land: i.timeline.land, end: i.end, simLand: felt.introSim(i.timeline.land), n: intro.run.pos.length * HERO_SUB * SIM_DT };
+    return { rate, hitS: i.hitS, contactAt: i.contactAt, strikeAt: i.strikeAt, pots: i.pots, land: i.timeline.land, end: i.end, simLand: felt.introSim(i.timeline.land), n: intro.run.pos.length * HERO_SUB * SIM_DT };
   });
-  const maxRate = Math.max(...clk.rate.map(r => r[1])), late = clk.rate.filter(r => r[2] > clk.hitS + clk.R.outB), atHit = clk.rate.filter(r => Math.abs(r[2] - clk.hitS) < 0.02);
-  const slowSpan = clk.rate.filter(r => r[1] <= 0.45).map(r => r[2]), jump = Math.max(...clk.rate.slice(1).map((r, k) => Math.abs(r[1] - clk.rate[k][1])));
-  check(`the roll plays on the opening's own clock: never faster than 1.1x real (max ${maxRate.toFixed(3)}x; after the slow motion ${Math.max(...late.map(r => r[1])).toFixed(3)}x), no snap between frames (largest change ${jump.toFixed(3)} per 10 ms)`,
-    maxRate <= 1.1 && late.length > 50 && late.every(r => r[1] >= 0.95 && r[1] <= 1.1) && jump < 0.075, JSON.stringify({ maxRate, jump }));
-  check(`slow motion (0.45x or slower) covers the first contact (sim ${clk.hitS.toFixed(3)} s, at ${Math.round(clk.contactAt)} ms): from sim ${Math.min(...slowSpan).toFixed(2)} to ${Math.max(...slowSpan).toFixed(2)} s, ${atHit.length ? Math.max(...atHit.map(r => r[1])).toFixed(2) : '?'}x at the contact`,
-    atHit.length > 0 && atHit.every(r => r[1] <= 0.45) && Math.min(...slowSpan) <= clk.hitS - 0.03 && Math.max(...slowSpan) >= clk.hitS + 0.2, JSON.stringify({ slow: [Math.min(...slowSpan), Math.max(...slowSpan)] }));
+  const offRate = clk.rate.filter(r => Math.abs(r[1] - 1) > 0.01);
+  check(`the roll plays in real time: the rate is 1.0 (within 0.01) at every 10 ms from the strike (${clk.strikeAt} ms) to the end (${clk.end} ms), ${clk.rate.length} samples; first contact at ${Math.round(clk.contactAt)} ms (sim ${clk.hitS.toFixed(3)} s)`,
+    clk.rate.length > 300 && offRate.length === 0 && Math.abs(clk.contactAt - clk.strikeAt - clk.hitS * 1000) < 1, JSON.stringify(offRate.slice(0, 5)));
   check(`the wordmark lands over a table still rolling (sim ${clk.simLand.toFixed(2)} s of the ${clk.n.toFixed(2)} s roll at ${clk.land} ms), the 8-ball break's pots seen dropping by then (${clk.pots.map(p => p.at).join(', ')} ms), all within ${clk.end} ms`,
-    clk.simLand < clk.n - 1 && clk.pots.length >= 2 && clk.pots.every(p => p.at <= clk.land + 100) && clk.end >= 4300 && clk.end <= 4800, JSON.stringify(clk.pots));
+    clk.simLand < clk.n - 1 && clk.pots.length >= 2 && clk.pots.every(p => p.at <= clk.land + 100) && clk.end >= 4400 && clk.end <= 5000, JSON.stringify(clk.pots));
   /* each held moment's balls are the real sim's at that sim time: strike and stepTable stepped to the samples
      either side of it on the same table, interpolated as the frame does, byte for byte */
   const det = await q.evaluate(() => {

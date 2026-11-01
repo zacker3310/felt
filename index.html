@@ -14637,7 +14637,7 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
   /* the near rail (the opening's, 6o: cut to its painted box, at fgAt) */
   if (A.fgAt) { if (A.fg.width > 1) x.drawImage(A.fg, fx - fx * z + A.fgAt[0] * z, fy - fy * z + (A.fgAt[1] - (A.pan || 0)) * z, A.fg.width * z, A.fg.height * z); }
   else x.drawImage(A.fg, fx - fx * z, fy - fy * z, Wd * z, Hd * z);
-  if (!still && !h.cueOff) heroCue(x, C, g, d, t, Z, z);   /* cueOff: the opening's high camera (6o) */
+  if (!still && !h.cueOff) heroCue(x, C, g, d, t, Z, z, h);   /* cueOff: the opening's high camera (6o) */
   x.setTransform(1, 0, 0, 1, 0, 0);
   x.drawImage(A.vg, 0, 0);
 }
@@ -14655,10 +14655,11 @@ function heroPost(x, C, g, px, py, Z, z) {
   x.strokeStyle = '#0b0b0c'; x.lineWidth = Math.max(1, rt * 0.18); x.beginPath(); x.ellipse(t[0], t[1], rt * 0.91, rt * sq * 0.91, 0, 0, Math.PI * 2); x.stroke();
 }
 /* the cue: draws back, strikes at HERO_CUE_MS, follows through, then lifts away and fades */
-function heroCue(x, C, g, d, t, Z, z) {
+function heroCue(x, C, g, d, t, Z, z, h = null) {
   const T0 = HERO_CUE_MS, b = d.balls.find(o => o.n === d.shot.ball), a = d.shot.angle, dx = Math.cos(a), dy = Math.sin(a);
   let gap, alpha = 1;
-  if (t < 0.66 * T0) gap = 0.03 + 0.2 * heroEaseIO(t / (0.66 * T0));
+  if (h && h.cueGap) { const c = h.cueGap(t); if (!c) return; [gap, alpha] = c; }   /* the opening's own stroke (6o) */
+  else if (t < 0.66 * T0) gap = 0.03 + 0.2 * heroEaseIO(t / (0.66 * T0));
   else if (t < 0.74 * T0) gap = 0.23;
   else if (t < T0) { const u = (t - 0.74 * T0) / (0.26 * T0); gap = 0.23 * (1 - u * u); }
   else { const u = (t - T0) / 420; if (u >= 1) return; gap = -0.05 * Math.min(1, u * 3) - 0.1 * Math.max(0, u - 0.33); alpha = 1 - ease(0.25, 1, u); }
@@ -19783,26 +19784,29 @@ Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo
 const introKind = () => POCKET_KINDS.includes(settings.last) ? settings.last : '8';
 const introArgs = kind => kind === '8' && !POCKET_KINDS.includes(settings.last) ? ['9', settings.bumperTable, 'regulation'] : heroArgs(kind);
 const INTRO_FLASH_MS = 200;
-const IT = { hold: 120, dim: 340, lamp: 180, lampMs: 600, pan: 330, panMs: 520, hero: 380, land: 3850, sheen: 3950, sheenMs: 380, out: 4250, glide: 440, outMs: 550, skipMs: 200 };
+const IT = { hold: 120, dim: 340, lamp: 180, lampMs: 600, pan: 330, panMs: 520, hero: 380, land: 3480, sheen: 3580, sheenMs: 380, out: 3980, glide: 440, outMs: 550, skipMs: 200 };
 /* the shot's clock (heroDraw's t: the cue's stroke over HERO_CUE_MS, then the roll) at the opening's t */
 const introHT = t => Math.max(0, t - IT.hero);
-/* the opening's own clock for the roll (never the hero's, which squeezes the whole roll into 2.3 s): how fast
-   the sim's seconds pass per screen second, by sim time. The cue ball's approach a touch under real time, then
-   broadcast slow motion from just before the first contact through the rack opening (eased in and out, no
-   snap), then real time; nothing ever faster than INTRO_RATE.after. The roll is never run to rest on screen:
-   the wordmark lands over the table still rolling. */
-const INTRO_RATE = { approach: 0.8, slow: 0.4, after: 1.08, inA: 0.12, inB: 0.05, outA: 0.25, outB: 0.42 };
-function introRate(s, tc) {
-  const R = INTRO_RATE, a = ease(tc - R.inA, tc - R.inB, s), b = ease(tc + R.outA, tc + R.outB, s);
-  return R.approach + (R.slow - R.approach) * a + (R.after - R.slow) * b;
+/* the opening's own clock for the roll (never the hero's, which squeezes the whole roll into 2.3 s): real time,
+   one rate from the strike to the end, a sim second a screen second; no slow motion, no ramps. The roll is never
+   run to rest on screen: the wordmark lands over the table still rolling. */
+function introClock(run) {
+  const end = (run.pos.length - 1) * HERO_SUB * SIM_DT;
+  return { sim: ms => clamp(ms / 1000, 0, end), ms: s => s * 1000 };
 }
-/* the screen's ms after the strike at each sim step of the roll (integrated once, ds a sample apart), and back */
-function introClock(run, tc) {
-  const ds = HERO_SUB * SIM_DT, n = run.pos.length, tau = new Float64Array(n);
-  for (let k = 1; k < n; k++) { const s = (k - 0.5) * ds; tau[k] = tau[k - 1] + 1000 * ds / introRate(s, tc); }
-  return { ds, tau,
-    sim: ms => { if (ms <= 0) return 0; let lo = 0, hi = n - 1; if (ms >= tau[hi]) return hi * ds; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tau[m] <= ms) lo = m; else hi = m; } return (lo + (ms - tau[lo]) / (tau[hi] - tau[lo])) * ds; },
-    ms: s => { const f = clamp(s / ds, 0, n - 1), k = Math.min(n - 2, Math.floor(f)); return tau[k] + (tau[k + 1] - tau[k]) * (f - k); } };
+/* the opening's stroke (heroDraw's h.cueGap; the hero keeps its own): the tip's gap behind the cue ball (m) and the
+   cue's opacity at the shot's t, the strike at HERO_CUE_MS. A settle at address, a smooth backswing, a short hold,
+   then the forward stroke accelerating into the ball (about 8 m/s at contact, as a break is struck), and a
+   follow-through that runs on past the ball and slows, then the cue is lifted out of the light */
+function introCueGap(t) {
+  const T = HERO_CUE_MS, back = 0.24;
+  if (t < 60) return [0.025, 1];
+  if (t < 410) return [0.025 + (back - 0.025) * (0.5 - 0.5 * Math.cos(Math.PI * (t - 60) / 350)), 1];
+  if (t < T - 62) return [back, 1];
+  if (t < T) { const u = (t - (T - 62)) / 62; return [back * (1 - u * u), 1]; }
+  const u = (t - T) / 170;
+  if (u >= 2.6) return null;
+  return [-0.17 * (1 - (1 - Math.min(1, u)) ** 2), 1 - ease(1, 2.6, u)];
 }
 const INTRO_END = IT.out + IT.outMs, INTRO_PREP_MAX = 3000, INTRO_LAMP_H = 1.0, INTRO_LIVE = ['prep', 'play', 'out'];
 const intro = { state: 'off', mode: null, why: null, t0: 0, raf: 0, frames: 0, ms: [], data: null, run: null, art: null, arts: null, cut: 0, hits: 0,
@@ -20079,7 +20083,7 @@ function* introBuild() {
   introArt.width = W; introArt.height = H;
   useCloth();
   const kind = intro.kind = introKind(), d = intro.data = heroPrep(kind, introArgs(kind));
-  intro.flat = true;
+  intro.flat = true; intro.cueGap = introCueGap;
   yield;
   const cams = introCams(d, W, H);
   /* the low camera's still runs on above the frame to take in the lamp over the rack: the opening starts
@@ -20132,7 +20136,7 @@ function* introBuild() {
   }
   /* the cut: the cue ball meets the rack */
   const j = run.tab.hits.findIndex(h => h[0] === 'ball'), k = j < 0 ? 0 : run.hitN.findIndex(n => n > j);
-  const tc = intro.hitS = j < 0 ? 0.25 : k * HERO_SUB * SIM_DT, clk = intro.clock = introClock(run, tc);
+  const tc = intro.hitS = j < 0 ? 0.25 : k * HERO_SUB * SIM_DT, clk = intro.clock = introClock(run);
   intro.simAt = t => clk.sim(t - HERO_CUE_MS);
   intro.potAt = pt => HERO_CUE_MS + clk.ms(pt.t);
   intro.hitT = HERO_CUE_MS + clk.ms(tc);
@@ -20370,7 +20374,7 @@ function introInfo() {
     end: INTRO_END, timeline: Object.assign({}, IT), size: intro.size, canvas: [introArt.width, introArt.height], home: intro.home && Object.assign({}, intro.home), mid: intro.mid && Object.assign({}, intro.mid),
     kind: intro.kind, key: d && d.key, args: d && d.args.slice(), shot: d && d.shot, start: d && d.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), drawn: intro.drawn ? intro.drawn.length : 0,
     final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null,
-    hitS: intro.hitS, strikeAt: IT.hero + HERO_CUE_MS, contactAt: IT.hero + intro.hitT, rate: Object.assign({}, INTRO_RATE),
+    hitS: intro.hitS, strikeAt: IT.hero + HERO_CUE_MS, contactAt: IT.hero + intro.hitT, rate: 1,
     pots: r && r.final ? Object.values(r.pots).map(pt => ({ s: pt.t, at: Math.round(IT.hero + intro.potAt(pt)) })).sort((a, b) => a.s - b.s) : null, hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening, memMB: intro.memMB || 0 };
 }
 Object.defineProperty(felt, 'intro', { get: introInfo });

@@ -340,10 +340,12 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   both long sides, the island in one and only rounded glass in the other. `islandSide()`: unequal insets, the larger is
   the island's; equal (iOS, 59-62 pt), `screen.orientation.angle` else `window.orientation` (90 island left, 270/-90
   right); no angle, both count as cutouts (the old layout). Only when the column's side (right, left with
-  `data-hand="left"`) is the free one: #ui's padding there drops to `COL_GUTTER` (8 pt) and the column grows by the
-  rest (48-66 to 102-120 pt), so the stage and the table keep their size; the pad grows with the height (17%, the bar
-  stays the biggest and taller than wide) and `colGlass` narrows the column's end controls from the outer side to
-  clear the display's corner (`GLASS_R` 62 pt), so the column stays flush with the table. The island's side keeps the
+  `data-hand="left"`) is the free one: #ui's padding there drops to a gutter and the column grows by the rest of the
+  inset, so the stage and the table keep their size. The column is one piece (Zac: "the tools buttons need to be the
+  same size"): every control exactly the column's width (the pad's circle fills it), flush with the table top to
+  bottom, and the whole column stands in from the edge by `colGutter`, the smallest gutter (`COL_GUTTER` 8 pt or
+  more) that keeps its end controls' outer corners (their own rounding counted) inside the display's corner
+  (`GLASS_R` 62 pt): 33 pt at 956x440, so 66 to 95 pt; 48 to 81 at 844x390. Never narrow or inset one control. The island's side keeps the
   old rule (rails only). boot-check's free-inset checks pin it (956x440, 844x390, 932x430, both ways round, both hands); `sizeSig`
   carries the insets, the island's side and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
   holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar

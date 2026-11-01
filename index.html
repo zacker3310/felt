@@ -162,7 +162,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
    nothing there is touched), the controls stand in one column on the right, clear of every inset */
 /* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px).
    --cfl/--cfr: the free side's inset (no cutout there, only the display's rounded glass: colFree(), layout()) less a
-   COL_GUTTER, taken from #ui's padding on the column's side and given to the column, so the stage keeps its size */
+   gutter (colGutter: the glass), taken from #ui's padding on the column's side and given to the column, so the stage keeps its size */
 [data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px));
   padding: max(2px, var(--sat)) max(2px, calc(var(--sar) - var(--cfr, 0px))) 2px max(2px, calc(var(--sal) - var(--cfl, 0px))); }
 /* the column runs flush with the table's footprint, top to bottom (--ctl-t/--ctl-b, layout()): the bottom rail already
@@ -172,9 +172,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #spinPad { width: var(--col); height: var(--col); }
 [data-layout="wide"] #powerBar { flex: 1; width: var(--col); min-height: 120px; }
 [data-layout="wide"] #fineWheel { width: var(--col); height: 120px; }
-/* a column in the free inset is wider than the pad needs: the pad grows with the screen's height instead (17%), so the
-   bar keeps its pull and stays the biggest; the column's end controls are narrowed to clear the glass by layout() */
-[data-layout="wide"][data-cfree] #spinPad { width: min(var(--col), max(56px, calc(var(--app-h, 100vh) * .17))); height: min(var(--col), max(56px, calc(var(--app-h, 100vh) * .17))); }
 /* a bigger screen: a roomier frame and a wider column */
 @media (min-width: 700px) and (min-height: 600px) {
   [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, calc(var(--sar) - var(--cfr, 0px))) max(8px, var(--sab)) max(8px, calc(var(--sal) - var(--cfl, 0px))); }
@@ -8622,27 +8619,24 @@ function colFree() {
   const s = islandSide(), side = document.documentElement.dataset.hand === 'left' ? 'l' : 'r';
   if (!s.island || s.island === 'both' || s.island === side) return null;
   const px = Math.floor(s[side] - COL_GUTTER);
-  return px >= 8 ? { side, px, island: s.island } : null;
+  return px >= 8 ? { side, px, island: s.island, l: s.l, r: s.r, gutter: COL_GUTTER } : null;
 }
-/* the column's end controls clear the rounded glass (a GLASS_R corner, boot-check's model): the top and bottom ones are
-   narrowed from the outer side, standing on the column's inner edge, so the column stays flush with the table */
-function colGlass(cf, w, h) {
-  const kids = [...ctl.children];
-  for (const el of kids) { el.style.maxWidth = ''; el.style.alignSelf = ''; }
-  if (!cf) return;
-  const vis = kids.filter(e => !e.hidden && e.getClientRects().length).map(e => ({ e, r: e.getBoundingClientRect() })).sort((a, b) => a.r.top - b.r.top);
-  if (!vis.length) return;
-  const R = GLASS_R, cut = (o, top) => {
-    const { e, r } = o, cs = getComputedStyle(e);
+/* the column clears the rounded glass (a GLASS_R corner, boot-check's model) as one piece: every control keeps the
+   column's one width and the whole column stands in from the free edge by the smallest gutter (COL_GUTTER or more)
+   that keeps the outer corners of its top and bottom controls (their own rounding counted) inside the corner, so it
+   stays flush with the table top to bottom. Returns the gutter; layout() gives the column the rest of the inset. */
+function colGutter(cf, h) {
+  const vis = [...ctl.children].filter(e => !e.hidden && e.getClientRects().length).map(e => ({ e, r: e.getBoundingClientRect() })).sort((a, b) => a.r.top - b.r.top);
+  let g = COL_GUTTER;
+  if (!vis.length) return g;
+  const R = GLASS_R, need = (o, top) => {
+    const cs = getComputedStyle(o.e);
     const br = parseFloat(cf.side === 'r' ? (top ? cs.borderTopRightRadius : cs.borderBottomRightRadius) : (top ? cs.borderTopLeftRadius : cs.borderBottomLeftRadius)) || 0;
-    const k = br * (1 - Math.SQRT1_2), y = (top ? r.top : h - r.bottom) + k;
-    if (y >= R) return;
-    const dx = Math.sqrt(Math.max(0, R * R - (R - y) * (R - y)));
-    const room = cf.side === 'r' ? (w - R + dx + k) - r.left : r.right - (R - dx - k);
-    const mw = Math.max(44, Math.floor(room - 1));
-    if (mw < r.width) { e.style.maxWidth = mw + 'px'; e.style.alignSelf = cf.side === 'r' ? 'flex-start' : 'flex-end'; }
+    const k = br * (1 - Math.SQRT1_2), y = (top ? o.r.top : h - o.r.bottom) + k;
+    return y >= R ? 0 : R - k - Math.sqrt(Math.max(0, R * R - (R - y) * (R - y)));
   };
-  cut(vis[0], true); cut(vis[vis.length - 1], false);
+  g = Math.max(g, need(vis[0], true), need(vis[vis.length - 1], false));
+  return Math.ceil(g - 1e-9);
 }
 /* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
    (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
@@ -8703,7 +8697,11 @@ function layout() {
     root.style.setProperty('--ctl-t', Math.max(0, Math.round(ft - c.top)) + 'px');
     root.style.setProperty('--ctl-b', Math.max(0, Math.round(c.bottom - fb)) + 'px');
   }
-  colGlass(cf, w, h);
+  /* the free inset's column: one width for every control, stood in from the edge as far as the glass needs */
+  if (cf) {
+    const g = colGutter(cf, h);
+    if (g > COL_GUTTER) { cf.px = Math.max(0, Math.floor(cf[cf.side === 'r' ? 'r' : 'l'] - g)); cf.gutter = g; root.style.setProperty(cf.side === 'l' ? '--cfl' : '--cfr', cf.px + 'px'); }
+  }
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
   view.tray = null;

@@ -11671,7 +11671,7 @@ function simSteps(dtMs) {
 function frame(now) {
   /* whatever one frame throws, the next is still asked for: an uncaught error here once stopped
      the loop for good, and the game froze mid-roll with no way out but a reload */
-  try { frameBody(now); } catch (e) { console.error(e); }
+  try { frameBody(now); } catch (e) { console.error(e && e.stack ? e.stack : e); }
   requestAnimationFrame(frame);
 }
 function frameBody(now) {

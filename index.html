@@ -19743,7 +19743,9 @@ function introApply(p, ik, cv, cam) {
   if (L.t !== tr) { el.style.transform = tr; L.t = tr; }
   if (L.o !== o) { el.style.opacity = o; L.o = o; }
   if (L.sx !== sx) { el.style.setProperty('--sx', sx); L.sx = sx; }
-  if (L.ik !== k) { menu.style.setProperty('--ik', k); menu.style.setProperty('--iy', ((1 - ik) * 12).toFixed(2) + 'px'); L.ik = k; }
+  /* the cards' rise snaps to whole device pixels and lands exactly (a text a fraction of a pixel off rasterises
+     differently, so the hand-over would shift the heads by a hair) */
+  if (L.ik !== k) { const dp = pixelRatio(), kk = ik >= 0.995 ? 1 : ik; menu.style.setProperty('--ik', kk === 1 ? '1' : k); menu.style.setProperty('--iy', Math.round((1 - kk) * 12 * dp) / dp + 'px'); L.ik = k; }
   if (L.cv !== c) { introArt.style.opacity = c; L.cv = c; }
   if (L.ct !== ct) { introArt.style.transform = ct; L.ct = ct; }
   if (L.co !== co) { introArt.style.transformOrigin = co; L.co = co; }

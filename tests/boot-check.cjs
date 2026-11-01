@@ -393,6 +393,68 @@ const artContrast = page => page.evaluate(() => {
   console.log('side pockets, ball px: ' + sides.map(e => `${e.key} ${e.pk[0]}${e.size} ${e.ball}`).join(', '));
   check('side pockets: every side hole and its ring inside the rail, SIDE_WOOD from its outer edge, at every listed viewport, both pocket styles, 7 and 9 ft', sides.every(e => e.wood.every(v => v >= e.min - 0.01)), JSON.stringify(sides.filter(e => !e.wood.every(v => v >= e.min - 0.01))));
   check('side pockets: the table fits by its rail alone (no ball size lost to the pockets; a rail run under an inset only gains)', sides.every(e => e.loss < 0.01), JSON.stringify(sides.filter(e => e.loss >= 0.01)));
+  /* the free inset on its side (Zac, 2026-11-01: "Landscape needs tweaked to take up more of that extra space on the
+     right too"): an iPhone on its side has insets on both long sides, the Dynamic Island in one and only the display's
+     rounded glass in the other. Equal insets [0, 62, 21, 62]; the island's side from the orientation angle (emulated:
+     90 the island on the left, 270 on the right). With the column on the free side (right with the island left, left
+     with the hand setting on left and the island right) the column takes that inset: its controls wider by 40 pt or
+     more (the bar; none narrower), each inside the screen 6 pt or more from the free edge, clear of a modelled 62 pt
+     display corner (each control's own corner rounding counted), wholly outside the island's inset, the table rect
+     no smaller than with no angle known (the old layout), the bar the biggest control and taller than wide (the call
+     menu opens beside it), nothing over the table. With the island on the column's side the column is as before. */
+  const free = [];
+  for (const [w, h] of [[956, 440], [844, 390], [932, 430]]) {
+    await page.setViewportSize({ width: w, height: h });
+    for (const hand of ['right', 'left']) for (const ang of [90, 270]) {
+      free.push(await page.evaluate(([hand, ang]) => {
+        let st = document.getElementById('insets');
+        if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
+        st.textContent = 'html:root { --sat: 0px; --sar: 62px; --sab: 21px; --sal: 62px; }';
+        setSetting('hand', hand);
+        const ctls = () => [menuBtn, spinPad, powerBar, fineWheel];
+        const snap = () => {
+          const t = felt.tableRect(), rs = ctls().map(e => e.getBoundingClientRect());
+          return { t: { left: t.left, top: t.top, w: t.right - t.left, h: t.bottom - t.top, right: t.right, bottom: t.bottom }, rs, ball: felt.ballPx };
+        };
+        delete screen.orientation.angle;
+        Object.defineProperty(screen.orientation, 'angle', { configurable: true, get: () => 0 });
+        relayout();
+        const before = snap();
+        Object.defineProperty(screen.orientation, 'angle', { configurable: true, get: () => ang });
+        screen.orientation.dispatchEvent(new Event('change'));
+        const now = snap(), W = innerWidth, H = innerHeight, island = ang === 90 ? 'l' : 'r', colSide = hand === 'left' ? 'l' : 'r';
+        const R = 62, inGlass = (x, y) => { const cx = Math.min(Math.max(x, R), W - R), cy = Math.min(Math.max(y, R), H - R); return Math.hypot(x - cx, y - cy) <= R + 0.01; };
+        const glass = ctls().every(el => {
+          const r = el.getBoundingClientRect(), cs = getComputedStyle(el), k = c => (parseFloat(cs[c]) || 0) * (1 - Math.SQRT1_2);
+          return inGlass(r.left + k('borderTopLeftRadius'), r.top + k('borderTopLeftRadius')) && inGlass(r.right - k('borderTopRightRadius'), r.top + k('borderTopRightRadius'))
+            && inGlass(r.left + k('borderBottomLeftRadius'), r.bottom - k('borderBottomLeftRadius')) && inGlass(r.right - k('borderBottomRightRadius'), r.bottom - k('borderBottomRightRadius'));
+        });
+        const L = Math.min(...now.rs.map(r => r.left)), Rt = Math.max(...now.rs.map(r => r.right));
+        const gutter = colSide === 'r' ? W - Rt : L;
+        const offIsland = island === 'l' ? L >= 62 - 0.5 : Rt <= W - 62 + 0.5;
+        const hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+        const over = now.rs.some(r => hit(r, now.t));
+        const area = r => r.width * r.height, bar = now.rs[2];
+        const barBig = now.rs.every(r => r === bar || area(r) < area(bar)) && bar.height > bar.width;
+        const tableKept = now.t.w >= before.t.w - 0.5 && now.t.h >= before.t.h - 0.5 && now.ball >= before.ball - 0.01;
+        const onScreen = now.rs.every(r => r.left >= -0.5 && r.top >= -0.5 && r.right <= W + 0.5 && r.bottom <= H + 0.5 && Math.min(r.width, r.height) >= 44);
+        const wider = +(bar.width - before.rs[2].width).toFixed(1), noneNarrower = now.rs.every((r, i) => r.width >= before.rs[i].width - 0.5);
+        const same = now.rs.every((r, i) => ['left', 'top', 'width', 'height'].every(k => Math.abs(r[k] - before.rs[i][k]) < 0.5)) && Math.abs(now.t.left - before.t.left) < 0.5;
+        return { size: W + 'x' + H, hand, ang, uses: colSide !== island, cf: felt.colFree, wider, noneNarrower, gutter: +gutter.toFixed(1), glass, offIsland, over, barBig, tableKept, onScreen, same,
+          col: [Math.round(before.rs[2].width), Math.round(bar.width)], bar: [Math.round(bar.width), Math.round(bar.height)], pad: Math.round(now.rs[1].width), menu: Math.round(now.rs[0].width), wheel: Math.round(now.rs[3].width) };
+      }, [hand, ang]));
+    }
+  }
+  await page.evaluate(() => { delete screen.orientation.angle; Object.defineProperty(screen.orientation, 'angle', { configurable: true, get: () => 0 }); setSetting('hand', 'right'); });
+  console.log('free inset (column before -> now): ' + free.map(f => `${f.size} ${f.hand} ${f.ang} ${f.col.join('->')} bar ${f.bar.join('x')} pad ${f.pad} menu ${f.menu} wheel ${f.wheel}`).join(', '));
+  const use = free.filter(f => f.uses), keep = free.filter(f => !f.uses);
+  check('free inset: on its side with the island opposite the column (either way round, either hand), the column takes the free inset: the bar 40 pt or more wider, no control narrower, the column used the inset (colFree)',
+    use.length === 6 && use.every(f => f.cf && f.wider >= 40 && f.noneNarrower), JSON.stringify(use));
+  check('free inset: every control on screen, 44 pt, 6 pt or more from the free edge, clear of a 62 pt display corner, wholly outside the island\'s inset, nothing over the table',
+    use.every(f => f.onScreen && f.gutter >= 6 && f.glass && f.offIsland && !f.over), JSON.stringify(use));
+  check('free inset: the table no smaller (and the ball no smaller) than with no angle known, the power bar the biggest control and taller than wide',
+    free.every(f => f.tableKept && f.barBig), JSON.stringify(free));
+  check('free inset: the island on the column\'s side keeps the old column (nothing in the island\'s inset)', keep.length === 6 && keep.every(f => !f.cf && f.same && f.offIsland), JSON.stringify(keep));
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; felt.start('8'); });
   await page.evaluate(() => { document.getElementById('insets').remove(); relayout(); });

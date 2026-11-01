@@ -160,9 +160,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
 /* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
    nothing there is touched), the controls stand in one column on the right, clear of every inset */
-/* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px) */
-[data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px));
-  padding: max(2px, var(--sat)) max(2px, var(--sar)) 2px max(2px, var(--sal)); }
+/* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px).
+   --cfl/--cfr: the free side's inset (no cutout there, only the display's rounded glass: colFree(), layout()) less a
+   COL_GUTTER, taken from #ui's padding on the column's side and given to the column, so the stage keeps its size */
+[data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px));
+  padding: max(2px, var(--sat)) max(2px, calc(var(--sar) - var(--cfr, 0px))) 2px max(2px, calc(var(--sal) - var(--cfl, 0px))); }
 /* the column runs flush with the table's footprint, top to bottom (--ctl-t/--ctl-b, layout()): the bottom rail already
    sits in the home-indicator inset, so the column's foot does too */
 [data-layout="wide"] #ctl { flex-direction: column; padding: var(--ctl-t, 0px) 0 var(--ctl-b, 0px); }
@@ -170,9 +172,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #spinPad { width: var(--col); height: var(--col); }
 [data-layout="wide"] #powerBar { flex: 1; width: var(--col); min-height: 120px; }
 [data-layout="wide"] #fineWheel { width: var(--col); height: 120px; }
+/* a column in the free inset is wider than the pad needs: the pad grows with the screen's height instead (17%), so the
+   bar keeps its pull and stays the biggest; the column's end controls are narrowed to clear the glass by layout() */
+[data-layout="wide"][data-cfree] #spinPad { width: min(var(--col), max(56px, calc(var(--app-h, 100vh) * .17))); height: min(var(--col), max(56px, calc(var(--app-h, 100vh) * .17))); }
 /* a bigger screen: a roomier frame and a wider column */
 @media (min-width: 700px) and (min-height: 600px) {
-  [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
+  [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, calc(var(--sar) - var(--cfr, 0px))) max(8px, var(--sab)) max(8px, calc(var(--sal) - var(--cfl, 0px))); }
   [data-layout="wide"] #ctl { gap: 10px; }
   [data-layout="wide"] #menuBtn { height: 48px; }
   [data-layout="wide"] #powerBar { max-height: 440px; }
@@ -8560,7 +8565,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-11-01c';
+const BUILD = 'build 2026-11-01d';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -8596,6 +8601,49 @@ function tableExt(r) {
   const e = s => (at[s] && inset[s] > 2 ? Math.max(0, Math.min(inset[s], pad[s]) - 2) : 0);
   return { l: e('l'), t: e('t'), r: e('r'), b: 0 };
 }
+/* on its side, which side's inset is the cutout (the Dynamic Island, the notch) and which is free, with only the
+   display's rounded glass in it. Insets that differ: the larger is the cutout. Equal (iOS gives 59-62 pt on both sides
+   in landscape): the orientation angle says, screen.orientation.angle else window.orientation, 90 being the phone
+   turned anticlockwise (its top, the island, on the left) and 270 (or -90) clockwise (the island on the right); no
+   angle: both are treated as cutouts, as before. colFree() is the inset the controls column may take: only on the
+   column's own side (right, or left with data-hand="left"), only when that side is the free one, less COL_GUTTER. */
+const COL_GUTTER = 8, GLASS_R = 62;
+function islandSide() {
+  if (!sizeProbe) appSize();
+  const ps = getComputedStyle(sizeProbe), l = parseFloat(ps.paddingLeft) || 0, r = parseFloat(ps.paddingRight) || 0;
+  if (Math.max(l, r) <= 2) return { l, r, island: null };
+  if (Math.abs(l - r) > 2) return { l, r, island: l > r ? 'l' : 'r' };
+  const so = window.screen && screen.orientation;
+  const a = so && typeof so.angle === 'number' ? so.angle : typeof window.orientation === 'number' ? window.orientation : null;
+  const n = a === null ? null : ((Math.round(a) % 360) + 360) % 360;
+  return { l, r, island: n === 90 ? 'l' : n === 270 ? 'r' : 'both' };
+}
+function colFree() {
+  const s = islandSide(), side = document.documentElement.dataset.hand === 'left' ? 'l' : 'r';
+  if (!s.island || s.island === 'both' || s.island === side) return null;
+  const px = Math.floor(s[side] - COL_GUTTER);
+  return px >= 8 ? { side, px, island: s.island } : null;
+}
+/* the column's end controls clear the rounded glass (a GLASS_R corner, boot-check's model): the top and bottom ones are
+   narrowed from the outer side, standing on the column's inner edge, so the column stays flush with the table */
+function colGlass(cf, w, h) {
+  const kids = [...ctl.children];
+  for (const el of kids) { el.style.maxWidth = ''; el.style.alignSelf = ''; }
+  if (!cf) return;
+  const vis = kids.filter(e => !e.hidden && e.getClientRects().length).map(e => ({ e, r: e.getBoundingClientRect() })).sort((a, b) => a.r.top - b.r.top);
+  if (!vis.length) return;
+  const R = GLASS_R, cut = (o, top) => {
+    const { e, r } = o, cs = getComputedStyle(e);
+    const br = parseFloat(cf.side === 'r' ? (top ? cs.borderTopRightRadius : cs.borderBottomRightRadius) : (top ? cs.borderTopLeftRadius : cs.borderBottomLeftRadius)) || 0;
+    const k = br * (1 - Math.SQRT1_2), y = (top ? r.top : h - r.bottom) + k;
+    if (y >= R) return;
+    const dx = Math.sqrt(Math.max(0, R * R - (R - y) * (R - y)));
+    const room = cf.side === 'r' ? (w - R + dx + k) - r.left : r.right - (R - dx - k);
+    const mw = Math.max(44, Math.floor(room - 1));
+    if (mw < r.width) { e.style.maxWidth = mw + 'px'; e.style.alignSelf = cf.side === 'r' ? 'flex-start' : 'flex-end'; }
+  };
+  cut(vis[0], true); cut(vis[vis.length - 1], false);
+}
 /* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
    (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
    crisp). sizeSig() changes whenever any of that does; boot re-lays out when it has. */
@@ -8604,7 +8652,7 @@ const pixelRatio = () => Math.min(4, (window.devicePixelRatio || 1) * Math.max(1
    after the first layout with no resize event, which left the table drawn under the controls (build 2026-10-31d) */
 const sizeSig = () => {
   const ps = sizeProbe && getComputedStyle(sizeProbe), r = stage.getBoundingClientRect();
-  return appSize().join('x') + '@' + pixelRatio() + (ps ? `|${ps.borderTopWidth},${ps.paddingRight},${ps.paddingBottom},${ps.paddingLeft}` : '') + `|${Math.round(r.width)}x${Math.round(r.height)}`;
+  return appSize().join('x') + '@' + pixelRatio() + (ps ? `|${ps.borderTopWidth},${ps.paddingRight},${ps.paddingBottom},${ps.paddingLeft}|${islandSide().island}` : '') + `|${Math.round(r.width)}x${Math.round(r.height)}`;
 };
 let layoutSig = '';
 function layout() {
@@ -8627,6 +8675,12 @@ function layout() {
     if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
+  /* on its side the column may take the free side's inset (colFree): the stage keeps its size, so the table does too */
+  const cf = best.m === 'wide' ? colFree() : null;
+  root.style.setProperty('--cfl', cf && cf.side === 'l' ? cf.px + 'px' : '0px');
+  root.style.setProperty('--cfr', cf && cf.side === 'r' ? cf.px + 'px' : '0px');
+  if (cf) root.dataset.cfree = cf.side; else delete root.dataset.cfree;
+  felt.colFree = cf;
   let r = stage.getBoundingClientRect(), ext = tableExt(r), f = fitTable(r, ext);
   /* on its side, a table bound by the height leaves room across: the column takes it (wider controls), not a black band */
   root.style.setProperty('--colx', '0px');
@@ -8649,6 +8703,7 @@ function layout() {
     root.style.setProperty('--ctl-t', Math.max(0, Math.round(ft - c.top)) + 'px');
     root.style.setProperty('--ctl-b', Math.max(0, Math.round(c.bottom - fb)) + 'px');
   }
+  colGlass(cf, w, h);
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
   view.tray = null;
@@ -20342,6 +20397,8 @@ muted = !settings.sound;
 const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); fitSetupRows(); };
 addEventListener('resize', relayout);
 addEventListener('orientationchange', relayout);
+/* turned end over end (landscape to landscape) nothing changes size: the island's side (colFree) does */
+if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => { if (sizeSig() !== layoutSig) relayout(); });
 addEventListener('pageshow', relayout);
 if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (sizeSig() !== layoutSig) relayout(); });
 /* iOS reports its sizes late at launch and sometimes changes them without a resize event:

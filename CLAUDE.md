@@ -335,8 +335,17 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
   In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected. The table: `fitTable`
   lets the rails (never the bed) run under a safe-area inset on the status-bar or island side (`tableExt`, `railFit`,
-  `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px); `sizeSig`
-  carries the insets and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
+  `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px), and the
+  column takes the free side's inset (`colFree`, `--cfl`/`--cfr`, `data-cfree`): an iPhone on its side has an inset on
+  both long sides, the island in one and only rounded glass in the other. `islandSide()`: unequal insets, the larger is
+  the island's; equal (iOS, 59-62 pt), `screen.orientation.angle` else `window.orientation` (90 island left, 270/-90
+  right); no angle, both count as cutouts (the old layout). Only when the column's side (right, left with
+  `data-hand="left"`) is the free one: #ui's padding there drops to `COL_GUTTER` (8 pt) and the column grows by the
+  rest (48-66 to 102-120 pt), so the stage and the table keep their size; the pad grows with the height (17%, the bar
+  stays the biggest and taller than wide) and `colGlass` narrows the column's end controls from the outer side to
+  clear the display's corner (`GLASS_R` 62 pt), so the column stays flush with the table. The island's side keeps the
+  old rule (rails only). boot-check's free-inset checks pin it (956x440, 844x390, 932x430, both ways round, both hands); `sizeSig`
+  carries the insets, the island's side and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
   holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar
   stays the biggest control). The exhibition bar, free-ball pick and tools rise over it (`--rail-lift`; the call is the power bar's label and menu, 5c);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its

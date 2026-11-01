@@ -614,7 +614,8 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 html.intro #introArt { display: block; position: fixed; left: 0; top: 0; width: 100%; height: var(--app-h, 100%); z-index: 0; pointer-events: none; }
 html.intro #menu { overflow: hidden; }
 html.intro #menu .sheet.home { position: relative; z-index: 1; }
-html.intro #menu .newgame > :not(.brand), html.intro #menu .brand .foot { opacity: var(--ik, 0); translate: 0 var(--iy, 0px); animation: none !important; }
+html.intro:not(.introRisen) #menu .newgame > :not(.brand), html.intro:not(.introRisen) #menu .brand .foot { opacity: var(--ik, 0); translate: 0 var(--iy, 0px); }
+html.intro #menu .newgame > :not(.brand), html.intro #menu .brand .foot { animation: none !important; }   /* risen: the home's own styles, no translate or opacity left set, so the hand-over is its pixels */
 html.intro .overlay.show:not(#menu) { visibility: hidden; }
 html:is(.introFade, .introDone) #menu .newgame > :not(.brand) { animation: none !important; }
 html.introFade #menu .newgame > :not(.brand), html.introFade #menu .brand .foot { transition: opacity .24s ease-out; }
@@ -19774,12 +19775,12 @@ const introCards = t => easeIO3(clamp((t - IT.out - IT.glide + 180) / (IT.outMs 
 const introScene = t => t < IT.lamp ? 1 : introLampK(t) * (1 - 0.4 * ease(IT.land - 150, IT.land + 450, t)) * (1 - ease(0, 1, (t - IT.out) / IT.glide));
 function introApply(p, ik, cv, cam) {
   const el = menuTitle, L = intro.last, ct = `translate(${cam[3].toFixed(2)}px, ${cam[4].toFixed(2)}px) scale(${cam[0].toFixed(4)})`, co = `${cam[1].toFixed(1)}% ${cam[2].toFixed(1)}%`, tr = `translate(${p[0].toFixed(2)}px, ${p[1].toFixed(2)}px) scale(${p[2].toFixed(4)})`, o = p[3].toFixed(3), sx = p[4].toFixed(1) + '%', k = ik.toFixed(3), c = cv.toFixed(3);
-  if (L.t !== tr) { el.style.transform = tr; L.t = tr; }
+  if (L.t !== tr) { if (tr === 'translate(0.00px, 0.00px) scale(1.0000)') el.style.removeProperty('transform'); else el.style.transform = tr; L.t = tr; }   /* home: no transform left, its own pixels */
   if (L.o !== o) { el.style.opacity = o; L.o = o; }
   if (L.sx !== sx) { el.style.setProperty('--sx', sx); L.sx = sx; }
   /* the cards' rise snaps to whole device pixels and lands exactly (a text a fraction of a pixel off rasterises
      differently, so the hand-over would shift the heads by a hair) */
-  if (L.ik !== k) { const dp = pixelRatio(), kk = ik >= 0.995 ? 1 : ik; menu.style.setProperty('--ik', kk === 1 ? '1' : k); menu.style.setProperty('--iy', Math.round((1 - kk) * 12 * dp) / dp + 'px'); L.ik = k; }
+  if (L.ik !== k) { const dp = pixelRatio(), kk = ik >= 0.995 ? 1 : ik; menu.style.setProperty('--ik', kk === 1 ? '1' : k); menu.style.setProperty('--iy', Math.round((1 - kk) * 12 * dp) / dp + 'px'); document.documentElement.classList.toggle('introRisen', kk === 1); L.ik = k; }
   if (L.cv !== c) { introArt.style.opacity = c; L.cv = c; }
   if (L.ct !== ct) { introArt.style.transform = ct; L.ct = ct; }
   if (L.co !== co) { introArt.style.transformOrigin = co; L.co = co; }
@@ -20065,7 +20066,7 @@ function introFinish() {
   for (const k of ['transform', 'opacity', 'transform-origin', '--sx']) el.style.removeProperty(k);
   for (const k of ['--ik', '--iy']) menu.style.removeProperty(k);
   for (const k of ['opacity', 'transform', 'transform-origin']) introArt.style.removeProperty(k);
-  document.documentElement.classList.remove('intro');
+  document.documentElement.classList.remove('intro', 'introRisen');
   if (intro.arts) for (const A of intro.arts) for (const c of [A.bg, A.fg, A.vg, A.light.fix]) if (c) c.width = c.height = 0;
   intro.arts = null; intro.art = null; intro.halo = null; intro.flash = null;
   introArt.width = introArt.height = 0;

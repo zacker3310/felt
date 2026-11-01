@@ -245,10 +245,17 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
       });
       await k.evaluate(e => felt.introSeek(e - 1), r.end);
       await k.waitForTimeout(80); await settle();
-      const clip = { x: 0, y: 0, width: 430, height: 420 }, a = await k.screenshot({ clip });
+      /* font-proof: what decides how the home's text is drawn (translate, transform, opacity, will-change) is already the
+         home's own at the last frame, so no runner's rasteriser can show a jump the next frame (CI's Inter did) */
+      const styles = () => k.evaluate(() => [...document.querySelectorAll('#menu .newgame > *, #menu .brand .foot, #menuTitle')].map(e => {
+        const c = getComputedStyle(e); return [e.id || e.className, c.translate, c.transform, c.opacity, c.willChange].join('|');
+      }));
+      const clip = { x: 0, y: 0, width: 430, height: 420 }, a = await k.screenshot({ clip }), sa = await styles();
       await k.evaluate(() => felt.introEnd());
       await k.waitForTimeout(200); await settle();
-      const b = await k.screenshot({ clip }), df = await diffPng(k, a, b);
+      const b = await k.screenshot({ clip }), sb = await styles(), df = await diffPng(k, a, b);
+      const sdiff = sa.map((v, i) => v === sb[i] ? null : [v, sb[i]]).filter(Boolean);
+      check(`the hand-over has no jump in style: the home's header and sections already carry their own translate, transform and opacity at the last frame (${sa.length} elements)`, sa.length > 3 && sdiff.length === 0, JSON.stringify(sdiff.slice(0, 4)));
       check(`the hand-over has no jump: the opening's last frame and the home after it match (mean ${df.mean.toFixed(3)}, max ${df.max} per channel)`, df.mean < 0.5 && df.max <= 24, JSON.stringify(df));
     }
     check(`${cloth}: no console errors`, K.errors.length === 0, K.errors.join(' | '));

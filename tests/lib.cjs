@@ -32,6 +32,8 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.tutorials.v1')) localStorage.setItem('felt.tutorials.v1', '{"v":1,"done":{},"skipped":{"8":true,"9":true,"bumper":true,"carom":true,"snooker":true},"never":false}'); } catch (e) { } });
   /* and the elevation tip on the first jump or masse trick shot (5s): as if seen */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.elevTip.v1')) localStorage.setItem('felt.elevTip.v1', '{"v":1,"seen":true}'); } catch (e) { } });
+  /* and the mouse tip on the first hover of the cloth (5 input): as if seen */
+  if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.mouseTip.v1')) localStorage.setItem('felt.mouseTip.v1', '{"v":1,"seen":true}'); } catch (e) { } });
   /* the page's motion (6m: the card-to-sheet morph, numbers rolling up) stays out of every suite
      but the ones that ask for it, so they measure finished screens and final numbers */
   if (!motion) await page.addInitScript(() => { window.feltNoMotion = true; });

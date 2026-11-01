@@ -508,7 +508,13 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   await page.mouse.up();
   I = await idle();
   check('leaving the power bar sideways cancels its pull, and stays cancelled', onBar.pulling && onBar.power > 0.2 && !offBar.pulling && !backOn.pulling && I.s === 'aim' && I.shots === S.shots, JSON.stringify({ onBar, offBar, I }));
-  /* fine aim survives a 1 px jitter; a real move takes the aim back */
+  /* fine aim survives a 1 px jitter; a real move takes the aim back. The mouse's clicks and
+     sweeps above hold the aim (5 input, aim-check's desk()): a right click lets it go first, so
+     this is the fine adjustment's own lock on a free aim */
+  const heldBefore = await page.evaluate(() => felt.aimHeld);
+  await page.mouse.click(P[0], P[1], { button: 'right' });
+  const heldAfter = await page.evaluate(() => felt.aimHeld);
+  check('the mouse\'s click and sweeps hold the aim; a right click on the table lets it go', heldBefore === true && heldAfter === false, JSON.stringify({ heldBefore, heldAfter }));
   await page.mouse.move(P[0], P[1]);
   await page.waitForTimeout(200);
   const pre = (await idle()).aim, fstep = await page.evaluate(() => felt.fineStep);

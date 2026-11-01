@@ -194,6 +194,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed
   is exact; a gesture without them runs at the harness's pace, which reads as a slow finger.
+  A mouse holds its aim: hover aims, a click on the cloth (or a mouse sweep let go) sets `aimLock = 'held'`
+  (top-down only, `holdAim`), which no later mouse move breaks, so the hand can travel to the power bar; the wheel,
+  arrows and english adjust it and it stays held (`lockAim`/`pendLock` never downgrade it); another click re-aims
+  and holds; Esc (before pausing) or a right click on the table lets go (`letGoAim`); a turn, a ball-in-hand move,
+  a replay or the CPU starts unheld. Held, the aim line is solid and a padlock stands by the ghost (`drawHeld`),
+  the cursor a pointer. With a call open, a held click on a ball calls without re-aiming. The first mouse hover
+  shows a one-time banner (`showMouseTip`, `felt.mouseTip.v1`; `tests/lib.cjs` marks it seen unless
+  `firstRun: true`). Touch and pen never hold. `aim-check`'s `desk()` pins it with real mouse input at
+  1280x800 and 956x440.
 - Looks (section 4l): `LOOKS` (`CLOTHS`, `CUES`, `CHALKS`, `RAILS`, `BALLSETS`, `RINGS`); `look()` is the career's
   equipped items in a career match (`lookCareer`, 6d) else the settings' (`cloth`, `cue`, `chalk`, `rail`, `balls`,
   each only if unlocked: `felt.looks.v1`, the base plus anything any career owned). A shop id names its look

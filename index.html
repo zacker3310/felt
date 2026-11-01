@@ -10443,7 +10443,8 @@ function guideLines(c, ang) {
   }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  if (h.t > 2 * R) strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(0.5), 1.25);
+  /* a held mouse aim (5 input) draws its line solid, the soft one is free to follow the pointer */
+  if (h.t > 2 * R) { const held = aimHeld(); strokeLine([[c.x + dx * R, c.y + dy * R], [gx - dx * R, gy - dy * R]], wa(held ? 0.9 : 0.5), held ? 1.75 : 1.25); }
   /* the 3D view (4o) shows the ghost ball as a ball, faint, where the cue ball will meet; top-down, its ring */
   if (V3.flat && V3.live) V3.ghost = { x: gx, y: gy, legal };
   else guideRing(gx, gy, rp, legal ? 'rgba(255,255,255,0.9)' : ILLEGAL, 1.5, 'rgba(255,255,255,0.08)');
@@ -10476,6 +10477,32 @@ function guideLines(c, ang) {
   if (P.air && P.air.length > 1 && !(V3.flat && V3.live)) drawJumpArc(P.air, full);
   return { c, gx, gy, dx, dy, h, P, legal, first, cue, obj: legal ? P.obj : null, air: P.air && P.air.length > 1 ? P.air : null };
 }
+/* a held mouse aim (5 input): a small padlock up and to the side of the ghost ball (or, with the
+   guide off, a little way along the line from the cue ball), white over a near-black edge so it
+   keeps 3:1 on any cloth; beside the line, on its upper side on screen, never over the ghost itself */
+function drawHeld(c, gi) {
+  const R = BALL_R, a = aimAngle;
+  const at = gi ? [gi.gx, gi.gy] : [c.x + Math.cos(a) * 3 * R, c.y + Math.sin(a) * 3 * R], s = toScreen(at[0], at[1]);
+  const rp = R * view.k, off = rp + 9;
+  /* screen-space side of the line: the glyph sits up from the ghost on whichever side is up */
+  const e = toScreen(at[0] + Math.cos(a) * R, at[1] + Math.sin(a) * R), lx = e[0] - s[0], ly = e[1] - s[1], L = Math.hypot(lx, ly) || 1;
+  let nx = -ly / L, ny = lx / L;
+  if (ny > 0) { nx = -nx; ny = -ny; }
+  const x = s[0] + nx * off, y = s[1] + ny * off;
+  heldAt = [x, y];
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const path = () => {
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y - 1); ctx.lineTo(x - 4, y - 3.2); ctx.arc(x, y - 3.2, 4, Math.PI, 0); ctx.lineTo(x + 4, y - 1);
+  };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  path(); ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 4.5; ctx.stroke();
+  roundRect(ctx, x - 6, y - 1.5, 12, 9, 2); ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.fill(); ctx.stroke();
+  path(); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.75; ctx.stroke();
+  roundRect(ctx, x - 5.5, y - 1, 11, 8, 1.75); ctx.fillStyle = '#ffffff'; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y + 2.6, 1.3, 0, Math.PI * 2); ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fill();
+}
+let heldAt = null;
 /* the jump's arc (the preview's air: the cue ball's flight and bounces, sim 1a), drawn top-down
    with its height lifted up the screen (an oblique view: 1 cm high is 1 cm up), and a small dot
    where it lands each time. The short guide shows the first landing only. */
@@ -10661,6 +10688,7 @@ function draw(now) {
   list.forEach((b, i) => { if (b.n === gb) drawHalo(pos[i][0] * dpr, pos[i][1] * dpr, rb); });
   if (!rp) { drawHint(now); drawSolo(); drawCall(now); hudCall(); }
   list.forEach((b, i) => drawBall(b.n, pos[i][0] * dpr, pos[i][1] * dpr, (b.n === 0 && sh ? rb * (1 + LIFT_GROW * sh) : rb) * airScale(b.z), axesOf(orient[b.n] || IDENT)));
+  if (aiming && aimHeld()) drawHeld(c, gi);
   drawTray(now);
   /* after a scratch the ball in hand waits for the cue ball to finish dropping: never two */
   if (state === 'aim' && game.inHand && human() && !dropping && !rp) drawPlace(now);
@@ -10937,7 +10965,7 @@ const felt = window.felt = {
   get state() { return state; }, get game() { return game; }, get cpu() { return cpuMode; }, get power() { return power; }, get aim() { return aimAngle; },
   get cueSpin() { return cueSpin; }, get view() { return view; }, get settings() { return settings; }, get stats() { return stats; },
   get cpuLevel() { return cpuLevel; }, get cpuProfile() { return cpuProf; }, cpuSkip: () => { if (state === 'thinking' && !human()) cpuSkip = true; return cpuSkip; }, lastThink: null, get pullFull() { return pullFull(); }, get paused() { return !!paused; }, get simT() { return tab ? tab.t : null; },
-  get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, overLine,
+  get armPx() { return armPx(); }, get pulling() { return !!pull; }, get aimLocked() { return !!aimLock; }, get aimHeld() { return aimHeld(); }, get heldAt() { return heldAt; }, get mouseTip() { return { seen: mouseTipSeen, shows: mouseTipShows }; }, overLine,
   get hero() { return heroInfo(); }, heroMeasure: false, heroReplay: () => heroReplay(),
   get fineAim() { return fineAim; }, get table() { return TABLE; }, get pockets() { return POCKETS_STYLE; }, get pocketR() { return POCKET_R.slice(); }, fineStep: FINE_STEP, wheelRate: WHEEL_RATE,
   /* the aim feel (section 5 input): the sweep gain radius and tap reach in CSS px, and the tuning */
@@ -11143,7 +11171,7 @@ function endMove(instant) {
   const at = placeAt;
   if (at && !canPlace(game, at[0], at[1]) && !instant && !reducedMotion()) placeBack = { from: at.slice(), to: m.last, t0: performance.now() };
   else placeAt = null;
-  if (m.moved) { keepAim(); autoAim(); }
+  if (m.moved) { if (aimLock === 'held') aimLock = null; keepAim(); autoAim(); }
   say(aimHint());
   hud();
 }
@@ -12039,9 +12067,21 @@ Object.defineProperties(felt, {
    - a press on the power bar or the wheel while a finger rests on the table (a thumb, a palm)
      takes over: the table gesture ends where it is and the control works.
    - mouse hover aims, but only over the bed and never while the aim is locked: a fine
-     adjustment (arrows, a sweep, the wheel, auto aim) locks it until the pointer travels LOCK_PX or clicks.
+     adjustment (arrows, the wheel, auto aim) locks it until the pointer travels LOCK_PX.
      When the pointer leaves the bed the aim goes back to where the pointer last rested, so a
      dash to the power bar does not drag the line along. Pressing never re-aims.
+   - a mouse click on the cloth (or a mouse sweep let go) holds the aim (aimLock 'held', top-down
+     only): the line stays wherever the mouse goes after it, over the bed, off the table, onto
+     the bar, the wheel or the pad, so the player clicks the line in and then pulls the bar. The
+     wheel, the arrows and the english still adjust a held aim (it stays held); another click
+     on the cloth aims there and holds that; Esc (before it pauses) or a right click on the
+     table lets go, back to hover. The guide's aim line is drawn solid and a small padlock
+     stands by the ghost ball while it is held (drawHeld), and the cursor is a pointer over the
+     bed. A turn, a cue ball in hand moved, a replay or the CPU starts unheld (every aimLock
+     reset). With a call open, a click on a ball calls it and, while held, leaves the aim as it
+     is (unheld it aims and holds, as a tap does); a click on a pocket only calls. The first
+     time a mouse aims at all, a banner says so once (showMouseTip, MOUSE_TIP_KEY). Touch and
+     pen never hold: their taps and sweeps are as above.
    - ball in hand (a human turn with game.inHand set): the cue ball starts on a legal spot and
      stays movable all turn, until the bar shoots. A drag that starts on or near it (grabR())
      moves it, relative to where it was, so the finger never hides it; a ghost and a ring show
@@ -12132,7 +12172,31 @@ function objectAt(sx, sy) {
    and `rest`, the aim where it last rested. aimLock: null, 'pending' (lock wherever the
    pointer next shows up) or the [x, y] it is locked at. */
 let hov = null, aimLock = null;
-function lockAim() { aimLock = hov ? [hov.x, hov.y] : 'pending'; keepAim(); }
+function lockAim() { if (aimLock !== 'held') aimLock = hov ? [hov.x, hov.y] : 'pending'; keepAim(); }
+/* a fine adjustment made off the table: lock where the mouse next shows up (a held aim stays held) */
+function pendLock() { if (aimLock !== 'held') aimLock = 'pending'; keepAim(); }
+/* the mouse's click-to-hold (see the input comment): top-down only, where hover aims */
+function holdAim() { aimLock = V3.live ? null : 'held'; keepAim(); }
+function letGoAim() {
+  if (aimLock !== 'held') return false;
+  aimLock = null; keepAim();
+  if (hov && hov.bed) table.style.cursor = '';
+  return true;
+}
+const aimHeld = () => aimLock === 'held' && state === 'aim' && human() && !rp && !V3.live;
+/* the mouse tip: once ever, the first time a mouse hovers the bed on the player's aim. Seen persists
+   under MOUSE_TIP_KEY ({ v: 1, seen }) the moment it shows; tests/lib.cjs marks it seen unless a
+   suite opens with firstRun: true. */
+const MOUSE_TIP_KEY = 'felt.mouseTip.v1', MOUSE_TIP = 'Click the cloth to lock your aim, then pull the power bar.';
+let mouseTipSeen = (() => { try { const o = JSON.parse(localStorage.getItem(MOUSE_TIP_KEY) || 'null'); return !!o && o.v === 1 && o.seen === true; } catch (e) { return false; } })(), mouseTipShows = 0;
+function showMouseTip() {
+  if (mouseTipSeen || state !== 'aim' || !human() || rp || coachOn()) return false;
+  mouseTipSeen = true; mouseTipShows++;
+  try { localStorage.setItem(MOUSE_TIP_KEY, JSON.stringify({ v: 1, seen: true })); } catch (e) { }
+  flash('turn', 'Aiming With a Mouse', MOUSE_TIP, 4200);
+  say(MOUSE_TIP);
+  return true;
+}
 /* this aim is deliberate: a dash off the bed comes back to it */
 function keepAim() { if (hov) hov.rest = aimAngle; }
 function leaveBed() {
@@ -12149,10 +12213,11 @@ function hover(e) {
     hov.x = x; hov.y = y; hov.t = now;
   }
   if (aimLock === 'pending') aimLock = [x, y];
-  else if (aimLock && Math.hypot(x - aimLock[0], y - aimLock[1]) > LOCK_PX) aimLock = null;
-  table.style.cursor = canMove() && nearCue(e) ? 'grab' : '';
+  else if (Array.isArray(aimLock) && Math.hypot(x - aimLock[0], y - aimLock[1]) > LOCK_PX) aimLock = null;
+  table.style.cursor = canMove() && nearCue(e) ? 'grab' : bed && aimHeld() ? 'pointer' : '';
   if (!bed) { leaveBed(); return; }
   hov.bed = true;
+  if (state === 'aim' && !mouseTipSeen) showMouseTip();
   if (state !== 'aim' || aimLock) return;
   const c = cueBall(), s = toScreen(c.x, c.y);
   if (Math.hypot(x - s[0], y - s[1]) > 2 * BALL_R * view.k) { aimAnim = null; aimAngle = angleTo(p); }
@@ -12289,7 +12354,7 @@ function endTable(e, cancel) {
   if (tap && callOn()) {
     const k = pocketAt(g.x0, g.y0), o = objectAt(g.x0, g.y0), os = o && toScreen(o.x, o.y), ps = k >= 0 && toScreen(POCKETS[k][0], POCKETS[k][1]);
     if (k >= 0 && !(os && Math.hypot(os[0] - g.x0, os[1] - g.y0) < Math.hypot(ps[0] - g.x0, ps[1] - g.y0))) { pickPocket(k); return; }
-    if (o) pickCallBall(o.n);
+    if (o) { pickCallBall(o.n); if (g.mouse && aimLock === 'held') return; }
   }
   if (tap) {
     /* on the cue ball itself there is no direction to take (it once swung the aim anywhere):
@@ -12299,7 +12364,8 @@ function endTable(e, cancel) {
     if (dc <= 2 * BALL_R * view.k && !(os && Math.hypot(os[0] - g.x0, os[1] - g.y0) < dc)) return;
     aimAngle = angleTo(o ? [o.x, o.y] : toTable(g.x0, g.y0));
     handAimed = true;
-    aimLock = null; keepAim();
+    /* a mouse click holds the line it set (top-down); a finger's tap leaves it free */
+    if (g.mouse) { holdAim(); if (aimLock === 'held') table.style.cursor = 'pointer'; } else { aimLock = null; keepAim(); }
   } else if (g.mode === 'sweep') {
     /* a sweep still waiting out the tap window catches up first (as of the last move) */
     if (g.at[0] !== g.last[0] || g.at[1] !== g.last[1]) turnTo(g, g.last, g.tLast);
@@ -12307,7 +12373,7 @@ function endTable(e, cancel) {
     const r = g.mouse ? null : liftAim(g.trail, e.timeStamp);
     if (r !== null) aimAngle = r;
     if (hov) { hov.x = e.clientX; hov.y = e.clientY; }
-    lockAim();
+    if (g.mouse) holdAim(); else lockAim();
   }
 }
 /* a press on the bar or the wheel while another finger rests on the table (a thumb, a palm):
@@ -12327,6 +12393,8 @@ table.addEventListener('pointercancel', e => endTable(e, true));
 /* a capture lost without a pointerup (alt-tab mid-drag) cancels, so no stale gesture survives */
 table.addEventListener('lostpointercapture', e => endTable(e, true));
 table.addEventListener('pointerleave', e => { if (!gest && e.pointerType === 'mouse') leaveBed(); });
+/* a right click on the table lets a held aim go (the pad's right click is the elevation sheet's) */
+table.addEventListener('contextmenu', e => { e.preventDefault(); letGoAim(); });
 
 /* the power bar: press, drag along it (right, or down when it stands upright), let go. It arms
    like a table pull, a fifth of the way at most; leaving the bar sideways or back past its
@@ -12402,7 +12470,7 @@ function endWheel(e) {
   wheelDrag = null; fineAim = false;
   fineWheel.classList.remove('live');
   /* lock wherever the mouse next shows up on the table, not where it left it */
-  if (state === 'aim') { aimLock = 'pending'; keepAim(); }
+  if (state === 'aim') pendLock();
 }
 fineWheel.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' && !gest) leaveBed(); });
 fineWheel.addEventListener('pointerdown', e => {
@@ -12441,7 +12509,7 @@ fineWheel.addEventListener('wheel', e => {
   finishAutoAim();
   const px = clamp((e.deltaMode ? 33 : 1) * e.deltaY / 4, -40, 40);   /* a mouse notch (100 px) is half a degree */
   aimAngle += px * WHEEL_RATE; rollWheel(px); handAimed = true;
-  aimLock = 'pending'; keepAim();
+  pendLock();
 }, { passive: false });
 
 /* the english pad: tap or drag the tip anywhere inside the safe circle. A tap on the tip itself
@@ -12574,8 +12642,8 @@ for (const el of [spinPad, powerBar, fineWheel]) el.addEventListener('mousedown'
    pulling to the mark and letting go would (keyDrive). Any key during that drive stops it. */
 addEventListener('keydown', e => {
   if (keyPull) { if (!['Shift', 'Alt', 'Control', 'Meta'].includes(e.key)) { cancelKeyPull(); e.preventDefault(); } return; }
-  /* Esc closes the sheet on top first; then it resumes a paused game, or pauses one */
-  if (e.key === 'Escape') { if (!escSheet()) { if (state === 'menu' && paused) resume(); else pause(); } e.preventDefault(); return; }
+  /* Esc closes the sheet on top first; then it lets a held mouse aim go (5 input); then it resumes a paused game, or pauses one */
+  if (e.key === 'Escape') { if (!escSheet() && !(state === 'aim' && human() && letGoAim())) { if (state === 'menu' && paused) resume(); else pause(); } e.preventDefault(); return; }
   if (state === 'menu' || state === 'over' || !human()) return;
   const k = e.key, arrow = k.startsWith('Arrow'), dx = k === 'ArrowRight' ? 1 : k === 'ArrowLeft' ? -1 : 0, dy = k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0;
   if (k === 'r' || k === 'R') { if (spinOk()) { cueSpin = spinOf({ x: 0, y: 0, e: cueSpin.e }); hudControls(); } }

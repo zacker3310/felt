@@ -989,8 +989,11 @@ button.topic:active { background: var(--sys-press); transition-duration: 0s; }
 #prefsSheet .diag { margin: 12px 16px max(24px, var(--sab)); font: var(--t-caption1); color: var(--sys-label-2); }
 #prefsSheet .pan { padding-bottom: max(28px, var(--sab)); }
 /* Accessibility: a larger text size grows the sheets and the words over the table (not the table) */
-[data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #callBar, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
-[data-text="130"] .overlay .sheet, [data-text="130"] #banner, [data-text="130"] #callBar, [data-text="130"] #coach, [data-text="130"] #callout { zoom: 1.3; }
+[data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
+[data-text="130"] .overlay .sheet, [data-text="130"] #banner, [data-text="130"] #coach, [data-text="130"] #callout { zoom: 1.3; }
+/* the call row keeps its 44 pt height (the table is laid out to it): larger text sets its words larger instead */
+[data-text="115"] #callBar { --cz: 1.15; }
+[data-text="130"] #callBar { --cz: 1.3; }
 /* the full-screen sheets (How to play, Settings) keep the screen's height under that zoom */
 [data-text="115"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
 [data-text="130"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
@@ -1444,7 +1447,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
 .bsnk { background-color: #c41c24; background-image: radial-gradient(circle at 35% 30%, #e8504a, #8a1218 72%); }
 /* ---- the rules engine's page (5c, 6e): the new games' balls, More games, the setup's rules,
-   Settings > Gameplay, the call bar over the table and the option box ---- */
+   Settings > Gameplay, the call row (off the table) and the option box ---- */
 .b10, .b14, .b15 { background-color: #f6f4ec; }
 .b10 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #1c48b8 22% 78%, #f6f4ec 78%); }
 .b14 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #167842 22% 78%, #f6f4ec 78%); }
@@ -1453,23 +1456,35 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .chip-x { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
 .seg button:disabled { opacity: .45; cursor: default; }
 .note.lock { color: #ffd58a; }
-/* the call bar: the call in words (tap to change), the shot-type flags, Safety and Push out; it sits
-   at the stage's foot, next to the power bar (upright: over it; wide: by the column), lifted clear of the bottom
-   rail's row (--rail-lift, set by placeRail in 6b; the exhibition's bar, the free-ball pick and the tools too) */
-#callBar { position: absolute; z-index: 2; left: 50%; bottom: calc(var(--rail-lift, 0px) + 6px); transform: translateX(-50%); width: max-content; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: calc(100% - 12px); pointer-events: none; }
+/* the call row (5c): the call in words (tap to change), the shot-type flags, Safety and Push Out, in a row of its own
+   that the layout reserves for a game that can ever ask for a call or a push-out (callRowWanted, data-callrow on the
+   root, decided by the game's rules, not the turn): upright between the table and the controls strip, on its side a
+   band over the table, never over the bed, a pocket or a rail. The table is fitted to the room left, so it never moves
+   between turns; a turn that needs nothing leaves the row empty. A game that never calls has no row at all. */
+[data-layout="portrait"][data-callrow] #ui { grid-template: "stage" minmax(0, 1fr) "call" var(--call-h) "ctl" 56px / minmax(0, 1fr); }
+[data-layout="wide"][data-callrow] #ui { grid-template: "call ctl" var(--call-h) "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); }
+[data-hand="left"][data-layout="wide"][data-callrow] #ui { grid-template: "ctl call" var(--call-h) "ctl stage" minmax(0, 1fr) / var(--col) minmax(0, 1fr); }
+@media (min-width: 700px) and (min-height: 600px) { [data-layout="portrait"][data-callrow] #ui { grid-template-rows: minmax(0, 1fr) var(--call-h) 60px; } }
+#ui { --call-h: 44px; }
+html:not([data-callrow]) #callBar { display: none; }
+/* one line, never wrapped: the pill gives way first (its hint, then its words, ellipsised); a crowded row (the custom
+   rules' Bank, Kick and Combo beside Push Out on a narrow phone) scrolls sideways within itself */
+#callBar { grid-area: call; position: relative; z-index: 2; min-width: 0; min-height: 0; display: flex; flex-wrap: nowrap; align-items: center; justify-content: safe center; gap: 6px;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; pointer-events: auto; }
+#callBar::-webkit-scrollbar { display: none; }
+/* upright, the row stands in from the sides as the strip does: its ends clear the rounded glass */
+[data-layout="portrait"] #callBar { padding: 0 max(0px, calc(var(--sab, 0px) * 0.35)); }
 #callBar[hidden] { display: none; }
 #callBar > * { pointer-events: auto; }
-[data-layout="wide"] #callBar { left: 27%; max-width: 40%; }
-#callPill { min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding: 4px 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94);
-  text-align: left; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); max-width: 100%; }
-#callPill b, #callText { font-size: 14px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#callSub { font-size: 12px; line-height: 1.2; color: var(--muted); white-space: nowrap; }
+#callPill { height: 44px; min-width: 96px; flex: 0 1 auto; display: flex; flex-direction: row; align-items: baseline; gap: 6px; padding: 0 16px; border-radius: 22px;
+  border: 1px solid var(--line); background: rgba(22, 22, 24, .94); text-align: left; line-height: 42px; overflow: hidden; }
+#callText { min-width: 0; flex: 0 1 auto; font-size: calc(14px * var(--cz, 1)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#callSub { min-width: 0; flex: 0 1000 auto; font-size: calc(12px * var(--cz, 1)); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #callSub:empty { display: none; }
 #callPill.need { border-color: #ffd58a; }
 #callPill.need #callText { color: #ffd58a; }
 #callPill.set { border-color: #8fd8b0; }
-.cflag { min-height: 44px; min-width: 52px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94); font-size: 14px; font-weight: 600;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+.cflag { flex: none; height: 44px; min-width: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94); font-size: calc(14px * var(--cz, 1)); font-weight: 600; white-space: nowrap; }
 .cflag[hidden] { display: none; }
 .cflag[aria-pressed="true"] { background: var(--cream); border-color: var(--cream); color: #141414; }
 /* a choice the rules give: over the table's middle, two or three answers */
@@ -1570,12 +1585,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <div id="snkBar" aria-hidden="true" hidden></div>
     <!-- the score keeper (6b2): a chip per player on the bottom rail, the player to shoot lit -->
     <div id="turnChip" aria-hidden="true"><div class="pchip" id="pchip0"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip1"><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip2" hidden><span class="pn"></span><span class="pb"></span></div><div class="pchip" id="pchip3" hidden><span class="pn"></span><span class="pb"></span></div></div>
-    <!-- the called shot (section 5c): what is called, the shot-type flags (custom detail), Safety and Push out -->
-    <div id="callBar" role="group" aria-label="Your call" hidden>
-      <button id="callPill"><span id="callText">Call your shot</span><small id="callSub">Tap a ball, then a pocket</small></button>
-      <button class="cflag" id="flagBank" aria-pressed="false" hidden>Bank</button><button class="cflag" id="flagKick" aria-pressed="false" hidden>Kick</button><button class="cflag" id="flagCombo" aria-pressed="false" hidden>Combo</button>
-      <button class="cflag" id="safetyBtn" aria-pressed="false">Safety</button><button class="cflag" id="pushBtn" aria-pressed="false" hidden>Push Out</button>
-    </div>
     <!-- a choice the rules give a player: take the table or hand it back, re-rack, spot the 8 -->
     <!-- an AI exhibition (6f): pause and the speed, over the table's foot -->
     <div id="exBar" role="group" aria-label="Exhibition" hidden><span class="exLab" id="exLab">Exhibition</span><button id="exPause" aria-label="Pause the exhibition">Pause</button><button id="exS1" aria-pressed="true">1x</button><button id="exS2" aria-pressed="false">2x</button><button id="exS4" aria-pressed="false">4x</button></div>
@@ -1591,6 +1600,13 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <button class="rpl" id="replayBtn" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b id="replayLab">Replay</b></span></button>
     <div class="rpl" id="replayBadge" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b>Replay</b><i id="replaySlow" hidden>Slow motion</i></span></div>
     <button class="rpl" id="replaySkip" hidden aria-label="Skip the replay"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5.5v13l9-6.5zM14 5.5v13l9-6.5z"/></svg><b>Skip</b></span></button>
+  </div>
+  <!-- the called shot (section 5c): what is called, the shot-type flags (custom detail), Safety and Push out, in the row
+       the layout reserves for a game that can call (never over the table) -->
+  <div id="callBar" role="group" aria-label="Your call" hidden>
+    <button id="callPill"><span id="callText">Call your shot</span><small id="callSub">Tap a ball, then a pocket</small></button>
+    <button class="cflag" id="flagBank" aria-pressed="false" hidden>Bank</button><button class="cflag" id="flagKick" aria-pressed="false" hidden>Kick</button><button class="cflag" id="flagCombo" aria-pressed="false" hidden>Combo</button>
+    <button class="cflag" id="safetyBtn" aria-pressed="false">Safety</button><button class="cflag" id="pushBtn" aria-pressed="false" hidden>Push Out</button>
   </div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
@@ -11012,7 +11028,7 @@ function start(kind, o = null) {
   game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
   if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
   resetCall(); cpuCall = null; optBox.hidden = true; freePick = false;
-  if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
+  if (!callRowSync() && [TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
   pull = null; stroke = null; paused = null; stats = newStats(playersOf(game)); aimAnim = null;
@@ -11299,6 +11315,20 @@ const STALEMATE_INNINGS = 6;
 const callable = () => state === 'aim' && human() && !rp && !game.mode && !tutOn() && game.winner === null && !game.option;
 const callOn = () => callable() && callOpen(game);
 const pushOffer = () => callable() && game.pushAvail && rulesOf(game).pushOut;
+/* the call row (CSS: data-callrow on the root): reserved for the whole game when its rules can ever ask a person for a
+   call or offer a push-out (a pocket game, not a solo session, a tutorial or an exhibition), so the table is laid out
+   to the room left once and never moves between a turn that needs a call and one that does not. A game that never
+   calls lays out exactly as before. callOn/pushOffer are folded in only as a backstop: they imply the rest. */
+const callRowWanted = () => (POCKET_KINDS.includes(game.kind) && !game.mode && !(solo && solo.kind === 'tutorial') && !exhib && (callScope(game) !== 'none' || !!rulesOf(game).pushOut))
+  || callOn() || pushOffer();
+/* sets the reservation to what the game wants and lays out again when it changed (true then) */
+function callRowSync() {
+  const want = callRowWanted(), root = document.documentElement;
+  if (('callrow' in root.dataset) === want) return false;
+  if (want) root.dataset.callrow = ''; else delete root.dataset.callrow;
+  layout();
+  return true;
+}
 /* the obvious shot down the aim line: the legal ball it meets, and the pocket whose mouth that
    ball's line runs into with a clear path, or null */
 function obviousCall() {
@@ -11381,6 +11411,7 @@ const callName = c => c.push ? 'Push out' : c.safety ? 'Safety' : c.ball == null
 /* the call bar's words and chips, each frame while aiming (cheap: a key skips unchanged frames) */
 function hudCall() {
   const open = callOn(), push = pushOffer(), shown = open || push;
+  if (shown) callRowSync();
   if (callBar.hidden !== !shown) callBar.hidden = !shown;
   if (!shown) { callKey = ''; return; }
   const need = callNeed(game), c = humanCall(), flags = !!(need && need.flags) && !callSafe && !(callPushOn && push);
@@ -16701,6 +16732,7 @@ function hudMenu() {
   if (menuMsg.textContent !== msg.textContent) menuMsg.textContent = msg.textContent;
 }
 function hud() {
+  callRowSync();   /* the call row: a new game, a solo session or a change to the call settings (5c) */
   hudChip();
   hudMenu();
   for (const i of [0, 1]) {
@@ -16771,8 +16803,8 @@ function hudSnooker() {
    sits on the rail's middle, --py), inside the stage and above the home indicator. In 3D (4o) the rail
    moves with the camera: the row is pinned to the stage's foot (V3_PIN_B) and the gaps are the stage's
    width less the pockets and sights as the camera projects them into it (laid out again only when that
-   changes). The call bar, the exhibition's bar, the free-ball pick and the tools rise clear of the row
-   (--rail-lift). felt.railBar reports the layout. Called every frame (frameBody); it measures and
+   changes). The exhibition's bar, the free-ball pick and the tools rise clear of the row (--rail-lift); the call
+   bar is in a row of its own off the table (5c, data-callrow). felt.railBar reports the layout. Called every frame (frameBody); it measures and
    writes only when what it lays out has changed, or when forced (a new layout, new words, the replay). ---- */
 let railKey = '', railStage = null, railTop = Infinity, railSafe = Infinity;
 /* the inlay's material, as the sights are made on every rail: mother-of-pearl, its edge cut dark all round (the

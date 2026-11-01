@@ -4,7 +4,8 @@
    pocket, a changed call, the Safety chip); the power bar refuses to arm without a needed call and
    shoots with one, the live roll equal to simulateShot byte for byte; an event's locked rules
    beat the settings and say so; a push-out's option box; the CPU calls its shots and answers
-   the options; More games opens the three new games' setups; targets and contrast hold. */
+   the options; More games opens the three new games' setups; targets and contrast hold; the call
+   row (5c) stays off the table at five phone sizes with their insets, and a game that never calls keeps its old table. */
 'use strict';
 const { check, done, open, choose, openPop, settled, smallTargets, lowContrast } = require('./lib.cjs');
 
@@ -196,5 +197,101 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   check('more: Break starts 14.1 to the race chosen; Play again remembers it', sp.kind === 'straight' && sp.race === 25 && sp.n === 16 && sp.last === 'straight', JSON.stringify(sp));
   check('no console errors', m.errors.length === 0, m.errors.join(' | '));
   await m.browser.close();
+
+  /* ---- 7. the call row: never over the table. A game that can call (9-ball WPA with every shot called, 8-ball WPA)
+     reserves a row of its own for the whole game (upright between the table and the strip, on its side a band over
+     the table): every call control off the table's footprint (rails included), inside the safe area and clear of a
+     modelled 62 pt display corner on a phone with a home indicator; the table the same on a turn that needs a call, one
+     that does not and the CPU's; a game that never calls laid out exactly as before the row (9cc059b's rects) ---- */
+  {
+    const SIZES = { '440x956': [62, 0, 34, 0], '393x852': [59, 0, 34, 0], '375x667': [20, 0, 0, 0], '956x440': [0, 62, 21, 62], '844x390': [0, 47, 21, 47] };
+    /* felt.tableRect() before the call row (build 9cc059b), 7 ft, regulation pockets, the default (house) rules */
+    const BASE = { '440x956': [2, 62.81, 438, 861.19], '393x852': [2, 45.65, 391, 758], '375x667': [23.4, 2, 351.6, 603], '956x440': [25.62, 2, 824, 438], '844x390': [15.14, 2, 722, 388] };
+    const BASE_SNK = { '440x956': [2, 39.34, 438, 862], '393x852': [4.05, 34.58, 388.95, 758], '375x667': [26.54, 2, 348.46, 603], '956x440': [36.2, 6.34, 842, 433.66], '844x390': [22.6, 2.81, 745, 387.19] };
+    const t = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
+    const q = t.page, rows = [], plain = [], costs = [];
+    for (const [key, ins] of Object.entries(SIZES)) {
+      const [w, h] = key.split('x').map(Number);
+      await q.setViewportSize({ width: w, height: h });
+      await q.evaluate(i => {
+        let st = document.getElementById('insets');
+        if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
+        st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
+      }, ins);
+      /* the games that never call: 8- and 9-ball house rules (official calls) and snooker, rects as before */
+      plain.push(await q.evaluate(([key, B, S]) => {
+        setSetting('calls.mode', 'official'); setSetting('calls.detail', 'pocket'); setSetting('rules8', '8-house'); setSetting('rules9', '9-house');
+        const out = { key };
+        for (const g of ['8', '9', 'snooker']) {
+          felt.start(g, { level: 'easy', table: '7', pockets: 'regulation' }); relayout();
+          const r = felt.tableRect(), want = g === 'snooker' ? S : B;
+          out[g] = { row: 'callrow' in document.documentElement.dataset, same: [r.left, r.top, r.right, r.bottom].every((v, j) => Math.abs(v - want[j]) < 0.05), r: [r.left, r.top, r.right, r.bottom].map(v => +v.toFixed(2)) };
+        }
+        out.ok = ['8', '9', 'snooker'].every(g => !out[g].row && out[g].same);
+        return out;
+      }, [key, BASE[key], BASE_SNK[key]]));
+      for (const game of ['9 called', '8 calls', '8 rails']) {
+        rows.push(await q.evaluate(async ([key, ins, game, B]) => {
+          if (game === '9 called') { setSetting('calls.mode', 'all'); setSetting('calls.detail', 'pocket'); setSetting('rules9', '9-wpa'); }
+          else { setSetting('calls.mode', 'official'); setSetting('calls.detail', game === '8 rails' ? 'rails' : 'pocket'); setSetting('rules8', '8-wpa'); }
+          const kind = game[0];
+          felt.start(kind, { level: 'easy', table: '7', pockets: 'regulation' }); relayout();
+          const g = felt.game, tr = () => { const r = felt.tableRect(); return [r.left, r.top, r.right, r.bottom].map(v => +v.toFixed(2)); };
+          const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+          /* a turn that needs a call (and, in 9-ball, offers the push-out) */
+          Object.assign(g, { breakShot: false, inHand: null, pushAvail: kind === '9', turn: 0 });
+          hud(); await frame();
+          const need = { t: tr(), bar: !callBar.hidden, open: felt.callState.open };
+          const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
+          const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };
+          const T = felt.tableRect(), bar = callBar.getBoundingClientRect(), R = 62, home = px('--sab') > 0;
+          const inGlass = (x, y) => { const cx = Math.min(Math.max(x, R), innerWidth - R), cy = Math.min(Math.max(y, R), innerHeight - R); return Math.hypot(x - cx, y - cy) <= R; };
+          const ctrls = [callPill, flagBank, flagKick, flagCombo, safetyBtn, pushBtn].filter(e => e.getClientRects().length).map(e => {
+            const a = e.getBoundingClientRect(), br = parseFloat(getComputedStyle(e).borderTopLeftRadius) || 0, k = Math.min(br, a.height / 2) * (1 - Math.SQRT1_2);
+            /* what shows of it: the row clips a crowded line (it scrolls) */
+            const v = { left: Math.max(a.left, bar.left), right: Math.min(a.right, bar.right), top: a.top, bottom: a.bottom };
+            const shown = v.right - v.left > 0.5;
+            const offTable = !shown || v.right <= T.left + 0.5 || v.left >= T.right - 0.5 || v.bottom <= T.top + 0.5 || v.top >= T.bottom - 0.5;
+            const inSafe = !shown || (v.left >= safe.l - 0.5 && v.right <= safe.r + 0.5 && v.top >= safe.t - 0.5 && v.bottom <= safe.b + 0.5);
+            const glass = !shown || !home || [[v.left + k, v.top + k], [v.right - k, v.top + k], [v.left + k, v.bottom - k], [v.right - k, v.bottom - k]].every(([x, y]) => inGlass(x, y));
+            return { id: e.id, r: [a.left, a.top, a.right, a.bottom].map(Math.round), offTable, inSafe, glass, big: a.height >= 44 && a.width >= 44 };
+          });
+          /* a turn that needs none (a break), then the CPU's turn: the row stays, the table does not move */
+          Object.assign(g, { breakShot: true, pushAvail: false }); hud(); await frame();
+          const none = { t: tr(), bar: !callBar.hidden };
+          Object.assign(g, { breakShot: false, turn: 1 }); hud(); await frame();
+          const cpu = { t: tr(), bar: !callBar.hidden };
+          Object.assign(g, { turn: 0 }); hud();
+          const still = JSON.stringify(need.t) === JSON.stringify(none.t) && JSON.stringify(need.t) === JSON.stringify(cpu.t);
+          const ok = need.bar && need.open && ctrls.length >= 2 && ctrls.every(c => c.offTable && c.inSafe && c.glass && c.big)
+            && (game !== '9 called' || ctrls.some(c => c.id === 'pushBtn')) && (game !== '8 rails' || ctrls.some(c => c.id === 'flagBank'));
+          return { key, game, ok, still, row: 'callrow' in document.documentElement.dataset, ball: +felt.ballPx.toFixed(2), table: need.t, bar: [bar.left, bar.top, bar.right, bar.bottom].map(Math.round), none: none.bar, cpu: cpu.bar, ctrls: ctrls.filter(c => !(c.offTable && c.inSafe && c.glass && c.big)) };
+        }, [key, ins, game, BASE[key]]));
+      }
+      costs.push(`${key} ${await q.evaluate(() => { setSetting('rules8', '8-house'); felt.start('8', { level: 'easy', table: '7', pockets: 'regulation' }); relayout(); return +felt.ballPx.toFixed(2); })} -> ${rows[rows.length - 3].ball}`);
+    }
+    console.log('call row, ball px (no calls -> 9-ball called, 7 ft): ' + costs.join(', '));
+    check('call row: in a called-shot 9-ball game and in 8-ball with calls (house and custom detail), at 440x956, 393x852, 375x667, 956x440 and 844x390 with their insets, every call control is off the table\'s footprint (rails included), inside the safe area, clear of a 62 pt display corner on a home-indicator phone, and a 44 pt target',
+      rows.every(r => r.ok && r.row), JSON.stringify(rows.filter(r => !(r.ok && r.row))));
+    check('call row: the table does not move between a turn that needs a call, one that does not (the bar hidden) and the CPU\'s turn',
+      rows.every(r => r.still && !r.none && !r.cpu), JSON.stringify(rows.filter(r => !(r.still && !r.none && !r.cpu)).map(r => ({ key: r.key, game: r.game, still: r.still, none: r.none, cpu: r.cpu }))));
+    check('call row: a game that never calls (8- and 9-ball house rules, snooker) reserves no row and lays out exactly as before it (the same table rect at every size)',
+      plain.every(p => p.ok), JSON.stringify(plain.filter(p => !p.ok)));
+    /* turning calls on mid-game (pause menu > Settings) reserves the row at once, so the bar is never hidden when needed */
+    const mid = await q.evaluate(() => {
+      setSetting('calls.mode', 'official'); setSetting('rules9', '9-house');
+      felt.start('9', { level: 'easy', table: '7', pockets: 'regulation' });
+      Object.assign(felt.game, { breakShot: false, inHand: null, turn: 0 }); hud();
+      const before = 'callrow' in document.documentElement.dataset;
+      setSetting('calls.mode', 'all'); hud(); hudCall();
+      const r = { before, after: 'callrow' in document.documentElement.dataset, bar: !callBar.hidden };
+      setSetting('calls.mode', 'official'); hud();
+      r.back = 'callrow' in document.documentElement.dataset;
+      return r;
+    });
+    check('call row: Called Shots turned on mid-game reserves the row (the bar shows), and off again gives it back', !mid.before && mid.after && mid.bar && !mid.back, JSON.stringify(mid));
+    check('call row: no console errors', t.errors.length === 0, t.errors.join(' | '));
+    await t.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

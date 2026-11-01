@@ -141,9 +141,18 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
   (`game.option`: push-out, uncalled ball, illegal break, 8 on the break) are answered by `chooseOption(g, c)`
   (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the pill, the
-  Safety and Push out chips, `obviousCall`), and the bar does not arm without a needed call. Settings `calls`
+  Safety and Push out chips, `obviousCall`), and the bar does not arm without a needed call. Nothing of the call is
+  ever over the table: `#callBar` is a grid row of `#ui` (`grid-area: call`) that exists only while the root has
+  `data-callrow`, set by `callRowSync()` (from `start()` and `hud()`) to `callRowWanted()`: a pocket game, not a solo
+  session, tutorial or exhibition, whose rules can ever ask for a call or offer a push-out (decided from `game.rules`,
+  not the turn). Upright the row (44 pt, `--call-h`) sits between the table and the strip with the strip's side
+  gutter; on its side it is a band over the table (beside the column), the table fitted to the room left. It holds
+  for the whole game (empty on a turn that needs nothing; the table never moves between turns) and a game that
+  never calls lays out exactly as before. One line: the pill (words, then its hint, ellipsised), the flags, Safety,
+  Push Out; a crowded row scrolls within itself. Settings `calls`
   (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
-  `called-check` pins the page side, `tests/sim.cjs` NAMES has the engine's exports.
+  `called-check` pins the page side (and the row: off the table's footprint, in the safe area, clear of the display
+  corner, the same table every turn, no-call games at their old rects), `tests/sim.cjs` NAMES has the engine's exports.
 - Career engine: `// #region career` right after the sim region, one global `Career` (DOM-free, seeded from the
   career seed, time moves only in `Career.advance`). Pure logic and persistence for the multi-season career: AI
   population from the seed (only changed fields saved), calendar, brackets (single, double, round robin, groups,
@@ -314,7 +323,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px); `sizeSig`
   carries the insets and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
   holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar
-  stays the biggest control). The call bar, exhibition bar, free-ball pick and tools rise over it (`--rail-lift`);
+  stays the biggest control). The exhibition bar, free-ball pick and tools rise over it (`--rail-lift`; the call bar is off the table in its own row, 5c);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
   3D place too, and nothing on a rail may cover a pocket or a diamond (`railbar-check`). No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes

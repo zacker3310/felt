@@ -14499,7 +14499,7 @@ function heroPotT(run, pt) {
 }
 function heroDraw(t, h = hero, cv = setupHeroArt) {
   const d = h.data, run = h.run, A = h.art, x = cv.getContext('2d'), C = A.C, g = d.geo, Wd = A.W, Hd = A.H;
-  const total = HERO_CUE_MS + HERO_ROLL_MS, still = t >= total, z = still || h.flat ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));   /* flat: the opening moves its canvas instead (6o) */
+  const total = HERO_CUE_MS + HERO_ROLL_MS, still = !h.simAt && t >= total, z = still || h.flat ? 1 : 1 + (HERO_ZOOM - 1) * (1 - heroEaseIO(Math.min(1, t / total)));   /* flat: the opening moves its canvas instead (6o) */
   const c0 = d.balls.find(b => b.n === d.shot.ball), fc = heroProj(C, c0.x, c0.y, g.R), F0 = heroProj(C, g.TL * 0.6, g.TW / 2, 0);
   const fx = (fc[0] + F0[0]) / 2, fy = (fc[1] + F0[1]) / 2, Z = p => [fx + (p[0] - fx) * z, fy + (p[1] - fy) * z, p[2]];
   x.setTransform(1, 0, 0, 1, 0, 0);
@@ -14509,7 +14509,8 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
   /* where every ball is: the rack before the strike, the recorded roll after, the rest at the end */
   const n = d.balls.length, list = [];
   let s = -1;
-  if (t >= HERO_CUE_MS && run && run.done) s = still ? Infinity : heroSimT(run, (t - HERO_CUE_MS) / HERO_ROLL_MS);
+  /* the roll's sim seconds at t: the hero's warped clock, or the opening's own (h.simAt, 6o) */
+  if (t >= HERO_CUE_MS && run && run.done) s = still ? Infinity : h.simAt ? h.simAt(t) : heroSimT(run, (t - HERO_CUE_MS) / HERO_ROLL_MS);
   const dt = HERO_SUB * SIM_DT, nS = run ? run.pos.length : 0;
   for (let i = 0; i < n; i++) {
     let bx, by, bz = g.R, on = true, m, fade = 1, drop = null;
@@ -14518,13 +14519,14 @@ function heroDraw(t, h = hero, cv = setupHeroArt) {
     else {
       const f = Math.min(nS - 1, s / dt), k = Math.floor(f), k1 = Math.min(nS - 1, k + 1), w = f - k, P = run.pos[k], Q = run.pos[k1];
       on = !!run.on[k1][i]; bx = P[2 * i] + (Q[2 * i] - P[2 * i]) * w; by = P[2 * i + 1] + (Q[2 * i + 1] - P[2 * i + 1]) * w; m = run.rot[k].subarray(9 * i, 9 * i + 9);
+      if (h.world) h.world[i] = [d.balls[i].n, bx, by, on];   /* what this frame took from the roll (intro-check) */
       /* down: a real drop, timed on the screen's clock (the roll's playback speeds up as the balls
          slow, so a drop timed in the sim's seconds could last one frame and look like a snap). From
          where it left the bed it runs on toward the pocket's middle and falls below the bed, cut by
          the pocket's mouth, over HERO_DROP_MS */
       const pt = run.pots[i];
       if (!on && pt && g.pockets[pt.k]) {
-        const u = (t - heroPotT(run, pt)) / HERO_DROP_MS;
+        const u = (t - (h.potAt ? h.potAt(pt) : heroPotT(run, pt))) / HERO_DROP_MS;
         if (u >= 0 && u < 1) {
           const P2 = g.pockets[pt.k], e = 1 - (1 - u) * (1 - u);
           bx = pt.at[0] + (P2[0] - pt.at[0]) * e; by = pt.at[1] + (P2[1] - pt.at[1]) * e;
@@ -19667,9 +19669,27 @@ Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo
 const introKind = () => POCKET_KINDS.includes(settings.last) ? settings.last : '8';
 const introArgs = kind => kind === '8' && !POCKET_KINDS.includes(settings.last) ? ['9', settings.bumperTable, 'regulation'] : heroArgs(kind);
 const INTRO_FLASH_MS = 200;
-const IT = { hold: 140, dim: 360, lamp: 220, lampMs: 600, pan: 560, panMs: 640, hero: 700, roll: 1.2, land: 2300, sheen: 2440, sheenMs: 480, out: 2940, glide: 460, outMs: 640, skipMs: 200 };
-/* the shot's own clock (heroDraw's: the cue's stroke, then the roll) at the opening's t: the roll played IT.roll times as fast */
-const introHT = t => { const h = t - IT.hero; return h <= HERO_CUE_MS ? Math.max(0, h) : HERO_CUE_MS + (h - HERO_CUE_MS) * IT.roll; };
+const IT = { hold: 120, dim: 340, lamp: 180, lampMs: 600, pan: 330, panMs: 520, hero: 380, land: 3850, sheen: 3950, sheenMs: 380, out: 4250, glide: 440, outMs: 550, skipMs: 200 };
+/* the shot's clock (heroDraw's t: the cue's stroke over HERO_CUE_MS, then the roll) at the opening's t */
+const introHT = t => Math.max(0, t - IT.hero);
+/* the opening's own clock for the roll (never the hero's, which squeezes the whole roll into 2.3 s): how fast
+   the sim's seconds pass per screen second, by sim time. The cue ball's approach a touch under real time, then
+   broadcast slow motion from just before the first contact through the rack opening (eased in and out, no
+   snap), then real time; nothing ever faster than INTRO_RATE.after. The roll is never run to rest on screen:
+   the wordmark lands over the table still rolling. */
+const INTRO_RATE = { approach: 0.8, slow: 0.4, after: 1.08, inA: 0.12, inB: 0.05, outA: 0.25, outB: 0.42 };
+function introRate(s, tc) {
+  const R = INTRO_RATE, a = ease(tc - R.inA, tc - R.inB, s), b = ease(tc + R.outA, tc + R.outB, s);
+  return R.approach + (R.slow - R.approach) * a + (R.after - R.slow) * b;
+}
+/* the screen's ms after the strike at each sim step of the roll (integrated once, ds a sample apart), and back */
+function introClock(run, tc) {
+  const ds = HERO_SUB * SIM_DT, n = run.pos.length, tau = new Float64Array(n);
+  for (let k = 1; k < n; k++) { const s = (k - 0.5) * ds; tau[k] = tau[k - 1] + 1000 * ds / introRate(s, tc); }
+  return { ds, tau,
+    sim: ms => { if (ms <= 0) return 0; let lo = 0, hi = n - 1; if (ms >= tau[hi]) return hi * ds; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tau[m] <= ms) lo = m; else hi = m; } return (lo + (ms - tau[lo]) / (tau[hi] - tau[lo])) * ds; },
+    ms: s => { const f = clamp(s / ds, 0, n - 1), k = Math.min(n - 2, Math.floor(f)); return tau[k] + (tau[k + 1] - tau[k]) * (f - k); } };
+}
 const INTRO_END = IT.out + IT.outMs, INTRO_PREP_MAX = 3000, INTRO_LAMP_H = 1.0, INTRO_LIVE = ['prep', 'play', 'out'];
 const intro = { state: 'off', mode: null, why: null, t0: 0, raf: 0, frames: 0, ms: [], data: null, run: null, art: null, arts: null, cut: 0, hits: 0,
   home: null, mid: null, skip: null, swallow: 0, size: '', prepT0: 0, prepMs: 0, endAt: 0, last: { t: '', o: '', sx: '', ik: '', cv: '', ct: '', co: '' }, motes: null, cleared: false };
@@ -19998,8 +20018,11 @@ function* introBuild() {
   }
   /* the cut: the cue ball meets the rack */
   const j = run.tab.hits.findIndex(h => h[0] === 'ball'), k = j < 0 ? 0 : run.hitN.findIndex(n => n > j);
-  intro.hitT = j < 0 ? Infinity : heroPotT(run, { t: k * HERO_SUB * SIM_DT });
-  intro.cut = j < 0 ? HERO_CUE_MS + 300 : intro.hitT + 50;
+  const tc = intro.hitS = j < 0 ? 0.25 : k * HERO_SUB * SIM_DT, clk = intro.clock = introClock(run, tc);
+  intro.simAt = t => clk.sim(t - HERO_CUE_MS);
+  intro.potAt = pt => HERO_CUE_MS + clk.ms(pt.t);
+  intro.hitT = HERO_CUE_MS + clk.ms(tc);
+  intro.cut = intro.hitT + 50;
   const ci = d.balls.findIndex(o => o.n === d.shot.ball);
   intro.hitAt = j < 0 ? null : [run.pos[k][2 * ci], run.pos[k][2 * ci + 1]];
   /* the ball sprites (ballSprites, a quarter pixel apart) the frames will ask for, made now rather than in
@@ -20147,16 +20170,16 @@ function introDraw(t) {
 function introCamMove(t) {
   const hT = introHT(t), A = intro.arts && intro.arts[hT >= intro.cut ? 1 : 0];
   if (!A || t < IT.lamp) return [1, 50, 50, 0, 0];
-  const f = A.focus, q = (hT - intro.cut) / IT.roll / 1000, sh = q >= 0 && q < 0.26 ? 2.6 * Math.exp(-q / 0.07) : 0;
+  const f = A.focus, q = (hT - intro.cut) / 1000, sh = q >= 0 && q < 0.26 ? 2.6 * Math.exp(-q / 0.07) : 0;
   const dx = sh * Math.sin(q * 2 * Math.PI * 23), dy = sh * 0.6 * Math.sin(q * 2 * Math.PI * 31 + 1.3);
   if (hT < intro.cut) return [1 + 0.05 * ease(IT.pan, IT.hero + 900, t), f[0], f[1], 0, 0];
-  return [1.004 + 0.12 * (1 - heroEaseIO(clamp((hT - intro.cut) / (HERO_CUE_MS + HERO_ROLL_MS - intro.cut), 0, 1))), f[0], f[1], dx, dy];
+  return [1.004 + 0.12 * (1 - heroEaseIO(clamp((hT - intro.cut) / (IT.land - IT.hero - intro.cut), 0, 1))), f[0], f[1], dx, dy];
 }
 /* the roll's hits as they happen, with sound on and audio already running (never before a gesture on iOS) */
 function introSound(hT) {
   const run = intro.run;
   if (hT < HERO_CUE_MS || !run || !run.done) return;
-  const s = hT >= HERO_CUE_MS + HERO_ROLL_MS ? Infinity : heroSimT(run, (hT - HERO_CUE_MS) / HERO_ROLL_MS);
+  const s = intro.simAt(hT);
   const n = run.hitN[Math.min(run.hitN.length - 1, Math.floor(s / (HERO_SUB * SIM_DT)))];
   if (n <= intro.hits) return;
   const from = intro.hits;
@@ -20233,12 +20256,16 @@ function introInfo() {
     end: INTRO_END, timeline: Object.assign({}, IT), size: intro.size, canvas: [introArt.width, introArt.height], home: intro.home && Object.assign({}, intro.home), mid: intro.mid && Object.assign({}, intro.mid),
     kind: intro.kind, key: d && d.key, args: d && d.args.slice(), shot: d && d.shot, start: d && d.balls.map(b => ({ n: b.n, x: b.x, y: b.y })), drawn: intro.drawn ? intro.drawn.length : 0,
     final: r && r.final ? r.final.balls.map(b => ({ n: b.n, x: b.x, y: b.y, on: b.on })) : null, potted: r && r.final ? r.final.potted.slice() : null,
-    hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening, memMB: intro.memMB || 0 };
+    hitS: intro.hitS, strikeAt: IT.hero + HERO_CUE_MS, contactAt: IT.hero + intro.hitT, rate: Object.assign({}, INTRO_RATE),
+    pots: r && r.final ? Object.values(r.pots).map(pt => ({ s: pt.t, at: Math.round(IT.hero + intro.potAt(pt)) })).sort((a, b) => a.s - b.s) : null, hits: intro.hits, sounded: intro.sounded || 0, fadeMs: intro.fadeMs || 0, swallowed: intro.swallowed || 0, listening: !!intro.listening, memMB: intro.memMB || 0 };
 }
 Object.defineProperty(felt, 'intro', { get: introInfo });
 felt.introSeek = introSeek;
 felt.introSkip = () => introSkip();
 felt.introEnd = () => { if (intro.state === 'seek') introFinish(); };
+/* the opening's clock (sim seconds of the roll at the opening's ms t), and what a held moment took from the roll */
+felt.introSim = t => intro.simAt ? (introHT(t) < HERO_CUE_MS ? -1 : intro.simAt(introHT(t))) : null;
+felt.introWorld = t => { if (!intro.arts) return null; intro.world = []; introSeek(t); const w = intro.world; intro.world = null; return { s: felt.introSim(t), balls: w }; };
 felt.introMeasure = false;
 
 /* ============ 7. BOOT ============ */

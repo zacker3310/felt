@@ -5,7 +5,7 @@
    shoots with one, the live roll equal to simulateShot byte for byte; an event's locked rules
    beat the settings and say so; a push-out's option box; the CPU calls its shots and answers
    the options; More games opens the three new games' setups; targets and contrast hold; the call
-   row (5c) stays off the table at five phone sizes with their insets, and a game that never calls keeps its old table. */
+   (5c) stays off the table at five phone sizes with their insets (the bar's label, its menu), every table as before. */
 'use strict';
 const { check, done, open, choose, openPop, settled, smallTargets, lowContrast } = require('./lib.cjs');
 
@@ -43,6 +43,15 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
   const tap = async (x, y) => { await p.touchscreen.tap(x, y); await p.waitForTimeout(60); };
   const state = () => p.evaluate(() => Object.assign(felt.callState, { st: felt.state, shots: felt.game.shots, lab: powerLab.textContent, pulling: felt.pulling }));
+  /* the call's options: a real tap on the power bar opens its menu, a real tap picks (5c) */
+  const barTap = async () => { const r = await p.evaluate(() => { const r = powerBar.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }); await tap(r[0], r[1]); };
+  const pick = async sel => {
+    await barTap();
+    await p.waitForTimeout(350);
+    const xy = await p.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2, callBar.classList.contains('open')]; }, sel);
+    await tap(xy[0], xy[1]); await p.waitForTimeout(30);
+    return { opened: xy[2], closed: await p.evaluate(() => !callBar.classList.contains('open')) };
+  };
   /* a set-up 10-ball table: the 1 straight in line with the foot corner (5), the 10 away from it */
   await p.evaluate(() => { felt.speed = 40; setSetting('rules10', '10-house'); settings.autoAim = false; felt.start('10'); });
   await p.evaluate(() => {
@@ -59,11 +68,18 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   await p.waitForTimeout(150);
   let s = await state();
   check('touch: an obvious shot is called from the aim (house 10-ball): "Calling: 1 in top right corner, tap to change"', s.open && s.bar && s.call && s.call.ball === 1 && s.call.pocket === 5 && s.call.auto && s.ready && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text) && /tap to change/.test(s.sub), JSON.stringify(s));
-  check('touch: the call bar\'s pill and chips are 44 px targets, nothing on screen under 44 px', (await smallTargets(p)).length === 0, JSON.stringify(await smallTargets(p)));
-  const pill = await p.evaluate(() => { const r = callPill.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
-  await tap(pill[0], pill[1]);
+  check('touch: the power bar\'s label reads the call ("1 \u00b7 Top Right"), and offers its menu (the chevron)', /^1 \u00b7 (Top|Bottom) (Left|Right)$/.test(s.lab) && s.bar && (await p.evaluate(() => powerBar.classList.contains('calls') && getComputedStyle(callGlyph).display !== 'none')), JSON.stringify(s));
+  check('touch: nothing on screen under 44 px', (await smallTargets(p)).length === 0, JSON.stringify(await smallTargets(p)));
+  await barTap();
+  await p.waitForTimeout(350);
+  const mo = await p.evaluate(() => ({ open: callBar.classList.contains('open'), items: [...callBar.querySelectorAll(':scope > button')].filter(b => b.getClientRects().length).map(b => b.textContent.trim()), small: [...callBar.querySelectorAll(':scope > button')].filter(b => b.getClientRects().length && b.getBoundingClientRect().height < 44).length, st: felt.state, shots: felt.game.shots }));
+  check('touch: a tap on the bar opens the call\'s menu (Change Call, Safety; 44 pt items) and shoots nothing', mo.open && mo.items.join() === 'Change Call,Safety' && mo.small === 0 && mo.st === 'aim' && mo.shots === 0, JSON.stringify(mo));
+  check('touch: the open menu: text 4.5:1', (await lowContrast(p)).length === 0, JSON.stringify(await lowContrast(p)));
+  await barTap();
+  check('touch: a second tap on the bar closes it', await p.evaluate(() => !callBar.classList.contains('open')));
+  const ch = await pick('#callPill');
   s = await state();
-  check('touch: tap the pill to change: the aim\'s call goes, "Call your shot"', !s.call && !s.ready && s.text === 'Call your shot' && s.lab === 'Call your shot', JSON.stringify(s));
+  check('touch: Change Call: the aim\'s call goes, the bar says "Call your shot", the pick closes the menu', ch.opened && ch.closed && !s.call && !s.ready && s.text === 'Call your shot' && s.lab === 'Call your shot', JSON.stringify([ch, s]));
   /* the bar refuses to arm */
   const bb = await p.evaluate(() => { const r = powerBar.getBoundingClientRect(); return { lo: r.left, hi: r.right, y: r.y + r.height / 2 }; });
   let armed = false;
@@ -81,15 +97,26 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   const k5 = await p.evaluate(() => felt.pocketXY(5)), k2 = await p.evaluate(() => felt.pocketXY(2));
   await tap(k5[0], k5[1]);
   s = await state();
-  check('touch: a tap on the foot corner calls the pocket: ready to shoot', s.call && s.call.ball === 1 && s.call.pocket === 5 && !s.call.auto && s.ready && s.lab === 'Pull to shoot' && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text), JSON.stringify(s));
+  check('touch: a tap on the foot corner calls the pocket: ready to shoot', s.call && s.call.ball === 1 && s.call.pocket === 5 && !s.call.auto && s.ready && /^1 \u00b7 (Top|Bottom) (Left|Right)$/.test(s.lab) && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text), JSON.stringify(s));
   await tap(k2[0], k2[1]);
   s = await state();
   check('touch: the call can change before the shot (another pocket, its own words)', s.call && s.call.pocket === 2 && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text) && s.text !== (await p.evaluate(() => 'Calling: 1 in ' + pocketWords(5))), JSON.stringify(s));
-  const sb = await p.evaluate(() => { const r = safetyBtn.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
-  await tap(sb[0], sb[1]);
+  const sf = await pick('#safetyBtn');
   s = await state();
-  check('touch: the Safety chip declares a safety', s.call && s.call.safety && s.text === 'Safety' && s.ready && (await p.evaluate(() => safetyBtn.getAttribute('aria-pressed'))) === 'true', JSON.stringify(s));
-  await tap(sb[0], sb[1]);
+  check('touch: Safety in the menu declares a safety (checked), the bar reads "Safety"', sf.opened && sf.closed && s.call && s.call.safety && s.text === 'Safety' && s.lab === 'Safety' && s.ready && (await p.evaluate(() => safetyBtn.getAttribute('aria-pressed'))) === 'true', JSON.stringify(s));
+  /* an outside tap closes the menu and does nothing else (the table under it is not aimed or called) */
+  await barTap();
+  const aim0 = await p.evaluate(() => aimAngle);
+  const ball10 = await p.evaluate(() => { const b = felt.game.balls.find(o => o.n === 10); return felt.toScreen(b.x, b.y); });
+  await tap(ball10[0], ball10[1]);
+  const ot = await p.evaluate(a => ({ open: callBar.classList.contains('open'), same: aimAngle === a, call: felt.callState.call }), aim0);
+  check('touch: a tap outside the open menu closes it and is swallowed (aim and call unchanged)', !ot.open && ot.same && ot.call && ot.call.safety, JSON.stringify(ot));
+  await p.evaluate(() => powerBar.focus());
+  await p.keyboard.press('c');
+  const kc = await p.evaluate(() => callBar.classList.contains('open'));
+  await p.keyboard.press('Escape');
+  check('keys: C on the focused bar opens the menu, Esc closes it', kc && await p.evaluate(() => !callBar.classList.contains('open')));
+  await pick('#safetyBtn');
   await tap(k5[0], k5[1]);
   s = await state();
   check('touch: Safety off again, the call back on the 1 in the foot corner', s.call && s.call.ball === 1 && s.call.pocket === 5, JSON.stringify(s));
@@ -106,7 +133,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   });
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), want = hex(ring.want);
   check('touch: the called ball wears a ring in the call colour (highlight on)', ring.out.filter(c => c.every((v, i) => Math.abs(v - want[i]) < 40)).length >= 2, JSON.stringify(ring));
-  check('touch: contrast on the call bar holds (4.5:1 text)', (await lowContrast(p)).length === 0, JSON.stringify(await lowContrast(p)));
+  check('touch: contrast on the bar\'s call holds (4.5:1 text)', (await lowContrast(p)).length === 0, JSON.stringify(await lowContrast(p)));
   /* shoot it through the bar: the call goes with the shot, the roll is simulateShot's */
   await p.evaluate(() => { aimAngle = Math.atan2(felt.game.balls.find(b => b.n === 1).y - felt.game.balls[0].y, felt.game.balls.find(b => b.n === 1).x - felt.game.balls[0].x); });
   await touch('touchStart', bb.lo + 10, bb.y);
@@ -128,11 +155,10 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   await p.evaluate(() => { if (felt.game.option) felt.choose('take'); });
   const po = await p.evaluate(() => ({ push: !pushBtn.hidden, avail: felt.game.pushAvail, st: felt.state, w: felt.game.winner }));
   if (po.w === null && po.avail) {
-    const pb = await p.evaluate(() => { const r = pushBtn.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
-    await tap(pb[0], pb[1]);
+    const pk = await pick('#pushBtn');
     const pusher = await p.evaluate(() => felt.game.turn);
     const ps = await state();
-    check('push: the Push out chip shows after the break and declares one', po.push && ps.call && ps.call.push && ps.ready, JSON.stringify({ po, ps }));
+    check('push: Push Out is in the menu after the break and declares one (the bar reads "Push Out")', po.push && pk.opened && pk.closed && ps.call && ps.call.push && ps.ready && ps.lab === 'Push Out', JSON.stringify({ po, pk, ps }));
     await p.evaluate(() => felt.shoot(Math.PI, 0.15, 0));
     await settled(p);
     const ob = await p.evaluate(() => ({ st: felt.state, box: !optBox.hidden, btns: [...optBtns.children].map(b => b.textContent), opt: felt.game.option, foul: felt.game.verdict.foul }));
@@ -198,18 +224,21 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   check('no console errors', m.errors.length === 0, m.errors.join(' | '));
   await m.browser.close();
 
-  /* ---- 7. the call row: never over the table. A game that can call (9-ball WPA with every shot called, 8-ball WPA)
-     reserves a row of its own for the whole game (upright between the table and the strip, on its side a band over
-     the table): every call control off the table's footprint (rails included), inside the safe area and clear of a
-     modelled 62 pt display corner on a phone with a home indicator; the table the same on a turn that needs a call, one
-     that does not and the CPU's; a game that never calls laid out exactly as before the row (9cc059b's rects) ---- */
+  /* ---- 7. the call off the table (5c): the table is never smaller for calls (every game's felt.tableRect() equals
+     9cc059b's, from before the call ever moved) and, with its menu closed, nothing of the call is over the table: its
+     state is the power bar's label, its options a menu a real tap on the bar opens. At 440x956, 393x852, 375x667,
+     956x440 and 844x390 with insets, in 9-ball with every shot called (Push Out offered), 8-ball WPA and the custom
+     detail (Bank, Kick, Combo): each option sets the call as the old chips did, a pick closes the menu, a tap outside
+     closes it and goes no further, a tap on the bar never shoots ---- */
   {
     const SIZES = { '440x956': [62, 0, 34, 0], '393x852': [59, 0, 34, 0], '375x667': [20, 0, 0, 0], '956x440': [0, 62, 21, 62], '844x390': [0, 47, 21, 47] };
-    /* felt.tableRect() before the call row (build 9cc059b), 7 ft, regulation pockets, the default (house) rules */
+    /* felt.tableRect() at build 9cc059b, 7 ft, regulation pockets */
     const BASE = { '440x956': [2, 62.81, 438, 861.19], '393x852': [2, 45.65, 391, 758], '375x667': [23.4, 2, 351.6, 603], '956x440': [25.62, 2, 824, 438], '844x390': [15.14, 2, 722, 388] };
     const BASE_SNK = { '440x956': [2, 39.34, 438, 862], '393x852': [4.05, 34.58, 388.95, 758], '375x667': [26.54, 2, 348.46, 603], '956x440': [36.2, 6.34, 842, 433.66], '844x390': [22.6, 2.81, 745, 387.19] };
     const t = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
-    const q = t.page, rows = [], plain = [], costs = [];
+    const q = t.page, rows = [], plain = [];
+    const qtap = async (x, y) => { await q.touchscreen.tap(x, y); await q.waitForTimeout(40); };
+    const centre = sel => q.evaluate(sel => { const r = document.querySelector(sel).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, sel);
     for (const [key, ins] of Object.entries(SIZES)) {
       const [w, h] = key.split('x').map(Number);
       await q.setViewportSize({ width: w, height: h });
@@ -218,79 +247,87 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
         if (!st) { st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); }
         st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`;
       }, ins);
-      /* the games that never call: 8- and 9-ball house rules (official calls) and snooker, rects as before */
+      /* the games that never call: their tables as before */
       plain.push(await q.evaluate(([key, B, S]) => {
         setSetting('calls.mode', 'official'); setSetting('calls.detail', 'pocket'); setSetting('rules8', '8-house'); setSetting('rules9', '9-house');
         const out = { key };
         for (const g of ['8', '9', 'snooker']) {
           felt.start(g, { level: 'easy', table: '7', pockets: 'regulation' }); relayout();
           const r = felt.tableRect(), want = g === 'snooker' ? S : B;
-          out[g] = { row: 'callrow' in document.documentElement.dataset, same: [r.left, r.top, r.right, r.bottom].every((v, j) => Math.abs(v - want[j]) < 0.05), r: [r.left, r.top, r.right, r.bottom].map(v => +v.toFixed(2)) };
+          out[g] = [r.left, r.top, r.right, r.bottom].every((v, j) => Math.abs(v - want[j]) < 0.05) ? 'same' : [r.left, r.top, r.right, r.bottom].map(v => +v.toFixed(2));
         }
-        out.ok = ['8', '9', 'snooker'].every(g => !out[g].row && out[g].same);
+        out.ok = ['8', '9', 'snooker'].every(g => out[g] === 'same');
         return out;
       }, [key, BASE[key], BASE_SNK[key]]));
       for (const game of ['9 called', '8 calls', '8 rails']) {
-        rows.push(await q.evaluate(async ([key, ins, game, B]) => {
+        const r = await q.evaluate(async ([game, B]) => {
           if (game === '9 called') { setSetting('calls.mode', 'all'); setSetting('calls.detail', 'pocket'); setSetting('rules9', '9-wpa'); }
           else { setSetting('calls.mode', 'official'); setSetting('calls.detail', game === '8 rails' ? 'rails' : 'pocket'); setSetting('rules8', '8-wpa'); }
           const kind = game[0];
           felt.start(kind, { level: 'easy', table: '7', pockets: 'regulation' }); relayout();
-          const g = felt.game, tr = () => { const r = felt.tableRect(); return [r.left, r.top, r.right, r.bottom].map(v => +v.toFixed(2)); };
-          const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-          /* a turn that needs a call (and, in 9-ball, offers the push-out) */
+          const g = felt.game;
           Object.assign(g, { breakShot: false, inHand: null, pushAvail: kind === '9', turn: 0 });
-          hud(); await frame();
-          const need = { t: tr(), bar: !callBar.hidden, open: felt.callState.open };
-          const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
-          const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };
-          const T = felt.tableRect(), bar = callBar.getBoundingClientRect(), R = 62, home = px('--sab') > 0;
-          const inGlass = (x, y) => { const cx = Math.min(Math.max(x, R), innerWidth - R), cy = Math.min(Math.max(y, R), innerHeight - R); return Math.hypot(x - cx, y - cy) <= R; };
-          const ctrls = [callPill, flagBank, flagKick, flagCombo, safetyBtn, pushBtn].filter(e => e.getClientRects().length).map(e => {
-            const a = e.getBoundingClientRect(), br = parseFloat(getComputedStyle(e).borderTopLeftRadius) || 0, k = Math.min(br, a.height / 2) * (1 - Math.SQRT1_2);
-            /* what shows of it: the row clips a crowded line (it scrolls) */
-            const v = { left: Math.max(a.left, bar.left), right: Math.min(a.right, bar.right), top: a.top, bottom: a.bottom };
-            const shown = v.right - v.left > 0.5;
-            const offTable = !shown || v.right <= T.left + 0.5 || v.left >= T.right - 0.5 || v.bottom <= T.top + 0.5 || v.top >= T.bottom - 0.5;
-            const inSafe = !shown || (v.left >= safe.l - 0.5 && v.right <= safe.r + 0.5 && v.top >= safe.t - 0.5 && v.bottom <= safe.b + 0.5);
-            const glass = !shown || !home || [[v.left + k, v.top + k], [v.right - k, v.top + k], [v.left + k, v.bottom - k], [v.right - k, v.bottom - k]].every(([x, y]) => inGlass(x, y));
-            return { id: e.id, r: [a.left, a.top, a.right, a.bottom].map(Math.round), offTable, inSafe, glass, big: a.height >= 44 && a.width >= 44 };
-          });
-          /* a turn that needs none (a break), then the CPU's turn: the row stays, the table does not move */
-          Object.assign(g, { breakShot: true, pushAvail: false }); hud(); await frame();
-          const none = { t: tr(), bar: !callBar.hidden };
-          Object.assign(g, { breakShot: false, turn: 1 }); hud(); await frame();
-          const cpu = { t: tr(), bar: !callBar.hidden };
-          Object.assign(g, { turn: 0 }); hud();
-          const still = JSON.stringify(need.t) === JSON.stringify(none.t) && JSON.stringify(need.t) === JSON.stringify(cpu.t);
-          const ok = need.bar && need.open && ctrls.length >= 2 && ctrls.every(c => c.offTable && c.inSafe && c.glass && c.big)
-            && (game !== '9 called' || ctrls.some(c => c.id === 'pushBtn')) && (game !== '8 rails' || ctrls.some(c => c.id === 'flagBank'));
-          return { key, game, ok, still, row: 'callrow' in document.documentElement.dataset, ball: +felt.ballPx.toFixed(2), table: need.t, bar: [bar.left, bar.top, bar.right, bar.bottom].map(Math.round), none: none.bar, cpu: cpu.bar, ctrls: ctrls.filter(c => !(c.offTable && c.inSafe && c.glass && c.big)) };
-        }, [key, ins, game, BASE[key]]));
+          /* a call made as the taps make it: the lowest legal ball, the first pocket */
+          const n = legalTargets(g)[0];
+          pickCallBall(n); pickPocket(0); hud(); hudCall();
+          await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+          const T = felt.tableRect(), tr = [T.left, T.top, T.right, T.bottom];
+          const off = a => a.right <= T.left + 0.5 || a.left >= T.right - 0.5 || a.bottom <= T.top + 0.5 || a.top >= T.bottom - 0.5;
+          /* menu closed: every call control either not drawn or off the table; the bar (the call's label) off it too */
+          const over = [...callBar.querySelectorAll('*'), callBar, powerBar].filter(e => e.getClientRects().length && !off(e.getBoundingClientRect())).map(e => e.id || e.tagName);
+          const want = `${n} · ${titleCase(pocketWords(0).replace(/ corner$/, ''))}`;
+          return { game, n, same: tr.every((v, j) => Math.abs(v - B[j]) < 0.05), tr: tr.map(v => +v.toFixed(2)), over, lab: powerLab.textContent, want, aria: powerBar.getAttribute('aria-valuetext') || '',
+            labFits: powerLab.scrollWidth <= powerBar.clientWidth + 1 || getComputedStyle(powerLab).textOverflow === 'ellipsis' };
+        }, [game, BASE[key]]);
+        /* the menu by real taps: each item as the old chips did */
+        const items = game === '9 called' ? ['#safetyBtn', '#pushBtn', '#callPill'] : game === '8 rails' ? ['#flagBank', '#flagKick', '#flagCombo', '#safetyBtn', '#callPill'] : ['#safetyBtn', '#callPill'];
+        const picks = [];
+        for (const sel of items) {
+          await q.evaluate(n => { resetCall(); pickCallBall(n); pickPocket(0); hud(); hudCall(); }, r.n);
+          const bar = await centre('#powerBar');
+          await qtap(bar[0], bar[1]);
+          await q.waitForTimeout(350);   /* past the menu's opening scale */
+          const m = await q.evaluate(sel => {
+            const o = callBar.getBoundingClientRect(), b = powerBar.getBoundingClientRect(), side = b.height > b.width, it = document.querySelector(sel);
+            return { open: callBar.classList.contains('open'), shown: !!it.getClientRects().length, inScreen: o.left >= 0 && o.top >= 0 && o.right <= innerWidth && o.bottom <= innerHeight,
+              anchored: side ? o.right <= b.left + 0.5 || o.left >= b.right - 0.5 : o.bottom <= b.top + 0.5 || o.top >= b.bottom - 0.5, items: [...callBar.querySelectorAll(':scope > button')].filter(x => x.getClientRects().length).map(x => x.textContent.trim()) };
+          }, sel);
+          const xy = await centre(sel);
+          await qtap(xy[0], xy[1]);
+          const a = await q.evaluate(() => ({ open: callBar.classList.contains('open'), call: humanCall(), lab: powerLab.textContent, st: felt.state, shots: felt.game.shots }));
+          const c = a.call || {};
+          const ok = sel === '#safetyBtn' ? c.safety === true && a.lab === 'Safety' : sel === '#pushBtn' ? c.push === true && a.lab === 'Push Out'
+            : sel === '#callPill' ? a.call === null && a.lab === 'Call your shot'
+            : c[sel.slice(5).toLowerCase()] === true && c.ball === r.n && a.lab.startsWith(sel.slice(5) + ': ');
+          picks.push({ sel, m, a, ok: ok && m.open && m.shown && m.inScreen && m.anchored && !a.open && a.st === 'aim' && a.shots === 0 });
+        }
+        /* a tap outside (on the cloth) closes it and goes no further; the bar tapped shoots nothing */
+        await q.evaluate(n => { resetCall(); pickCallBall(n); pickPocket(0); hud(); hudCall(); }, r.n);
+        const bar = await centre('#powerBar');
+        await qtap(bar[0], bar[1]);
+        const before = await q.evaluate(() => ({ open: callBar.classList.contains('open'), aim: aimAngle, call: JSON.stringify(humanCall()) }));
+        await q.waitForTimeout(350);
+        /* a spot on the cloth well away from the open menu */
+        const cloth = await q.evaluate(() => { const o = callBar.getBoundingClientRect(); return [[0.25, 0.5], [0.75, 0.5], [0.5, 0.2], [0.5, 0.8]].map(([a, b]) => felt.toScreen(TL * a, TW * b)).find(([x, y]) => x < o.left - 30 || x > o.right + 30 || y < o.top - 30 || y > o.bottom + 30); });
+        await qtap(cloth[0], cloth[1]);
+        const after = await q.evaluate(() => ({ open: callBar.classList.contains('open'), aim: aimAngle, call: JSON.stringify(humanCall()), st: felt.state, shots: felt.game.shots }));
+        r.outside = { ok: before.open && !after.open && after.aim === before.aim && after.call === before.call && after.st === 'aim' && after.shots === 0, before, after };
+        r.picks = picks;
+        r.key = key;
+        rows.push(r);
       }
-      costs.push(`${key} ${await q.evaluate(() => { setSetting('rules8', '8-house'); felt.start('8', { level: 'easy', table: '7', pockets: 'regulation' }); relayout(); return +felt.ballPx.toFixed(2); })} -> ${rows[rows.length - 3].ball}`);
     }
-    console.log('call row, ball px (no calls -> 9-ball called, 7 ft): ' + costs.join(', '));
-    check('call row: in a called-shot 9-ball game and in 8-ball with calls (house and custom detail), at 440x956, 393x852, 375x667, 956x440 and 844x390 with their insets, every call control is off the table\'s footprint (rails included), inside the safe area, clear of a 62 pt display corner on a home-indicator phone, and a 44 pt target',
-      rows.every(r => r.ok && r.row), JSON.stringify(rows.filter(r => !(r.ok && r.row))));
-    check('call row: the table does not move between a turn that needs a call, one that does not (the bar hidden) and the CPU\'s turn',
-      rows.every(r => r.still && !r.none && !r.cpu), JSON.stringify(rows.filter(r => !(r.still && !r.none && !r.cpu)).map(r => ({ key: r.key, game: r.game, still: r.still, none: r.none, cpu: r.cpu }))));
-    check('call row: a game that never calls (8- and 9-ball house rules, snooker) reserves no row and lays out exactly as before it (the same table rect at every size)',
-      plain.every(p => p.ok), JSON.stringify(plain.filter(p => !p.ok)));
-    /* turning calls on mid-game (pause menu > Settings) reserves the row at once, so the bar is never hidden when needed */
-    const mid = await q.evaluate(() => {
-      setSetting('calls.mode', 'official'); setSetting('rules9', '9-house');
-      felt.start('9', { level: 'easy', table: '7', pockets: 'regulation' });
-      Object.assign(felt.game, { breakShot: false, inHand: null, turn: 0 }); hud();
-      const before = 'callrow' in document.documentElement.dataset;
-      setSetting('calls.mode', 'all'); hud(); hudCall();
-      const r = { before, after: 'callrow' in document.documentElement.dataset, bar: !callBar.hidden };
-      setSetting('calls.mode', 'official'); hud();
-      r.back = 'callrow' in document.documentElement.dataset;
-      return r;
-    });
-    check('call row: Called Shots turned on mid-game reserves the row (the bar shows), and off again gives it back', !mid.before && mid.after && mid.bar && !mid.back, JSON.stringify(mid));
-    check('call row: no console errors', t.errors.length === 0, t.errors.join(' | '));
+    check('call off the table: with the menu closed, no call control (and not the bar that reads it) over the table\'s footprint, at 440x956, 393x852, 375x667, 956x440 and 844x390 with insets, in 9-ball called, 8-ball WPA and the custom detail',
+      rows.every(r => r.over.length === 0), JSON.stringify(rows.filter(r => r.over.length).map(r => [r.key, r.game, r.over])));
+    check('call off the table: every game\'s table exactly as at 9cc059b (calling or not, 8, 9, snooker, every size)',
+      rows.every(r => r.same) && plain.every(p => p.ok), JSON.stringify([rows.filter(r => !r.same).map(r => [r.key, r.game, r.tr]), plain.filter(p => !p.ok)]));
+    check('call off the table: the bar\'s label reads the call ("1 · Bottom Left"), ellipsised in the bar, the full words in its aria-valuetext',
+      rows.every(r => r.lab === r.want && r.labFits && /Calling: /.test(r.aria)), JSON.stringify(rows.filter(r => !(r.lab === r.want && r.labFits && /Calling: /.test(r.aria))).map(r => [r.key, r.game, r.lab, r.want, r.aria])));
+    check('call off the table: a real tap on the bar opens the menu beside it (on screen, off the bar), each option (Safety, Push Out, Bank, Kick, Combo, Change Call) sets the call as the old chips did and the pick closes it; no tap shoots',
+      rows.every(r => r.picks.every(x => x.ok)), JSON.stringify(rows.flatMap(r => r.picks.filter(x => !x.ok).map(x => [r.key, r.game, x]))));
+    check('call off the table: a tap outside the open menu closes it and goes no further (aim and call unchanged, nothing shot)',
+      rows.every(r => r.outside.ok), JSON.stringify(rows.filter(r => !r.outside.ok).map(r => [r.key, r.game, r.outside])));
+    check('call off the table: no console errors', t.errors.length === 0, t.errors.join(' | '));
     await t.browser.close();
   }
   done();

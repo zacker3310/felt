@@ -992,9 +992,6 @@ button.topic:active { background: var(--sys-press); transition-duration: 0s; }
 /* Accessibility: a larger text size grows the sheets and the words over the table (not the table) */
 [data-text="115"] .overlay .sheet, [data-text="115"] #banner, [data-text="115"] #coach, [data-text="115"] #callout { zoom: 1.15; }
 [data-text="130"] .overlay .sheet, [data-text="130"] #banner, [data-text="130"] #coach, [data-text="130"] #callout { zoom: 1.3; }
-/* the call row keeps its 44 pt height (the table is laid out to it): larger text sets its words larger instead */
-[data-text="115"] #callBar { --cz: 1.15; }
-[data-text="130"] #callBar { --cz: 1.3; }
 /* the full-screen sheets (How to play, Settings) keep the screen's height under that zoom */
 [data-text="115"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.15); }
 [data-text="130"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { max-height: calc((var(--app-h, 100vh) - max(16px, var(--sat)) - max(16px, var(--sab))) / 1.3); }
@@ -1448,7 +1445,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
 .bsnk { background-color: #c41c24; background-image: radial-gradient(circle at 35% 30%, #e8504a, #8a1218 72%); }
 /* ---- the rules engine's page (5c, 6e): the new games' balls, More games, the setup's rules,
-   Settings > Gameplay, the call row (off the table) and the option box ---- */
+   Settings > Gameplay, the call menu (off the table while idle) and the option box ---- */
 .b10, .b14, .b15 { background-color: #f6f4ec; }
 .b10 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #1c48b8 22% 78%, #f6f4ec 78%); }
 .b14 { background-image: radial-gradient(circle at 50% 50%, #f6f4ec 0 30%, transparent 31%), linear-gradient(#f6f4ec 0 22%, #167842 22% 78%, #f6f4ec 78%); }
@@ -1457,37 +1454,23 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 .chip-x { display: inline-block; width: 12px; height: 12px; margin-right: 8px; border-radius: 50%; vertical-align: -1px; box-shadow: 0 0 0 1.5px #a3a3aa; }
 .seg button:disabled { opacity: .45; cursor: default; }
 .note.lock { color: #ffd58a; }
-/* the call row (5c): the call in words (tap to change), the shot-type flags, Safety and Push Out, in a row of its own
-   that the layout reserves for a game that can ever ask for a call or a push-out (callRowWanted, data-callrow on the
-   root, decided by the game's rules, not the turn): upright between the table and the controls strip, on its side a
-   band over the table, never over the bed, a pocket or a rail. The table is fitted to the room left, so it never moves
-   between turns; a turn that needs nothing leaves the row empty. A game that never calls has no row at all. */
-[data-layout="portrait"][data-callrow] #ui { grid-template: "stage" minmax(0, 1fr) "call" var(--call-h) "ctl" 56px / minmax(0, 1fr); }
-[data-layout="wide"][data-callrow] #ui { grid-template: "call ctl" var(--call-h) "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); }
-[data-hand="left"][data-layout="wide"][data-callrow] #ui { grid-template: "ctl call" var(--call-h) "ctl stage" minmax(0, 1fr) / var(--col) minmax(0, 1fr); }
-@media (min-width: 700px) and (min-height: 600px) { [data-layout="portrait"][data-callrow] #ui { grid-template-rows: minmax(0, 1fr) var(--call-h) 60px; } }
-#ui { --call-h: 44px; }
-html:not([data-callrow]) #callBar { display: none; }
-/* one line, never wrapped: the pill gives way first (its hint, then its words, ellipsised); a crowded row (the custom
-   rules' Bank, Kick and Combo beside Push Out on a narrow phone) scrolls sideways within itself */
-#callBar { grid-area: call; position: relative; z-index: 2; min-width: 0; min-height: 0; display: flex; flex-wrap: nowrap; align-items: center; justify-content: safe center; gap: 6px;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; pointer-events: auto; }
-#callBar::-webkit-scrollbar { display: none; }
-/* upright, the row stands in from the sides as the strip does: its ends clear the rounded glass */
-[data-layout="portrait"] #callBar { padding: 0 max(0px, calc(var(--sab, 0px) * 0.35)); }
-#callBar[hidden] { display: none; }
-#callBar > * { pointer-events: auto; }
-#callPill { height: 44px; min-width: 96px; flex: 0 1 auto; display: flex; flex-direction: row; align-items: baseline; gap: 6px; padding: 0 16px; border-radius: 22px;
-  border: 1px solid var(--line); background: rgba(22, 22, 24, .94); text-align: left; line-height: 42px; overflow: hidden; }
-#callText { min-width: 0; flex: 0 1 auto; font-size: calc(14px * var(--cz, 1)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#callSub { min-width: 0; flex: 0 1000 auto; font-size: calc(12px * var(--cz, 1)); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-#callSub:empty { display: none; }
-#callPill.need { border-color: #ffd58a; }
-#callPill.need #callText { color: #ffd58a; }
-#callPill.set { border-color: #8fd8b0; }
-.cflag { flex: none; height: 44px; min-width: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line); background: rgba(22, 22, 24, .94); font-size: calc(14px * var(--cz, 1)); font-weight: 600; white-space: nowrap; }
-.cflag[hidden] { display: none; }
-.cflag[aria-pressed="true"] { background: var(--cream); border-color: var(--cream); color: #141414; }
+/* the call (5c): nothing of it sits on the table. Its state is the power bar's own label (callLab: "1 \u00b7 Bottom Left",
+   "Safety", "Push Out", "Call your shot"), the full words in the bar's aria-valuetext; its options (Change Call, Bank,
+   Kick, Combo, Safety, Push Out) are a pop-up menu of the 6p kind opened by a tap on the bar (no pull), only on a turn
+   that has them, the bar then carrying chevron.up.chevron.down at its trailing end. The menu is the one thing over the
+   table, and only while the player holds it open: a pick, a tap outside (swallowed), Esc or a pull closes it. */
+#powerBar.call:not(.live) #powerLab { display: block; padding: 0 30px 0 12px; line-height: var(--bar-h, 54px); color: var(--text); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+#powerBar.call:not(.live) #powerLab::after { content: none; }
+#powerBar.call.nocall:not(.live) #powerLab { color: #ffd58a; }
+[data-layout="wide"] #powerBar.call:not(.live) #powerLab { display: flex; padding: 8px 4px 30px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+#powerBar { --bar-h: 54px; }
+@media (min-width: 700px) and (min-height: 600px) { [data-layout="portrait"] #powerBar { --bar-h: 58px; } }
+#callGlyph { position: absolute; right: 10px; top: calc(50% - 8px); width: 10px; height: 16px; color: var(--text); opacity: .8; pointer-events: none; display: none; }
+#powerBar.calls:not(.live) #callGlyph { display: block; }
+[data-layout="wide"] #callGlyph { right: auto; left: calc(50% - 5px); top: auto; bottom: 10px; }
+#callBar.open { pointer-events: auto; min-width: 220px; }
+#callBar > button[hidden] { display: none; }
 /* a choice the rules give: over the table's middle, two or three answers */
 #optBox { position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: max-content; max-width: min(92%, 380px); display: grid; gap: 6px; padding: 12px 14px 14px;
   border-radius: 16px; text-align: center; pointer-events: auto; background: rgba(22, 22, 24, .97); border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(0, 0, 0, .6); }
@@ -1505,9 +1488,9 @@ html:not([data-callrow]) #callBar { display: none; }
 #callHist { margin: 6px 2px 0; font-size: 13px; color: var(--muted); }
 #callHist[hidden] { display: none; }
 @keyframes nudge { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-#callPill.nudge { animation: nudge .25s 2; }
+#powerBar.nudge #powerLab { animation: nudge .25s 2; }
 #powerBar.nocall #powerLab { color: #ffd58a; font-weight: 600; }
-@media (prefers-reduced-motion: reduce) { #callPill.nudge { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #powerBar.nudge #powerLab { animation: none; } }
 /* ---- More modes (6f): the modes sheet (the career's navigation stack and its rows, cells and
    capsule), the exhibition's speed bar over the table, and the party's handoff between players ---- */
 .bm b small { display: block; font-size: 11px; font-weight: 500; color: var(--label-2); text-align: center; }
@@ -1555,7 +1538,7 @@ html:not([data-callrow]) #callBar { display: none; }
    changes (or rolls up, numRoll) */
 .pchip .num, .pchip .of, #snkBar, #snkBar b, .board .side b, .hoBoard li b, #careerNow .score b, #cnRace, .kpis dd, .soloStats dd, .cvFacts dd, .rec, #over .stats,
 .bm b, .how .stat b, .how .plab b, .ccSum, .acc, #powerLab, .dshots li, .cv .topic .val, .cv .topic .rk, .dmedal, .tcard .no, .stars, #elevVal, #elevTag, .foe .wl,
-.pc .meta, #exBar, .cal b, #callSub, .cvMeter, #drillSheet .topic .val, .diag { font-variant-numeric: tabular-nums; }
+.pc .meta, #exBar, .cal b, .cvMeter, #drillSheet .topic .val, .diag { font-variant-numeric: tabular-nums; }
 /* the power bar: the fill follows the finger exactly (never smoothed) and empties at once on
    release; an afterglow of it (::before, at --drain) eases away behind, so the bar drains smoothly
    while its real fill (what the suites measure) is already empty. A crisp tick lights its end the
@@ -1602,12 +1585,11 @@ html:not([data-callrow]) #callBar { display: none; }
     <div class="rpl" id="replayBadge" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b>Replay</b><i id="replaySlow" hidden>Slow motion</i></span></div>
     <button class="rpl" id="replaySkip" hidden aria-label="Skip the replay"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5.5v13l9-6.5zM14 5.5v13l9-6.5z"/></svg><b>Skip</b></span></button>
   </div>
-  <!-- the called shot (section 5c): what is called, the shot-type flags (custom detail), Safety and Push out, in the row
-       the layout reserves for a game that can call (never over the table) -->
-  <div id="callBar" role="group" aria-label="Your call" hidden>
-    <button id="callPill"><span id="callText">Call your shot</span><small id="callSub">Tap a ball, then a pocket</small></button>
-    <button class="cflag" id="flagBank" aria-pressed="false" hidden>Bank</button><button class="cflag" id="flagKick" aria-pressed="false" hidden>Kick</button><button class="cflag" id="flagCombo" aria-pressed="false" hidden>Combo</button>
-    <button class="cflag" id="safetyBtn" aria-pressed="false">Safety</button><button class="cflag" id="pushBtn" aria-pressed="false" hidden>Push Out</button>
+  <!-- the called shot's options (section 5c): a pop-up menu opened by a tap on the power bar, never left on the table -->
+  <div id="callBar" class="seg pop callMenu" role="menu" aria-label="Your call">
+    <button id="callPill" role="menuitem">Change Call</button>
+    <button id="flagBank" role="menuitemcheckbox" aria-pressed="false" hidden>Bank</button><button id="flagKick" role="menuitemcheckbox" aria-pressed="false" hidden>Kick</button><button id="flagCombo" role="menuitemcheckbox" aria-pressed="false" hidden>Combo</button>
+    <button id="safetyBtn" role="menuitemcheckbox" aria-pressed="false">Safety</button><button id="pushBtn" role="menuitemcheckbox" aria-pressed="false" hidden>Push Out</button>
   </div>
   <div id="ctl">
     <button class="icon" id="menuBtn" aria-label="Pause and menu"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg></button>
@@ -1620,7 +1602,7 @@ html:not([data-callrow]) #callBar { display: none; }
       <span id="spinLabel" class="sr" aria-hidden="true">center</span>
     </div>
     <div id="powerBar" role="slider" tabindex="0" aria-label="Power: pull along the bar and let go to shoot. It is the only way to shoot. Up and down set its mark." aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">
-      <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div>
+      <div id="powerFill"></div><div id="powerMark"></div><div id="powerLab">Pull to shoot</div><svg id="callGlyph" viewBox="0 0 10 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.8 5.6 5 2.4l3.2 3.2M1.8 10.4 5 13.6l3.2-3.2"/></svg>
     </div>
     <div id="fineWheel" role="slider" tabindex="0" aria-label="Fine aim: roll the wheel up or down to turn the aim a hair. Arrow keys do the same." aria-valuetext="fine aim"><span class="ridges"></span></div>
   </div>
@@ -11029,7 +11011,7 @@ function start(kind, o = null) {
   game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
   if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
   resetCall(); cpuCall = null; optBox.hidden = true; freePick = false;
-  if (!callRowSync() && [TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
+  if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
   pull = null; stroke = null; paused = null; stats = newStats(playersOf(game)); aimAnim = null;
@@ -11316,20 +11298,6 @@ const STALEMATE_INNINGS = 6;
 const callable = () => state === 'aim' && human() && !rp && !game.mode && !tutOn() && game.winner === null && !game.option;
 const callOn = () => callable() && callOpen(game);
 const pushOffer = () => callable() && game.pushAvail && rulesOf(game).pushOut;
-/* the call row (CSS: data-callrow on the root): reserved for the whole game when its rules can ever ask a person for a
-   call or offer a push-out (a pocket game, not a solo session, a tutorial or an exhibition), so the table is laid out
-   to the room left once and never moves between a turn that needs a call and one that does not. A game that never
-   calls lays out exactly as before. callOn/pushOffer are folded in only as a backstop: they imply the rest. */
-const callRowWanted = () => (POCKET_KINDS.includes(game.kind) && !game.mode && !(solo && solo.kind === 'tutorial') && !exhib && (callScope(game) !== 'none' || !!rulesOf(game).pushOut))
-  || callOn() || pushOffer();
-/* sets the reservation to what the game wants and lays out again when it changed (true then) */
-function callRowSync() {
-  const want = callRowWanted(), root = document.documentElement;
-  if (('callrow' in root.dataset) === want) return false;
-  if (want) root.dataset.callrow = ''; else delete root.dataset.callrow;
-  layout();
-  return true;
-}
 /* the obvious shot down the aim line: the legal ball it meets, and the pocket whose mouth that
    ball's line runs into with a clear path, or null */
 function obviousCall() {
@@ -11409,34 +11377,93 @@ function pocketWords(k) {
   return k === 1 || k === 4 ? `${v || h} side` : `${v} ${h} corner`;
 }
 const callName = c => c.push ? 'Push out' : c.safety ? 'Safety' : c.ball == null ? 'Call your shot' : c.pocket == null ? `Calling the ${c.ball}` : `Calling: ${c.ball} in ${pocketWords(c.pocket)}`;
-/* the call bar's words and chips, each frame while aiming (cheap: a key skips unchanged frames) */
-function hudCall() {
-  const open = callOn(), push = pushOffer(), shown = open || push;
-  if (shown) callRowSync();
-  if (callBar.hidden !== !shown) callBar.hidden = !shown;
-  if (!shown) { callKey = ''; return; }
-  const need = callNeed(game), c = humanCall(), flags = !!(need && need.flags) && !callSafe && !(callPushOn && push);
-  const ready = callReady(), warnT = callWarn(c);
+/* the call in words: the full sentence (VoiceOver, felt.callState) and its hint */
+function callSay() {
+  const open = callOn(), push = pushOffer(), need = callNeed(game), c = humanCall(), warnT = callWarn(c);
   const text = c ? callName(c) : 'Call your shot';
   const sub = callPushOn && push ? 'They may hand it back' : callSafe ? 'Your turn ends after it' : !c ? (open ? 'Tap a ball, then a pocket' : '') : warnT || (c.ball != null && c.pocket == null && need && need.pocket ? 'now tap a pocket' : callLocked() ? 'call locked' : c.auto ? 'tap to change' : 'tap to clear');
-  const key = [text, sub, ready, flags, open, push, callSafe, callPushOn, c && c.bank, c && c.kick, c && c.combo].join('|');
+  return { open, push, need, c, warnT, text, sub };
+}
+/* a pocket as a short title ("Bottom Left", "Left Side") for the bar's label */
+const pocketShort = k => titleCase(pocketWords(k).replace(/ corner$/, ''));
+/* the bar's label for the call (5c): a short Title Case reading, or null when the bar says its own words */
+function callLab() {
+  if (!(callOn() || pushOffer())) return null;
+  const c = humanCall();
+  if (!c) return null;
+  if (c.push) return 'Push Out';
+  if (c.safety) return 'Safety';
+  if (c.ball == null) return null;
+  const fl = ['bank', 'kick', 'combo'].filter(f => c[f]).map(f => titleCase(f)).join(', ');
+  const need = callNeed(game);
+  const body = c.pocket != null ? `${c.ball} · ${pocketShort(c.pocket)}` : need && need.pocket ? `${c.ball} · Tap a Pocket` : String(c.ball);
+  return (fl ? fl + ': ' : '') + body;
+}
+/* the options are offered on this turn: a call is open or a push-out is on offer */
+const callMenuOffered = () => callOn() || pushOffer();
+/* the call's options as a pop-up menu (6p's material and rules) anchored to the power bar: upright over the bar,
+   its trailing edge on the bar's; on its side beside the column, level with the bar */
+callBar._pop = powerBar;
+for (const it of callBar.querySelectorAll(':scope > button')) it.insertAdjacentHTML('afterbegin', '<svg class="mChk" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.8 8.6l3.4 3.4 7-7.6"/></svg>');
+function callMenuPlace() {
+  const r = powerBar.getBoundingClientRect(), m = 8, gap = 8;
+  callBar.style.animation = 'none';
+  callBar.style.left = '0px'; callBar.style.top = '0px';
+  const o = callBar.getBoundingClientRect(), w = o.width, h = o.height, side = r.height > r.width;
+  let x, y;
+  if (side) { x = r.left - gap - w; if (x < m) x = r.right + gap; y = r.top + r.height / 2 - h / 2; }
+  else { x = r.right - w; y = r.top - gap - h; if (y < m) y = r.bottom + gap; }
+  /* clear of the bottom rail's row (6b2: the score keeper, the replay, the 3D switch) */
+  if (y + h > railTop - 6 && railTop - 6 - h >= m) y = railTop - 6 - h;
+  x = Math.max(m, Math.min(innerWidth - m - w, x)); y = Math.max(m, Math.min(innerHeight - m - h, y));
+  callBar.style.left = x + 'px'; callBar.style.top = y + 'px';
+  callBar.style.setProperty('--pop-o', side ? 'center right' : 'bottom right');
+  void callBar.offsetWidth;
+  callBar.style.animation = '';
+}
+function callMenuToggle() {
+  if (popOpen === callBar) { popClose(true); return; }
+  if (!callMenuOffered()) return;
+  popClose(); infoClose();
+  hudCall();
+  popOpen = callBar; callBar._at = new Map();
+  callBar.classList.add('open');
+  powerBar.setAttribute('aria-expanded', 'true');
+  callMenuPlace();
+  if (byKeys) (callBar.querySelector(':scope > button:not([hidden])') || powerBar).focus({ preventScroll: true });
+}
+callBar.addEventListener('click', e => { if (popOpen === callBar && e.target.closest('button')) setTimeout(() => { if (popOpen === callBar) popClose(true); }, 0); });
+callBar.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+  const its = [...callBar.querySelectorAll(':scope > button:not([hidden])')], i = its.indexOf(document.activeElement);
+  const n = its[(i + (e.key === 'ArrowDown' ? 1 : its.length - 1)) % its.length];
+  if (n) n.focus(); e.preventDefault();
+});
+/* the menu's items, each frame while aiming (cheap: a key skips unchanged frames); the bar's affordance */
+function hudCall() {
+  const shown = callMenuOffered();
+  powerBar.classList.toggle('calls', shown && state === 'aim');
+  powerBar.setAttribute('aria-haspopup', shown ? 'menu' : 'false');
+  if (!shown) { if (popOpen === callBar) popClose(); if (callKey) { callKey = ''; hudControls(); } return; }
+  const { open, push, need, c, text, sub } = callSay(), flags = !!(need && need.flags) && !callSafe && !(callPushOn && push);
+  const change = open && !callSafe && !(callPushOn && push) && !!c && c.ball != null && !callLocked();
+  const key = [text, sub, flags, open, push, change, callSafe, callPushOn, c && c.bank, c && c.kick, c && c.combo].join('|');
   if (key === callKey) return;
   callKey = key;
-  callText.textContent = text; callSub.textContent = sub;
-  callPill.classList.toggle('need', !ready || !!warnT);
-  callPill.classList.toggle('set', ready && !!c && !warnT);
-  callPill.hidden = !open && !(callPushOn && push);
-  callPill.setAttribute('aria-label', `${text}${sub ? ', ' + sub : ''}`);
-  for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) { b.hidden = !flags; b.setAttribute('aria-pressed', String(!!(callMan && callMan[f]))); }
+  hudControls();
+  callPill.hidden = !change;
+  callPill.lastChild.textContent = c && c.auto ? 'Change Call' : 'Clear Call';
+  for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) { b.hidden = !flags; b.setAttribute('aria-pressed', String(!!(c && c[f]))); }
   safetyBtn.hidden = !open; safetyBtn.setAttribute('aria-pressed', String(callSafe));
   pushBtn.hidden = !push; pushBtn.setAttribute('aria-pressed', String(callPushOn && push));
+  if (popOpen === callBar) callMenuPlace();
 }
 callPill.addEventListener('click', () => {
   if (!callable()) return;
   if (callPushOn) { callPushOn = false; hud(); return; }
   if (callSafe) { callSafe = false; hud(); return; }
   if (callLocked()) { say('The call is locked for this shot.'); return; }
-  /* tap to change: the aim's call goes, and the player taps the ball and the pocket */
+  /* change: the aim's call goes, and the player taps the ball and the pocket */
   callMan = { ball: null, pocket: null, bank: false, kick: false, combo: false }; callAutoOff = true;
   callTick(); hud();
 });
@@ -12304,6 +12331,9 @@ table.addEventListener('pointerleave', e => { if (!gest && e.pointerType === 'mo
 /* the power bar: press, drag along it (right, or down when it stands upright), let go. It arms
    like a table pull, a fifth of the way at most; leaving the bar sideways or back past its
    start cancels, running past its far end just holds full power. */
+/* a tap on the bar (5c): under BAR_TAP px of travel and BAR_TAP_MS long */
+const BAR_TAP = 10, BAR_TAP_MS = 600;
+function barNudge() { powerBar.classList.remove('nudge'); void powerBar.offsetWidth; powerBar.classList.add('nudge'); }
 function barPos(e) {
   const r = powerBar.getBoundingClientRect(), up = r.height > r.width;
   return up ? [e.clientY, r.top, r.bottom, e.clientX, r.left, r.right] : [e.clientX, r.left, r.right, e.clientY, r.top, r.bottom];
@@ -12312,28 +12342,40 @@ powerBar.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse' &
 powerBar.addEventListener('pointerdown', e => {
   audioOn();
   if (state !== 'aim' || !human() || (gest && !yieldTable(e))) return;
-  /* a needed call missing: the bar says so and does not arm (5c) */
-  if (!callReady()) { say('Call your shot: tap a ball, then a pocket, or play a safety.'); callPill.classList.remove('nudge'); void callPill.offsetWidth; callPill.classList.add('nudge'); hudControls(); return; }
+  /* a needed call missing: the bar says so and does not arm (5c); a tap still opens the call's menu */
+  if (!callReady()) {
+    say('Call your shot: tap a ball, then a pocket, or play a safety.');
+    if (callMenuOffered()) { const [pos, , , cross] = barPos(e); gest = { id: e.pointerId, bar: true, nocall: true, pos0: pos, cross0: cross, far: 0, t0: e.timeStamp, armed: false, mode: null }; powerBar.setPointerCapture(e.pointerId); }
+    else barNudge();
+    hudControls(); return;
+  }
   /* a thumb still on the wheel gives way too: the bar is never dead */
   if (wheelDrag) { if (e.pointerType === 'mouse') return; try { fineWheel.releasePointerCapture(wheelDrag.id); } catch (err) { /* already gone */ } endWheel(null); }
   finishAutoAim();
   if (e.pointerType === 'mouse') leaveBed();
-  const [pos, lo, hi] = barPos(e), span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92;
-  gest = { id: e.pointerId, bar: true, pos0: pos, span, arm: Math.min(armPx(), span * 0.2), armed: false, mode: null, msg0: msg.textContent };
+  const [pos, lo, hi, cross] = barPos(e), span = Math.max(hi - pos, (hi - lo) * 0.5) * 0.92;
+  gest = { id: e.pointerId, bar: true, pos0: pos, cross0: cross, far: 0, t0: e.timeStamp, span, arm: Math.min(armPx(), span * 0.2), armed: false, mode: null, msg0: msg.textContent };
   powerBar.setPointerCapture(e.pointerId);
 });
 powerBar.addEventListener('pointermove', e => {
   const g = gest;
   if (!g || !g.bar || e.pointerId !== g.id || g.mode === 'dead') return;
   const [pos, lo, , cross, c0, c1] = barPos(e), d = pos - g.pos0;
+  g.far = Math.max(g.far, Math.abs(d), Math.abs(cross - g.cross0));
+  /* no call yet (5c): never arms; a drag along it nudges the label that says why */
+  if (g.nocall) { if (g.far > BAR_TAP && !g.nudged) { g.nudged = true; barNudge(); } return; }
   if (g.armed && (cross < c0 - OFF_TABLE || cross > c1 + OFF_TABLE || pos < lo - OFF_TABLE)) { cancelPull(g); return; }
-  if (!g.armed && d >= g.arm) { g.armed = true; pull = { kind: 'bar' }; say(PULL_HINT); }
+  if (!g.armed && d >= g.arm) { g.armed = true; pull = { kind: 'bar' }; say(PULL_HINT); if (popOpen === callBar) popClose(); }
   if (g.armed) { power = clamp((d - g.arm) / (g.span - g.arm), 0, 1); hudControls(); }   /* at 100% powerTick (6m) calls powerFull once */
 });
 function endBar(e, cancel) {
   const g = gest;
   if (!g || !g.bar || e.pointerId !== g.id) return;
   gest = null; pull = null;
+  /* a tap (no pull: it never armed, it hardly moved) opens or closes the call's menu (5c); it never shoots */
+  const tap = !g.armed && !cancel && g.mode !== 'dead' && g.far <= BAR_TAP && e.timeStamp - g.t0 < BAR_TAP_MS;
+  if (g.nocall) { if (tap) callMenuToggle(); hudControls(); return; }
+  if (tap && callMenuOffered()) callMenuToggle();
   if (g.armed && !cancel && power > 0 && state === 'aim') { commit(power); return; }
   if (g.armed || g.mode === 'dead') { power = markPower; say(g.msg0); }
   hudControls();
@@ -12545,6 +12587,9 @@ addEventListener('keydown', e => {
     if (spinOk()) { const s = e.shiftKey ? 0.25 : 0.1; cueSpin = spinOf({ x: cueSpin.x + dx * s, y: cueSpin.y + dy * s, e: cueSpin.e }); hudControls(); }
   } else if ((k === 'PageUp' || k === 'PageDown') && document.activeElement === spinPad) {
     if (spinOk()) setElev(elevDeg() + (k === 'PageUp' ? 5 : -5));
+  } else if (document.activeElement === powerBar && (k === 'c' || k === 'C' || k === 'ContextMenu') && callMenuOffered()) {
+    callMenuToggle();   /* the call's menu from the keyboard (5c) */
+    e.preventDefault();
   } else if (document.activeElement === powerBar && state === 'aim' && !move && (dy || ['PageUp', 'PageDown', 'Home', 'End', ' ', 'Enter'].includes(k))) {
     if (k === ' ' || k === 'Enter') keyDrive();
     else if (!gest) {
@@ -13665,7 +13710,10 @@ function popClose(focus) {
 /* a tap outside the open menu closes it and does nothing else (UIKit's menu takes that tap) */
 addEventListener('pointerdown', e => {
   if (!popOpen || popOpen.contains(e.target) || popOpen._pop.contains(e.target)) return;
+  const was = popOpen;
   popClose(); popSwallow = performance.now();
+  /* the call's menu (5c) lies over the table, whose input is pointer events: the tap goes no further */
+  if (was === callBar) { e.stopPropagation(); e.preventDefault(); }
 }, true);
 addEventListener('click', e => {
   if (popSwallow && performance.now() - popSwallow < 700) { popSwallow = 0; e.stopPropagation(); e.preventDefault(); }
@@ -13677,7 +13725,7 @@ addEventListener('keydown', e => { if (popOpen && e.key === 'Escape') { popClose
 const popScrolled = t => { const was = popOpen && popOpen._at && popOpen._at.get(t); return !was || Math.abs(t.scrollTop - was[0]) > 2 || Math.abs(t.scrollLeft - was[1]) > 2; };
 addEventListener('scroll', e => { if (popOpen && !popOpen.contains(e.target) && popScrolled(e.target === document ? document.scrollingElement : e.target)) popClose(); }, true);
 addEventListener('resize', () => popClose());
-for (const s of document.querySelectorAll('.seg.pop')) popUp(s);
+for (const s of document.querySelectorAll('.seg.pop:not(.callMenu)')) popUp(s);
 /* the rules are locked by an event (a career rack) for the game on now */
 const rulesLocked = () => !!(paused && game.rules && game.rules.locked);
 function syncMenu() {
@@ -16594,7 +16642,7 @@ Object.assign(felt, {
   },
   choose, rulesFor, pocketXY: k => POCKETS[k] ? toScreen(POCKETS[k][0], POCKETS[k][1]) : null,
 });
-Object.defineProperties(felt, { callState: { get: () => ({ open: callOn(), need: callNeed(game), call: humanCall(), ready: callReady(), auto: obviousCall(), text: callText.textContent, sub: callSub.textContent, bar: !callBar.hidden, locked: rulesLocked() }) } });
+Object.defineProperties(felt, { callState: { get: () => ({ open: callOn(), need: callNeed(game), call: humanCall(), ready: callReady(), auto: obviousCall(), text: callSay().text, sub: callSay().sub, bar: callMenuOffered(), menu: popOpen === callBar, lab: powerLab.textContent, locked: rulesLocked() }) } });
 Object.defineProperties(felt, { record: { get: () => JSON.parse(JSON.stringify(rec)) } });
 
 /* a solid this dark is under 3:1 on the lighter panel (#26262a, the menu's player cards), so
@@ -16733,7 +16781,6 @@ function hudMenu() {
   if (menuMsg.textContent !== msg.textContent) menuMsg.textContent = msg.textContent;
 }
 function hud() {
-  callRowSync();   /* the call row: a new game, a solo session or a change to the call settings (5c) */
   hudChip();
   hudMenu();
   for (const i of [0, 1]) {
@@ -16805,7 +16852,7 @@ function hudSnooker() {
    moves with the camera: the row is pinned to the stage's foot (V3_PIN_B) and the gaps are the stage's
    width less the pockets and sights as the camera projects them into it (laid out again only when that
    changes). The exhibition's bar, the free-ball pick and the tools rise clear of the row (--rail-lift); the call
-   bar is in a row of its own off the table (5c, data-callrow). felt.railBar reports the layout. Called every frame (frameBody); it measures and
+   is the power bar's label and its menu (5c), never on the table. felt.railBar reports the layout. Called every frame (frameBody); it measures and
    writes only when what it lays out has changed, or when forced (a new layout, new words, the replay). ---- */
 let railKey = '', railStage = null, railTop = Infinity, railSafe = Infinity;
 /* the inlay's material, as the sights are made on every rail: mother-of-pearl, its edge cut dark all round (the
@@ -17037,12 +17084,17 @@ function hudControls() {
   powerTick(live);
   fineWheel.classList.toggle('off', !(state === 'aim' && human()) || !!rp);
   powerBar.classList.toggle('rp', !!rp);   /* a replay (5r): the bar is off and says so */
-  const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? (callReady() ? 'Pull to shoot' : 'Call your shot') : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'choose' ? 'Your choice' : '';
+  /* a call set or needed (5c): the bar's label reads it ("1 \u00b7 Bottom Left"), the full words for VoiceOver */
+  const aimMe = !rp && !live && state === 'aim' && human(), cl = aimMe ? callLab() : null, ready = callReady();
+  const lab = rp ? 'Replay' : live ? pct + '%' : aimMe ? (!ready && !(cl && cl.includes('\u00b7')) ? 'Call your shot' : cl || 'Pull to shoot') : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'choose' ? 'Your choice' : '';
+  powerBar.classList.toggle('call', aimMe && (!!cl || !ready));
   powerBar.classList.toggle('nocall', state === 'aim' && human() && !live && !callReady());
   /* idle (ready to pull): the chevrons alone say it; the words stay for VoiceOver and the tests */
   powerBar.classList.toggle('idle', lab === 'Pull to shoot');
   if (powerLab.textContent !== lab) powerLab.textContent = lab;
   powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
+  const vt = aimMe && callMenuOffered() ? (() => { const w = callSay(); return `${Math.round(markPower * 100)}%, ${w.text}${w.sub ? ', ' + w.sub : ''}. Tap, or press C, for call options.`; })() : '';
+  if ((powerBar.getAttribute('aria-valuetext') || '') !== vt) { if (vt) powerBar.setAttribute('aria-valuetext', vt); else powerBar.removeAttribute('aria-valuetext'); }
   spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';
   spinTip.style.top = 50 - cueSpin.y * SPIN_SAFE * 50 + '%';
   const w = spinWords(cueSpin);

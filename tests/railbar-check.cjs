@@ -269,7 +269,11 @@ function inlayContrast() {
       Object.assign(felt.game, { breakShot: false, inHand: null, pushAvail: false }); hud();
     });
     await frames(page, 3);
-    clear.push(['call bar', await page.evaluate(clearOfRow, '#callBar')]);
+    /* the call (5c): its menu, opened from the power bar, stands clear of the row too */
+    await page.evaluate(() => { hudCall(); callMenuToggle(); });
+    await page.waitForTimeout(350);
+    clear.push(['call menu', await page.evaluate(clearOfRow, '#callBar')]);
+    await page.evaluate(() => popClose());
     await page.evaluate(() => { felt.exhibition({ kind: '9', a: { level: 'easy' }, b: { level: 'easy' }, seed: 3 }); felt.speed = 0.01; });
     await frames(page, 3);
     clear.push(['exhibition bar', await page.evaluate(clearOfRow, '#exBar')]);
@@ -281,7 +285,7 @@ function inlayContrast() {
     await page.evaluate(() => { felt.exitSolo(); felt.tutorial('8'); });
     await frames(page, 4);
     clear.push(['coach card', await page.evaluate(clearOfRow, '#coach')]);
-    check(`${size}: the call bar, the exhibition's bar, the practice tools and the coach's card shown and clear of the row`,
+    check(`${size}: the call menu, the exhibition's bar, the practice tools and the coach's card shown and clear of the row`,
       clear.every(([, c]) => c.shown && c.hits.length === 0), JSON.stringify(clear));
     check(`${size}: no console errors`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
     await t.browser.close();

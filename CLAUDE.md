@@ -140,19 +140,19 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Called shots: `game.call` (`{ ball, pocket, safety, push, bank, kick, combo, auto }`) is a pure input judge reads;
   `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
   (`game.option`: push-out, uncalled ball, illegal break, 8 on the break) are answered by `chooseOption(g, c)`
-  (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the pill, the
-  Safety and Push out chips, `obviousCall`), and the bar does not arm without a needed call. Nothing of the call is
-  ever over the table: `#callBar` is a grid row of `#ui` (`grid-area: call`) that exists only while the root has
-  `data-callrow`, set by `callRowSync()` (from `start()` and `hud()`) to `callRowWanted()`: a pocket game, not a solo
-  session, tutorial or exhibition, whose rules can ever ask for a call or offer a push-out (decided from `game.rules`,
-  not the turn). Upright the row (44 pt, `--call-h`) sits between the table and the strip with the strip's side
-  gutter; on its side it is a band over the table (beside the column), the table fitted to the room left. It holds
-  for the whole game (empty on a turn that needs nothing; the table never moves between turns) and a game that
-  never calls lays out exactly as before. One line: the pill (words, then its hint, ellipsised), the flags, Safety,
-  Push Out; a crowded row scrolls within itself. Settings `calls`
+  (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the bar's label, the
+  Safety and Push Out options, `obviousCall`), and the bar does not arm without a needed call. The table is never
+  smaller for calls and nothing of the call sits on it while idle: the call's state is the power bar's own label
+  (`callLab`: "1 · Bottom Left", "Bank: 1 · Top Right", "Safety", "Push Out", "Call your shot"; ellipsised in the
+  bar, the full words in its `aria-valuetext` via `callSay`), and its options (Change/Clear Call, Bank, Kick, Combo,
+  Safety, Push Out) are `#callBar`, a 6p-style pop-up menu (`.seg.pop.callMenu`, not built by `popUp`) opened by a
+  tap on the bar (`BAR_TAP` px, `BAR_TAP_MS`: never arms, never shoots; `callMenuToggle`, `callMenuPlace`: upright
+  over the bar, on its side beside the column), only on a turn that has options (`callMenuOffered`; the bar then
+  carries chevron.up.chevron.down, `#callGlyph`). A pick, a tap outside (swallowed, pointer events too), Esc or a
+  pull closes it. Settings `calls`
   (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
-  `called-check` pins the page side (and the row: off the table's footprint, in the safe area, clear of the display
-  corner, the same table every turn, no-call games at their old rects), `tests/sim.cjs` NAMES has the engine's exports.
+  `called-check` pins the page side (the label, the menu by real taps, nothing over the table with it closed, every
+  game's table rect as at 9cc059b, five sizes with insets), `tests/sim.cjs` NAMES has the engine's exports.
 - Career engine: `// #region career` right after the sim region, one global `Career` (DOM-free, seeded from the
   career seed, time moves only in `Career.advance`). Pure logic and persistence for the multi-season career: AI
   population from the seed (only changed fields saved), calendar, brackets (single, double, round robin, groups,
@@ -207,7 +207,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 
 - Power bar idle (`#powerBar.idle`, ready to pull): no words, larger chevrons, a slow shimmer down the pull (none
   under Reduce Motion); "Pull to shoot" stays in `powerLab` at no size. Words show only where they inform (Call your
-  shot, CPU thinking, Replay, Rolling, Your choice, the live percentage).
+  shot, the call itself, CPU thinking, Replay, Rolling, Your choice, the live percentage).
 - Settings (page section 6, after the help stack): a grouped list with a page per group (`PREF_PAGES`,
   `prefsPage(name)`, `showPrefs`), the How to play pattern. Stored as `felt.settings`, `sv` 3: `migrateSettings`
   steps any older save up keeping every value, the old record is backed up once (`felt.settings.bak`) and unknown
@@ -323,7 +323,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px); `sizeSig`
   carries the insets and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
   holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar
-  stays the biggest control). The exhibition bar, free-ball pick and tools rise over it (`--rail-lift`; the call bar is off the table in its own row, 5c);
+  stays the biggest control). The exhibition bar, free-ball pick and tools rise over it (`--rail-lift`; the call is the power bar's label and menu, 5c);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
   3D place too, and nothing on a rail may cover a pocket or a diamond (`railbar-check`). No context: top-down. Replays, the menu
   and the lesson are top-down. On a software rasteriser it draws at `V3_SOFT_DPR` (1.25x). A view only: never writes

@@ -214,7 +214,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pchip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
 @keyframes chipPulse { 50% { opacity: .6; } }
 /* a short landscape screen: the column trims the wheel and the meter's floor so it all fits */
-@media (max-height: 420px) { [data-layout="wide"] #fineWheel { height: 112px; } [data-layout="wide"] #powerBar { min-height: 96px; } }
+@media (max-height: 420px) { [data-layout="wide"] #fineWheel { height: 112px; } [data-layout="wide"] #powerBar { min-height: 96px; } [data-layout="wide"] #ctl { gap: 4px; } }   /* a short phone: tighter gaps keep the bar the biggest */
 /* a party of three or four (6f, .many): every player's chip on the rail, closer set; the race (.of)
    is left to the pause menu, which lists everyone */
 /* a rail short of room (placeRail): closer set, Caption 2, the race left to the pause menu as a party's is */

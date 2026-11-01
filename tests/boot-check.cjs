@@ -349,7 +349,9 @@ const artContrast = page => page.evaluate(() => {
       const c = { left: Math.min(...rs.map(r => r.left)), right: Math.max(...rs.map(r => r.right)), top: Math.min(...rs.map(r => r.top)), bottom: Math.max(...rs.map(r => r.bottom)) };
       const cs = getComputedStyle(document.documentElement), px = v => parseFloat(cs.getPropertyValue(v)) || 0;
       const safe = { l: px('--sal'), r: innerWidth - px('--sar'), t: px('--sat'), b: innerHeight - px('--sab') };
-      const ctlSafe = c.left >= safe.l - 0.5 && c.right <= safe.r + 0.5 && c.top >= safe.t - 0.5 && c.bottom <= safe.b + 0.5;
+      const ctlSafe = c.left >= safe.l - 0.5 && c.right <= safe.r + 0.5 && c.top >= safe.t - 0.5
+        /* on its side the column's foot meets the table's (Zac, 2026-11-01): it may run into the bottom inset as far as the rail does, never past it */
+        && (document.documentElement.dataset.layout === 'wide' ? c.bottom <= t.bottom + 1 && c.bottom <= innerHeight : c.bottom <= safe.b + 0.5);
       /* the bed and the balls inside the safe area; the rails may run under an inset (the status bar, the island) */
       const a = felt.toScreen(0, 0), b = felt.toScreen(TL, TW);
       const tableSafe = Math.min(a[0], b[0]) >= safe.l - 0.5 && Math.max(a[0], b[0]) <= safe.r + 0.5 && Math.min(a[1], b[1]) >= safe.t - 0.5 && Math.max(a[1], b[1]) <= safe.b + 0.5

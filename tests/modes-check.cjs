@@ -307,8 +307,8 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
         const apart = rs.every((a, i) => rs.every((b, j) => i === j || a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5));
         const ctlIn = [...ctl.children].filter(e => e.getClientRects().length).every(e => inView(R(e)));
         const ctlApart = (() => { const k = [...ctl.children].filter(e => e.getClientRects().length).map(R); return k.every((a, i) => k.every((b, j) => i === j || a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5)); })();
-        /* nothing clipped: each chip's content inside it, the whole name and score shown */
-        const whole = chips.every(c => c.scrollWidth <= c.clientWidth + 0.5 && c.scrollHeight <= c.clientHeight + 0.5 && [...c.children].every(k => !k.getClientRects().length || (R(k).left >= R(c).left - 0.5 && R(k).right <= R(c).right + 0.5 && k.scrollWidth <= k.clientWidth + 0.5)));
+        /* nothing clipped: each chip's content inside it, the score shown whole (the name is kept for VoiceOver only: 6b2's inlay) */
+        const whole = chips.every(c => c.scrollWidth <= c.clientWidth + 0.5 && c.scrollHeight <= c.clientHeight + 0.5 && [...c.children].every(k => !k.getClientRects().length || k.classList.contains('pn') || (R(k).left >= R(c).left - 0.5 && R(k).right <= R(c).right + 0.5 && k.scrollWidth <= k.clientWidth + 0.5)));
         return { size, n, chips: chips.length, names: chips.map(c => c.firstChild.textContent), nums: chips.map(c => (c.querySelector('.num') || {}).textContent), on: chips.map(c => c.classList.contains('on')), inView: rs.every(inView), apart, ctlIn, ctlApart, whole, dw: document.documentElement.scrollWidth <= vw, minH: Math.min(...rs.map(r => r.height)) };
       }, [n, `${w}x${h}`]));
     }

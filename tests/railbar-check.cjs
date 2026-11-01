@@ -2,8 +2,9 @@
 /* railbar-check: the bottom rail's row (page 6b2, placeRail): the 3D switch, the score keeper (a chip per player),
    snooker's scoreboard and the replay (its offer, or the badge and Skip while one plays) inlaid on the rail nearest the
    player, top-down on the table's bottom rail and in 3D on the stage's bottom row (V3_PIN_B).
-   1. the inlay on every rail look (walnut, cherry, light oak, ebony) at 430x932 and 932x430 with iOS insets: every word
-      4.5:1 against the wood under it (its brightest pixel) through the recess, dimmed and lit.
+   1. the inlay on every rail look (walnut, cherry, light oak, ebony) at 430x932 and 932x430 with iOS insets, 8-ball,
+      snooker and carom: every pearl inlay against the dark edge cut round it over the wood (the worst pixel), dimmed and
+      lit: numerals 4.5:1, glyphs and pips 3:1.
    2. for every game and table (8-ball 7 ft and 9 ft, 9, 10, 14.1, rotation, bumper octagon and rectangle, snooker 10 ft
       and 12 ft, carom), upright (393x852, 375x667, 440x956, 430x932 with insets) and on its side (852x393, 667x375,
       932x430 with insets), top-down and in 3D, with and without the replay's offer (plain and gold):
@@ -116,23 +117,22 @@ function clearOfRow(sel) {
   return { shown: true, hits, rect: [q.left, q.top, q.right, q.bottom].map(Math.round) };
 }
 
-/* in the page: each word on the rail against the wood it is inlaid on (the table's baked image under the pill, its
-   brightest pixel: the worst case), through the recess (--inlay): the dimmed words (white at .8) and the lit ones */
+/* in the page: each inlay on the rail against the edge cut round it (the sights' dark stroke, --ink-edge) over the wood
+   it is set in (the table's baked image under it, every pixel: the worst one counts), at its own opacity (a dimmed
+   seat, the switch off): numerals 4.5:1, glyphs and pips 3:1 */
 function inlayContrast() {
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
   const mix = (top, a, under) => top.map((v, i) => v * a + under[i] * (1 - a));
-  const g = tableImg.getContext('2d'), m = getComputedStyle(stage).getPropertyValue('--inlay').match(/[\d.]+/g).map(Number), ink = m.slice(0, 3), A = m[3];
-  const out = [];
+  const rgb = c => c.match(/[\d.]+/g).slice(0, 3).map(Number);
+  const g = tableImg.getContext('2d'), out = [], em = getComputedStyle(stage).getPropertyValue('--ink-edge').match(/[\d.]+/g).map(Number), edge = em.slice(0, 3), ea = em[3];
   for (const el of [pchip0, pchip1, snkBar, viewBtn.firstElementChild, replayBtn.firstElementChild]) {
-    const host = el.closest('[hidden]');
-    if (host || !el.getClientRects().length || getComputedStyle(el.parentElement).visibility === 'hidden' || getComputedStyle(el).visibility === 'hidden') continue;
-    const q = el.getBoundingClientRect(), d = dpr, x0 = Math.round(q.left * d), y0 = Math.round(q.top * d), w = Math.max(1, Math.round(q.width * d)), h = Math.max(1, Math.round(q.height * d));
-    const px = g.getImageData(x0, y0, w, h).data;
-    let worst = null, wl = -1;
-    for (let i = 0; i < px.length; i += 4) { const c = [px[i], px[i + 1], px[i + 2]], l = lum(c); if (l > wl) { wl = l; worst = c; } }
-    const bg = mix(ink, A, worst);
-    out.push({ id: el.id || el.parentElement.id, dim: +ratio(mix([255, 255, 255], 0.8, bg), bg).toFixed(2), lit: +ratio([255, 255, 255], bg).toFixed(2), wood: worst });
+    if (el.closest('[hidden]') || !el.getClientRects().length || getComputedStyle(el.parentElement).visibility === 'hidden' || getComputedStyle(el).visibility === 'hidden') continue;
+    const cs = getComputedStyle(el), ink = rgb(cs.color), a = +cs.opacity, num = /\d/.test([...el.querySelectorAll('.num, b:not(.inw), .of')].map(e => e.textContent).join(''));
+    const q = el.getBoundingClientRect(), d = dpr, px = g.getImageData(Math.round(q.left * d), Math.round(q.top * d), Math.max(1, Math.round(q.width * d)), Math.max(1, Math.round(q.height * d))).data;
+    let worst = Infinity, wood = null;
+    for (let i = 0; i < px.length; i += 4) { const c = [px[i], px[i + 1], px[i + 2]], r = ratio(mix(ink, a, c), mix(edge, ea * a, c)); if (r < worst) { worst = r; wood = c; } }
+    out.push({ id: el.id || el.parentElement.id, num, ratio: +worst.toFixed(2), need: num ? 4.5 : 3, ink, a, wood });
   }
   return out;
 }
@@ -159,7 +159,7 @@ function inlayContrast() {
     const t = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 2,
       init: `try { localStorage.setItem('felt.looks.v1', '{"v":1,"own":["rail-cherry","rail-oak","rail-ebony"]}'); localStorage.setItem('felt.settings', JSON.stringify({ sv: 3, cpu: false })); } catch (e) { }` });
     const res = [];
-    for (const rail of ['walnut', 'cherry', 'oak', 'ebony']) for (const kind of ['8', 'snooker']) {
+    for (const rail of ['walnut', 'cherry', 'oak', 'ebony']) for (const kind of ['8', 'snooker', 'carom']) {
       res.push(...await t.page.evaluate(async ([i, rail, kind, fn]) => {
         if (!document.getElementById('insets')) { const st = document.createElement('style'); st.id = 'insets'; document.head.appendChild(st); st.textContent = `html:root { --sat: ${i[0]}px; --sar: ${i[1]}px; --sab: ${i[2]}px; --sal: ${i[3]}px; }`; }
         setSetting('rail', rail); felt.start(kind); relayout();
@@ -169,9 +169,9 @@ function inlayContrast() {
         return f().map(o => Object.assign(o, { rail, kind, look: look().rail }));
       }, [ins, rail, kind, inlayContrast.toString()]));
     }
-    const bad = res.filter(r => r.dim < 4.5 || r.lit < 4.5 || r.look !== r.rail);
-    check(`${w}x${h} (iOS insets): every word inlaid on the rail 4.5:1 against the wood under it on every rail look (worst dimmed ${Math.min(...res.map(r => r.dim))}:1, ${res.length} pills)`,
-      res.length >= 24 && bad.length === 0, JSON.stringify(bad.length ? bad : res.slice(0, 3)));
+    const bad = res.filter(r => r.ratio < r.need || r.look !== r.rail);
+    check(`${w}x${h} (iOS insets): every inlay on the rail against the wood it is set in, on every rail look: numerals 4.5:1, glyphs and pips 3:1 (worst numeral ${Math.min(...res.filter(r => r.num).map(r => r.ratio))}:1, worst glyph ${Math.min(...res.filter(r => !r.num).map(r => r.ratio))}:1, ${res.length} inlays)`,
+      res.length >= 36 && res.some(r => r.num) && bad.length === 0, JSON.stringify(bad.length ? bad : res.slice(0, 3)));
     await t.browser.close();
   }
   for (const view of ['top', '3d']) for (const [w, h, ins] of SIZES) {

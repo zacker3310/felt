@@ -118,13 +118,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* the 3D view (4o): a WebGL canvas laid exactly over #stage, under the controls; input stays on #table */
 #t3d { position: fixed; left: 0; top: 0; display: block; pointer-events: none; }
 #t3d[hidden] { display: none; }
-/* its switch: a 44 px target on the bottom rail with the scoreboard and the replay (placeRail, 6b), a small capsule inside */
+/* its switch: a 44 px target on the bottom rail with the scoreboard and the replay (placeRail, 6b2), a cube inlaid in the
+   wood like the sights (bright when 3D is on); its word stays for VoiceOver and the tests */
 #viewBtn { position: absolute; z-index: 1; left: 0; top: 0; width: 44px; height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center; pointer-events: auto;
   transform: translate(-50%, -50%); }
 #viewBtn[hidden] { display: none; }
-#viewBtn > span { display: grid; place-items: center; min-width: 0; height: var(--ph, 22px); translate: 0 var(--py, 0px); padding: 0 6px; border-radius: 4px; font-size: var(--rf, 12px); line-height: 1; font-weight: 700; letter-spacing: .02em;
-  background: var(--inlay, rgba(44, 19, 9, .82)); color: #fff; border: 0; }
-#viewBtn[aria-pressed="true"] > span { background: var(--btn-pri); color: var(--btn-pri-ink); border-color: transparent; }
+#viewBtn > span { display: grid; place-items: center; height: var(--ph, 22px); translate: 0 var(--py, 0px); padding: 0 2px; color: var(--ink, #ece4d6); opacity: .78; }
+#viewBtn > span svg { width: var(--gl, 14px); height: var(--gl, 14px); filter: var(--ink-fx); }
+#viewBtn[aria-pressed="true"] > span { opacity: 1; }
+#viewBtn[aria-pressed="true"] > span svg { filter: var(--ink-fx) var(--ink-glow); }
+/* the inlay's words, kept for VoiceOver and the tests, never shown */
+.inw { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 
 /* ---- the game screen: the table (fitted into #stage by layout()) and one strip or column of
    controls. Nothing else: the players, the potted balls and the status line live in the pause
@@ -182,23 +186,29 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #turnChip { position: absolute; z-index: 1; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
 #turnChip[hidden] { display: none; }
 .pchip[hidden] { display: none; }   /* .pchip's display: flex would otherwise beat the hidden attribute */
+/* a seat on the rail: the player's balls (their group; on an open table a pearl pip), their points engraved, or
+   their racks as tally pips, inlaid in the wood; the player to shoot lit (full colour, the lamp's glow), the other
+   dimmed. The name stays in the chip for VoiceOver and the tests (.pn, never shown): the toast says whose turn it is. */
 .pchip { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: max-content; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px;
-  height: var(--ph, 22px); padding: 0 5px; border-radius: 4px; background: var(--inlay, rgba(44, 19, 9, .82)); border: 0; color: rgba(255, 255, 255, .8); font-size: var(--rf, 12px); font-weight: 600; line-height: var(--ph, 22px); white-space: nowrap; overflow: hidden; }
-/* the player to shoot: full white at 700, the other dimmed (no ring, no colour) */
-.pchip.on { color: #fff; font-weight: 700; }
-.pchip .pn { max-width: 100%; overflow: hidden; text-overflow: clip; }
+  height: var(--ph, 22px); padding: 0 2px; border: 0; color: var(--ink, #ece4d6); font-size: var(--rf, 12px); font-weight: 700; line-height: var(--ph, 22px); white-space: nowrap; overflow: hidden; opacity: .78; }
+.pchip.on { opacity: 1; }
+.pchip.on .pb { filter: var(--ink-glow); }
+.pchip:not(.on) .pb { filter: saturate(.55); }
+.pchip .pn { position: absolute; left: 0; top: 0; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
+.pchip .pip, .pchip .tal i { display: block; width: calc(var(--dot, 10px) - 2px); height: calc(var(--dot, 10px) - 2px); border-radius: 50%; background: var(--ink, #ece4d6); box-shadow: 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+.pchip .tal { display: flex; gap: 2px; margin-left: 2px; }
+.pchip .tal i { width: 5px; height: 5px; }
+.pchip .tal i.o { background: transparent; box-shadow: inset 0 0 0 1px var(--ink, #ece4d6), 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+.pchip .dot { box-shadow: 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
 .pchip .pb { display: flex; align-items: center; justify-content: center; gap: 2px; }
 .pchip .pb:empty { display: none; }
 .pchip .dot { width: var(--dot, 10px); height: var(--dot, 10px); }
 .pchip .dot.ring { margin: 0 1px; }
-.pchip .num { margin-left: 1px; font-variant-numeric: tabular-nums; line-height: 1; overflow: hidden; }
-/* carom: the points in the player's ball colour, then the race, smaller */
+.pchip .num { margin-left: 1px; font-variant-numeric: tabular-nums; line-height: 1; overflow: hidden; text-shadow: var(--ink-cut); }
+/* carom: the points engraved like the others (the seats tell the players apart), then the race */
 .pchip .num.c40, .pchip .num.c41 { margin: 0; font-size: var(--rf, 12px); }
-.pchip .num.c40 { color: #f7f4ea; }
-.pchip .num.c41 { color: #f4c430; }
-.pchip .of { font-size: 9px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
-.pchip.warn { border-color: var(--illegal); }
-.pchip.warn .pn { color: var(--illegal); }
+
+.pchip .of { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; text-shadow: var(--ink-cut); }
 .pchip.busy { animation: chipPulse 1.1s ease-in-out infinite; }
 @keyframes chipPulse { 50% { opacity: .6; } }
 /* a short landscape screen: the column trims the wheel and the meter's floor so it all fits */
@@ -206,11 +216,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* a party of three or four (6f, .many): every player's chip on the rail, closer set; the race (.of)
    is left to the pause menu, which lists everyone */
 /* a rail short of room (placeRail): closer set, Caption 2, the race left to the pause menu as a party's is */
-#turnChip.tight .pchip { padding: 0 4px; gap: 3px; font-size: 11px; }
+#turnChip.tight .pchip { padding: 0 1px; gap: 3px; font-size: 11px; }
 #turnChip.tight .pchip .of { display: none; }
 
 #turnChip.tight .pchip .pb { gap: 1px; }
-#turnChip.many .pchip { padding: 0 5px; gap: 3px; font-size: 11px; }
+#turnChip.many .pchip { padding: 0 2px; gap: 3px; font-size: 11px; }
 
 #turnChip.many .pchip .of { display: none; }
 
@@ -279,21 +289,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .rpl { position: absolute; z-index: 2; min-width: 44px; min-height: 44px; padding: 0; border: 0; background: none; display: grid; place-items: center;
   transform: translate(-50%, -50%); pointer-events: auto; animation: rplIn .2s ease-out; }
 .rpl[hidden] { display: none; }
-.rpl > span { display: inline-flex; align-items: center; gap: 5px; height: var(--ph, 22px); translate: 0 var(--py, 0px); padding: 0 6px; border-radius: 4px; white-space: nowrap;
-  background: var(--inlay, rgba(44, 19, 9, .82)); border: 0; color: #fff; font-size: var(--rf, 12px); line-height: 1; }
-.rpl b { font-weight: 650; }
-.rpl svg { width: var(--dot, 12px); height: var(--dot, 12px); flex: none; }
-/* a notable shot's offer: its glyph and word in gold, weight 700 */
-#replayBtn[data-notable] > span { color: #ffe29a; font-weight: 700; }
+.rpl > span { display: inline-flex; align-items: center; gap: 5px; height: var(--ph, 22px); translate: 0 var(--py, 0px); padding: 0 2px; white-space: nowrap;
+  border: 0; color: var(--ink, #ece4d6); font-size: var(--rf, 12px); font-weight: 700; line-height: 1; text-shadow: var(--ink-cut); }
+/* the replay's glyphs inlaid like the sights; its words kept for VoiceOver and the tests (never shown) */
+.rpl b { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); }
+.rpl svg { width: var(--gl, 14px); height: var(--gl, 14px); flex: none; filter: var(--ink-fx) var(--ink-glow); }
+/* a notable shot's offer: its glyph in brass */
+#replayBtn[data-notable] > span { color: var(--brass, #e8c66a); }
 #replayBadge { pointer-events: none; }
-#replayBadge i { font-style: normal; color: rgba(255, 255, 255, .8); }
-#replaySkip > span { padding: 0 6px; }
-/* a short rail (placeRail): the icon alone, its words in the label */
-.rpl.bare > span, #replayBtn.bare > span, #replaySkip.bare > span { padding: 0 5px; }
-.rpl.bare b, .rpl.bare i { display: none; }
-#replaySkip > span svg { display: none; }
-#replaySkip.bare > span svg { display: block; }
-#replaySkip.bare b { display: none; }
+#replayBadge i { font-style: normal; }
+.rpl.bare i { display: none; }
 @keyframes rplIn { from { opacity: 0; transform: translate(-50%, -50%) scale(.94); } }
 #powerBar.rp { cursor: default; border-style: dashed; background: var(--panel); }
 #powerBar.rp:not(.live) #powerLab::after { content: none; }
@@ -334,6 +339,16 @@ button { font: inherit; color: inherit; cursor: pointer; }
    controls (#6b6b74, 3.4:1 on the page) and chevrons that point the way to pull */
 #powerBar { position: relative; border-radius: 14px; background: var(--panel-2); border: 1px solid #6b6b74; overflow: hidden; touch-action: none; cursor: grab; }
 #powerBar:not(.live) #powerLab::after { content: "\203A\203A\203A"; font-size: 17px; line-height: 1; letter-spacing: -1px; color: var(--text); }
+/* idle: no words, only the chevrons (larger) pointing the way of the pull, a slow shimmer running down it (Reduce Motion:
+   still). The words stay in the label at no size, for VoiceOver and the tests. */
+#powerBar.idle #powerLab { font-size: 0; }
+#powerBar.idle #powerLab::after { font-size: 26px; letter-spacing: -2px; }
+#powerBar.idle #powerLab::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .09), transparent) no-repeat;
+  background-size: 35% 100%; animation: pullShimmer 2.6s ease-in-out infinite; }
+[data-layout="wide"] #powerBar.idle #powerLab::before { background-image: linear-gradient(180deg, transparent, rgba(255, 255, 255, .09), transparent); background-size: 100% 35%; animation-name: pullShimmerV; }
+@keyframes pullShimmer { from { background-position: -60% 0; } 70%, to { background-position: 160% 0; } }
+@keyframes pullShimmerV { from { background-position: 0 -60%; } 70%, to { background-position: 0 160%; } }
+@media (prefers-reduced-motion: reduce) { #powerBar.idle #powerLab::before { animation: none; background: none; } }
 /* the fine-aim wheel: a ridged thumbwheel, lit across the middle and falling into shadow at
    both ends. --roll (set as it is dragged) moves the ridges with the finger. The edge and the
    light ridges are 3:1 or better on what is behind them. */
@@ -1393,19 +1408,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
    gives it its place, setting it closer and dropping its least parts when the rail is short), the concession in
    the pause menu, the setup's red ball ---- */
 #snkBar { position: absolute; z-index: 1; top: 12px; left: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; width: max-content; overflow: hidden; box-sizing: border-box;
-  height: var(--ph, 22px); padding: 0 6px; border-radius: 4px; background: var(--inlay, rgba(44, 19, 9, .82)); border: 0; font-size: var(--rf, 12px); line-height: 1; font-weight: 600;
-  color: var(--text); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
+  height: var(--ph, 22px); padding: 0 2px; border: 0; font-size: var(--rf, 12px); line-height: 1; font-weight: 700;
+  color: var(--ink, #ece4d6); text-shadow: var(--ink-cut); white-space: nowrap; pointer-events: none; font-variant-numeric: tabular-nums; }
 #snkBar[hidden] { display: none; }
 #snkBar span { display: inline-flex; align-items: center; gap: 4px; }
 #snkBar span + span { margin-left: 10px; }
 /* a short rail: closer set, then its least part dropped (placeRail) */
-#snkBar.tight { padding: 0 5px; }
+#snkBar.tight { padding: 0 1px; }
 #snkBar.tight span + span { margin-left: 6px; }
 #snkBar span.cut { display: none; }
-#snkBar .k { color: rgba(255, 255, 255, .8); font-weight: 500; }
-#snkBar .dot { width: var(--dot, 10px); height: var(--dot, 10px); }
-#snkBar .warn { color: var(--illegal); }
-#snkBar .free { color: #8fd8b0; letter-spacing: .04em; }
+#snkBar .dot { width: var(--dot, 10px); height: var(--dot, 10px); box-shadow: 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
+#snkBar span:has(.dot) { filter: var(--ink-glow); }
+#snkBar .free { letter-spacing: .04em; }
 #concedeBtn { grid-column: 1 / -1; }
 #concedeBtn[hidden] { display: none; }
 .bsblk { background-color: #161618; background-image: radial-gradient(circle at 35% 30%, #55555a, #161618 70%); }
@@ -1554,7 +1568,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     </div>
     <button class="tool" id="editDone" hidden>Done Editing</button>
     <!-- the table view (4o): top-down or the player's 3D camera; Settings > Graphics > Table View too -->
-    <button id="viewBtn" aria-pressed="false" aria-label="3D View" hidden><span>3D</span></button>
+    <button id="viewBtn" aria-pressed="false" aria-label="3D View" hidden><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 21 7.5 12 12.5 3 7.5z" fill="currentColor"/><path d="M3 7.5 12 12.5V22L3 17z" fill="currentColor" fill-opacity=".72"/><path d="M21 7.5 12 12.5V22l9-5z" fill="currentColor" fill-opacity=".5"/></svg><b class="inw">3D</b></span></button>
     <button class="rpl" id="replayBtn" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b id="replayLab">Replay</b></span></button>
     <div class="rpl" id="replayBadge" hidden><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><b>Replay</b><i id="replaySlow" hidden>Slow motion</i></span></div>
     <button class="rpl" id="replaySkip" hidden aria-label="Skip the replay"><span><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 5.5v13l9-6.5zM14 5.5v13l9-6.5z"/></svg><b>Skip</b></span></button>
@@ -8439,7 +8453,7 @@ let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
 const V3_PIN_B = 26;
 /* the bottom rail's row (placeRail, 6b): RAIL_PAD px kept clear of each pocket's hole and jaws, RAIL_GAP px between
    two of its items, SIGHT_PAD px kept clear of each diamond */
-const RAIL_PAD = 4, RAIL_GAP = 6, SIGHT_PAD = 1, INLAY_A = 0.82;
+const RAIL_PAD = 4, RAIL_GAP = 6, SIGHT_PAD = 1;
 const V3_PITCH = [8, 70], V3_DIST = [0.45, 3.2], V3_PITCH0 = 24, V3_DIST0 = 1.1;
 const V3 = { ok: null, gl: null, live: false, flat: false, soft: false, renderer: '', yaw: 0, px: NaN, py: NaN, seat: { shot: undefined, turn: -1, plan: null, set: false },
   cuts: 0, k: 100, cam: null, box: null, scale: 1, ms: [], frames: 0, poses: [], lost: false,
@@ -8502,7 +8516,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-31d';
+const BUILD = 'build 2026-10-31e';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -16576,13 +16590,20 @@ function chipOf(p) {
   if (game.kind === 'straight' || game.kind === 'rotation') return { balls: game.kind === 'rotation' && p === game.turn && on.length ? [on[0]] : [], num: String(game.score[p]), of: '/' + game.race };
   if (game.kind === '9' || game.kind === '10') return p === game.turn && on.length ? { balls: [on[0]], num: '' } : { balls: [], num: '' };
   const gr = game.groups[p];
-  if (!gr) return { balls: [on.find(n => n < 8), on.find(n => n > 8)].filter(Boolean), num: '' };   /* open: either group */
+  if (!gr) return { balls: [], num: '' };   /* open: no group yet, a neutral pip on the rail */
   const left = on.filter(n => groupOf(n) === gr);
   return { balls: left.length ? left.slice(0, 1) : [8], num: '' };
 }
 /* a party of three or four (6f): a chip for every player, in turn order, the player to shoot lit;
    the strip packs them two by two in portrait and stacks them slim in landscape (.many) */
 const chipCount = () => party && party.n > 2 && !game.mode ? party.n : 2;
+/* a match raced in racks (a career or tournament match): player p's racks won and the race, for the tally pips on
+   the rail (7 at most; a longer race keeps its numbers in the pause menu) */
+function rackTally(p) {
+  const m = career && !career.done && career.units !== 'points' ? career : tmatch && !tmatch.done && tmatch.units !== 'points' ? tmatch : null;
+  if (!m || game.mode || !(m.need > 1) || m.need > 7 || p > 1) return null;
+  return [m.score[p], m.need];
+}
 function hudChip() {
   if (hudSolo()) return;
   turnChip.hidden = game.winner !== null;
@@ -16594,12 +16615,16 @@ function hudChip() {
     if (i >= n) continue;
     const p = n > 2 ? i : seatOf(i), name = el.firstChild, box = el.lastChild, c = chipOf(p), nm = shortName(p);
     if (name.textContent !== nm) name.textContent = nm;
-    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '') + (settings.marks ? 'm' : '');
+    const tally = rackTally(p);
+    const key = c.balls.join(',') + '|' + c.num + (c.of || '') + (c.col || '') + (tally ? tally.join('/') : '') + (settings.marks ? 'm' : '');
     if (box.dataset.key !== key) {
       box.dataset.key = key;
       const els = c.balls.map(n => dotEl(n));
+      /* nothing to show yet (an open table, the other player at 9-ball): a pearl pip holds the seat */
+      if (!els.length && !c.num) { const t = document.createElement('span'); t.className = 'pip'; els.push(t); }
       if (c.num) { const t = document.createElement('span'); t.className = 'num' + (c.col ? ' c' + c.col : ''); numRoll(t, 'chip' + p, c.num); els.push(t); }
       if (c.of) { const t = document.createElement('span'); t.className = 'of'; t.textContent = c.of; els.push(t); }
+      if (tally) { const t = document.createElement('span'); t.className = 'tal'; t.setAttribute('aria-label', `${tally[0]} of ${tally[1]}`); for (let i = 0; i < tally[1]; i++) { const b = document.createElement('i'); if (i >= tally[0]) b.className = 'o'; t.appendChild(b); } els.push(t); }
       box.replaceChildren(...els);
     }
     el.classList.toggle('on', p === game.turn);
@@ -16656,7 +16681,7 @@ function hudSnooker() {
   const show = game.kind === 'snooker' && game.winner === null && !(state === 'menu' && !paused);
   if (snkBar.hidden !== !show) snkBar.hidden = !show;
   if (!show) return;
-  const p = game.turn, need = snookersNeeded(game, p), dots = game.on === 'colour' ? [] : onDots(game);
+  const p = game.turn, need = snookersNeeded(game, p), dots = onDots(game);
   const cap = n => snkName(n)[0].toUpperCase() + snkName(n).slice(1);
   const on = game.free ? (game.on === 'red' ? 'Red or ' : '') + cap(game.free) : game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? cap(game.on) : '';
   const parts = [['Break', String(game.brk)], ['On', on, dots], [snookerLeft(game) + ' left', '']];
@@ -16671,9 +16696,12 @@ function hudSnooker() {
     const sp = document.createElement('span');
     /* what a short rail drops first (placeRail): the points left, then the frame, then the warning; never the break or the ball on */
     sp.dataset.p = k === 'Break' || k === 'On' ? 0 : k.endsWith(' left') ? 3 : k.startsWith('Frame') ? 2 : 1;
-    if (k) { const e = document.createElement('i'); e.className = 'k'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
+    /* inlaid: the labels and the ball on's name kept for VoiceOver and the tests (.inw), the numbers engraved, the ball on as
+       its balls; the break only while one runs, the points left not shown; the warnings keep their words */
+    if (k) { const e = document.createElement('i'); e.className = 'k inw'; e.style.fontStyle = 'normal'; e.textContent = k; sp.appendChild(e); }
     for (const n of ds || []) sp.appendChild(dotEl(n));
-    if (val) { const e = document.createElement('b'); if (k === 'Break') numRoll(e, 'snkBreak', val); else e.textContent = val; if (warn || cls) e.className = warn ? 'warn' : cls; sp.appendChild(e); }
+    if (val) { const e = document.createElement('b'); if (k === 'Break') numRoll(e, 'snkBreak', val); else e.textContent = val; e.className = warn ? 'warn' : cls || (k === 'On' ? 'inw' : ''); sp.appendChild(e); }
+    if (k.endsWith(' left') || (k === 'Break' && val === '0')) sp.classList.add('inw');
     return sp;
   }));
   placeRail(true);
@@ -16701,6 +16729,15 @@ function hudSnooker() {
    (--rail-lift). felt.railBar reports the layout. Called every frame (frameBody); it measures and
    writes only when what it lays out has changed, or when forced (a new layout, new words, the replay). ---- */
 let railKey = '', railStage = null, railTop = Infinity, railSafe = Infinity;
+/* the inlay's material, as the sights are made on every rail: mother-of-pearl, its edge cut dark all round (the
+   sights' stroke), so it reads on the lightest oak as on ebony; the lamp's glow for what is lit, brass for a notable replay */
+const RAIL_EDGE = 'rgba(20, 8, 3, .85)';
+function railInk() {
+  const vars = { '--ink': '#efe7da', '--ink-edge': RAIL_EDGE, '--brass': '#f0cc6e',
+    '--ink-cut': `0 0 1px ${RAIL_EDGE}, 0 0 1px ${RAIL_EDGE}, 0 1px 1px ${RAIL_EDGE}`,
+    '--ink-fx': `drop-shadow(0 0 .7px ${RAIL_EDGE}) drop-shadow(0 0 .7px ${RAIL_EDGE})`, '--ink-glow': 'drop-shadow(0 0 3px rgba(255, 236, 190, .75))' };
+  return { id: 'pearl', vars };
+}
 /* the gaps [x0, x1] (CSS px) of the row [top, bottom] clear of every obstacle [x0, x1, y0, y1, pad] */
 function railSpans(x0, x1, top, bot, holes) {
   let spans = [[x0, x1]];
@@ -16761,9 +16798,13 @@ function placeRail(force) {
   stage.style.setProperty('--ph', ph + 'px');
   stage.style.setProperty('--rf', (ph < 16 ? 11 : 12) + 'px');
   stage.style.setProperty('--dot', Math.min(10, ph - 3) + 'px');
-  /* the inlay's recess: the wood's own dark, under every word on the rail (4.5:1 for the dimmed words on every RAILS look) */
-  const RW = railLook();
-  stage.style.setProperty('--inlay', `rgba(${RW.dark.join(', ')}, ${INLAY_A})`);
+  stage.style.setProperty('--gl', Math.min(16, ph + 1) + 'px');
+  /* the inlay's material (railInk) */
+  const ink = railInk();
+  if (stage.dataset.ink !== ink.id) {
+    stage.dataset.ink = ink.id;
+    for (const [k, v] of Object.entries(ink.vars)) stage.style.setProperty(k, v);
+  }
   const out = { live, ty, py, ph, segs: segs.map(s => s.slice()), items: {} };
   let used = [];
   /* the free spans of gap g after what is placed (used: [x0, x1, id]) */
@@ -16811,8 +16852,35 @@ function placeRail(force) {
   };
   /* the score keeper and the scoreboard first; a party too many for the bottom rail's gaps carries on along the far
      rail's (top-down), never over a diamond */
+  /* a seat: player 1's chip in the gap nearest the rail's middle on its left, player 2's on its right (the seats
+     mirrored); a gap across the middle gives each its half, the two meeting at the middle */
+  const seat = (el, w, left) => {
+    let best = null;
+    for (const g of segs) for (const [a0, b0] of free(g)) {
+      const a = left ? a0 : Math.max(a0, mid + RAIL_GAP / 2), b = left ? Math.min(b0, mid - RAIL_GAP / 2) : b0;
+      if (b - a < w) continue;
+      const across = g[0] < mid && g[1] > mid, c = (g[0] + g[1]) / 2;
+      const x = across ? (left ? b - w / 2 : a + w / 2) : clamp(c, a + w / 2, b - w / 2), d = Math.abs(x - mid);
+      if (!best || d < best.d) best = { x, d };
+    }
+    if (!best) return false;
+    used.push([best.x - w / 2, best.x + w / 2, el.id]); at(el, best.x, py); out.items[el.id] = best.x;
+    return true;
+  };
   const group = () => {
     const items = [...chips, ...(snkBar.hidden || snkBar.style.display === 'none' ? [] : [snkBar])], ws = items.map(wOf);
+    if (chips.length === 2) {
+      if (!seat(chips[0], ws[0], true) || !seat(chips[1], ws[1], false)) { used = []; for (const c of chips) delete out.items[c.id]; }
+      else {
+        if (items.length === 2) return true;
+        /* the scoreboard (the ball on, the break): beside the player to shoot */
+        const sx = out.items[chips[game.turn === seatOf(1) ? 1 : 0].id], w2 = ws[2];
+        let best = null;
+        for (const g of segs) for (const [a, b] of free(g)) if (b - a >= w2) { const x = clamp(sx, a + w2 / 2, b - w2 / 2); if (best === null || Math.abs(x - sx) < Math.abs(best - sx)) best = x; }
+        if (best !== null) { used.push([best - ws[2] / 2, best + ws[2] / 2, snkBar.id]); at(snkBar, best, py); out.items[snkBar.id] = best; return true; }
+        return false;
+      }
+    }
     let pos = pack(ws, segs), far = [];
     for (let n = chips.length - 1; !pos && n >= 1 && topSegs; n--) {
       const a = pack(ws.slice(0, n), segs), b = a && pack(ws.slice(n, chips.length), topSegs);
@@ -16892,6 +16960,8 @@ function hudControls() {
   powerBar.classList.toggle('rp', !!rp);   /* a replay (5r): the bar is off and says so */
   const lab = rp ? 'Replay' : live ? pct + '%' : state === 'aim' && human() ? (callReady() ? 'Pull to shoot' : 'Call your shot') : state === 'thinking' ? 'CPU thinking' : state === 'rolling' || state === 'stroke' ? 'Rolling' : state === 'choose' ? 'Your choice' : '';
   powerBar.classList.toggle('nocall', state === 'aim' && human() && !live && !callReady());
+  /* idle (ready to pull): the chevrons alone say it; the words stay for VoiceOver and the tests */
+  powerBar.classList.toggle('idle', lab === 'Pull to shoot');
   if (powerLab.textContent !== lab) powerLab.textContent = lab;
   powerBar.setAttribute('aria-valuenow', String(Math.round((live ? power : markPower) * 100)));
   spinTip.style.left = 50 + cueSpin.x * SPIN_SAFE * 50 + '%';

@@ -196,6 +196,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   migrates and is kept once in `felt.record.v1.bak`; each write keeps the previous in `felt.record.prev`, read
   back when the main one is unreadable. Dates are the page's `today()`.
 
+- Power bar idle (`#powerBar.idle`, ready to pull): no words, larger chevrons, a slow shimmer down the pull (none
+  under Reduce Motion); "Pull to shoot" stays in `powerLab` at no size. Words show only where they inform (Call your
+  shot, CPU thinking, Replay, Rolling, Your choice, the live percentage).
 - Settings (page section 6, after the help stack): a grouped list with a page per group (`PREF_PAGES`,
   `prefsPage(name)`, `showPrefs`), the How to play pattern. Stored as `felt.settings`, `sv` 3: `migrateSettings`
   steps any older save up keeping every value, the old record is backed up once (`felt.settings.bak`) and unknown
@@ -293,15 +296,15 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   drawFx's as billboards (`v3FxList`); the loupe is a second render from the same eye, LOUPE_MAG tighter, into a small
   framebuffer (`v3Loupe`, placed by 4g's `loupeStep`); a ball's `b.z` (jump shots; absent = 0) draws it raised in both views
   with a smaller, fainter shadow (`airOf`, `airScale`); the neighbours get a side-on card at low pitch (`v3PaintNSide`).
-  The bottom rail's row (6b2, `placeRail`, `felt.railBar`) is an inlay: the 3D switch, the score keeper (a chip per player,
-  `pchip0`-`pchip3` placed one by one; `#turnChip` is only their frame), the snooker scoreboard and the replay (pill, badge,
-  Skip) are words and glyphs on the wood of the rail at the screen's foot (upright the head rail, on its side the near long
-  rail), each on a small recess of the wood's own dark (`--inlay`, `INLAY_A`; 4.5:1 for the dimmed words on every RAILS
-  look), sized to the wood band (`--ph`, `--rf` 11 or 12 px, `--dot`), never over the cushion, a pocket's hole or jaws
-  (`RAIL_PAD`) or a sight (`railSights`, `SIGHT_PAD`): each sits in its own gap between them, centred. The shooter is white
-  at 700, the other dimmed; no rings. The score keeper and scoreboard pack into the gaps nearest the rail's middle (a chip
-  per gap if need be; a party too many carries on along the far rail), the replay takes the outermost gap on the right,
-  the switch the left. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
+  The bottom rail's row (6b2, `placeRail`, `felt.railBar`) is inlaid in the wood the way the sights are (pearl, `--ink`,
+  its edge cut dark all round, `RAIL_EDGE`, `railInk`; no plates, no words shown): the 3D switch a cube glyph (bright when
+  on), the replay an arrow glyph (brass when notable), each seat (`pchip0`-`pchip3`, `#turnChip` only their frame) the
+  player's balls (an open table or nothing to show: a pearl pip), points engraved (snooker, carom, 14.1, rotation), racks
+  of a career or tournament match as tally pips (`rackTally`); the shooter lit (full colour, the lamp's glow), the other
+  dimmed. Player 1 sits left of the rail's middle, player 2 right (`seat`); snooker's ball on and break beside the shooter.
+  Names and labels stay in the DOM visually hidden (`.inw`, `.pn`, `.rpl b`) for VoiceOver and the tests. Each inlay is
+  sized to the wood band (`--ph`, `--rf`, `--gl`, `--dot`), never over the cushion, a pocket's hole or jaws (`RAIL_PAD`) or
+  a sight (`railSights`, `SIGHT_PAD`), in its own gap. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
   dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,
   then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
   In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected. The table: `fitTable`

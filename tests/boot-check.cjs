@@ -260,9 +260,9 @@ const artContrast = page => page.evaluate(() => {
   }
   check('game screen: no player cards, no status text, no tray (view.tray null, no band)', clean.every(c => !c.cards.length && !c.text.length && c.tray === null && !c.band), JSON.stringify(clean));
   check('the status line stays for screen readers: visually hidden, role status, aria-live polite', clean.every(c => c.msg.w <= 1 && c.msg.h <= 1 && c.msg.live === 'polite' && c.msg.role === 'status'), JSON.stringify(clean.map(c => c.msg)));
-  check('two player chips, the active one lit, in the score keeper on the table\'s bottom rail (6b2): each chip inlaid on the wood, name and all',
+  check('two player chips, the active one lit, in the score keeper on the table\'s bottom rail (6b2): each seat inlaid in the wood (its balls or a pip; the name kept for VoiceOver)',
     clean.every(c => c.chip.shown && c.chip.name === 'You' && c.chip.chips.length === 2 && c.chip.chips[0].on && !c.chip.chips[1].on
-    && c.chip.chips[1].name === 'CPU' && c.chip.onRail && c.chip.chips.every(k => k.h >= 11 && k.w >= 30)), JSON.stringify(clean.map(c => c.chip)));
+    && c.chip.chips[1].name === 'CPU' && c.chip.onRail && c.chip.chips.every(k => k.h >= 11 && k.w >= 8)), JSON.stringify(clean.map(c => c.chip)));
 
   /* every layout: nothing overlaps the table (hud, pause, english, power bar, fine-aim wheel),
      every control is on screen and at least 44 px, no sideways scroll, the rail is 0.10 m or

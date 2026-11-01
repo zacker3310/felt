@@ -1530,13 +1530,18 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 
 /* ---- motion (6m): the card-to-sheet morph, interactive sheets, the numbers, the power bar's feel.
    The morph's pieces are fixed layers moved by transforms only (FLIP): a backdrop and a panel
-   painted behind the sheet while its own backgrounds stand aside (.morphing), the card's art or
-   face growing into the hero or the page, the title flying into the sheet's title. .keep holds an
+   painted behind the sheet while its own backgrounds stand aside (.morphing), a window (.mClip)
+   growing from the card into the hero or the page with the pictures in it (.mLayer, each at its
+   own aspect), the title flying into the sheet's title. .keep holds an
    overlay on screen (not shown, not touchable) while a sheet comes over it or goes off it. ---- */
 .overlay.keep { display: grid; grid-template-columns: minmax(0, 1fr); pointer-events: none; }
 .overlay.morphing, .overlay.morphing > .sheet, #setupSheet.morphing .hero { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
 .mPiece, .mLayer, .mTitle, .mGhost { position: fixed; left: 0; top: 0; margin: 0; pointer-events: none; transform-origin: 0 0; will-change: transform, opacity; }
 .mLayer { overflow: hidden; }
+.mClip { position: fixed; left: 0; top: 0; margin: 0; overflow: hidden; pointer-events: none; transform-origin: 0 0; will-change: transform; }
+.mClip > * { position: absolute; left: 0; top: 0; }
+#setupSheet.morphing .hero::after { visibility: hidden; }   /* the morph carries the hero's fade (a copy over the pictures) */
+#setupHeroArt.snap { transition: none; }
 .mLayer > * { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mLayer canvas, .heroCopy { object-fit: cover; display: block; }
 .mTitle { z-index: 70; white-space: nowrap; color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .5); }
@@ -9098,7 +9103,10 @@ function paintVignette(g) {
   g.fillStyle = gr; g.fillRect(-4, -4, 8, 8);
   g.restore();
 }
-function paintTable(w, h) {
+/* (whole, or as a job of its passes for the hero built under a card's morph, heroTextureJob: a
+   step yields the context, the caller flushing it) */
+function paintTable(w, h) { return drain(paintTableJob(w, h)); }
+function* paintTableJob(w, h) {
   useCloth();
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -9116,15 +9124,19 @@ function paintTable(w, h) {
   g.shadowOffsetX = -LIGHT[0] * 0.025 * K; g.shadowOffsetY = -LIGHT[1] * 0.025 * K;
   g.fillStyle = '#2a140a'; railOutline(g, co); g.fill();
   g.restore();
-  if (BED_LINES) paintOctaRails(g, co, L, px, rnd); else paintRails(g, co, L, px, rnd);
+  yield g;
+  if (BED_LINES) paintOctaRails(g, co, L, px, rnd); else yield* paintRails(g, co, L, px, rnd);
+  yield g;
   if (BUMPERS.length) { paintBumperTable(g, co, L, px, K, rnd); trayBox = trayGeom(); return c; }
   if (TABLE !== 'snooker') paintSights(g, co, L, px);   /* a snooker table has no sights */
   /* the cloth runs under the cushions to the wood */
   g.fillStyle = CLOTH; g.fillRect(-co, -co, TL + 2 * co, TW + 2 * co);
   paintPocketCaps(g, co, L, px);
   paintHoles(g, co, L, px);
+  yield g;
   paintCushions(g, co, K);
   paintClothLight(g, co, rnd);
+  yield g;
   paintCushionAO(g, co);
   paintBevels(g, co, L, px);
   paintPocketLips(g, co, L, px);
@@ -9153,7 +9165,7 @@ function paintTable(w, h) {
 /* four mitred boards with wavy grain running along each, a bullnose edge that follows the rail's
    outline (round the corners) and catches the lamp on the sides facing it, and a dark seam where
    the wood meets the rubber */
-function paintRails(g, co, L, px, rnd) {
+function* paintRails(g, co, L, px, rnd) {   /* a step a board, a step an edge (paintTableJob) */
   const E = RAIL;
   const boards = [
     { q: [[-E, -E], [TL + E, -E], [TL + co, -co], [-co, -co]], along: 0, a: [-co, -E], n: [0, -1] },
@@ -9192,6 +9204,7 @@ function paintRails(g, co, L, px, rnd) {
     gr.addColorStop(0.55, `rgba(255,225,190,${0.04 + 0.08 * f})`); gr.addColorStop(1, `rgba(255,225,190,${0.04 + 0.08 * f})`);
     g.fillStyle = gr; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
     g.restore();
+    yield g;
   }
   /* the bullnose, following the outline wherever it goes: inner shadows of the world outside
      it. A crest of lamp light on the edges that face the lamp, the far edges falling into shade,
@@ -9206,7 +9219,9 @@ function paintRails(g, co, L, px, rnd) {
   railOutline(g, co); g.clip();
   g.fillStyle = '#000';
   edge('rgba(255,232,205,0.3)', 0.014, -0.008);
+  yield g;
   edge('rgba(0,0,0,0.32)', 0.012, 0.007);
+  yield g;
   edge('rgba(0,0,0,0.7)', 0.005, 0);
   g.restore();
   /* mitre joints and the seam against the cushions */
@@ -14313,7 +14328,7 @@ function caromArt(balls, wide) {
    is the real cost. ---- */
 const HERO_CUE_MS = 560, HERO_ROLL_MS = 2340, HERO_SUB = 6, HERO_DPR = 2, HERO_ZOOM = 1.14;
 let heroNoPosts = false;   /* drawTableImage leaves bumper pool's posts out: the hero stands its own */
-const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, job: null };
+const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, job: null, build: null };
 /* the hero's table for kind from the settings (paintRack's), and the game's back exactly */
 const heroArgs = kind => kind === 'snooker' ? ['snooker', settings.snookerTable, settings.pockets]
   : [kind === 'bumper' || kind === 'carom' ? kind : settings.table, settings.bumperTable, settings.pockets];
@@ -14423,41 +14438,58 @@ function heroCamera(d, W, H, box, tall) {
   return C;
 }
 /* ---- the still parts: the table art turned to the camera's yaw, laid on the planes ---- */
-function heroTexture(d) {
+/* (a job: paintTable's passes one step each, the table, view and scale swapped in for each step
+   and the game's put back before it yields, so nothing else ever sees the hero's table) */
+function* heroTextureJob(d) {
   const key = [d.args.join(), lookSig()].join('|');
   if (hero.tex && hero.tex.key === key) return hero.tex;
-  const g = d.geo, keep = heroOn(d.args), was = { view, dpr, RAIL };
-  try {
-    RAIL = RAIL_MAX; dpr = 1; heroNoPosts = true;
-    const ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)), w = Math.ceil((g.TL + 2 * ext) * K), h = Math.ceil((g.TW + 2 * ext) * K);
-    view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null };
-    const img = drawTableImage(w, h);
-    hero.tex = { key, img, K, ox: ext * K, oy: ext * K, rot: null };
-  } finally { view = was.view; dpr = was.dpr; RAIL = was.RAIL; heroNoPosts = false; heroOff(keep); }
+  const g = d.geo, ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)), w = Math.ceil((g.TL + 2 * ext) * K), h = Math.ceil((g.TW + 2 * ext) * K);
+  const vig = w === table.width && h === table.height;   /* drawTableImage's own rule */
+  let keep = null, was = null, r;
+  const into = () => { keep = heroOn(d.args); was = { view, dpr, RAIL }; RAIL = RAIL_MAX; dpr = 1; heroNoPosts = true; view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null }; };
+  const out = () => { view = was.view; dpr = was.dpr; RAIL = was.RAIL; heroNoPosts = false; heroOff(keep); };
+  const it = paintTableJob(w, h);
+  for (;;) {
+    into();
+    try { r = it.next(); if (r.done && vig) paintVignette(r.value.getContext('2d')); } finally { out(); }
+    if (r.done) break;
+    yield r.value;
+  }
+  hero.tex = { key, img: r.value, K, ox: ext * K, oy: ext * K, rot: null };
   return hero.tex;
 }
 /* the art turned by -yaw: its columns (u) run along the camera's ground direction, so a band of
    constant depth is a column range. World (x, y) is at u = (x cos + y sin) K - u0, v = (-x sin + y cos) K - v0 */
-function heroTurned(tex, g, yaw) {
+/* (a job: in HERO_STRIPS bands of rows, each its own step, so a caller can spread it over frames;
+   drawn whole for anyone else, by drain). A step yields the context it drew on: a caller slicing
+   the work flushes it (heroStep), since a canvas otherwise rasterises it all at its next read */
+const HERO_STRIPS = 6;
+function drain(it) { for (;;) { const r = it.next(); if (r.done) return r.value; } }
+function* heroTurnedJob(tex, g, yaw) {
   if (tex.rot && tex.rot.yaw === yaw) return tex.rot;
   const c = Math.cos(yaw), s = Math.sin(yaw), K = tex.K, ext = g.rail + 0.02, us = [], vs = [];
   for (const [x, y] of [[-ext, -ext], [g.TL + ext, -ext], [g.TL + ext, g.TW + ext], [-ext, g.TW + ext]]) { us.push((x * c + y * s) * K); vs.push((-x * s + y * c) * K); }
   const u0 = Math.floor(Math.min(...us)), v0 = Math.floor(Math.min(...vs)), cv = document.createElement('canvas');
   cv.width = Math.ceil(Math.max(...us)) - u0 + 1; cv.height = Math.ceil(Math.max(...vs)) - v0 + 1;
-  const x = cv.getContext('2d');
-  x.setTransform(c, -s, s, c, -u0, -v0);
-  x.drawImage(tex.img, -tex.ox, -tex.oy);
+  const x = cv.getContext('2d'), band = Math.ceil(cv.height / HERO_STRIPS);
+  for (let y = 0; y < cv.height; y += band) {
+    x.save(); x.beginPath(); x.rect(0, y, cv.width, band); x.clip();
+    x.setTransform(c, -s, s, c, -u0, -v0);
+    x.drawImage(tex.img, -tex.ox, -tex.oy);
+    x.restore();
+    yield x;
+  }
   return (tex.rot = { yaw, c, s, K, u0, v0, img: cv });
 }
 /* lay the turned art on the plane z = h, inside whatever clip g has: bands of BAND device px,
    far to near, each one drawImage under the affine that is exact along its middle */
-function heroPlane(x, C, T, h, uLo, uHi) {
+function* heroPlane(x, C, T, h, uLo, uHi) {
   const BAND = 1.6, at = (u, v) => { const U = (u + T.u0) / T.K, V = (v + T.v0) / T.K; return heroProj(C, U * T.c - V * T.s, U * T.s + V * T.c, h); };
   /* the camera's own column, where the plane's lateral line is straight ahead */
   const vc = (-C.E[0] * T.s + C.E[1] * T.c) * T.K - T.v0, Hh = T.img.height;
   /* never behind the eye: a point must be 5 cm ahead */
   const depthAt = u => at(u, vc)[2];
-  let u = uHi;
+  let u = uHi, n = 0;
   while (u > uLo) {
     if (depthAt(u) < 0.05) break;
     const p = at(u, vc), q = at(u - 1, vc), per = Math.max(1e-3, Math.hypot(p[0] - q[0], p[1] - q[1]));
@@ -14470,6 +14502,8 @@ function heroPlane(x, C, T, h, uLo, uHi) {
     const ext = 1.2 / per;
     x.drawImage(T.img, u0, 0, u - u0 + ext, Hh, u0, 0, u - u0 + ext, Hh);
     u = u0;
+    /* a step every few bands (the context keeps its clip and transform between them) */
+    if (++n % 8 === 0) yield x;
   }
   x.setTransform(1, 0, 0, 1, 0, 0);
 }
@@ -14477,13 +14511,17 @@ function heroPlane(x, C, T, h, uLo, uHi) {
 const heroURange = (T, pts) => { const us = pts.map(([x, y]) => (x * T.c + y * T.s) * T.K - T.u0); return [Math.max(0, Math.min(...us) - 2), Math.min(T.img.width, Math.max(...us) + 2)]; };
 function heroPath(x, C, pts, z) { pts.forEach(([a, b], i) => { const p = heroProj(C, a, b, z); i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]); }); x.closePath(); }
 const mixRgb = (hex, k, to = [0, 0, 0]) => { const n = parseInt(hex.slice(1), 16), c = [n >> 16, (n >> 8) & 255, n & 255]; return `rgb(${c.map((v, i) => Math.round(v + (to[i] - v) * k)).join(',')})`; };
-function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
+/* the still parts, whole (the opening, the career's banner, a setup opened without the morph) or
+   as a job of small steps (heroStillJob: under the card's morph, 6m, so that no frame is long) */
+const heroStill = (d, W, H, C0 = null, vignette = true, room = null) => drain(heroStillJob(d, W, H, C0, vignette, room));
+function* heroStillJob(d, W, H, C0 = null, vignette = true, room = null) {
   /* a taller hero (spare room on a short form, hero.fit) sees more of the table: the camera
      rises and draws back, and the fit takes the whole table down to the words */
   const txt = heroTxtH(W), tall = clamp((H / W - 0.66) / 0.5, 0, 1), top = H * (0.13 - 0.03 * tall);
   const box = { x: W * 0.04, y: top, w: W * 0.92, h: H * 0.62 + (H - 0.8 * txt - top - H * 0.62) * tall };
   const g = d.geo, C = C0 || heroCamera(d, W, H, box, tall);   /* the opening (6o) brings its own cameras */
-  const tex = heroTexture(d), T = heroTurned(tex, g, C.yaw), bg = document.createElement('canvas'), fg = document.createElement('canvas');
+  const tex = yield* heroTextureJob(d);
+  const T = yield* heroTurnedJob(tex, g, C.yaw), bg = document.createElement('canvas'), fg = document.createElement('canvas');
   bg.width = fg.width = W; bg.height = fg.height = H;
   const x = bg.getContext('2d'), RW = railLook(), hC = g.h;
   /* the room: near black, warmer where the lamp falls */
@@ -14495,7 +14533,7 @@ function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
   if (room) room(x, C, g, W, H);   /* the opening's far room (6o) */
   /* the bed (and everything at z 0) */
   const [uA, uB] = heroURange(T, g.outline);
-  x.save(); x.beginPath(); heroPath(x, C, g.outline, 0); x.clip(); heroPlane(x, C, T, 0, uA, uB); x.restore();
+  x.save(); x.beginPath(); heroPath(x, C, g.outline, 0); x.clip(); yield* heroPlane(x, C, T, 0, uA, uB); x.restore();
   /* the apron: the rail's outer faces that face the eye, from its top down 15 cm, far first */
   const faces = [], O = g.outline;
   for (let i = 0; i < O.length; i++) {
@@ -14520,7 +14558,7 @@ function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
     x.fillStyle = gr; x.fill();
   }
   /* the rubber and rail tops, at their height */
-  x.save(); x.beginPath(); heroPath(x, C, g.outline, hC); heroPath(x, C, g.noses, hC); x.clip('evenodd'); heroPlane(x, C, T, hC, uA, uB); x.restore();
+  x.save(); x.beginPath(); heroPath(x, C, g.outline, hC); heroPath(x, C, g.noses, hC); x.clip('evenodd'); yield* heroPlane(x, C, T, hC, uA, uB); x.restore();
   /* the lamp's pool on the bed */
   const lamp = heroProj(C, g.TL * 0.55, g.TW / 2, 0), lr = Math.hypot(...[0, 1].map(i => heroProj(C, g.TL, g.TW / 2, 0)[i] - lamp[i])) * 1.1;
   x.globalCompositeOperation = 'lighter';
@@ -14530,7 +14568,7 @@ function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
   x.globalCompositeOperation = 'source-over';
   /* fg: the rail and rubber nearer than the nearest nose, which a ball against them sits behind */
   const nd = Math.min(...g.noses.map(([a, b]) => (a * T.c + b * T.s) * T.K - T.u0)), y = fg.getContext('2d');
-  y.save(); y.beginPath(); heroPath(y, C, g.outline, hC); heroPath(y, C, g.noses, hC); y.clip('evenodd'); heroPlane(y, C, T, hC, uA, nd); y.restore();
+  y.save(); y.beginPath(); heroPath(y, C, g.outline, hC); heroPath(y, C, g.noses, hC); y.clip('evenodd'); yield* heroPlane(y, C, T, hC, uA, nd); y.restore();
   /* the vignette: corners and edges falling away (the opening lights its own: none here) */
   const vg = document.createElement('canvas'); vg.width = vignette ? W : 1; vg.height = vignette ? H : 1;
   if (!vignette) return { C, bg, fg, vg, W, H };
@@ -14542,10 +14580,11 @@ function heroStill(d, W, H, C0 = null, vignette = true, room = null) {
 }
 /* every ball sprite (ballSprites, a quarter pixel apart) a frame of the shot can ask for, made
    now rather than in a frame */
-function heroSprites(d, A) {
+const heroSprites = (d, A) => drain(heroSpritesJob(d, A));
+function* heroSpritesJob(d, A) {
   const C = A.C, g = d.geo, ds = g.outline.map(([x, y]) => heroProj(C, x, y, g.R)[2]);
   const lo = C.F * g.R / Math.max(...ds) * 0.9, hi = C.F * g.R / Math.min(...ds) * HERO_ZOOM * 1.05;
-  for (let q = Math.floor(lo * 4); q <= Math.ceil(hi * 4); q++) ballSprites(q / 4);
+  for (let q = Math.floor(lo * 4); q <= Math.ceil(hi * 4); q++) { ballSprites(q / 4); yield; }
 }
 /* ---- a frame ---- */
 const heroEaseIO = u => u < 0.5 ? 4 * u * u * u : 1 - (-2 * u + 2) ** 3 / 2;
@@ -14725,16 +14764,19 @@ function heroSize() {
 /* the setup opened (or its table, look or size changed): replay from the start when the table
    or the game changed, else redraw where it is. The sheet never waits for the hero: what is not
    built yet (the art for this table and look, the still parts, the roll) is built in a task of
-   its own after the sheet is up, the canvas fading in once it has its first frame. */
+   its own after the sheet is up, the canvas fading in once it has its first frame. Opened by a
+   card's morph (6m), it is built in steps while the card flies instead (heroBuildJob). */
+const heroArtKey = (d, W, H) => [d.key, lookSig(), W, H, Math.round(heroTxtH(W))].join('|');
 function heroShow(kind, replay) {
-  if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth || mo.hold) return;   /* a card is still morphing in (6m) */
+  /* a card is still morphing in, or the hero is being built under it (6m): that lands it */
+  if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth || mo.hold || hero.build) return;
   const d0 = hero.data, args = heroArgs(kind).join(), [W, H] = heroSize();
   if (!d0 || d0.kind !== kind || d0.args.join() !== args) { hero.data = heroPrep(kind); hero.run = null; replay = true; }
   hero.kind = kind;
   if (replay) { heroStop(); hero.state = 'idle'; }
-  const d = hero.data, artKey = [d.key, lookSig(), W, H, Math.round(heroTxtH(W))].join('|');
+  const d = hero.data, artKey = heroArtKey(d, W, H);
   if (!replay && hero.art && hero.art.key === artKey && !hero.job) return;
-  if (!hero.art || hero.art.key !== artKey || !hero.run || !hero.run.done) {
+  if (!hero.art || hero.art.key !== artKey || !hero.run || !hero.run.done && !hero.run.sliced) {
     if (hero.state === 'idle') setupHeroArt.classList.add('wait');
     const job = hero.job = {};
     setTimeout(() => {
@@ -14758,6 +14800,40 @@ function heroShow(kind, replay) {
   }
   heroGo();
 }
+/* the setup opened by a card's morph (6m): the hero is built while the card flies, in small steps
+   (heroStep, each frame while it has time), so no frame is long and its first frame is ready to
+   land on. It leaves what heroShow's task would (the data, the art for this size and look, the
+   roll started: the cue's frames finish it, heroTick) and draws nothing on the hero's canvas. */
+const HERO_STEP_MS = 7, HERO_STEP_LATE_MS = 14;
+function* heroBuildJob(kind) {
+  const args = heroArgs(kind).join(), [W, H] = heroSize();
+  heroStop(); hero.state = 'idle';
+  let d = hero.data;
+  if (!d || d.kind !== kind || d.args.join() !== args) { d = hero.data = heroPrep(kind); hero.run = null; }
+  hero.kind = kind;
+  const artKey = heroArtKey(d, W, H);
+  if (!hero.art || hero.art.key !== artKey) {
+    const A = yield* heroStillJob(d, W, H);
+    for (const c of [A.bg, A.fg, A.vg]) yield c.getContext('2d');
+    yield* heroSpritesJob(d, A);
+    A.key = artKey; hero.art = A;
+  }
+  if (setupHeroArt.width !== W || setupHeroArt.height !== H) { setupHeroArt.width = W; setupHeroArt.height = H; }
+  if (!hero.run) hero.run = heroRunStart(d);
+  hero.run.sliced = true;   /* recorded in the cue's frames (heroTick) */
+  return { W, H };
+}
+/* run a job's steps for up to ms, flushing what each drew; true once it is done */
+function heroStep(job, ms) {
+  const t0 = performance.now();
+  useCloth();
+  for (;;) {
+    const r = job.it.next();
+    if (r.done) { job.out = r.value; return true; }
+    if (r.value && r.value.getImageData) r.value.getImageData(0, 0, 1, 1);
+    if (performance.now() - t0 >= ms) return false;
+  }
+}
 /* draw: the still (reduced motion), the shot from the start, on from where it was, or its end */
 function heroGo() {
   if (reducedMotion()) { heroStop(); hero.state = 'still'; heroFrame(HERO_CUE_MS + HERO_ROLL_MS); return; }
@@ -14780,6 +14856,9 @@ function heroTick(now) {
   /* hidden: no frames; the shot goes on from here when the sheet is back */
   if (!setupSheet.classList.contains('show') || document.hidden) { hero.state = 'paused'; hero.held = now - hero.t0; return; }
   const t = now - hero.t0, end = HERO_CUE_MS + HERO_ROLL_MS;
+  /* a roll still being recorded (a hero built under the morph, 6m): a slice in each of the cue's
+     frames, all of it by the strike */
+  if (hero.run && !hero.run.done) heroRunOn(t >= HERO_CUE_MS - 40 ? Infinity : 4);
   if (t >= end) { hero.state = 'done'; heroFrame(end); hero.doneAt = performance.now(); return; }
   heroFrame(t);
   heroLoop();
@@ -18408,7 +18487,7 @@ function cvSim() {
 /* the next match card's banner: the setup hero's final still (4m) of the event's game on the
    event's table (careerTerms' table, pockets and snooker size), in the career's look. Painted in a
    task after the hub is up (the hero's roll is simulated to its end once), cached by table, look and
-   size. The event's table is set only inside heroOn/heroOff (heroPrep, heroTexture, heroRunOn), so
+   size. The event's table is set only inside heroOn/heroOff (heroPrep, heroTextureJob, heroRunOn), so
    the game's geometry is never left changed; the look is the career's only while it paints. */
 const cvBan = { key: '', img: null };
 function cvBannerArgs(r) {
@@ -19345,11 +19424,18 @@ Object.defineProperties(felt, {
    The morph (FLIP on cloned layers, transforms and opacity only): a home card is measured, its
    sheet opens at once as it always did (showSetup and friends stay synchronous), then fixed
    layers between the home and the sheet carry the card into the sheet: a backdrop and a panel
-   in the sheet's own colours, the card's art (a game card) or face (a mode card) growing into
-   the hero or the page on a spring, and the game's name flying into the setup's title. The
-   sheet's backgrounds stand aside meanwhile (.morphing) and its content fades in over them.
-   The hero (4m) waits for the landing (mo.hold): the art the card brought stays under it until
-   its first frame is up. Back runs it the other way, into the card. Reduce Motion: a cross-fade.
+   in the sheet's own colours, a window (morphWin) growing from the card into the hero or the page
+   on a spring, and the game's name flying into the setup's title. In the window every picture
+   keeps its aspect (one scale both ways, cropped by the window, never stretched): the card's art
+   (a game card) or face (a mode card) growing to cover it, and, for a game, the hero's own first
+   frame coming in over the art. The hero (4m) is built while the card flies (heroBuildJob, a few
+   ms a frame, so no frame is long; the pool table's art made once while the home is idle,
+   heroWarm) and its first frame drawn into the window and faded in, so the morph lands on exactly
+   that frame and the hero's canvas takes over in the same frame (no fade, no wait), its shot
+   starting there (mo.hold: no frame of the shot while the card flies). A hero not built by the
+   landing (a slow machine) fades in over the card's art when it is. The sheet's backgrounds stand
+   aside meanwhile (.morphing) and its content fades in over them. Back runs it the other way, the
+   hero's frame going down into the card under its art. Reduce Motion: a cross-fade.
    Sheets follow a finger: pulled down from the top of their content (or by the header) they
    dismiss past a quarter of their height or on a flick, else spring back; a push page swipes
    back from the left edge. Only touches that start on a sheet are looked at: the table and the
@@ -19358,7 +19444,7 @@ Object.defineProperties(felt, {
    then open and close at once and numbers land at once, so the suites measure finished screens. ---- */
 const MORPH_MS = 380, FADE_MS = 200, ROLL_MS = 250, EDGE_PX = 24, SLOP = 8;
 const motionOn = () => !window.feltNoMotion;
-const mo = { pow: 0, busy: null, hold: false, after: null, src: null, runs: 0, last: null, heroAt: 0, rolls: 0, fulls: 0, drags: [] };
+const mo = { pow: 0, busy: null, hold: false, after: null, src: null, runs: 0, last: null, heroAt: 0, rolls: 0, fulls: 0, drags: [], build: null, warm: 0 };
 /* a spring with a hair of overshoot, settled at the end, as a linear() easing where it is understood */
 const SPRING = (() => {
   const fb = 'cubic-bezier(.2, .9, .25, 1.04)';
@@ -19401,8 +19487,35 @@ function cardGhost(card, r, hideTitle) {
   document.body.appendChild(g);
   return g;
 }
-const radii = (a, b, c) => `${a}px ${a}px ${c}px ${c}px / ${b}px ${b}px ${c}px ${c}px`;
-const fromTo = (a, b) => `translate(${a.left - b.left}px, ${a.top - b.top}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+/* the spring as a function: the curve SPRING draws, sampled into the window's keyframes */
+const springAt = t => {
+  if (t >= 1) return 1;
+  const z = 0.78, w = 8.4, wd = w * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + z * w / wd * Math.sin(wd * t));
+};
+const MORPH_KEYS = 60;
+/* the window a card becomes, box a to box b (its corners ra to rb, each [top, bottom]) on the
+   spring: an element the larger box's size, scaled to the window's box at each keyframe (transforms
+   only, so the compositor runs it whatever the page is doing), and in it each picture (pics: an
+   .mLayer el of w x h CSS px) counter-scaled so that on screen it covers the window at one scale
+   both ways (its own aspect, cropped by the window, never stretched): exactly at each of the
+   MORPH_KEYS keyframes and within 0.001 between them. The window and its animations. */
+function morphWin(a, b, ra, rb, pics) {
+  const big = a.width * a.height > b.width * b.height ? a : b, W = big.width, H = big.height;
+  const win = mEl('mClip', { left: 0, top: 0, width: W, height: H }), kw = [], kp = pics.map(() => []);
+  for (let i = 0; i <= MORPH_KEYS; i++) {
+    const o = i / MORPH_KEYS, p = springAt(o), L = (u, v) => u + (v - u) * p;
+    const R = { width: L(a.width, b.width), height: L(a.height, b.height) }, sx = R.width / W, sy = R.height / H, t = L(ra[0], rb[0]), d = L(ra[1], rb[1]);
+    kw.push({ offset: o, transform: `translate(${L(a.left, b.left)}px, ${L(a.top, b.top)}px) scale(${sx}, ${sy})`,
+      borderRadius: `${t / sx}px ${t / sx}px ${d / sx}px ${d / sx}px / ${t / sy}px ${t / sy}px ${d / sy}px ${d / sy}px` });
+    pics.forEach((q, j) => {
+      const k = L(Math.max(a.width / q.w, a.height / q.h), Math.max(b.width / q.w, b.height / q.h));
+      kp[j].push({ offset: o, transform: `translate(${(R.width - k * q.w) / 2 / sx}px, ${(R.height - k * q.h) / 2 / sy}px) scale(${k / sx}, ${k / sy})` });
+    });
+  }
+  const opt = { duration: MORPH_MS, easing: 'linear', fill: 'both' };
+  return { win, anims: [...pics.map((q, j) => q.el.animate(kp[j], opt)), win.animate(kw, opt)] };
+}
 /* run a set of animations as one morph; end() (or a new morph) finishes it at once */
 function morphRun(info, anims, cleanup) {
   mo.runs++;
@@ -19436,6 +19549,9 @@ function morphOpen(card, sheet, open) {
   mo.src = { sheet, card };
   menu.classList.add('keep');
   finishAnims(sheet);
+  /* the setup measured its rows under its own entrance's scale (now done): again, at rest, so the
+     hero built below is the size it keeps */
+  if (isSetup) fitSetupRows();
   if (fade) {
     const a = sheet.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease-out' });
     morphRun({ type: 'fade', dir: 'open', from: card.id, to: sheet.id }, [a], () => menu.classList.remove('keep'));
@@ -19452,33 +19568,67 @@ function morphOpen(card, sheet, open) {
   if (isSetup) setupHeroArt.classList.add('wait');
   const dim = mEl('mPiece', { left: 0, top: 0, width: innerWidth, height: innerHeight }, { background: ovBg });
   const pan = mEl('mPiece', pr, { background: pBg, borderRadius: pRads });
-  const layer = mEl('mLayer', hr);
-  let pic = null, page = null;
+  /* the window the card becomes (its corners going from the card's to the sheet's) over the
+     pictures, each at its own aspect: the card's art growing to cover it, the hero's first frame
+     coming down to the card's size inside it (morphWin) */
+  const face = mEl('mLayer', { left: 0, top: 0, width: r0.width, height: r0.height }), pics = [{ el: face, w: r0.width, h: r0.height }];
+  const info = { type: 'morph', dir: 'open', from: card.id, to: sheet.id };
+  let pic = null, page = null, still = null, shot = null, job = null, show = null, grad = null;
   if (isSetup) {
     pic = art ? canvasCopy(art) : document.createElement('canvas');
-    pic.style.objectFit = 'fill';
-    const grad = document.createElement('div');
+    face.append(pic);
+    const [W, H] = heroSize();
+    still = mEl('mLayer', { left: 0, top: 0, width: hr.width, height: hr.height }, { opacity: '0' });
+    shot = document.createElement('canvas'); shot.width = W; shot.height = H;
+    still.append(shot);
+    grad = mEl('mLayer', { left: 0, top: 0, width: hr.width, height: hr.height });
     grad.style.backgroundImage = gradient;
-    layer.append(pic, grad);
-    grad.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'both' });
+    pics.push({ el: still, w: hr.width, h: hr.height }, { el: grad, w: hr.width, h: hr.height });
+    /* the hero, built while the card flies (heroBuildJob, a few ms a frame): its first frame fades
+       in over the card's art, so the landing is that frame and the shot starts from it */
+    job = hero.build = { it: heroBuildJob(setupKind), t0: performance.now() };
+    const step = () => {
+      if (hero.build !== job) return;
+      if (!setupSheet.classList.contains('show')) { hero.build = null; return; }
+      let ok = false;
+      /* past half the flight and not done (a slow or busy machine): bigger steps, so it lands on the
+         hero; the morph itself runs on the compositor (transforms and opacity), unhurt by them */
+      const late = performance.now() - info.t0 > MORPH_MS / 2;
+      try { ok = heroStep(job, late ? HERO_STEP_LATE_MS : HERO_STEP_MS); } catch (e) { hero.build = null; throw e; }
+      if (!ok) { requestAnimationFrame(step); return; }
+      hero.build = null;
+      job.at = performance.now();
+      if (mo.busy && mo.busy.info === info) {
+        heroDraw(0, hero, shot);
+        const left = info.t0 + MORPH_MS - job.at;
+        /* done by the landing if there is time, else the hero's canvas finishes it (cleanup below) */
+        show = still.animate([{ opacity: 0 }, { opacity: 1 }], { duration: clamp(left - 16, 80, 180), easing: 'ease-in-out', fill: 'both' });
+      } else if (setupSheet.classList.contains('show') && !mo.hold) {
+        /* it landed first (a slow machine): the card's art is under the hero, which fades in over it */
+        heroShow(setupKind, true);
+        setupHeroArt.classList.remove('wait');
+      }
+    };
+    requestAnimationFrame(step);
   } else {
-    const face = document.createElement('div'), cs = getComputedStyle(card);
-    face.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
+    const fc = document.createElement('div'), cs = getComputedStyle(card);
+    fc.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
+    face.append(fc);
+    /* the page's colour over the whole window (flat: it may stretch) */
     page = document.createElement('div');
-    page.style.background = pBg;
-    layer.append(face, page);
+    Object.assign(page.style, { width: '100%', height: '100%', background: pBg });
   }
-  for (const e of [dim, pan, layer]) document.body.insertBefore(e, sheet);
+  const { win, anims } = morphWin(r0, hr, [rad0, rad0], isSetup ? [rad, 0] : [rad, rad], pics);
+  win.append(...pics.map(q => q.el), ...page ? [page] : []);
+  if (grad) grad.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'both' });
+  for (const e of [dim, pan, win]) document.body.insertBefore(e, sheet);
   const ghost = cardGhost(card, r0, isSetup);
   card.classList.add('mHide');
-  const sx = r0.width / hr.width, sy = r0.height / hr.height, endR = isSetup ? radii(rad, rad, 0) : radii(rad, rad, rad);
-  const anims = [
-    layer.animate([{ transform: fromTo(r0, hr), borderRadius: radii(rad0 / sx, rad0 / sy, rad0 / sy) }, { transform: 'none', borderRadius: endR }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }),
+  anims.push(
     dim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.8, easing: 'ease-out', fill: 'both' }),
     pan.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, easing: 'ease-out', fill: 'both' }),
     panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.75, delay: isSetup ? 60 : 120, easing: 'ease-out', fill: 'both' }),
-    ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'both' }),
-  ];
+    ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'both' }));
   if (page) anims.push(page.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.2, easing: 'ease-in-out', fill: 'both' }));
   let title = null;
   if (isSetup && tb0 && tbFont && trFont) {
@@ -19491,19 +19641,35 @@ function morphOpen(card, sheet, open) {
     const k = tbFont / trFont;
     anims.push(title.animate([{ transform: `translate(${tb0.left - tr.left}px, ${tb0.top - tr.top}px) scale(${k})` }, { transform: 'none' }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }));
   }
-  morphRun({ type: 'morph', dir: 'open', from: card.id, to: sheet.id }, anims, () => {
-    for (const e of [dim, pan, layer, ghost, title]) if (e) e.remove();
+  morphRun(info, anims, () => {
+    /* how far the hero's first frame had faded in over the card's art (1: all the way) */
+    const seen = show ? +getComputedStyle(still).opacity : 0, rest = show ? Math.max(0, (show.effect.getComputedTiming().endTime || 0) - (show.currentTime || 0)) : 0;
+    if (show) show.cancel();
+    info.seen = isSetup ? +seen.toFixed(3) : 1;
+    for (const e of [dim, pan, win, ghost, title]) if (e) e.remove();
     card.classList.remove('mHide');
     sheet.classList.remove('morphing');
     menu.classList.remove('keep');
     if (isSetup) {
       setupTitle.style.opacity = '';
-      /* the card's art stays under the hero until the hero's first frame has faded in over it */
-      if (pic && sheet.classList.contains('show')) heroUnder(pic);
+      const up = sheet.classList.contains('show'), built = !!(job && job.out) && hero.build !== job;
       held();
-      if (!hero.job) setupHeroArt.classList.remove('wait');
+      /* held drew the hero's first frame (heroShow), unless its size changed meanwhile (its own task) */
+      const live = built && up && !hero.job;
+      /* the card's art stays under the hero until the hero is all there (not built yet, or still fading in) */
+      if (pic && up && (!live || seen < 0.99)) heroUnder(pic);
+      if (live) {
+        /* the hero's first frame was what the morph landed on: the canvas takes over in this same
+           frame (no fade of its own), finishing the fade the morph had begun if it had not */
+        setupHeroArt.classList.add('snap');
+        setupHeroArt.classList.remove('wait');
+        void getComputedStyle(setupHeroArt).opacity;
+        setupHeroArt.classList.remove('snap');
+        if (seen < 0.99) setupHeroArt.animate([{ opacity: seen }, { opacity: 1 }], { duration: Math.max(16, rest), easing: 'ease-out' });
+      } else if (!hero.build && !hero.job) setupHeroArt.classList.remove('wait');
     }
   });
+  mo.build = job;
 }
 /* while the hero builds: the art the card brought, under its canvas (and under its fade) */
 function heroUnder(pic) {
@@ -19521,6 +19687,21 @@ function heroUnder(pic) {
     requestAnimationFrame(look);
   };
   requestAnimationFrame(look);
+}
+/* the pool table's art for the hero (heroTextureJob: the five pool games' first step, the biggest)
+   made once while the home is idle, a few ms a frame, so a card's morph has less to build; only
+   with motion on (no morph, no need: the suites without motion never see it) */
+function heroWarm() {
+  if (!motionOn() || hero.tex) return;
+  if (state !== 'menu' || !menu.classList.contains('show') || document.hidden || intro.state !== 'off' || mo.busy) { setTimeout(heroWarm, 1000); return; }
+  const job = { it: heroTextureJob(heroPrep('8')) }, t0 = performance.now();
+  const step = () => {
+    /* a card tapped meanwhile: its own build takes it from there */
+    if (mo.busy || hero.build || hero.tex) return;
+    if (!heroStep(job, HERO_STEP_MS)) { requestAnimationFrame(step); return; }
+    mo.warm = performance.now() - t0;
+  };
+  requestAnimationFrame(step);
 }
 /* a morph holding the hero: the sheet's code hands it what to do on landing */
 function morphHolds(fn) { if (!mo.hold) return false; mo.after = fn; return true; }
@@ -19550,27 +19731,38 @@ function morphClose(sheet) {
   sheet.classList.add('morphing');
   const dim = mEl('mPiece', { left: 0, top: 0, width: innerWidth, height: innerHeight }, { background: ovBg });
   const pan = mEl('mPiece', pr, { background: pBg, borderRadius: pRads });
-  const layer = mEl('mLayer', r1), anims = [];
+  /* the open's mirror: the window closes into the card, the hero's frame going down to cover it
+     and the card's own art coming back over it, each at its own aspect (morphWin) */
+  const face = mEl('mLayer', { left: 0, top: 0, width: r1.width, height: r1.height }), pics = [], fades = [];
+  let page = null;
   if (isSetup) {
-    const under = snap || (art ? canvasCopy(art) : document.createElement('canvas')), top = art ? canvasCopy(art) : document.createElement('canvas'), grad = document.createElement('div');
-    under.style.objectFit = top.style.objectFit = 'fill';
+    const top = art ? canvasCopy(art) : document.createElement('canvas'), grad = mEl('mLayer', { left: 0, top: 0, width: hr.width, height: hr.height });
+    face.append(top);
     grad.style.backgroundImage = gradient;
-    layer.append(under, grad, top);
-    anims.push(top.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }),
-      grad.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, easing: 'ease-out', fill: 'both' }));
+    if (snap) {
+      const still = mEl('mLayer', { left: 0, top: 0, width: hr.width, height: hr.height });
+      still.append(snap);
+      pics.push({ el: still, w: hr.width, h: hr.height });
+      fades.push(() => face.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }));
+    }
+    pics.push({ el: grad, w: hr.width, h: hr.height }, { el: face, w: r1.width, h: r1.height });
+    fades.push(() => grad.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, easing: 'ease-out', fill: 'both' }));
   } else {
-    const face = document.createElement('div'), page = document.createElement('div'), cs = getComputedStyle(card);
-    face.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
-    page.style.background = pBg;
-    layer.append(face, page);
-    anims.push(page.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }));
+    const fc = document.createElement('div'), cs = getComputedStyle(card);
+    fc.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
+    face.append(fc);
+    pics.push({ el: face, w: r1.width, h: r1.height });
+    page = document.createElement('div');
+    Object.assign(page.style, { width: '100%', height: '100%', background: pBg });
+    fades.push(() => page.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.1, easing: 'ease-in-out', fill: 'both' }));
   }
-  for (const e of [dim, pan, layer]) document.body.insertBefore(e, sheet);
+  const { win, anims } = morphWin(hr, r1, isSetup ? [rad, 0] : [rad, rad], [rad1, rad1], pics);
+  win.append(...pics.map(q => q.el), ...page ? [page] : []);
+  anims.push(...fades.map(f => f()));
+  for (const e of [dim, pan, win]) document.body.insertBefore(e, sheet);
   const ghost = cardGhost(card, r1, isSetup);
   card.classList.add('mHide');
-  const sx = r1.width / hr.width, sy = r1.height / hr.height, startR = isSetup ? radii(rad / sx, rad / sy, 0) : radii(rad / sx, rad / sy, rad / sy);
   anims.push(
-    layer.animate([{ transform: fromTo(hr, r1), borderRadius: startR }, { transform: 'none', borderRadius: radii(rad1, rad1, rad1) }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }),
     dim.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.8, easing: 'ease-in-out', fill: 'both' }),
     pan.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.6, easing: 'ease-in', fill: 'both' }),
     sheet.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'both' }),
@@ -19585,7 +19777,7 @@ function morphClose(sheet) {
     anims.push(title.animate([{ transform: `translate(${tr.left - tb1.left}px, ${tr.top - tb1.top}px) scale(${trFont / tbFont})` }, { transform: 'none' }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }));
   }
   morphRun({ type: 'morph', dir: 'close', from: sheet.id, to: card.id }, anims, () => {
-    for (const e of [dim, pan, layer, ghost, title]) if (e) e.remove();
+    for (const e of [dim, pan, win, ghost, title]) if (e) e.remove();
     card.classList.remove('mHide');
     sheet.classList.remove('morphing', 'keep');
   });
@@ -19754,6 +19946,7 @@ function powerTick(live) {
   if (typeof window.powerFull === 'function') { try { window.powerFull(); } catch (e) { } }
 }
 Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo.busy, hold: mo.hold, runs: mo.runs, last: mo.last && Object.assign({}, mo.last), heroAt: mo.heroAt,
+  build: mo.build && { t0: mo.build.t0, at: mo.build.at || 0, done: !!mo.build.out }, warm: mo.warm,
   rolls: mo.rolls, fulls: mo.fulls, drags: mo.drags.slice(), dragging: !!(sg && sg.mode && sg.mode !== 'none'), spring: SPRING }) });
 
 /* ---- 6o. the opening ----
@@ -20425,5 +20618,6 @@ requestAnimationFrame(frame);
 /* the opening (6o): only schedules its build; the home is booted underneath */
 introBoot();
 window.booted = true;
+setTimeout(heroWarm, 1200);   /* 6m */
 </script>
 </body>

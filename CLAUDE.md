@@ -229,7 +229,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   (drawTableImage's art laid on the bed and rail planes in constant-depth bands) playing its signature shot through the
   real `strike`/`stepTable` (`HERO_SHOTS` per table via `heroKey`, `heroSetup`; re-solve with `node tools/hero-solver.cjs`
   after any cloth, strike or rack change; it keeps only shots whose every pot goes in at `POT_V` or faster with no ball left on a lip, as a dribble reads as a hang-up from the low camera). A potted ball leaves the table: `heroDraw` drops it into its pocket over `HERO_DROP_MS` on the screen's clock (cut by the mouth, fading; `heroPotT`), never frozen at the mouth. Its table is swapped in only inside `heroOn`/`heroOff` (never left set); built
-  in a task after the sheet opens, then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
+  in a task after the sheet opens (in steps under the card's morph, 6m), then rAF frames until it settles (none after; paused while hidden; Reduce Motion: the
   final still). `felt.hero` reports it. Its height is `heroFit()` (portrait phone): the room the form leaves, from its
   floor (`HERO_MIN` 20% of the sheet, or its words and the back button's room if more) up to 50% (`setupRoom` measures;
   a ResizeObserver on the form's columns reruns `fitSetupRows` in a frame); the camera rises and draws back on a tall hero. Setup lines wrap with `text-wrap: balance` (`noWidow` the fallback). Pinned by
@@ -360,10 +360,21 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Motion (page 6m, visual only): one button style (`--btn-*`: primary a white 50 pt capsule in Headline, secondary dark
   grey, destructive red words, red fill when `.arm`ed; the back button a 44 pt grey circle). A home card opens its sheet through `morphOpen(card, sheet, open)` (open() stays
   synchronous; FLIP layers `.mLayer`/`.mPiece`/`.mTitle`; the hero waits via `morphHolds`), Back through
-  `morphClose(sheet)`; Reduce Motion cross-fades. Sheets pull down to dismiss and push pages swipe back from the left
+  `morphClose(sheet)`; Reduce Motion cross-fades. The card grows as a window (`morphWin`, `.mClip`: transforms only, the
+  spring sampled into `MORPH_KEYS` keyframes) and every picture in it (`.mLayer`) is counter-scaled to one scale both
+  ways, cropped by the window: never stretch a picture to a box of another aspect. A game card's hero is built under the
+  flight (`heroBuildJob` stepped by `heroStep`, `HERO_STEP_MS` a frame, more past half way; `heroStillJob`,
+  `heroTextureJob`/`paintTableJob`, `heroTurnedJob`, `heroSpritesJob` are the whole builders' step-by-step forms, each
+  step yielding the context it drew on for the caller to flush; `drain` runs one whole; the roll is recorded in the
+  cue's frames, `heroTick`), its first frame drawn into the window and faded in over the card's art, so the landing is
+  that frame and `#setupHeroArt` takes over in the same frame (`.snap`, no fade of its own; a fade still running is
+  finished on the canvas). `heroWarm` makes the pool table's texture while the home is idle. A hero not built by the
+  landing fades in over the card's art (`heroUnder`) when it is. Sheets pull down to dismiss and push pages swipe back from the left
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
-  opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check`.
+  opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check` (its 2b watches 8-Ball and 9-Ball open
+  every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform scale, no stretched canvas, the
+  hand-over frozen and diffed, frames under 50 ms times `speedFactor`).
 - Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 4.5 s on a cold launch at home, never on a
   return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the
   home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script

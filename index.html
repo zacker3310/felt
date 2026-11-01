@@ -158,7 +158,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px) */
 [data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px));
   padding: max(2px, var(--sat)) max(2px, var(--sar)) 2px max(2px, var(--sal)); }
-[data-layout="wide"] #ctl { flex-direction: column; padding-bottom: max(0px, calc(var(--sab) - 2px)); }
+/* the column runs flush with the table's footprint, top to bottom (--ctl-t/--ctl-b, layout()): the bottom rail already
+   sits in the home-indicator inset, so the column's foot does too */
+[data-layout="wide"] #ctl { flex-direction: column; padding: var(--ctl-t, 0px) 0 var(--ctl-b, 0px); }
 [data-layout="wide"] #menuBtn { width: var(--col); height: 44px; }
 [data-layout="wide"] #spinPad { width: var(--col); height: var(--col); }
 [data-layout="wide"] #powerBar { flex: 1; width: var(--col); min-height: 120px; }
@@ -166,7 +168,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* a bigger screen: a roomier frame and a wider column */
 @media (min-width: 700px) and (min-height: 600px) {
   [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
-  [data-layout="wide"] #ctl { gap: 10px; padding-bottom: 0; }
+  [data-layout="wide"] #ctl { gap: 10px; }
   [data-layout="wide"] #menuBtn { height: 48px; }
   [data-layout="wide"] #powerBar { max-height: 440px; }
   [data-layout="wide"] #fineWheel { height: 200px; }
@@ -8516,7 +8518,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-10-31e';
+const BUILD = 'build 2026-11-01a';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -8598,6 +8600,13 @@ function layout() {
   const k = Math.max(10, f.k), bw = f.portrait ? TW : TL, bh = f.portrait ? TL : TW;
   view = { k, portrait: f.portrait, ox: r.left + railStart(k, r.width, ext.l, ext.r, bw) + RAIL * k, oy: r.top + railStart(k, r.height, ext.t, ext.b, bh) + RAIL * k };
   felt.tableExt = ext;
+  /* on its side the column's top and foot meet the table's: the footprint's top and bottom, measured from the column */
+  root.style.setProperty('--ctl-t', '0px'); root.style.setProperty('--ctl-b', '0px');
+  if (best.m === 'wide') {
+    const c = ctl.getBoundingClientRect(), ft = view.oy - RAIL * k, fb = view.oy + (bh + RAIL) * k;
+    root.style.setProperty('--ctl-t', Math.max(0, Math.round(ft - c.top)) + 'px');
+    root.style.setProperty('--ctl-b', Math.max(0, Math.round(c.bottom - fb)) + 'px');
+  }
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
   view.tray = null;

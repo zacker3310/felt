@@ -611,9 +611,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
 /* the opening (6o): from the first paint the home is the launch image's frame, the wordmark alone on
    the home's colour; the scene plays on #introArt under the header, then the cards rise in (--ik) */
 #introArt { display: none; }
-html.intro #introArt { display: block; position: fixed; left: 0; top: 0; width: 100%; height: var(--app-h, 100%); z-index: 0; pointer-events: none; }
-html.intro #menu { overflow: hidden; }
-html.intro #menu .sheet.home { position: relative; z-index: 1; }
+html.intro:not(.introRisen) #introArt { display: block; position: fixed; left: 0; top: 0; width: 100%; height: var(--app-h, 100%); z-index: 0; pointer-events: none; }
+html.intro:not(.introRisen) #menu { overflow: hidden; }
+html.intro:not(.introRisen) #menu .sheet.home { position: relative; z-index: 1; }   /* risen (the scene already faded): every opening style lets go, so the last frame renders as the home (no canvas layer under its text) */
 html.intro:not(.introRisen) #menu .newgame > :not(.brand), html.intro:not(.introRisen) #menu .brand .foot { opacity: var(--ik, 0); translate: 0 var(--iy, 0px); }
 html.intro #menu .newgame > :not(.brand), html.intro #menu .brand .foot { animation: none !important; }   /* risen: the home's own styles, no translate or opacity left set, so the hand-over is its pixels */
 html.intro .overlay.show:not(#menu) { visibility: hidden; }

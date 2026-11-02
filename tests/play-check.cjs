@@ -1021,10 +1021,13 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
   const ttip = await mp.evaluate(() => felt.cueSpin);
   check('touch: a tap on the off-centre tip centres the english (a tap elsewhere placed it)', Math.hypot(tset.x, tset.y) > 0.2 && ttip.x === 0 && ttip.y === 0, JSON.stringify({ tset, ttip }));
   await mp.waitForTimeout(600);
-  await tch('touchStart', tpad.x + 14, tpad.y + 4); await tch('touchEnd');
+  /* stamped (the pad reads e.timeStamp): the page sees exactly 280 ms between the taps, however slow the
+     runner (CI 1c4e73f, 22 min: an unstamped 280 ms wait read as more than the 450 ms window) */
+  let dt = Date.now() / 1000;
+  const tchAt = (type, x, y, s) => { dt += s; return mc.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }], timestamp: dt }); };
+  await tchAt('touchStart', tpad.x + 14, tpad.y + 4, 0); await tchAt('touchEnd', 0, 0, 0.04);
   const tone = await mp.evaluate(() => felt.cueSpin);
-  await mp.waitForTimeout(280);
-  await tch('touchStart', tpad.x - 12, tpad.y - 4); await tch('touchEnd');
+  await tchAt('touchStart', tpad.x - 12, tpad.y - 4, 0.28); await tchAt('touchEnd', 0, 0, 0.04);
   const tslow = await mp.evaluate(() => felt.cueSpin);
   check('touch: a thumb\'s double tap, 280 ms and 27 px apart, centres the english', Math.hypot(tone.x, tone.y) > 0.2 && tslow.x === 0 && tslow.y === 0, JSON.stringify({ tone, tslow }));
   /* a still hold on the pad opens the cue elevation sheet and puts the tip back where it was */

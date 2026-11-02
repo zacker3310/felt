@@ -169,7 +169,9 @@ async function pullBar(T, frac) {
     return { wide: out.slice(0, 5), cut: cut.slice(0, 5), sw: sh.scrollWidth, cw: sh.clientWidth, scrolls: sh.scrollHeight <= sh.clientHeight || getComputedStyle(sh).overflowY === 'auto' };
   });
   const fine = f => !f.wide.length && !f.cut.length && f.sw <= f.cw + 1 && f.scrolls;
-  const still = T => T.page.waitForTimeout(450);   /* the push animation settles */
+  /* the push animation settles: its time, then until the sheet's finite animations have ended (a busy runner
+     measured the rankings page mid-slide, x 424-832 of 440) */
+  const still = async T => { await T.page.waitForTimeout(450); await T.page.evaluate(() => Promise.all(cvSheet.getAnimations({ subtree: true }).filter(a => a.effect.getComputedTiming().iterations !== Infinity).map(a => a.finished.catch(() => {})))); };
   const a11y = async T => ({ small: await smallTargets(T.page), low: await lowContrast(T.page) });
   for (const vp of [{ width: 440, height: 956 }, { width: 375, height: 667 }, { width: 956, height: 440 }]) {
     const tag = `${vp.width}x${vp.height}`, sfx = vp.width === 440 ? 'p' : vp.width === 375 ? 's' : 'l', FULL = vp.width === 440;

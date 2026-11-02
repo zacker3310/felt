@@ -5,8 +5,7 @@
    Node-only suites (physics, rules, ai) simply ignore the URL.
    The suites run side by side: FELT_JOBS lanes (default: the machine's cores), each suite its own
    process against the one server, the multi-lane ones first, then the longest first. The suites with
-   frame or wall-time budgets (TIMING) share one lane: never two of them at once, the other suites
-   filling the other lanes round them (and those budgets are judged on the work, not on the waiting
+   frame or wall-time budgets (TIMING) run first, each alone (SOLO), the rest side by side after (and those budgets are judged on the work, not on the waiting
    for a core: lib's frameClock and budgetWindow). A suite that runs its own parts side by side (COST)
    takes that many lanes. Each suite's output is held until it ends and the results print in suite
    order, so the table reads as a serial run's.
@@ -31,11 +30,12 @@ const TIMING = new Set(['audit-check', 'boot-check', 'hero-check', 'intro-check'
 /* lanes a suite takes, about the cores it keeps busy (CPU seconds over wall seconds, 2026-11-02): stress-check
    runs its parts side by side (worker threads, a browser each), ai-check and ai2-check their games in workers */
 const COST = { 'stress-check': 3, 'ai-check': 3, 'ai2-check': 2 };
-/* suites that run alone, every lane theirs: view3d-check draws WebGL on SwiftShader, whose own threads take the
-   cores, and its checks count frames of animations on the clock (the pull back, a pot's drop, a drag), which
-   no take-out of waiting can rescue (CI 4c8c068: 81/86 beside three lanes, 86/86 alone). Its weight puts it
-   first, while every lane is free */
-const SOLO = new Set(['view3d-check']);
+/* the suites that run alone, every lane theirs: every TIMING suite. Taking the waiting for a core out of a
+   frame is not enough on CI's runner: suites beside it slow the work itself (shared caches and memory; the
+   16-ball frame 15.5 ms of work beside three lanes against about 10 alone), and view3d's SwiftShader threads
+   and the frames its animations count on the clock need the cores too (CI 4c8c068: view3d 81/86 beside three
+   lanes; 52ed014: look, motion beside them). Their weight puts them first, while every lane is free */
+const SOLO = TIMING;
 /* seconds each took in a serial run on the dev machine (2026-11-02, 4 cores, other jobs running): longest
    first, so the long ones do not start last; a new suite counts as a minute until it is listed */
 const EST = {

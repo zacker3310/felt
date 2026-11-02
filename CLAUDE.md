@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `35/35 suites, N/N checks  ok` (about 10 min on 4 cores: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites one at a time; `FELT_JOBS=1` is the old serial run, about 30 min) |
+| test | `npm test` | `35/35 suites, N/N checks  ok` (about 10 min on 4 cores: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites first, each alone; `FELT_JOBS=1` is the old serial run, about 30 min) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -473,8 +473,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   beside them, and a run that fails may be measured again (best of three: a real cost fails every run). A Node-side
   budget (a search, a season) times `cpuMs()` (this thread's CPU), never the clock. A new suite with a frame or
   wall-time budget goes in run-all's `TIMING` set (one at a time); one that runs its own parts side by side gets a
-  `COST`; one whose drawing itself takes the cores and counts animation frames on the clock (view3d-check: SwiftShader)
-  is `SOLO` (it runs first, alone). Never loosen a budget's number to get a loaded run through.
+  `COST`; every `TIMING` suite is `SOLO` (it runs alone, first: on CI
+  the suites beside it slowed a frame's own work, not only its wait). Never loosen a budget's number to get a loaded run through.
 - Writing a test that reads final positions after a firm shot: balls bounce around for seconds.
   Read velocities just after the event instead (see the stun/follow/draw check).
 

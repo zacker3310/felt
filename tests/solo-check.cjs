@@ -185,7 +185,13 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('ball in hand stays on for the next shot while the toggle is on', await page.evaluate(() => felt.game.inHand === 'table'));
 
   /* reset rack, then the stats in the pause menu */
-  await page.tap('#toolBtn'); await page.tap('#resetBtn');
+  /* the tools panel opens before Reset Rack is tapped; if it does not (a rare CI flake, origin unknown), say what the
+     page was doing instead of a bare 30 s tap timeout */
+  const pre0 = await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, rp: typeof rp !== 'undefined' && !!rp, offer: typeof offer !== 'undefined' && !!offer, th: tools.hidden }));
+  await page.tap('#toolBtn');
+  const opened = await page.waitForFunction(() => !tools.hidden, null, { timeout: 5000 }).then(() => true, () => false);
+  if (!opened) console.log('DIAG tools did not open', JSON.stringify(pre0), JSON.stringify(await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, th: tools.hidden, bh: getComputedStyle(toolBtn).visibility, msg: msg.textContent }))));
+  await page.tap('#resetBtn');
   await page.waitForTimeout(100);
   const rs = await page.evaluate(() => ({ eq: JSON.stringify(felt.game.balls.slice(1)) === JSON.stringify(newPractice('9', 1).balls.slice(1)), shots: felt.game.shots, undo: felt.solo.undo.length, st: felt.solo.st.shots, hand: felt.game.inHand }));
   check('reset rack (touch): the 9-ball rack is back, the session keeps its count, undo can bring the old layout back', rs.eq && rs.shots === 0 && rs.st === 3 && rs.undo === 3 && rs.hand === 'table', JSON.stringify(rs));

@@ -327,14 +327,23 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   on), the replay an arrow glyph (brass when notable), each seat (`pchip0`-`pchip3`, `#turnChip` only their frame) the
   player's balls (an open table or nothing to show: a hollow pearl pip; 8-ball's group a glyph on both seats, `.grp`:
   solids a pearl disc, stripes pearl caps over a dark band), and on a human shooter's seat the ball to play next
-  (`railNext`: 8-ball and 14.1 the ball the table rings, the call's (`humanCall`, the obvious call from the aim too)
-  else auto aim's `hint`; 9, 10 and rotation the lowest; none on the CPU's turn, in practice or a replay) as a true
+  (`railNext`, issue #5: 8-ball and 14.1 mirror the aim: the called ball (`humanCall`, the obvious call from the aim too),
+  else the guide's first contact (`aimBall`, the ghost ball's `aimTrace`) when it is a legal target for the shooter
+  (`legalTargets`: the group, the 8 once cleared, any but the 8 on an open table), else auto aim's `hint`, so it falls
+  back to the white ring, which stays the turn's suggestion and may differ from the rail; 9, 10 and rotation the lowest
+  whatever the aim; none on the CPU's turn, in practice or a replay) as a true
   little ball (`nextBallEl`: `--ph` tall, the ball set's colour and ivory, its number on the ivory circle, the `.cb`
   mark when `marks` is on; `nextWords` in the hidden `.nx`: "Next: the 12, stripe"; `railNextTick` each frame lays the
   seats again when it changes), points engraved (snooker, carom, 14.1, rotation), racks
   of a career or tournament match as tally pips (`rackTally`); the shooter lit (full colour, the lamp's glow), the other
   dimmed. Player 1 sits left of the rail's middle, player 2 right (`seat`); snooker's ball on and break beside the shooter.
-  Names and labels stay in the DOM visually hidden (`.inw`, `.pn`, `.rpl b`) for VoiceOver and the tests. Each inlay is
+  Names and labels stay in the DOM visually hidden (`.inw`, `.pn`, `.rpl b`) for VoiceOver and the tests. VoiceOver
+  (issue #4): `#turnChip` is not aria-hidden; each seat is `role="group"` read from its hidden `.ps` (`seatWords`:
+  "Player 1, stripes, 2 of 5 racks, shooting, next: the 12, stripe", sentence case; `seatSum` the group or ball on and
+  score, `seatSay`), its `.pn`, `.nx` and glyphs (`.pb`) aria-hidden; children stay name, `.nx`, `.ps`, `.pb` in that
+  order. The seats are not live: the turn is spoken once by `#railSay` (polite `role="status"`, `railSayTurn`: "Player
+  2's turn, solids", "Your turn, on the 3"), written only when the shooter changes or a game starts (keyed on `stats`
+  and `game.turn`), never by `railNextTick`'s relayouts while aiming. The 3D row is the same DOM. Each inlay is
   sized to the wood band (`--ph`, `--rf`, `--gl`, `--dot`), never over the cushion, a pocket's hole or jaws (`RAIL_PAD`) or
   a sight (`railSights`, `SIGHT_PAD`), in its own gap. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
   dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,

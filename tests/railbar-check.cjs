@@ -23,7 +23,13 @@
       956x440 (iOS insets) top-down and 393x852 in 3D: the ball the table rings (the call's ring, else auto aim's) by
       number, in the ball set's colour (sampled; a stripe's ivory caps), its number 3:1 or more on its circle, the group
       glyph on both seats, nothing over a pocket or a diamond, following the aim to another ball and a call; nothing
-      extra on the CPU's turn; 9-ball's seat the lowest ball. */
+      extra on the CPU's turn; 9-ball's seat the lowest ball. Under house 8-ball (nothing called, issue #5) the seat follows
+      the aim: the guide's first contact when it is the shooter's legal target (one of the group to another), else auto
+      aim's suggestion (an opponent's ball, the 8 on an open table, nothing on the line), the white ring unchanged.
+   6. VoiceOver (issue #4), top-down and in 3D: in the accessibility tree each seat is a group whose words name the
+      player, what they are on (group, points) and on the shooter's turn "shooting" and the ball to play; the turn is
+      spoken once by the polite #railSay (its mutations counted: one per shooter change, a real shot's too, none while
+      aiming from ball to ball though the seats are laid again). */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -225,8 +231,124 @@ async function nextBallChecks() {
     await t.browser.close();
   }
 }
+/* 5 (house 8-ball, issue #5) and 6 (VoiceOver, issue #4) */
+async function aimAndVoiceChecks() {
+  for (const view of ['top', '3d']) {
+    const size = `393x852 ${view === '3d' ? '3D' : 'top-down'}`;
+    const t = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1,
+      init: `try { localStorage.setItem('felt.settings', JSON.stringify({ sv: 3, cpu: true, view: '${view}' })); } catch (e) { }` });
+    const { page } = t;
+    /* house 8-ball vs the CPU, stripes for the player: the 11 and the 14 (the player's) and the 4 (the CPU's) on lines
+       from the cue ball in the middle of the bed */
+    await page.evaluate(() => {
+      felt.start('8', { level: 'easy' }); relayout();
+      Object.assign(game, { breakShot: false, open: false, groups: ['stripes', 'solids'], inHand: null, pushAvail: false });
+      const keep = { 0: [TL / 2, TW / 2], 8: [TL * 0.85, TW * 0.5], 4: [TL * 0.2, TW * 0.5], 6: [TL * 0.8, TW * 0.85] };
+      const via = (k, f) => [TL / 2 + (POCKET_AIM[k][0] - TL / 2) * f, TW / 2 + (POCKET_AIM[k][1] - TW / 2) * f];
+      keep[11] = via(0, 0.55); keep[14] = via(2, 0.55);
+      for (const b of game.balls) { const q = keep[b.n]; b.on = !!q; if (q) { b.x = q[0]; b.y = q[1]; } }
+      autoAim(); hud();
+      /* the live region's words as they change (non-empty: what VoiceOver would speak) */
+      window.sayLog = [];
+      const el = document.getElementById('railSay');
+      if (el) new MutationObserver(() => { if (el.textContent) sayLog.push(el.textContent); }).observe(el, { childList: true, characterData: true, subtree: true });
+    });
+    await page.waitForTimeout(300);
+    const aimAt = n => page.evaluate(n => { const c = game.balls.find(b => b.n === 0), o = typeof n === 'number' ? game.balls.find(b => b.n === n) : null;
+      aimAngle = o ? Math.atan2(o.y - c.y, o.x - c.x) : n.a; handAimed = true; aimLock = 'held'; aimAnim = null; }, n);
+    const seatNow = () => page.evaluate(() => { const nb = pchip0.querySelector('.nb'), c = cueBall(), h = aimTrace(c.x, c.y, Math.cos(aimAngle), Math.sin(aimAngle), [0], 6);
+      return { n: nb ? +nb.dataset.n : null, hint: felt.hint ? felt.hint.n : null, contact: h.kind === 'ball' && h.ball ? h.ball.n : null, on: pchip0.classList.contains('on') }; });
+    const aims = [];
+    for (const n of [11, 14, 11, 4, { a: Math.PI / 2 }, 14]) { await aimAt(n); await frames(page, 3); aims.push(Object.assign(await seatNow(), { aimed: typeof n === 'number' ? n : 'nothing' })); }
+    const [a11, a14, b11, a4, none, c14] = aims, ring = aims.map(a => a.hint);
+    check(`${size}: house 8-ball (no call): the shooter's seat follows the aim from one of the group to another (the 11: ${a11.n}, the 14: ${a14.n}, the 11 again: ${b11.n}, the 14 again: ${c14.n}), the white ring unchanged (the ${ring[0]})`,
+      a11.on && a11.contact === 11 && a11.n === 11 && a14.contact === 14 && a14.n === 14 && b11.n === 11 && c14.n === 14 && ring.every(r => r === ring[0] && [11, 14].includes(r)), JSON.stringify(aims));
+    check(`${size}: house 8-ball: aimed at the CPU's ball (the 4: ${a4.n}) or at nothing (${none.n}), the seat falls back to auto aim's suggestion, the ringed ${ring[0]}`,
+      a4.contact === 4 && a4.n === ring[0] && none.contact === null && none.n === ring[0], JSON.stringify({ a4, none }));
+    /* an open table: any ball but the 8 is the shooter's; the 8 falls back to the suggestion */
+    const open8 = [];
+    await page.evaluate(() => { Object.assign(game, { open: true, groups: [null, null] }); autoAim(); hud(); });
+    for (const n of [4, 8]) { await aimAt(n); await frames(page, 3); open8.push(Object.assign(await seatNow(), { aimed: n })); }
+    check(`${size}: house 8-ball, an open table: aimed at the 4 the seat shows it (${open8[0].n}); aimed at the 8, the suggestion (${open8[1].n}, rings the ${open8[1].hint})`,
+      open8[0].n === 4 && open8[1].contact === 8 && open8[1].n === open8[1].hint && open8[1].hint !== 8 && open8[1].hint !== null, JSON.stringify(open8));
+    await page.evaluate(() => { Object.assign(game, { open: false, groups: ['stripes', 'solids'] }); autoAim(); hud(); });
+
+    /* 6: the accessibility tree: each seat a group with its words (aria snapshots: nothing under aria-hidden) */
+    await aimAt(14); await frames(page, 3);
+    const snap = async () => ({ row: await page.locator('#turnChip').ariaSnapshot().catch(e => 'ERR ' + e.message), s0: await page.locator('#pchip0').ariaSnapshot().catch(() => ''), s1: await page.locator('#pchip1').ariaSnapshot().catch(() => '') });
+    const mine = await snap();
+    await page.evaluate(() => { game.turn = 1; hud(); });
+    await frames(page, 2);
+    const theirs = await snap();
+    await page.evaluate(() => { game.turn = 0; hud(); });
+    check(`${size}: VoiceOver: the rail's seats are in the accessibility tree, each a group: the player's seat ${JSON.stringify(mine.s0)}, the CPU's ${JSON.stringify(mine.s1)}`,
+      /^- group:?/.test(mine.s0) && /^- group:?/.test(mine.s1) && mine.s0.includes('You, stripes, shooting, next: the 14, stripe') && mine.s1.includes('CPU, solids') && !mine.s1.includes('shooting') && !/next/.test(mine.s1)
+        && (mine.row.match(/- group/g) || []).length === 2, JSON.stringify(mine));
+    check(`${size}: VoiceOver: on the CPU's turn its seat says shooting and neither names a ball to play (${JSON.stringify(theirs.s1)})`,
+      theirs.s1.includes('CPU, solids, shooting') && theirs.s0.includes('You, stripes') && !/shooting|next/.test(theirs.s0) && !/next/.test(theirs.s1), JSON.stringify(theirs));
+    /* points: 14.1 and snooker, two players */
+    const pts = await page.evaluate(() => {
+      const out = {};
+      felt.start('straight', { level: 'easy' }); game.score = [12, 7]; hud(); out.straight = [pchip0, pchip1].map(e => e.children[2].textContent);
+      felt.start('snooker', { level: 'easy' }); game.score = [23, 8]; hud(); out.snooker = [pchip0, pchip1].map(e => e.children[2].textContent);
+      return out;
+    });
+    const race = await page.evaluate(() => game.race);
+    check(`${size}: VoiceOver: a seat says the score where the game counts it (14.1 ${JSON.stringify(pts.straight)}, snooker ${JSON.stringify(pts.snooker)})`,
+      pts.straight.some(w => /^You, 12 of \d+ points/.test(w)) && pts.straight.some(w => /^CPU, 7 of \d+ points/.test(w)) && pts.snooker.some(w => /^You, 23 points/.test(w)) && pts.snooker.some(w => /^CPU, 8 points/.test(w)), JSON.stringify({ pts, race }));
+
+    check(`${size}: no console errors (the aim and VoiceOver)`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
+    await t.browser.close();
+    /* the live region: two players (no CPU), the turn spoken once a change, never while aiming */
+    if (view === 'top') {
+      const t = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1,
+        init: `try { localStorage.setItem('felt.settings', JSON.stringify({ sv: 3, cpu: false, view: 'top' })); } catch (e) { }` });
+      const { page } = t;
+      const aimAt = n => page.evaluate(n => { const c = game.balls.find(b => b.n === 0), o = game.balls.find(b => b.n === n); aimAngle = Math.atan2(o.y - c.y, o.x - c.x); handAimed = true; aimLock = 'held'; aimAnim = null; }, n);
+      await page.evaluate(() => {
+        window.sayLog = [];
+        const el = document.getElementById('railSay');
+        if (el) new MutationObserver(() => { if (el.textContent) sayLog.push(el.textContent); }).observe(el, { childList: true, characterData: true, subtree: true });
+        felt.start('8'); relayout();   /* no options: the settings' two players */
+        Object.assign(game, { breakShot: false, open: false, groups: ['stripes', 'solids'], inHand: null, pushAvail: false });
+        const keep = { 0: [TL / 2, TW / 2], 8: [TL * 0.85, TW * 0.5], 4: [TL * 0.2, TW * 0.5], 6: [TL * 0.8, TW * 0.85] };
+        const via = (k, f) => [TL / 2 + (POCKET_AIM[k][0] - TL / 2) * f, TW / 2 + (POCKET_AIM[k][1] - TW / 2) * f];
+        keep[11] = via(0, 0.55); keep[14] = via(2, 0.55);
+        for (const b of game.balls) { const q = keep[b.n]; b.on = !!q; if (q) { b.x = q[0]; b.y = q[1]; } }
+        autoAim(); hud();
+      });
+      await page.waitForTimeout(200);
+      const live = await page.evaluate(() => { const el = document.getElementById('railSay'); return { role: el && el.getAttribute('role'), live: el && el.getAttribute('aria-live'), text: el && el.textContent, start: sayLog.slice() }; });
+      await page.evaluate(() => { sayLog.length = 0; window.nxLog = []; new MutationObserver(() => nxLog.push(pchip0.children[1].textContent)).observe(pchip0.children[1], { childList: true, characterData: true, subtree: true }); });
+      for (const n of [11, 14, 4, 11, 14, 11]) { await aimAt(n); await frames(page, 3); }
+      const aiming = await page.evaluate(() => ({ say: sayLog.slice(), nx: nxLog.slice() }));
+      await page.evaluate(() => { sayLog.length = 0; game.turn = 1; hud(); hud(); railNextTick(); hud(); });
+      await frames(page, 4);
+      await page.waitForTimeout(150);
+      const turn = await page.evaluate(() => sayLog.slice());
+      /* a real shot: the words once if the turn passed, none if the shooter goes again */
+      await page.evaluate(() => { sayLog.length = 0; game.turn = 0; hud(); });
+      await page.waitForTimeout(150);
+      const back = await page.evaluate(() => sayLog.slice());
+      await page.evaluate(() => { sayLog.length = 0; felt.speed = 8; window.turnBefore = game.turn; felt.shoot(Math.PI / 2, 0.15, { x: 0, y: 0 }); });
+      await page.waitForFunction(() => felt.state === 'aim' || felt.state === 'over' || felt.state === 'choose', null, { timeout: 30000 }).catch(() => { });
+      await frames(page, 4);
+      await page.waitForTimeout(150);
+      const shot = await page.evaluate(() => ({ say: sayLog.slice(), passed: game.turn !== turnBefore, turn: game.turn }));
+      check(`${size}: VoiceOver: the turn is spoken by a polite live region, once as the game starts (#railSay ${live.role}, ${live.live}: ${JSON.stringify(live.start)})`,
+        live.role === 'status' && live.live === 'polite' && live.text === "Player 1's turn, open table" && live.start.length === 1 && live.start[0] === live.text, JSON.stringify(live));
+      check(`${size}: VoiceOver: aiming from ball to ball changes the seat's words (${aiming.nx.length} times) but speaks nothing (${aiming.say.length})`,
+        aiming.nx.length >= 4 && aiming.say.length === 0, JSON.stringify(aiming));
+      check(`${size}: VoiceOver: a shooter change is spoken once (${JSON.stringify(turn)}), and back (${JSON.stringify(back)}); a real shot once if the turn passed, else nothing (passed ${shot.passed}: ${JSON.stringify(shot.say)})`,
+        turn.length === 1 && turn[0] === "Player 2's turn, solids" && back.length === 1 && back[0] === "Player 1's turn, stripes" && shot.say.length === (shot.passed ? 1 : 0), JSON.stringify({ turn, back, shot }));
+      check(`${size}: no console errors (the turn spoken)`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
+      await t.browser.close();
+    }
+  }
+}
 (async () => {
   await nextBallChecks();
+  await aimAndVoiceChecks();
   /* an inset applied after the first layout with no resize event (an iOS home-screen app, Zac's 430x932): the table is
      laid out again within the second (sizeSig carries the insets and the stage's size), never left under the controls */
   {

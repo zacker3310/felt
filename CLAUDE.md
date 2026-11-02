@@ -388,14 +388,23 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   step yielding the context it drew on for the caller to flush; `drain` runs one whole; the roll is recorded in the
   cue's frames, `heroTick`), its first frame drawn into the window and faded in over the card's art, so the landing is
   that frame and `#setupHeroArt` takes over in the same frame (`.snap`, no fade of its own; a fade still running is
-  finished on the canvas). `heroWarm` makes the pool table's texture while the home is idle. A hero not built by the
-  landing fades in over the card's art (`heroUnder`) when it is. Sheets pull down to dismiss and push pages swipe back from the left
+  finished on the canvas). `heroWarm` makes the hero's table texture for every table a card opens on (`HERO_WARM_KINDS`:
+  pool, snooker, carom, bumper; cached in `hero.texs`, `heroTexOf`; a game keeps only the one in use, `heroTexKeep`,
+  and the home makes them again) while the home is idle; the pool table's work is the pace (`mo.warmWork`), `mo.warm`
+  is set once all four are made. A setup that changes the table (Snooker, Three-Cushion, Bumper Pool; issue #1) lays
+  the game screen out with `layout(true)`: its table image and the camera's (`tableDue`, `hiDue`) are left for later,
+  the menu keeping its last frame meanwhile, and made whole (never rasterised in steps: pieces differ from a whole by
+  a level) by `menuArt` once the menu is idle (no flight, no hero build or roll, `MENU_QUIET_MS` after a touch;
+  `artFlush` rasterises them there) or at once by `tableArtNow` (start(), beginSolo(), a frame off the menu). A hero
+  not built by the landing fades in over the card's art (`heroUnder`) when it is. Sheets pull down to dismiss and push pages swipe back from the left
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
-  opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check` (its 2b watches 8-Ball and 9-Ball open
-  every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform scale, no stretched canvas, the
-  hero built two frames or more before the landing, the hand-over frozen and diffed, frames under 50 ms times
-  `speedFactor`; and again with CDP `Emulation.setCPUThrottlingRate` 2 from before the warm-up, as a slow CI runner).
+  opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check` (its 2b watches 8-Ball, 9-Ball, Snooker,
+  Three-Cushion and Bumper Pool open every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform
+  scale, no stretched canvas, the hero built two frames or more before the landing, the hand-over frozen and diffed,
+  frames under 50 ms times `speedFactor`; and again with CDP `Emulation.setCPUThrottlingRate` 2 from before the
+  warm-up, as a slow CI runner; its 2c: the four tables warmed, Break after a table-changing setup opens on
+  `drawTableImage()`'s picture byte for byte in four looks, the idle menu's images the same as whole ones).
 - Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 4.5 s on a cold launch at home, never on a
   return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the
   home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script

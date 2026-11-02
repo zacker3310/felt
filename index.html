@@ -8547,6 +8547,7 @@ let ctx = table.getContext('2d');
 /* where drawBall and drawShadow paint: the table's canvas, or for a moment a menu tile's (artCtx) */
 let artCtx = null;
 let dpr = 1, view = { k: 100, ox: 0, oy: 0, portrait: false }, tableImg = null;
+let tableDue = false, hiDue = false;   /* the table's images left for later (layout(true), 3b) */
 /* the 3D view (4o), its state here so the mappings below can read it from the first frame. While it is
    live (V3.live) toScreen and toTable go through its camera (a table point at a ball's centre height,
    a screen point back onto that plane), so every tap, grab and mark finds what is under the finger;
@@ -8698,7 +8699,10 @@ const sizeSig = () => {
   return appSize().join('x') + '@' + pixelRatio() + (ps ? `|${ps.borderTopWidth},${ps.paddingRight},${ps.paddingBottom},${ps.paddingLeft}|${islandSide().island}` : '') + `|${Math.round(r.width)}x${Math.round(r.height)}`;
 };
 let layoutSig = '';
-function layout() {
+/* later: the table's image is painted afterwards (tableDue, menuArt, tableArtNow), not here: a game
+   card's setup lays the game screen out for its table (previewGame) while the card flies, and the
+   table's paint (150 ms at 3x) and its camera image (500 ms) would stall the flight (issue #1) */
+function layout(later = false) {
   const [w, h] = appSize(), root = document.documentElement;
   root.style.setProperty('--app-h', h + 'px');
   dpr = pixelRatio();   /* a frame is cheap (cached sprites), so phones get their full 3x */
@@ -8750,7 +8754,8 @@ function layout() {
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
   view.tray = null;
-  tableImg = drawTableImage();
+  tableDue = hiDue = later;
+  if (!later) tableImg = drawTableImage();
   camFit();
   v3Layout();
   placeRail(true);
@@ -8793,20 +8798,51 @@ function camView(z, x, y) {
   return { k: B.k * z, portrait: B.portrait, tray: B.tray, ox: R.left + hw + z * (B.ox - fx), oy: R.top + hh + z * (B.oy - fy), z };
 }
 function camFit() { viewBase = view; view = camView(cam.z, cam.x, cam.y); }
-/* the table image at a higher scale for the zoomed views (built in the menu or as a replay
-   starts, never mid-shot), at most 12 M device px; falls back to the fitted image scaled up */
+/* the table image at a higher scale for the zoomed views (built in the menu while it is idle, as a
+   game leaves a setup that changed the table, or as a replay starts, never mid-shot), at most 12 M
+   device px; falls back to the fitted image scaled up. True when it made one. */
 const camSig = () => [viewBase.k, viewBase.ox, viewBase.oy, viewBase.portrait, dpr, RAIL, TL, TW, TABLE, POCKETS_STYLE, BUMPER_SHAPE, lookSig()].join();
 function camHiRes() {
   const sig = camSig();
-  if (tableHi && tableHi.sig === sig) return;
+  hiDue = false;
+  if (tableHi && tableHi.sig === sig) return false;
   const R = camRect(), w = R.right - R.left, h = R.bottom - R.top, H = Math.min(CAM_REPLAY.zmax, Math.sqrt(12e6 / (w * h * dpr * dpr)));
   tableHi = { sig, img: null };
-  if (H < 1.1) return;
+  if (H < 1.1) return false;
   const keep = view, B = viewBase;
   try {
     view = { k: B.k * H, portrait: B.portrait, tray: null, ox: (B.ox - R.left) * H, oy: (B.oy - R.top) * H };
     tableHi = { sig, H, left: R.left, top: R.top, img: drawTableImage(Math.ceil(w * H * dpr), Math.ceil(h * H * dpr), true) };
   } finally { view = keep; }
+  return true;
+}
+/* the game screen's table image a setup laid out for later (layout(true), issue #1): painted whole
+   when the menu is idle (menuArt) or at once when anything needs it (tableArtNow: start(),
+   beginSolo(), a frame off the menu). Whole, never in steps: a canvas rasterised in pieces differs
+   from one rasterised at once by a level here and there, and the game's table is drawTableImage()'s
+   exactly. */
+function tableArtNow() {
+  if (!tableDue) return false;
+  const keep = view;
+  view = viewBase;
+  try { tableImg = drawTableImage(); } finally { view = keep; }
+  tableDue = false;
+  return true;
+}
+/* a canvas's drawing is recorded and rasterised at its first use: done now, by drawing it once (no
+   read back, so it stays on the GPU), so that cost falls in an idle frame of the menu and not in
+   the first frame that shows it */
+const artFlush = (() => { let c = null; return img => { if (!img) return; if (!c) { c = document.createElement('canvas'); c.width = c.height = 1; } c.getContext('2d').drawImage(img, 0, 0, 1, 1, 0, 0, 1, 1); }; })();
+/* the menu's frames: the table's image, then (in another frame) the camera's, each whole (the table's
+   about 150 ms at 3x, the camera's 500), only while the menu is idle: never while a card flies, its
+   hero is built or plays (6m), nor within MENU_QUIET_MS of a touch, click or key */
+const MENU_QUIET_MS = 1000;
+let menuTouched = 0;
+for (const t of ['pointerdown', 'touchstart', 'keydown']) addEventListener(t, () => { menuTouched = performance.now(); }, { capture: true, passive: true });
+function menuArt() {
+  if (mo.busy || hero.build || hero.job || hero.raf || performance.now() - menuTouched < MENU_QUIET_MS) return;
+  if (tableArtNow()) artFlush(tableImg);
+  else if (camHiRes()) artFlush(tableHi.img);
 }
 /* draw(): the table under the camera, clipped to camRect(). True when zoomed: ctx is then saved
    and clipped, and draw() restores it once everything is drawn. */
@@ -8910,7 +8946,7 @@ function spring(p, v, to, w, dt) {
 }
 /* once a frame (frame()): move the camera toward where the shot, the replay or the turn wants it */
 function camStep(dtMs) {
-  if (state === 'menu') { if (paused) return; camHiRes(); }
+  if (state === 'menu') { if (paused) return; menuArt(); }
   if (camPred && !camPred.done) camPredStep(camPred, 4);
   if (camPred && camPred.done && !camPred.plan) camPred.plan = camPlan(camPred.tr, CAM_LIVE);
   let want = null;
@@ -10769,6 +10805,9 @@ function drawPlace(now, noBall = false) {
   }
 }
 function draw(now) {
+  /* a table laid out for later (layout(true)): the menu keeps the last frame until it is painted;
+     off the menu it is painted now */
+  if (tableDue) { if (state === 'menu') return; tableArtNow(); }
   if (V3.live) { v3Frame(now); return; }   /* the 3D view (4o) draws the table instead */
   trackBalls();
   if (state === 'rolling' && prevState !== 'rolling') shotAt = now;
@@ -11161,6 +11200,10 @@ function start(kind, o = null) {
   if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
   resetCall(); cpuCall = null; optBox.hidden = true; freePick = false;
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
+  /* a setup's table, if its images were left for later (previewGame, 6m): the camera's as the menu
+     would have made it */
+  tableArtNow(); if (hiDue) camHiRes();
+  heroTexKeep(false);   /* the home's warmed hero art goes, but the one in use (heroWarm makes them again) */
   randomOrient();
   tab = null; cpuIt = null; cpuPlan = null; cpuReady = null; cueSpin = { x: 0, y: 0 }; power = markPower = 0.5;
   pull = null; stroke = null; paused = null; stats = newStats(playersOf(game)); aimAnim = null;
@@ -12924,6 +12967,10 @@ function beginSolo(make, s) {
   setPockets(settings.pockets);
   game = make();
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
+  /* a setup's table, if its images were left for later (previewGame, 6m): the camera's as the menu
+     would have made it */
+  tableArtNow(); if (hiDue) camHiRes();
+  heroTexKeep(false);   /* the home's warmed hero art goes, but the one in use (heroWarm makes them again) */
   randomOrient();
   solo = s;
   cueSpin = { x: 0, y: 0 }; power = markPower = solo.power || 0.5; paused = null; stats = newStats(); aimAngle = 0;
@@ -14136,7 +14183,8 @@ function previewGame(kind) {
   setPockets(settings.pockets);
   if (kind === 'snooker') setTable('snooker', settings.snookerTable);
   game = newGame(kind);
-  if (sig() !== was) layout();
+  /* with motion on its table's image waits for the card to land (layout(true), menuArt) */
+  if (sig() !== was) layout(motionOn());
   hud();
 }
 function showSetup(kind) {
@@ -14370,7 +14418,7 @@ function caromArt(balls, wide) {
    is the real cost. ---- */
 const HERO_CUE_MS = 560, HERO_ROLL_MS = 2340, HERO_SUB = 6, HERO_DPR = 2, HERO_ZOOM = 1.14;
 let heroNoPosts = false;   /* drawTableImage leaves bumper pool's posts out: the hero stands its own */
-const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, job: null, build: null };
+const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, texs: {}, job: null, build: null };
 /* the hero's table for kind from the settings (paintRack's), and the game's back exactly */
 const heroArgs = kind => kind === 'snooker' ? ['snooker', settings.snookerTable, settings.pockets]
   : [kind === 'bumper' || kind === 'carom' ? kind : settings.table, settings.bumperTable, settings.pockets];
@@ -14482,10 +14530,21 @@ function heroCamera(d, W, H, box, tall) {
 /* ---- the still parts: the table art turned to the camera's yaw, laid on the planes ---- */
 /* (a job: paintTable's passes one step each, the table, view and scale swapped in for each step
    and the game's put back before it yields, so nothing else ever sees the hero's table) */
+/* made once per table and look: hero.tex the one in use, hero.texs every one made (heroWarm makes the
+   four tables' on the home; a game keeps only the one in use, heroTexKeep) */
+const heroTexKey = args => [args.join(), lookSig()].join('|');
+const heroTexOf = key => hero.tex && hero.tex.key === key ? hero.tex : hero.texs[key] || null;
+const heroTexDims = g => { const ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)); return { ext, K, w: Math.ceil((g.TL + 2 * ext) * K), h: Math.ceil((g.TW + 2 * ext) * K) }; };
+function heroTexKeep(all) {
+  const keep = {};
+  if (hero.tex) keep[hero.tex.key] = hero.tex;
+  if (all) for (const k of HERO_WARM_KINDS) { const key = heroTexKey(heroArgs(k)); if (hero.texs[key]) keep[key] = hero.texs[key]; }
+  hero.texs = keep;
+}
 function* heroTextureJob(d) {
-  const key = [d.args.join(), lookSig()].join('|');
-  if (hero.tex && hero.tex.key === key) return hero.tex;
-  const g = d.geo, ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)), w = Math.ceil((g.TL + 2 * ext) * K), h = Math.ceil((g.TW + 2 * ext) * K);
+  const key = heroTexKey(d.args), have = heroTexOf(key);
+  if (have) { hero.tex = have; return have; }
+  const g = d.geo, { ext, K, w, h } = heroTexDims(g);
   const vig = w === table.width && h === table.height;   /* drawTableImage's own rule */
   let keep = null, was = null, r;
   const into = () => { keep = heroOn(d.args); was = { view, dpr, RAIL }; RAIL = RAIL_MAX; dpr = 1; heroNoPosts = true; view = { k: K, portrait: false, ox: ext * K, oy: ext * K, tray: null }; };
@@ -14497,7 +14556,8 @@ function* heroTextureJob(d) {
     if (r.done) break;
     yield r.value;
   }
-  hero.tex = { key, img: r.value, K, ox: ext * K, oy: ext * K, rot: null };
+  hero.tex = hero.texs[key] = { key, img: r.value, K, ox: ext * K, oy: ext * K, rot: null };
+  heroTexKeep(true);   /* one a table: those made for an older look or table go */
   return hero.tex;
 }
 /* the art turned by -yaw: its columns (u) run along the camera's ground direction, so a band of
@@ -19531,9 +19591,10 @@ Object.defineProperties(felt, {
    keeps its aspect (one scale both ways, cropped by the window, never stretched): the card's art
    (a game card) or face (a mode card) growing to cover it, and, for a game, the hero's own first
    frame coming in over the art. The hero (4m) is built while the card flies (heroBuildJob, a few
-   ms a frame, so no frame is long; the pool table's art made once while the home is idle,
-   heroWarm) and its first frame drawn into the window and faded in, so the morph lands on exactly
-   that frame and the hero's canvas takes over in the same frame (no fade, no wait), its shot
+   ms a frame, so no frame is long; each table's art made once while the home is idle, heroWarm;
+   the game screen's own table, if the setup changed it, left for later, menuArt) and its first
+   frame drawn into the window and faded in, so the morph lands on exactly that frame
+   and the hero's canvas takes over in the same frame (no fade, no wait), its shot
    starting there (mo.hold: no frame of the shot while the card flies). A hero not built by the
    landing (a slow machine) fades in over the card's art when it is. The sheet's backgrounds stand
    aside meanwhile (.morphing) and its content fades in over them. Back runs it the other way, the
@@ -19830,18 +19891,34 @@ function heroUnder(pic) {
   };
   requestAnimationFrame(look);
 }
-/* the pool table's art for the hero (heroTextureJob: the five pool games' first step, the biggest)
-   made once while the home is idle, a few ms a frame, so a card's morph has less to build; only
-   with motion on (no morph, no need: the suites without motion never see it) */
+/* the hero's table art (heroTextureJob: a build's first step, the biggest, its passes up to 50 ms
+   each at a table's size) made while the home is idle, a few ms a frame, for every table a card
+   opens on (HERO_WARM_KINDS: the pool table the five pool games share, then snooker's, three-
+   cushion's and bumper pool's: issue #1), so a card's morph has only small steps to build. The pool
+   table's first: its work is the machine's pace (mo.warmWork, heroPlan); mo.warm once all are made.
+   It looks again every second on the home (a new look or table, or a game let them go: heroTexKeep);
+   a step waits out MENU_QUIET_MS after a touch. Only with motion on (no morph, no need: the suites
+   without motion never see it). */
+const HERO_WARM_KINDS = ['8', 'snooker', 'carom', 'bumper'];
 function heroWarm() {
-  if (!motionOn() || hero.tex) return;
-  if (state !== 'menu' || !menu.classList.contains('show') || document.hidden || intro.state !== 'off' || mo.busy) { setTimeout(heroWarm, 1000); return; }
-  const job = { it: heroTextureJob(heroPrep('8')) }, t0 = performance.now();
+  clearTimeout(mo.warmT); mo.warmT = 0;
+  if (!motionOn() || mo.warmJob) return;
+  const later = () => { mo.warmT = setTimeout(heroWarm, 1000); };
+  if (state !== 'menu' || !menu.classList.contains('show') || document.hidden || intro.state !== 'off' || mo.busy || hero.build) { later(); return; }
+  const kind = HERO_WARM_KINDS.find(k => !heroTexOf(heroTexKey(heroArgs(k))));
+  if (!kind) { if (mo.warmRound) { mo.warm = performance.now() - mo.warmT0; mo.warmRound = false; } later(); return; }
+  if (!mo.warmRound) { mo.warmRound = true; mo.warmT0 = performance.now(); }
+  const job = mo.warmJob = { it: heroTextureJob(heroPrep(kind)) }, keep = hero.tex;
   const step = () => {
+    if (mo.warmJob !== job) return;
     /* a card tapped meanwhile: its own build takes it from there */
-    if (mo.busy || hero.build || hero.tex) return;
+    if (mo.busy || hero.build || state !== 'menu') { mo.warmJob = null; later(); return; }
+    if (performance.now() - menuTouched < MENU_QUIET_MS) { requestAnimationFrame(step); return; }
     if (!heroStep(job, HERO_STEP_MS)) { requestAnimationFrame(step); return; }
-    mo.warm = performance.now() - t0; mo.warmWork = job.work;
+    mo.warmJob = null;
+    hero.tex = keep;   /* a warm-up is not the one in use (hero.texs has it) */
+    if (kind === HERO_WARM_KINDS[0]) mo.warmWork = job.work;
+    heroWarm();
   };
   requestAnimationFrame(step);
 }
@@ -19859,9 +19936,11 @@ function heroPlan(kind) {
   const k = mo.warmWork ? clamp(mo.warmWork / HERO_WARM_REF, 1, 4) : 1.5, cap = HERO_STEP_CAP * k;
   const d = hero.data, args = heroArgs(kind).join(), same = d && d.kind === kind && d.args.join() === args;
   const [W, H] = heroSize(), ready = same && hero.art && hero.art.key === heroArtKey(d, W, H);
-  const tex = hero.tex && hero.tex.key === [args, lookSig()].join('|');
+  const tex = !!heroTexOf(heroTexKey(heroArgs(kind)));
   const base = mo.buildWork || (mo.warmWork || HERO_WARM_REF * k) * HERO_WORK_PER_WARM;
-  const est = ready ? 0 : (base + (tex ? 0 : (mo.warmWork || HERO_WARM_REF * k))) * 1.15;
+  /* a table not yet painted: the warm-up's work (the pool table's) times its art's size over the pool's */
+  const px = g => { const t = heroTexDims(g); return t.w * t.h; }, more = tex || ready ? 1 : px((same ? d : heroPrep(kind)).geo) / px(heroPrep(HERO_WARM_KINDS[0]).geo);
+  const est = ready ? 0 : (base + (tex ? 0 : (mo.warmWork || HERO_WARM_REF * k) * more)) * 1.15;
   const frames = Math.ceil(est / cap), frame = 16.7 * Math.max(1, 0.8 * k);
   return { k, cap, est, flight: clamp(Math.round(frames * (cap + frame) / HERO_AIM), MORPH_MS, MORPH_MAX) };
 }
@@ -20465,7 +20544,7 @@ function* introBuild() {
   }
   intro.art = intro.arts[0];
   /* the table art the stills were laid from (and its turned copy): not needed again, let go */
-  hero.tex = null;
+  hero.tex = null; hero.texs = {};
   /* the crack's flash: a warm white bloom */
   const fl = intro.flash = document.createElement('canvas');
   fl.width = fl.height = 128;

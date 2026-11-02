@@ -156,6 +156,9 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
   const sk = await q.evaluate(t => ({ i: felt.intro, took: felt.intro.endAt - t, setup: setupSheet.classList.contains('show'), state: felt.state, op: getComputedStyle(play8).opacity, tr: menuTitle.style.transform }), tapT);
   check(`a real tap mid-break skips it (${Math.round(sk.took)} ms glide to the home) and is swallowed with its gesture (${sk.i.swallowed} events): the 8-Ball card under it never opens`,
     skipping === 'out' && sk.i.why === 'skipped' && sk.took < 450 && !sk.setup && sk.state === 'menu' && sk.op === '1' && sk.tr === '' && sk.i.swallowed >= 2, JSON.stringify({ skipping, ...sk, i: { why: sk.i.why, swallowed: sk.i.swallowed } }));
+  /* the next tap: once the skip's swallow is over (its click, or 700 ms from the skip: a touch whose
+     start was cancelled has no click), which the wait above did not always outlast on a fast page */
+  await q.waitForFunction(() => performance.now() > intro.swallow, null, { timeout: 3000 }).catch(() => {});
   await q.touchscreen.tap(card[0], card[1]);
   await q.waitForTimeout(500);
   check('the next tap on the card is the home\'s own: the 8-Ball setup opens', await q.evaluate(() => setupSheet.classList.contains('show')));

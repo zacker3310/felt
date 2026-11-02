@@ -5,7 +5,8 @@
    2. The morph: a tap on a game card opens its setup at once and carries the card into the hero
       (a transformed layer mid-flight; the hero's shot starts only after it lands), Back carries it
       back into the card; a mode card morphs into its page and back; with Reduce Motion each is a
-      plain cross-fade with no layer.
+      plain cross-fade with no layer. 2b watches every frame of five cards' opens (normal and CPU
+      throttled), 2c the game screen's table behind a setup that changed it (issue #1).
    3. Interactive sheets: every sheet (setup, settings, stats, help, career, modes, drills, practice)
       dismisses on a real pull down past a quarter of its height, springs back from a short one; a
       pull inside scrolled content scrolls it instead; a push page swipes back from the left edge.
@@ -118,7 +119,8 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     await tap('#setupBack'); await landed();
   }
   /* ---- 2b. the morph, watched frame by frame on an iPhone (dpr 3, its insets), a real tap on
-     8-Ball and 9-Ball at 393x852 and 440x956. Every rAF of the open: each picture the morph moves
+     8-Ball, 9-Ball, Snooker, Three-Cushion and Bumper Pool at 393x852 and 440x956 (the last three
+     each on a table of its own: issue #1). Every rAF of the open: each picture the morph moves
      (.mLayer) is scaled the same both ways (|sx - sy| < 0.01) and no canvas in it is drawn at an
      aspect other than its bitmap's (object-fit fill on another box: stretched); the hero is built
      under the morph and up and drawn in the first frame after the landing (no frame between the
@@ -146,7 +148,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 10000 }).catch(() => {});
     if (rate > 1) {
       await c2.send('Emulation.setCPUThrottlingRate', { rate });
-      await pg.evaluate(() => { hero.tex = null; mo.warm = 0; mo.warmWork = 0; heroWarm(); });
+      await pg.evaluate(() => { hero.tex = null; hero.texs = {}; mo.warm = 0; mo.warmWork = 0; heroWarm(); });
       await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 20000 }).catch(() => {});
     }
     const sp = await speedFactor(pg);
@@ -164,11 +166,14 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     const home = async () => { await touch('#setupBack'); await pg.waitForFunction(() => !felt.motion.busy && menu.classList.contains('show') && !document.querySelector('.mLayer'), null, { timeout: 5000 }).catch(() => {}); await pg.waitForTimeout(250); };
     /* an open that misses (too few frames, the hero built late, a frame over its budget) is opened
        again, up to three times in all: a loaded box's late frames come and go, a morph that is late or
-       slow on every try fails */
-    const KINDS2 = ['8', '9'];
+       slow on every try fails. The five pool cards share the pool table the home's warm-up painted;
+       snooker, three-cushion and bumper each open on a table of their own (issue #1: their first open
+       redrew the game screen's table mid-flight and the hero came late) */
+    const KINDS2 = ['8', '9', 'snooker', 'carom', 'bumper'];
     let tryN = 1;
     for (let ki = 0; ki < KINDS2.length; ki++) {
       const kind = KINDS2[ki];
+      const card = '#' + ({ snooker: 'playS', carom: 'playC', bumper: 'playB' }[kind] || 'play' + kind);
       /* the open, every frame */
       await pg.evaluate(() => {
         window.__mo = [];
@@ -190,7 +195,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
         requestAnimationFrame(tick);
       });
       const clock = await frameClock(pg);
-      await touch(`#play${kind}`);
+      await touch(card);
       await pg.waitForFunction(() => !felt.motion.busy && felt.motion.last && felt.motion.last.t1, null, { timeout: 5000 }).catch(() => {});
       await pg.waitForTimeout(400);
       const w = await pg.evaluate(() => { const s = window.__mo; window.__mo = null; return { s, last: felt.motion.last, build: felt.motion.build, origin: performance.timeOrigin }; });
@@ -211,7 +216,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
       let px = null;
       if (rate === 1) {
       /* the hand-over, frozen */
-      await touch(`#play${kind}`);
+      await touch(card);
       await pg.waitForFunction(() => felt.motion.busy, null, { polling: 'raf', timeout: 5000 }).catch(() => {});
       await pg.evaluate(() => { for (const a of document.getAnimations()) a.pause(); });
       await pg.waitForFunction(() => felt.motion.build && felt.motion.build.done && document.getAnimations().length, null, { timeout: 4000 }).catch(() => {});
@@ -246,11 +251,79 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
   }
   const mOf = f => MORPHS.filter(f).map(m => `${m.rate}x ${m.at} ${m.kind}`).join(', ') || 'none';
   const M1 = MORPHS.filter(m => m.rate === 1), M2 = MORPHS.filter(m => m.rate === 2);
-  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball; 393x852, 440x956)', M1.length === 4 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
-  check('the hero is built under the morph (two frames or more before the landing) and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', M1.length === 4 && M1.every(early), 'off: ' + mOf(m => m.rate === 1 && !early(m)) + ' ' + JSON.stringify(M1.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
-  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', M1.length === 4 && M1.every(m => m.px && m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(M1.map(m => [m.at, m.kind, m.px])));
-  check('no long frame from the tap to 300 ms after the landing (each under 50 ms of work times speedFactor)', M1.length === 4 && M1.every(m => m.worst <= m.budget), JSON.stringify(M1.map(m => [m.at, m.kind, m.worst, m.budget])));
-  check('on a CPU throttled to half speed the hero is still built two frames or more before the landing and takes over in its first frame, no frame over 50 ms of work times speedFactor (8-Ball, 9-Ball; 393x852, 440x956)', M2.length === 4 && M2.every(m => early(m) && m.worst <= m.budget), 'off: ' + mOf(m => m.rate === 2 && !(early(m) && m.worst <= m.budget)) + ' ' + JSON.stringify(M2.map(m => [m.at, m.kind, m.built, m.morphMs, m.handOver, m.seen, m.worst, m.budget])));
+  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool; 393x852, 440x956)', M1.length === 10 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
+  check('the hero is built under the morph (two frames or more before the landing) and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', M1.length === 10 && M1.every(early), 'off: ' + mOf(m => m.rate === 1 && !early(m)) + ' ' + JSON.stringify(M1.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
+  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', M1.length === 10 && M1.every(m => m.px && m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(M1.map(m => [m.at, m.kind, m.px])));
+  check('no long frame from the tap to 300 ms after the landing (each under 50 ms of work times speedFactor)', M1.length === 10 && M1.every(m => m.worst <= m.budget), JSON.stringify(M1.map(m => [m.at, m.kind, m.worst, m.budget])));
+  check('on a CPU throttled to half speed the hero is still built two frames or more before the landing and takes over in its first frame, no frame over 50 ms of work times speedFactor (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool; 393x852, 440x956)', M2.length === 10 && M2.every(m => early(m) && m.worst <= m.budget), 'off: ' + mOf(m => m.rate === 2 && !(early(m) && m.worst <= m.budget)) + ' ' + JSON.stringify(M2.map(m => [m.at, m.kind, m.built, m.morphMs, m.handOver, m.seen, m.worst, m.budget])));
+  /* ---- 2c. the game screen's table behind a setup that changes it (issue #1): opening Snooker,
+     Three-Cushion or Bumper Pool lays the game screen out for its table, its image left for later
+     (layout(true): tableDue at the landing), so Break paints it at once (start's tableArtNow, and the
+     camera's image, camHiRes, as the menu used to): the
+     image the game opens on is drawTableImage()'s for that table, pixel for pixel, in every base
+     cloth and a shop cloth and rails (each open a change of table). Left in the setup, the menu
+     paints it once idle (menuArt: the hero played out, no touch for MENU_QUIET_MS), the same
+     picture, then the camera's high-resolution image (against one made at once).
+     The home warms the hero's art for all four tables (heroWarm). ---- */
+  {
+    const o = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, motion: true,
+      init: `try { localStorage.setItem('felt.looks.v1', JSON.stringify({ v: 1, own: ['cloth-teal', 'rail-oak', 'rail-ebony'] })); } catch (e) { }` });
+    const pg = o.page, c3 = await pg.context().newCDPSession(pg);
+    let t3 = Date.now() / 1000;
+    const touch = async sel => {
+      const [x, y] = await pg.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, sel);
+      for (const type of ['touchStart', 'touchEnd']) { t3 += 0.016; await c3.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }], timestamp: t3 }); }
+    };
+    await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 20000 }).catch(() => {});
+    const warm = await pg.evaluate(() => HERO_WARM_KINDS.map(k => !!heroTexOf(heroTexKey(heroArgs(k)))));
+    /* the table image the game shows against a fresh, whole one (the fitted view), byte for byte */
+    const same = () => pg.evaluate(() => {
+      const keep = view; view = viewBase;
+      let fresh;
+      try { fresh = drawTableImage(); } finally { view = keep; }
+      const a = tableImg.getContext('2d').getImageData(0, 0, tableImg.width, tableImg.height).data, b = fresh.getContext('2d').getImageData(0, 0, fresh.width, fresh.height).data;
+      let off = 0;
+      if (a.length !== b.length) return { off: -1 };
+      for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) off++;
+      return { off, w: tableImg.width, h: tableImg.height };
+    });
+    const CARD = { snooker: '#playS', carom: '#playC', bumper: '#playB' }, BREAKS = [], IDLE = [];
+    for (const [cloth, rail] of [['green', 'walnut'], ['red', 'oak'], ['blue', 'walnut'], ['teal', 'ebony']]) {
+      for (const kind of ['snooker', 'carom', 'bumper']) {
+        await pg.evaluate(([c, r]) => { setSetting('cloth', c); setSetting('rail', r); }, [cloth, rail]);
+        await pg.waitForTimeout(150);
+        await touch(CARD[kind]);
+        await pg.waitForFunction(() => !felt.motion.busy && felt.motion.last && felt.motion.last.t1, null, { timeout: 5000 }).catch(() => {});
+        const at = await pg.evaluate(() => ({ due: !!tableDue, table: TABLE }));
+        if (cloth === 'green') {
+          /* left in the setup: painted by the idle menu, then the camera's image */
+          await pg.waitForFunction(() => !tableDue && !hiDue && tableHi && tableHi.sig === camSig(), null, { timeout: 30000 }).catch(() => {});
+          const r = await pg.evaluate(() => {
+            const hi = tableHi, img = hi.img;
+            tableHi = null; camHiRes();
+            const a = img && img.getContext('2d').getImageData(0, 0, img.width, img.height).data, b = tableHi.img && tableHi.img.getContext('2d').getImageData(0, 0, tableHi.img.width, tableHi.img.height).data;
+            let off = 0;
+            if (!a || !b || a.length !== b.length) off = -1; else for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) off++;
+            return { due: !!tableDue, hiOff: off };
+          });
+          IDLE.push(Object.assign({ kind }, r, await same()));
+        }
+        await touch('#breakBtn');
+        await pg.waitForFunction(() => felt.state !== 'menu', null, { timeout: 5000 }).catch(() => {});
+        const r = Object.assign({ cloth, rail, kind, dueAtLanding: at.due, setupTable: at.table, state: await pg.evaluate(() => felt.state), dueAtBreak: await pg.evaluate(() => !!tableDue), hi: await pg.evaluate(() => !hiDue && !!tableHi && tableHi.sig === camSig()), table: await pg.evaluate(() => TABLE) }, await same());
+        BREAKS.push(r);
+        await pg.evaluate(() => quitToHome());
+        await pg.waitForTimeout(300);
+      }
+    }
+    errors.push(...o.errors);
+    await o.browser.close();
+    check('the home warms the hero\'s table art for all four tables a card opens on (pool, snooker, three-cushion, bumper pool)', warm.every(Boolean), JSON.stringify(warm));
+    const goodBreak = b => b.dueAtLanding && !b.dueAtBreak && b.hi && b.state !== 'menu' && b.table === b.setupTable && b.off === 0;
+    check('a setup that changes the table leaves its image for later (deferred at the landing) and Break opens the game on drawTableImage()\'s own picture for that table, byte for byte, the camera\'s image made for it (Snooker, Three-Cushion, Bumper Pool; green, red, blue, teal cloth; walnut, oak, ebony rails)', BREAKS.length === 12 && BREAKS.every(goodBreak),
+      'off: ' + JSON.stringify(BREAKS.filter(b => !goodBreak(b))));
+    check('left in the setup, the idle menu paints that table (the same picture) and then the camera\'s high-resolution image (identical to one made at once)', IDLE.length === 3 && IDLE.every(r => !r.due && r.off === 0 && r.hiOff === 0), JSON.stringify(IDLE));
+  }
   /* Reduce Motion: a cross-fade, no layer */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tap('#play8');

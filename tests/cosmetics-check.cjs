@@ -183,6 +183,8 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
     check('shop page: the note says what happens (career matches show it, Settings can wear it, fixed prices, nothing random), a heading per slot and a swatch per item',
       /career matches show/.test(sp.note) && /Settings, Graphics/.test(sp.note) && /nothing random/.test(sp.note) && !/do not change how the game looks/.test(sp.note)
       && sp.heads.join() === 'Cues,Cloths,Chalk,Rails,Ball Sets,Profile Frames' && sp.sw === sp.rows && sp.rows === 32 && /Equipped/.test(sp.eqd), JSON.stringify(sp));
+    /* the page pushes in (a slide): measure once its finite animations end, not mid-slide on a busy runner (458 of 440) */
+    await t.page.evaluate(() => Promise.all(cvSheet.getAnimations({ subtree: true }).filter(a => a.effect.getComputedTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))));
     const sm = await smallTargets(t.page), lc = await lowContrast(t.page), fit = await ev(t, () => [cvSheet.scrollWidth, cvSheet.clientWidth]);
     check('shop page: targets 44 px, text 4.5:1, fits the width at 440', !sm.length && !lc.length && fit[0] <= fit[1] + 1, JSON.stringify({ sm, lc, fit }));
     /* the hub's card: the avatar in its frame (a ring of the frame's colour, pixels differ from no frame) */

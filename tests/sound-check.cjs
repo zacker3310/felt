@@ -14,7 +14,13 @@
    the node cap. Haptics: a pot two toggles, a foul a distinct double, a win three, a hard cushion
    one and a soft none, impacts never faster than HAP_HIT, nothing in a replay; the power bar fires
    powerFull once per pull at 100% (a sound and one tick), not below it. Sound off from the start:
-   a gesture makes no audio context and fetches no takes. */
+   a gesture makes no audio context and fetches no takes.
+   Snooker (issue 7): its click is its own (the takes played higher, brighter at snooker's speeds
+   and shorter than pool's at the same speed; pool's untouched), a soft cluster touch sits far under
+   a firm contact; rendered whole, a break-off and a shot into the pack never reach the clipper, work
+   the limiter under 3 dB, keep the ball voices under snooker's cap and never play a take twice
+   running; an offline render counts its node budget at each voice's own time (the whole 8-ball
+   break is heard, not only its start). */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -133,6 +139,73 @@ function shape({ x, sr }) {
   check('cushion: a low, dull thud (duller than a ball click); a post is its own rubbery sound', kinds.railHard.hf < ball.hard.hf / 4 && kinds.postDiff > 0.01, JSON.stringify([kinds.railHard.hf, ball.hard.hf, kinds.postDiff]));
   check('pocket: a corner sends the ball round a longer return than a side; snooker\'s net is softer', kinds.cornerTail.rms > kinds.sideTail.rms && kinds.net.pk < kinds.corner.pk, JSON.stringify([kinds.cornerTail.rms, kinds.sideTail.rms, kinds.net.pk, kinds.corner.pk]));
   check('power full: a soft tick, far quieter than a ball click', kinds.full.pk < ball.hard.pk / 5, JSON.stringify(kinds.full));
+
+  /* 2b. snooker (issue 7): its own click, and a break that never piles up */
+  const snk = await page.evaluate(async () => {
+    const SR = 48000;
+    /* a lone hit at speed v, averaged over 8 hits a hair apart (8 takes): peak, spectral centroid of 20 ms
+       from its onset, ms from the peak to 20 dB down, and the take's playback rate (the voice log) */
+    const one = async v => {
+      let pk = 0, c = 0, t20 = 0, rate = 0;
+      const N = 8;
+      for (let i = 0; i < N; i++) {
+        const x = await soundRender([['ball', v * (1 + i * 0.002), 0.01]], 0.25, null, SR, { log: true }), log = soundRender.log || [];
+        rate += (log[0] ? log[0].rate : 0) / N;
+        let p = 0; for (let k = 0; k < x.length; k++) p = Math.max(p, Math.abs(x[k]));
+        pk += p / N;
+        let a = 0; for (let k = 0; k < x.length; k++) if (Math.abs(x[k]) > p * 0.05) { a = k; break; }
+        let num = 0, den = 0;
+        for (let f = 100; f < 16000; f += 100) {
+          let re = 0, im = 0;
+          for (let k = 0; k < 960; k++) { const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * k / 960), y = (x[a + k] || 0) * w; re += y * Math.cos(2 * Math.PI * f * k / SR); im -= y * Math.sin(2 * Math.PI * f * k / SR); }
+          num += f * (re * re + im * im); den += re * re + im * im;
+        }
+        c += num / den / N;
+        const h = 96, e = j => { let q = 0; for (let k = j; k < j + h; k++) q += (x[k] || 0) ** 2; return Math.sqrt(q / h); };
+        let pe = 0, jp = 0; for (let j = a; j < a + 2400; j += h) if (e(j) > pe) { pe = e(j); jp = j; }
+        for (let j = jp; j < x.length; j += h) if (e(j) < pe / 10) { t20 += (j - jp) / SR * 1000 / N; break; }
+      }
+      return { pk, c, t20, rate };
+    };
+    /* a whole shot rendered: the voice log, the peak, samples on the clipper's shoulder (over 0.7),
+       the bus's peak before the limiter (threshold -4 dBFS, ratio 20) */
+    const shot = async (balls, sh) => {
+      const T = strike(newTable(balls.map(b => Object.assign({}, b)), 0), sh.angle, sh.power, sh.spin || 0), ev = [];
+      const take = () => { for (const h of T.hits) ev.push([h[0], h[1], 0.1 + T.t, h[2]]); T.hits.length = 0; };
+      take(); let on = true;
+      while (on && T.t < 12) { on = stepTable(T); take(); }
+      const secs = Math.min(12, 1 + T.t), x = await soundRender(ev, secs, null, SR, { log: true }), log = soundRender.log || [];
+      const pre = await soundRender(ev, secs, null, SR, { pre: true });
+      let pk = 0, sh7 = 0, pp = 0;
+      for (let i = 0; i < x.length; i++) { const a = Math.abs(x[i]); pk = Math.max(pk, a); if (a > 0.7) sh7++; pp = Math.max(pp, Math.abs(pre[i])); }
+      const b = log.filter(e => e.kind === 'ball');
+      let most = 0; for (const e of b) most = Math.max(most, b.filter(o => o.t <= e.t && o.end > e.t).length);
+      return { hits: ev.filter(e => e[0] === 'ball').length, played: b.length, most, pk: 20 * Math.log10(pk), sh7, gr: Math.max(0, (20 * Math.log10(pp) + 4) * 0.95),
+        twice: b.filter((e, i) => i && e.take === b[i - 1].take).length, logged: log.length };
+    };
+    const o = {};
+    setTable('7');
+    o.pool1 = await one(1); o.pool2 = await one(2);
+    { const g = newGame('8'), c = g.balls.find(b => b.n === 0), a = g.balls.find(b => b.n === 1); o.poolBreak = await shot(g.balls, { angle: Math.atan2(a.y - c.y, a.x - c.x), power: 1 }); }
+    setTable('snooker', 'full');
+    o.snk1 = await one(1); o.snkSoft = await one(0.2); o.snkFirm = await one(2);
+    let g = newGame('snooker');
+    const br = cpuShot(g, 7, 'hard');
+    if (br.place) g = placeCue(g, br.place[0], br.place[1]);
+    o.brk = await shot(g.balls, br);
+    const c = g.balls.find(b => b.n === 0), apex = g.balls.filter(b => isRed(b.n)).reduce((a, b) => b.x < a.x ? b : a);
+    o.pack = await shot(g.balls, { angle: Math.atan2(apex.y - c.y, apex.x - c.x), power: 0.85 });
+    o.cap = typeof VOICE_SNOOKER === 'object' ? VOICE_SNOOKER.ball[0] : VOICE.ball[0];
+    setTable('7');
+    return o;
+  });
+  const r2 = x => JSON.stringify(x, (k, v) => typeof v === 'number' ? +v.toFixed(3) : v);
+  check('snooker: its click is its own: the takes played at least 8% higher than pool\'s at the same speed, its spectrum at least 15% brighter (centroid)', snk.snk1.rate >= snk.pool1.rate * 1.08 && snk.snk1.c >= snk.pool1.c * 1.15, r2({ snooker: snk.snk1, pool: snk.pool1 }));
+  check('snooker: a short click: 20 dB down in at most 80% of pool\'s time', snk.snk1.t20 > 0 && snk.snk1.t20 <= snk.pool1.t20 * 0.8, r2({ snooker: snk.snk1.t20, pool: snk.pool1.t20 }));
+  check('snooker: a soft cluster touch (0.2 m/s) at least 18 dB under a firm contact (2 m/s), a firm one within 6 dB of pool\'s at that speed', 20 * Math.log10(snk.snkFirm.pk / snk.snkSoft.pk) >= 18 && Math.abs(20 * Math.log10(snk.snkFirm.pk / snk.pool2.pk)) <= 6, r2({ soft: snk.snkSoft.pk, firm: snk.snkFirm.pk, pool2: snk.pool2.pk }));
+  check('snooker break-off and a shot into the pack, rendered whole: never on the clipper\'s shoulder, peak under -3 dBFS, the limiter under 3 dB of gain reduction', [snk.brk, snk.pack].every(x => x.sh7 === 0 && x.pk < -3 && x.gr < 3), r2({ brk: snk.brk, pack: snk.pack }));
+  check('snooker: the ball voices sounding at once stay under snooker\'s cap (5), and no take plays twice running', snk.cap <= 5 && [snk.brk, snk.pack].every(x => x.logged > 0 && x.most <= snk.cap && x.twice === 0), r2({ cap: snk.cap, brk: snk.brk, pack: snk.pack }));
+  check('an offline render counts the node budget at each voice\'s time: the whole 8-ball break is heard (at least 15 of its 46 ball contacts play, never twice running)', snk.poolBreak.played >= 15 && snk.poolBreak.twice === 0, r2(snk.poolBreak));
 
   /* 3. the roll bed: follows the speed, fades to nothing */
   const roll = await page.evaluate(async () => {

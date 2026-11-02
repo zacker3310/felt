@@ -245,10 +245,16 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `hit()`: a take picked by `sfxPick` (a hash of the impact, never the same take twice running), low-pass, gain, rate
   +-3%, loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the pocket index,
   or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket, snooker's net and bumper's cup are the cushion and
-  pocket takes played faster, brighter or cut short. Beds: the roll (the looped take under a low-pass, `rollAt`, from
+  pocket takes played faster, brighter or cut short. Snooker plays the same takes as its own ball (issue 7, read from `TABLE`
+  at call time): `snkClack` by `SFX_SNOOKER` (rate 1.12, bright from a soft touch, cut at 32 ms, level by v / 4.5 on a steeper
+  curve so a red cluster's soft touches sit about 20 dB under a firm contact), `VOICE_SNOOKER` thins a cluster, the cue a hair
+  higher, a rounded jaw one knock; pool's mapping is untouched. Beds: the roll (the looped take under a low-pass, `rollAt`, from
   `soundFrame`'s own rAF, no allocation; `ROLL_LVL` 0, off: its loop pulsed audibly) and the room tone (`ROOM_LVL` 0, off: it read as hiss). The UI cues stay small synthesised notes. A limiter and a
-  soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes; `felt.sound` reports them, `soundRender` renders
-  offline (`node tools/sound-render.cjs <dir>` writes WAVs, a break and run among them). Haptics map in 2h (`hapPlans`,
+  soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes (offline at each voice's own time, `sfxOffT`);
+  `felt.sound` reports them, `soundRender(ev, secs, rolls, sr, { log, pre })` renders offline (`log`: `soundRender.log`, a
+  voice per take with its take, gain, rate and brightness; `pre`: the bus before the limiter); `node tools/sound-render.cjs
+  <dir>` writes WAVs (a break and run, snooker's break-off, pack and long pot among them) and prints voices, the most at
+  once and the pre-limiter peak. Haptics map in 2h (`hapPlans`,
   impacts per `HAP_HIT`); the power bar calls `powerFull()` at 100%, once per pull. Pinned by `sound-check` (and
   `moments-check`).
 - Table look (section 4): the static table is baked once per layout/table/look (`drawTableImage` = `paintTable` plus,

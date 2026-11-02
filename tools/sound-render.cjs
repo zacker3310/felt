@@ -6,7 +6,11 @@
    net, a jaw, a bumper post, the cue (hard and soft), three seconds of roll slowing to a stop, a
    whole 8-ball break (every contact of a real break off the sim, the roll bed following the balls'
    speed), and a break and run: the hard CPU's shots one after another until it misses or wins,
-   each one's contacts at their sim times, a second between shots.
+   each one's contacts at their sim times, a second between shots. Snooker (issue 7): a lone click
+   on the snooker table beside the pool one, the hard CPU's break-off, a firm shot into the pack and
+   a long red into a corner, on the 12 ft table. For every scene with contacts it prints what it
+   heard: the voices played of the hits the sim made, the most ball voices sounding at once, the
+   peak, the bus's peak before the limiter (over -4 dBFS the limiter works), a take twice running.
    Usage: node tools/sound-render.cjs [out-dir]   (default ./renders) */
 'use strict';
 const fs = require('fs');
@@ -58,7 +62,17 @@ function wav(samples) {
     out['roll-3s'] = arr(await soundRender([], 3.2, Array.from({ length: 181 }, (_, i) => [i / 60, 4 * Math.max(0, 1 - i / 170) ** 1.5]), SR));
     setTable('bumper'); await one('bumper-post', [['rail', 2.5, 0.05, 'post']], 0.6);
     setTable('snooker', 'full'); await one('pot-snooker-net', [['pocket', 1.5, 0.05, 0]], 1);
-    setTable('7');
+    await one('snooker-hit', [['ball', 1.2, 0.05]], 0.4);
+    setTable('7'); await one('pool-hit', [['ball', 1.2, 0.05]], 0.4);
+    out.__stats = {};
+    /* a scene rendered with its voice log, and again before the limiter */
+    const scene = async (name, ev, secs, rolls) => {
+      out[name] = arr(await soundRender(ev, secs, rolls, SR, { log: true }));
+      const log = soundRender.log, pre = await soundRender(ev, secs, rolls, SR, { pre: true }), balls = log.filter(e => e.kind === 'ball');
+      let pp = 0; for (const x of pre) pp = Math.max(pp, Math.abs(x));
+      let most = 0; for (const e of balls) most = Math.max(most, balls.filter(o => o.t <= e.t && o.end > e.t).length);
+      out.__stats[name] = { hits: ev.length, voices: log.length, ballHits: ev.filter(e => e[0] === 'ball').length, ballVoices: balls.length, most, pre: 20 * Math.log10(pp || 1e-9), twice: balls.filter((e, i) => i && e.take === balls[i - 1].take).length };
+    };
     /* a shot's contacts and roll (60 Hz) at their sim times from t0; the table and its end time */
     const play = (balls, shot, t0, ev, rolls) => {
       const T = strike(newTable(balls, 0), shot.angle, shot.power, shot.spin || 0), every = Math.max(1, Math.round(1 / 60 / SIM_DT));
@@ -77,9 +91,26 @@ function wav(samples) {
       const balls = felt.game.balls.filter(b => b.on).map(b => Object.assign({}, b));
       const c = balls.find(b => b.n === 0), apex = balls.find(b => b.n === 1), ev = [], rolls = [];
       const { end } = play(balls, { angle: Math.atan2(apex.y - c.y, apex.x - c.x), power: 1, spin: 0 }, 0.1, ev, rolls);
-      out.break = arr(await soundRender(ev, end + 1.5, rolls, SR));
+      await scene('break', ev, end + 1.5, rolls);
     }
     felt.quitToHome();
+    /* snooker: the hard CPU's break-off, a firm shot into the pack, a long red */
+    setTable('snooker', 'full');
+    {
+      let g = newGame('snooker');
+      const shot = cpuShot(g, 7, 'hard');
+      if (shot.place) g = placeCue(g, shot.place[0], shot.place[1]);
+      let ev = [], rolls = [], r = play(g.balls, shot, 0.1, ev, rolls);
+      await scene('snooker-break', ev, r.end + 1, rolls);
+      const c = g.balls.find(b => b.n === 0), apex = g.balls.filter(b => isRed(b.n)).reduce((a, b) => b.x < a.x ? b : a);
+      ev = []; rolls = []; r = play(g.balls, { angle: Math.atan2(apex.y - c.y, apex.x - c.x), power: 0.85, spin: 0 }, 0.1, ev, rolls);
+      await scene('snooker-pack', ev, Math.min(12, r.end + 1), rolls);
+      const red = { n: 41, x: TL * 0.62, y: TW * 0.62, vx: 0, vy: 0, on: true }, cue = { n: 0, x: HEAD_X - 0.05, y: TW * 0.45, vx: 0, vy: 0, on: true };
+      const P = POCKETS.reduce((a, p) => p[0] + p[1] > a[0] + a[1] ? p : a), d = Math.atan2(P[1] - red.y, P[0] - red.x);
+      ev = []; rolls = []; r = play([cue, red], { angle: Math.atan2(red.y - Math.sin(d) * 2 * BALL_R - cue.y, red.x - Math.cos(d) * 2 * BALL_R - cue.x), power: 0.45, spin: 0 }, 0.1, ev, rolls);
+      await scene('snooker-long-pot', ev, r.end + 1, rolls);
+    }
+    setTable('7');
     /* a break and run: the hard CPU from the break on, the seed with the longest run of the first dozen */
     let best = null;
     for (let seed = 1; seed <= 12; seed++) {
@@ -99,17 +130,18 @@ function wav(samples) {
       if (!best || pots > best.pots || (g.winner !== null && !best.won)) best = { pots, ev, rolls, t, won: g.winner !== null, seed };
       if (best.won) break;
     }
-    out['break-and-run'] = arr(await soundRender(best.ev, best.t + 0.5, best.rolls, SR));
+    await scene('break-and-run', best.ev, best.t + 0.5, best.rolls);
     out.__run = [best.seed, best.pots, best.won];
     return out;
   }, SR);
-  const run = files.__run; delete files.__run;
+  const run = files.__run, stats = files.__stats; delete files.__run; delete files.__stats;
   fs.mkdirSync(OUT, { recursive: true });
   for (const [name, s] of Object.entries(files)) {
     let pk = 0;
     for (const x of s) pk = Math.max(pk, Math.abs(x));
     fs.writeFileSync(path.join(OUT, name + '.wav'), wav(s));
-    console.log(`${(name + '.wav').padEnd(26)} ${(s.length / SR).toFixed(2)} s  peak ${(20 * Math.log10(pk || 1e-9)).toFixed(1)} dBFS`);
+    const st = stats[name];
+    console.log(`${(name + '.wav').padEnd(26)} ${(s.length / SR).toFixed(2)} s  peak ${(20 * Math.log10(pk || 1e-9)).toFixed(1)} dBFS` + (st ? `  ${st.voices}/${st.hits} voices (balls ${st.ballVoices}/${st.ballHits}, at most ${st.most} at once), pre-limiter ${st.pre.toFixed(1)} dBFS, take twice running ${st.twice}` : ''));
   }
   console.log(`break and run: CPU seed ${run[0]}, ${run[1]} balls potted${run[2] ? ', game won' : ''}`);
   await browser.close(); srv.close();

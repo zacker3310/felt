@@ -112,6 +112,9 @@ function audit() {
     free: felt.railBar.free, snk: !snkBar.hidden, snkShown: items.some(i => i.id === 'snkBar'), view: items.some(i => i.id === 'viewBtn'), offer: items.some(i => i.id === 'replayBtn'), text: snkBar.textContent };
 }
 /* the replay's offer as frame() makes it after a shot (the pill, its words), held for the check */
+/* the replay's pills scale in (rplIn, from .94): wait for the animations to end, not a fixed time, so a loaded runner
+   never measures a pill mid-scale (a 44 px target reads 41) */
+const rplSettled = page => page.evaluate(() => Promise.all([...document.querySelectorAll('.rpl')].flatMap(e => e.getAnimations({ subtree: true }).map(a => a.finished.catch(() => {})))));
 function offerNow(notable) {
   offer = { rec: null, notable: notable ? 'bank' : null, until: performance.now() + 1e7 };
   replayBtn.toggleAttribute('data-notable', !!notable);
@@ -427,7 +430,7 @@ async function aimAndVoiceChecks() {
       a.fails.forEach(f => bad.push(`${name}: ${f}`));
       for (const notable of [false, true]) {
         await page.evaluate(offerNow, notable);
-        await page.waitForTimeout(350);   /* the pill scales in over 200 ms (rplIn) */
+        await page.waitForTimeout(350);   /* the pill scales in over 200 ms (rplIn) */ await rplSettled(page);
         const b = await page.evaluate(audit);
         if (!b.offer) bad.push(`${name}: the replay pill does not show${notable ? ' (gold)' : ''}`);
         if (!b.chips) bad.push(`${name}: the score keeper gave way to the replay`);
@@ -458,7 +461,7 @@ async function aimAndVoiceChecks() {
     await page.evaluate(() => { felt.start('8', { level: 'easy' }); felt.speed = 8; felt.shoot(0.02, 0.6, { x: 0, y: 0 }); });
     await page.waitForFunction(() => felt.state === 'aim' || felt.state === 'thinking' || felt.state === 'choose', null, { timeout: 30000 }).catch(() => { });
     const rp0 = await page.evaluate(() => { felt.speed = 0.05; return felt.replay(); });
-    await page.waitForTimeout(500);   /* past the badge's and Skip's scale-in (rplIn) on a slow runner */
+    await page.waitForTimeout(500);   /* past the badge's and Skip's scale-in (rplIn) on a slow runner */ await rplSettled(page);
     const rp1 = await page.evaluate(audit);
     /* Skip always (the badge is only a label: it gives way on a short rail), the score keeper too */
     const both = rp1.items.some(i => i[0] === 'replaySkip') && rp1.items.some(i => i[0].startsWith('pchip')) && (rp1.items.some(i => i[0] === 'replayBadge') || rp1.free < 40);

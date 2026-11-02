@@ -415,7 +415,7 @@ async function landscape() {
   }
   check('956x440: every game\'s first step has its coach card on screen, off the controls and the struck ball, with a ring', out.every(o => o.ok), JSON.stringify(out.filter(o => !o.ok)));
   /* the coach card scales in (coachIn): measure once its animations end, not mid-scale on a slow runner (CI 52ed014: 43 px) */
-  await T.page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
+  await T.page.evaluate(() => Promise.all(coach.getAnimations({ subtree: true }).filter(a => a.effect.getComputedTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))));
   check('956x440: the tutorial screen: targets 44 px, text 4.5:1', (await smallTargets(T.page)).length === 0 && (await lowContrast(T.page)).length === 0, JSON.stringify([await smallTargets(T.page), await lowContrast(T.page)]));
   await coachTap(T);
   check('956x440: Show me plays snooker\'s first step', await ev(T, () => felt.lastTut && felt.lastTut.ok && felt.tut.step === 1));

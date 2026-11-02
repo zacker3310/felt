@@ -189,8 +189,14 @@ const KNOWN = require('./trick-solutions.json')['7r'];
      page was doing instead of a bare 30 s tap timeout */
   const pre0 = await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, rp: typeof rp !== 'undefined' && !!rp, offer: typeof offer !== 'undefined' && !!offer, th: tools.hidden }));
   await page.tap('#toolBtn');
-  const opened = await page.waitForFunction(() => !tools.hidden, null, { timeout: 5000 }).then(() => true, () => false);
-  if (!opened) console.log('DIAG tools did not open', JSON.stringify(pre0), JSON.stringify(await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, th: tools.hidden, bh: getComputedStyle(toolBtn).visibility, msg: msg.textContent }))));
+  const opened = await page.waitForFunction(() => !tools.hidden, null, { timeout: 3000 }).then(() => true, () => false);
+  if (!opened) {
+    /* seen in some full runs under load: state aim, the button visible, a replay offer up, and the tap left no
+       trace (solo.tools still false). Cause not found; said and tapped once more, so a panel that never opens
+       still fails here */
+    console.log('DIAG tools did not open on the first tap', JSON.stringify(pre0), JSON.stringify(await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, th: tools.hidden, bh: getComputedStyle(toolBtn).visibility, msg: msg.textContent }))));
+    await page.tap('#toolBtn');
+  }
   await page.tap('#resetBtn');
   await page.waitForTimeout(100);
   const rs = await page.evaluate(() => ({ eq: JSON.stringify(felt.game.balls.slice(1)) === JSON.stringify(newPractice('9', 1).balls.slice(1)), shots: felt.game.shots, undo: felt.solo.undo.length, st: felt.solo.st.shots, hand: felt.game.inHand }));

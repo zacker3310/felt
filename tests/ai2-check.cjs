@@ -146,7 +146,7 @@ if (!isMainThread) {
     : j.off ? Object.assign(j, offence(prof(j.off), j.kind, j.count)) : Object.assign(j, play(j.kind, j.profs.map(prof), j.seed, j.first))));
   return;
 }
-const { check, done } = require('./lib.cjs');
+const { check, done, cpuMs } = require('./lib.cjs');
 function runAll(jobs) {
   const n = Math.max(1, Math.min(4, os.cpus().length, jobs.length)), parts = [...Array(n)].map(() => []);
   jobs.forEach((j, i) => parts[i % n].push(j));
@@ -338,14 +338,15 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
   check('personalities against each other always finish (no endless safety exchange)', mix.every(r => r.winner !== null && !r.bad), JSON.stringify(mix.map(r => [r.profs.map(p => p.arch).join('-'), r.shots, r.winner])));
   /* the slicing, measured once the worker threads are done (they share the cores): no
      personality adds a long step between yields to what the bare level already has, the same
-     positions searched in turn by each, the step's wall time compared with the bare hard level's */
+     positions searched in turn by each, the step's CPU time (lib's cpuMs: other suites may share the cores)
+     compared with the bare hard level's */
   const steps = {}, turns = {};
   const ipos = pos.slice(0, 8).concat([Object.assign(S.copyGame(pos[1]), { inHand: 'table' })]);
   const PROFS = { hard: 'hard', shotmaker: { level: 'hard', arch: 'shotmaker' }, banker: { level: 'hard', arch: 'banker' }, defender: { level: 'hard', arch: 'defender' } };
   for (let rep = 0; rep < 2; rep++) for (const [i, g] of ipos.entries()) for (const [name, p] of Object.entries(PROFS)) {
-    const it = S.cpuSearch(g, i, p), a0 = performance.now(), st = [];
-    for (;;) { const a = performance.now(), r = it.next(); st.push(performance.now() - a); if (r.done) break; }
-    if (rep) { (steps[name] = steps[name] || []).push(...st); turns[name] = Math.max(turns[name] || 0, performance.now() - a0); }
+    const it = S.cpuSearch(g, i, p), a0 = cpuMs(), st = [];
+    for (;;) { const a = cpuMs(), r = it.next(); st.push(cpuMs() - a); if (r.done) break; }
+    if (rep) { (steps[name] = steps[name] || []).push(...st); turns[name] = Math.max(turns[name] || 0, cpuMs() - a0); }
   }
   const p99 = a => { const b = a.slice().sort((x, y) => x - y); return b[Math.floor(b.length * 0.99)]; };
   const sl = Object.fromEntries(Object.keys(PROFS).map(k => [k, +p99(steps[k]).toFixed(1)]));

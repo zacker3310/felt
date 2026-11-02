@@ -29,7 +29,7 @@
       3D view 4.5:1, targets 44 px, and landscape. FELT_SHOTS=<dir> saves screenshots. */
 'use strict';
 const path = require('path');
-const { check, done, open, smallTargets, lowContrast, settled, speedFactor } = require('./lib.cjs');
+const { check, done, open, smallTargets, lowContrast, settled, speedFactor, frameClock, trackFrames, frameEnds } = require('./lib.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
 const D2R = Math.PI / 180;
 
@@ -509,18 +509,26 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
     /* the lens's middle shows the contact magnified: the ghost ball's middle there, so it differs from the frame without */
     const gl = t3d.getContext('webgl2'), k = felt.view3.scale, px = s => { const o = new Uint8Array(4); gl.readPixels(Math.round((s[0] - B.left) * k), t3d.height - 1 - Math.round((s[1] - B.top) * k), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); return [...o.slice(0, 3)]; };
     const inL = L1 ? px([L1.x, L1.y + L1.r * 0.5]) : null;
-    const cost = () => { const N = 40, o = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); const t0 = performance.now(); for (let i = 0; i < N; i++) { draw(now += 16); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); } return (performance.now() - t0) / N; };
+    const cost = () => { const N = 40, o = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); const t0 = performance.now(); for (let i = 0; i < N; i++) { draw(now += 16); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, o); } const t1 = performance.now(); return { ms: (t1 - t0) / N, n: N, a: performance.timeOrigin + t0, b: performance.timeOrigin + t1 }; };
     const ms = cost();
     fineAim = false; run(20); const outL = L1 ? px([L1.x, L1.y + L1.r * 0.5]) : null; const base = cost();
     const after = !!V3.loupe;
     return { off, L1, after, d: L1 ? Math.hypot(L1.x - C[0], L1.y - C[1]) : 0, inside: L1 && L1.x - L1.r >= B.left - 4 && L1.x + L1.r <= B.left + B.width + 4 && L1.y - L1.r >= B.top - 4 && L1.y + L1.r <= B.top + B.height + 4, inL, outL, ms, base };
   });
+  const clockL = await frameClock(page);
   const lp = await loupeRun();
+  await clockL.stop();
+  /* each run's frames on their work: less what the frame's threads waited for a core while they ran (lib's
+     frameClock), so the two runs are fair to each other on a busy box */
+  const workOf = c => (c.ms * c.n - clockL.waited(c.a, c.b)) / c.n;
+  lp.wall = [lp.ms.ms, lp.base.ms]; lp.ms = workOf(lp.ms); lp.base = workOf(lp.base);
+  const spL = await speedFactor(page);
   check(`loupe: in 3D shown while fine aim is held, gone when it is not, ${lp.L1 ? (2 * lp.L1.r).toFixed(0) : '-'} CSS px across (120 to 150), its centre ${lp.d.toFixed(0)} px from the contact (over its radius), inside the stage, the lens drawn`,
     !lp.off && lp.L1 && lp.L1.a === 1 && 2 * lp.L1.r >= 110 && 2 * lp.L1.r <= 150 && lp.d > lp.L1.r && lp.inside && !lp.after && Math.max(...lp.inL.map((v, i) => Math.abs(v - lp.outL[i]))) > 20, JSON.stringify(lp));
-  const spL = await speedFactor(page), kL = s1.soft ? spL.f : 1;
-  check(`loupe: a 3D frame with it up ${lp.ms.toFixed(1)} ms, without ${lp.base.toFixed(1)} ms: under ${((s1.soft ? 26 : 16) * kL).toFixed(1)} ms (x${spL.f.toFixed(2)} for this runner) and at most twice the frame without it`,
-    lp.ms < (s1.soft ? 26 : 16) * kL && lp.ms < 2 * lp.base, JSON.stringify({ ms: lp.ms, base: lp.base }));
+  /* the speed factor for software GL only (a GPU must hold its frame) */
+  const kL = s1.soft ? spL.f : 1;
+  check(`loupe: a 3D frame with it up ${lp.ms.toFixed(1)} ms, without ${lp.base.toFixed(1)} ms of work: under ${((s1.soft ? 26 : 16) * kL).toFixed(1)} ms (x${kL.toFixed(2)} for this runner) and at most twice the frame without it`,
+    lp.ms < (s1.soft ? 26 : 16) * kL && lp.ms < 2 * lp.base, JSON.stringify({ ms: lp.ms, base: lp.base, wall: lp.wall }));
   if (SHOTS) { await t.ev(() => { fineAim = true; }); await frames(page, 8); await page.screenshot({ path: path.join(SHOTS, 'v3-loupe.png') }); await t.ev(() => { fineAim = false; }); }
   /* snooker's scoreboard: on the stage's bottom row in 3D (with the 3D switch), inside the stage, clear of the switch and of the bed as drawn */
   const snk = await t.ev(async () => {
@@ -612,19 +620,26 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   const runs = [];
   for (let run = 0; run < 3; run++) {
     await t.ev(() => { felt.v3Measure = true; felt.v3Clear(); });
+    await trackFrames(page, 'V3.ms');   /* each frame's end noted, for its work (lib's frameClock) */
+    const clock = await frameClock(page);
     await t.touch('touchStart', [[120, 300]]);
     for (let i = 1; i <= 60; i++) { await t.touch('touchMove', [[120 + i * 2, 300]], 16); await frames(page, 1); }
     await t.touch('touchEnd', []);
-    const ms = await t.ev(() => { felt.v3Measure = false; return felt.v3Ms(); });
-    ms.sort((x, y) => x - y);
-    runs.push({ n: ms.length, p95: ms[Math.floor(ms.length * 0.95)], max: ms[ms.length - 1], mean: ms.reduce((x, y) => x + y, 0) / ms.length });
+    const raw = await t.ev(() => { felt.v3Measure = false; return felt.v3Ms(); });
+    await clock.stop();
+    const ends = await frameEnds(page, 'V3.ms'), ms = raw.map((d, i) => clock.work(d, ends[i])).sort((x, y) => x - y);
+    raw.sort((x, y) => x - y);
+    runs.push({ n: ms.length, p95: ms[Math.floor(ms.length * 0.95)], max: ms[ms.length - 1], mean: ms.reduce((x, y) => x + y, 0) / ms.length, wallP95: +raw[Math.floor(raw.length * 0.95)].toFixed(1), wallMax: +raw[raw.length - 1].toFixed(1) });
   }
-  const fb = runs.reduce((x, y) => y.p95 < x.p95 ? y : x);
   /* a GPU must hold a frame (16 ms); software GL is a regression guard only: the CI runner's
-     SwiftShader measured p95 19.3 ms where this machine measures 15, neither says anything about a phone */
+     SwiftShader measured p95 19.3 ms where this machine measures 15, neither says anything about a phone.
+     Each frame is judged on its work: its wall time less what its threads waited for a core in it (lib's
+     frameClock: the suites run side by side). Best of three: the view's own cost fails all three */
   const sp = await speedFactor(page), k = s1.soft ? sp.f : 1;   /* a slow runner is judged against itself (lib.cjs) */
   const P95 = (s1.soft ? 26 : 16) * k, MAX = (s1.soft ? 40 : 33) * k;
-  check(`frames: dragging the aim at 393x852, ${s1.soft ? 'software GL at ' + s1.scale + 'x' : 'GPU at ' + s1.scale + 'x'}: 95% under ${fb.p95.toFixed(1)} ms < ${P95.toFixed(1)}, max ${fb.max.toFixed(1)} ms < ${MAX.toFixed(1)} (mean ${fb.mean.toFixed(1)}, runner x${sp.f.toFixed(2)}, flushed, best of 3)`, fb.n >= 30 && fb.p95 < P95 && fb.max < MAX, JSON.stringify(runs));
+  for (const r of runs) r.ok = r.n >= 30 && r.p95 < P95 && r.max < MAX;
+  const fb = runs.find(r => r.ok) || runs.reduce((x, y) => y.p95 < x.p95 ? y : x);
+  check(`frames: dragging the aim at 393x852, ${s1.soft ? 'software GL at ' + s1.scale + 'x' : 'GPU at ' + s1.scale + 'x'}: 95% under ${fb.p95.toFixed(1)} ms < ${P95.toFixed(1)}, max ${fb.max.toFixed(1)} ms < ${MAX.toFixed(1)} (mean ${fb.mean.toFixed(1)} ms of work; wall p95 ${fb.wallP95}, max ${fb.wallMax}; runner x${sp.f.toFixed(2)}, flushed, best of 3)`, fb.ok, JSON.stringify(runs));
   console.log(`3D frame time: mean ${fb.mean.toFixed(2)} ms, p95 ${fb.p95.toFixed(2)} ms, max ${fb.max.toFixed(2)} ms`);
   const lc = await lowContrast(page);
   check('the HUD over the 3D view: every text 4.5:1', lc.length === 0, JSON.stringify(lc));

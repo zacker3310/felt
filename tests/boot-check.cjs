@@ -7,7 +7,7 @@
    --sat/--sar/--sab/--sal, which headless env() leaves at 0) against the sizes before the
    maximised layout. */
 'use strict';
-const { check, done, open, choose, openPop, smallTargets, lowContrast } = require('./lib.cjs');
+const { check, done, open, choose, openPop, smallTargets, lowContrast, budgetWindow } = require('./lib.cjs');
 
 /* the words laid over the home's art (the eight game cards): each line's colour against the art's
    own pixels under it (the scrim is painted into the canvas), worst case at the 2nd percentile
@@ -514,13 +514,15 @@ const artContrast = page => page.evaluate(() => {
   check('the menu and game-over overlays still scroll (pan-y only)', z.menu.every(v => v === 'pan-y'), JSON.stringify(z.menu));
   check('how to play: touch words on a touch screen', z.how[0] === 'none' && z.how[1] !== 'none', JSON.stringify(z.how));
   await ph3.page.evaluate(() => felt.start('8'));
+  const winB = await budgetWindow(ph3.page);
   const perf = await ph3.page.evaluate(() => {
     const ts = [];
     for (let i = 0; i < 30; i++) { const t0 = performance.now(); draw(t0); ts.push(performance.now() - t0); }
     ts.sort((a, b) => a - b);
     return { dpr, w: table.width, cssW: innerWidth, median: +ts[15].toFixed(2) };
   });
-  check('phone: the canvas backs onto all 3 device pixels and a frame stays cheap', perf.dpr === 3 && perf.w === perf.cssW * 3 && perf.median < 12, JSON.stringify(perf));
+  perf.load = +(await winB.end()).load.toFixed(2);   /* 12 ms of work: the window's load stretch out (lib) */
+  check('phone: the canvas backs onto all 3 device pixels and a frame stays cheap', perf.dpr === 3 && perf.w === perf.cssW * 3 && perf.median < 12 * perf.load, JSON.stringify(perf));
   const fit = await ph3.page.evaluate(() => ({ appH: getComputedStyle(document.documentElement).getPropertyValue('--app-h').trim(), uiH: ui.getBoundingClientRect().height, h: innerHeight, back: [table.width, table.height], css: [table.clientWidth, table.clientHeight], dpr }));
   check('browser: the app is the window\'s height and the canvas backs its exact CSS size at dpr', fit.appH === fit.h + 'px' && fit.uiH === fit.h && fit.back[0] === fit.css[0] * fit.dpr && fit.back[1] === fit.css[1] * fit.dpr, JSON.stringify(fit));
   check('phone: no console errors', ph3.errors.length === 0, ph3.errors.join(' | '));

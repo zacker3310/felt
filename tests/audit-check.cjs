@@ -30,7 +30,7 @@
       a miss with the red in plain view can be put back exactly; the third such miss loses the frame.
       The base build had none of it (the turn simply passed). */
 'use strict';
-const { check, done, open } = require('./lib.cjs');
+const { check, done, open, budgetWindow, frameClock } = require('./lib.cjs');
 
 /* A11 and A12 run on the sim alone */
 {
@@ -162,21 +162,30 @@ const { check, done, open } = require('./lib.cjs');
     felt.quitToHome();
     felt.speed = speed; felt.lastThink = null;
     felt.start('8', { level: 'hard', table: '7', pockets: 'regulation', breaker: 1 });
-    const t0 = performance.now();
+    /* from the turn's own start (cpuT0, set inside start: a slow start on a loaded box is not the wait) */
+    const t0 = state === 'thinking' && cpuT0 ? cpuT0 : performance.now();
     if (skip) await new Promise(r => setTimeout(r, 30));
     if (skip) { const b = table.getBoundingClientRect(); table.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: b.left + b.width / 2, clientY: b.top + b.height / 2, pointerId: 9, pointerType: 'touch', isPrimary: true })); }
-    let gap = 0, last = performance.now();
+    const ts = [performance.timeOrigin + performance.now()];
     while (performance.now() - t0 < 8000 && felt.state === 'thinking' && !cpuPlan) {
       await new Promise(r => requestAnimationFrame(r));
-      const n = performance.now(); gap = Math.max(gap, n - last); last = n;
+      ts.push(performance.timeOrigin + performance.now());
     }
     const at = performance.now() - t0, think = felt.lastThink;
-    return { at, think, gap, plan: !!cpuPlan || felt.state !== 'thinking', st: felt.state };
+    return { at, think, ts, plan: !!cpuPlan || felt.state !== 'thinking', st: felt.state };
   }, { skip, speed });
-  const w1 = await cpuTurn(false, 1), w2 = await cpuTurn(true, 1), w3 = await cpuTurn(false, 40);
+  /* the plan's lateness is wall time, judged with the turn's load stretch (lib's budgetWindow); each frame
+     gap less what the frame's threads waited for a core in it (lib's frameClock) */
+  const win = await budgetWindow(page), clock = await frameClock(page), w1 = await cpuTurn(false, 1), L1 = (await win.end()).load;
+  await clock.stop();
+  w1.gap = Math.max(...w1.ts.slice(1).map((t, i) => t - w1.ts[i] - clock.waited(w1.ts[i], t)));
+  w1.wallGap = Math.max(...w1.ts.slice(1).map((t, i) => t - w1.ts[i]));
+  w1.load = +L1.toFixed(2); delete w1.ts;
+  const w2 = await cpuTurn(true, 1), w3 = await cpuTurn(false, 40);
+  delete w2.ts; delete w3.ts;
   await page.evaluate(() => { felt.speed = 1; felt.quitToHome(); });
   check('A10 F8 think time: the CPU\'s break waits its cpuThinkMs (brief: 0.35 to 1.3 s), from the turn\'s start, with no frame gap over 100 ms',
-    w1.plan && w1.think && w1.think.intent && w1.think.intent.type === 'break' && w1.think.ms >= 350 && w1.think.ms <= 1300 && w1.at >= w1.think.ms - 20 && w1.at < w1.think.ms + 400 && w1.gap < 100,
+    w1.plan && w1.think && w1.think.intent && w1.think.intent.type === 'break' && w1.think.ms >= 350 && w1.think.ms <= 1300 && w1.at >= w1.think.ms - 20 && w1.at < w1.think.ms + 400 * L1 && w1.gap < 100,
     JSON.stringify(w1));
   check('A10 F8 a tap on the table skips the wait; felt.speed 40 cuts it to a fortieth',
     w2.plan && w2.think && w2.at < Math.min(300, w2.think.ms - 200) && w3.plan && w3.think && w3.at < w3.think.ms / 40 + 200, JSON.stringify({ w2, w3 }));

@@ -12,7 +12,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { check, done, open } = require('./lib.cjs');
+const { check, done, open, cpuMs } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 
 /* a localStorage stand-in: counts chars, can be told to fail writes to a key */
@@ -449,7 +449,7 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   {
     const { C, store } = fresh();
     C.create({ name: 'Long Haul', nat: 'PH', disc: '9', start: 'amateur' }, { seed: 2026 });
-    const t0 = Date.now();
+    const t0 = cpuMs();   /* this thread's CPU time: the engine's cost, whatever shares the cores */
     let loads = 0, bad = 0, maxBytes = 0, maxStore = 0;
     const r = auto(C, 520, () => {
       const s = C.save();
@@ -459,8 +459,8 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
       loads++;
       if (!l.ok || l.recovered || C.digest() !== d || !C.lib.validate(C.lib.state())) bad++;
     });
-    const ms = Date.now() - t0, now = C.now(), arch = C.records().seasons;
-    check(`ten seasons: ${r.matches} of the player's matches and ${r.events} events in ${(ms / 1000).toFixed(1)} s, ${loads} saves and loads, none corrupt or different`, now.season === 11 && arch.length === 10 && r.matches >= 300 && loads === r.events && bad === 0 && ms < 40000, JSON.stringify({ now, bad }));
+    const ms = cpuMs() - t0, now = C.now(), arch = C.records().seasons;
+    check(`ten seasons: ${r.matches} of the player's matches and ${r.events} events in ${(ms / 1000).toFixed(1)} s of CPU, ${loads} saves and loads, none corrupt or different`, now.season === 11 && arch.length === 10 && r.matches >= 300 && loads === r.events && bad === 0 && ms < 40000, JSON.stringify({ now, bad }));
     check(`storage: the largest save ${(maxBytes / 1024).toFixed(0)} KB, the whole store at most ${(maxStore / 1024).toFixed(0)} KB (budget 5 MB)`, maxBytes < 200000 && maxStore < 600000);
     const st = C.stats().all, tiers = arch.map(s => s.t1);
     check('ten seasons: a career that moves (a promotion at least), stats and archives consistent', Math.max(...tiers) > 1 && arch.every((s, i) => s.s === i + 1 && s.m === s.w + s.l) && sum(arch, s => s.m) === st.matches);

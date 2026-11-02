@@ -14,7 +14,7 @@
       gesture) never reaches the home: no setup sheet opens; a tap after it does; a key skips too;
    5. no frame is asked for once it ends; hidden mid-way it ends at once; a visibilitychange or a
       pageshow later never plays it again;
-   6. frames: within a 60 Hz budget at dpr 3 (scaled by lib's speedFactor), and the lamp's overlay
+   6. frames: within a 60 Hz budget at dpr 3 (scaled by lib's speedFactor and the window's load stretch), and the lamp's overlay
       no more than doubles the hero renderer's own cost (relative);
    7. Reduce Motion (the system's, and the app's switch): no scene, the cards fade in under the
       wordmark in under 300 ms; the setting off: no opening at all, from the first paint;
@@ -26,7 +26,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { check, done, open, speedFactor } = require('./lib.cjs');
+const { check, done, open, budgetWindow } = require('./lib.cjs');
 
 const insetCss = (w, h) => w > h ? 'html:root { --sat: 0px; --sar: 59px; --sab: 21px; --sal: 59px; }' : `html:root { --sat: ${h <= 667 ? 20 : 59}px; --sar: 0px; --sab: ${h <= 667 ? 0 : 34}px; --sal: 0px; }`;
 const insets = css => `document.addEventListener('readystatechange', () => { if (!document.getElementById('insets')) { const s = document.createElement('style'); s.id = 'insets'; s.textContent = ${JSON.stringify(css)}; (document.head || document.documentElement).appendChild(s); } });
@@ -59,9 +59,11 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
   check('a cold boot plays the opening: booted while it is still being built (boot not held up), the first paint already the launch frame (<html class="intro">), the canvas aria-hidden',
     boot.booted && boot.state === 'prep' && boot.mode === 'full' && /\bintro\b/.test(boot.cls0 || '') && boot.aria === 'true', JSON.stringify(boot));
   await waitState(page, ['play']);
+  const win = await budgetWindow(page);   /* the frames measured from here to the end: their load stretch (lib) */
   await ev(() => { felt.introMeasure = true; });
   const mid = await (async () => { await page.waitForFunction(() => performance.now() - felt.intro.t0 > 1500, null, { timeout: 5000 }); return ev(() => ({ geo: __geo(), cls: document.documentElement.className, focus: document.activeElement === document.body })); })();
   await waitState(page, ['done'], 10000);
+  const wk = await win.end({ speed: true });
   const end = await ev(() => { const r = menuTitle.getBoundingClientRect(), i = felt.intro; return { i, cls: document.documentElement.className, t: menuTitle.style.transform, op: getComputedStyle(playRow).opacity, foot: getComputedStyle(statsBtn).opacity,
     title: [r.left, r.top, r.width, r.height], canvas: [introArt.width, introArt.height], disp: getComputedStyle(introArt).display, focus: document.activeElement === document.body, geo: __geo() }; });
   const ran = end.i.endAt - end.i.t0;
@@ -90,9 +92,9 @@ const near = (p, q) => p.box.every((v, i) => Math.abs(v - q.box[i]) <= 2);
   const after = await ev(() => ({ listening: felt.intro.listening, frames: felt.intro.frames, raf: felt.intro.raf, state: felt.intro.state, rafs: window.__rafs, cls: document.documentElement.className, w: introArt.width }));
   check('once it ends no frame is asked for (and its gesture guard is gone from the window), and a return from the background (visibilitychange, pageshow) never plays it again', !after.listening && after.frames === f0 && !after.raf && after.rafs === 0 && after.state === 'done' && !/\bintro\b/.test(after.cls) && after.w === 0, JSON.stringify(after));
   /* 6. frames */
-  const ms = end.i.ms.slice(2).sort((a, b) => a - b), sp = await speedFactor(page), p95 = ms[Math.floor(ms.length * 0.95)], max = ms[ms.length - 1];
-  check(`frames at dpr 3 (430x932, 1290x2796 px): 95% under ${(16.7 * sp.f).toFixed(1)} ms (${p95.toFixed(1)}), none over ${(50 * sp.f).toFixed(0)} (${max.toFixed(1)}), ${ms.length} frames (speed factor ${sp.f.toFixed(2)})`,
-    ms.length > 40 && p95 < 16.7 * sp.f && max < 50 * sp.f, JSON.stringify(ms.slice(-8).map(v => +v.toFixed(1))));
+  const ms = end.i.ms.slice(2).sort((a, b) => a - b), k = wk.k, p95 = ms[Math.floor(ms.length * 0.95)], max = ms[ms.length - 1];
+  check(`frames at dpr 3 (430x932, 1290x2796 px): 95% under ${(16.7 * k).toFixed(1)} ms (${p95.toFixed(1)}), none over ${(50 * k).toFixed(0)} (${max.toFixed(1)}), ${ms.length} frames (16.7 and 50 ${wk.text})`,
+    ms.length > 40 && p95 < 16.7 * k && max < 50 * k, JSON.stringify(ms.slice(-8).map(v => +v.toFixed(1))));
   check(`what it holds while it plays at dpr 3: ${end.i.memMB} MB of canvas (under 72), all let go at the end`, end.i.memMB > 0 && end.i.memMB < 72 && end.canvas.join() === '0,0');
   check('no console errors', P.errors.length === 0, P.errors.join(' | '));
   await P.browser.close();

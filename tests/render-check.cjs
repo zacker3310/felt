@@ -15,7 +15,7 @@
 /* Bumper pool at dpr 3, upright and on its side, both cloths: cups dark through with no cloth,
    posts drawn, the marked ball's spot. */
 'use strict';
-const { check, done, open, speedFactor } = require('./lib.cjs');
+const { check, done, open, speedFactor, budgetWindow, frameClock } = require('./lib.cjs');
 
 /* in-page helpers: draw now, then read device pixels at CSS points */
 const HELPERS = () => {
@@ -177,6 +177,7 @@ async function tableChecks(page, tag) {
   /* cost: the aim changes every frame, over a full rack and over a spread table. The preview
      runs at most PV_BUDGET ms a frame and carries on next frame, so the paths finish when the
      aim rests. */
+  const winP = await budgetWindow(page);
   const cost = await page.evaluate(() => {
     const run = (n, f) => { for (let i = 0; i < n; i++) { f(i); draw(performance.now()); } };
     felt.start('8'); game = placeCue(game, HEAD_X - 0.1, TW / 2 + 0.1); game.inHand = null; game.breakShot = false; state = 'aim';
@@ -191,8 +192,11 @@ async function tableChecks(page, tag) {
     do { draw(performance.now()); frames++; } while (!preview.done && frames < 60);
     return { mean: s.reduce((a, b) => a + b, 0) / s.length, p90: s[Math.floor(s.length * 0.9)], frames };
   });
-  check('preview: under 2 ms a frame with the aim changing every frame (mean, headless)', cost.mean < 2, `mean ${cost.mean.toFixed(2)} ms, p90 ${cost.p90.toFixed(2)} ms`);
-  check('preview: a resting aim finishes its paths within a few frames', cost.frames <= 10, cost.frames + ' frames');
+  /* both in the window's load stretch (lib's budgetWindow): 2 ms of work a frame, and the frames a 3 ms
+     (PV_BUDGET) slice of wall time needs to finish when part of each slice is spent waiting for a core */
+  const kP = await winP.end();
+  check(`preview: under 2 ms a frame with the aim changing every frame (mean, headless; ${kP.text})`, cost.mean < 2 * kP.load, `mean ${cost.mean.toFixed(2)} ms, p90 ${cost.p90.toFixed(2)} ms`);
+  check(`preview: a resting aim finishes its paths within a few frames (10, ${kP.text})`, cost.frames <= Math.ceil(10 * kP.load), cost.frames + ' frames');
 
   /* flicker: drive the aim frame by frame (a steady sweep across balls, cushions and a pocket, a
      fine-wheel drag a pixel and a half a frame, the auto-aim swing, a power-bar pull) and record
@@ -311,6 +315,7 @@ async function tableChecks(page, tag) {
   check('scratch: the ball-in-hand ghost waits for the cue ball to finish dropping', scratch.during < 0.15 && scratch.after > 0.5, JSON.stringify(scratch));
 
   /* frame cost: 16 balls, the guide and the cue, at this viewport and dpr */
+  const winF = await budgetWindow(page);
   const ms = await page.evaluate(() => {
     felt.start('8'); game = placeCue(game, HEAD_X - 0.1, TW / 2 + 0.1); state = 'aim'; game.inHand = null;
     const c = table.getContext('2d'), N = 120;
@@ -320,7 +325,8 @@ async function tableChecks(page, tag) {
     c.getImageData(0, 0, 1, 1);
     return (performance.now() - t0) / N;
   });
-  check('a frame with 16 balls, guide and cue draws in under 12 ms (headless, software)', ms < 12, ms.toFixed(2) + ' ms');
+  const kF = await winF.end();
+  check(`a frame with 16 balls, guide and cue draws in under 12 ms (headless, software; 12 ${kF.text})`, ms < 12 * kF.load, ms.toFixed(2) + ' ms');
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 
@@ -515,6 +521,7 @@ async function tableChecks(page, tag) {
   await q.page.evaluate(() => { settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the loupe: shown while fineAim is set and not otherwise, clear of the contact */
+  const clockL = await frameClock(q.page);
   const lp = await q.page.evaluate(() => {
     felt.start('8'); game.breakShot = false; game.inHand = null; settings.guide = 'full';
     for (const b of game.balls) b.on = [0, 1, 5].includes(b.n);
@@ -532,7 +539,7 @@ async function tableChecks(page, tag) {
     fineAim = true; run(20);
     const L1 = loupe && { ...loupe }, rimOn = rim(), C = toScreen(gx, gy);
     /* cost of a frame with the loupe up, and of the same frame without it */
-    const cost = () => { const g = table.getContext('2d'), N = 60; g.getImageData(0, 0, 1, 1); const t0 = performance.now(); for (let i = 0; i < N; i++) draw(now += 16); g.getImageData(0, 0, 1, 1); return (performance.now() - t0) / N; };
+    const cost = () => { const g = table.getContext('2d'), N = 60; g.getImageData(0, 0, 1, 1); const t0 = performance.now(); for (let i = 0; i < N; i++) draw(now += 16); g.getImageData(0, 0, 1, 1); const t1 = performance.now(); return { ms: (t1 - t0) / N, n: N, a: performance.timeOrigin + t0, b: performance.timeOrigin + t1 }; };
     const ms = cost();
     fineAim = false; run(20); const base = cost(); fineAim = true; run(20);
     fineAim = false; run(20);
@@ -544,9 +551,14 @@ async function tableChecks(page, tag) {
   check('loupe: 120 to 150 CSS px across, its centre more than its radius from the contact', lp.L1 && lp.L1.r * 2 >= 110 && lp.L1.r * 2 <= 150 && lp.d > lp.L1.r, JSON.stringify(lp.L1) + ' d ' + lp.d.toFixed(1));
   /* software canvas on a CI runner is 1.5x slower than a dev machine, so the absolute bound is the
      real one (a 60 fps frame) and the relative one catches a loupe that grows out of proportion */
-  const sp = await speedFactor(q.page);   /* the 60 fps budget scaled by this machine's speed (lib.cjs) */
-  check(`loupe: a frame with it up at dpr 3 fits a 60 fps frame (x${sp.f.toFixed(2)} for this machine) and costs at most twice the frame without it (headless, software)`,
-    lp.ms < 16.7 * sp.f && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without, speed ${sp.ms.toFixed(2)} ms`);
+  /* each run's frames on their work: less what the frame's threads waited for a core while they ran (lib's
+     frameClock), so the two runs are fair to each other on a busy box; the 60 fps budget scaled by this
+     machine's speed (lib.cjs) */
+  await clockL.stop();
+  const workOf = c => (c.ms * c.n - clockL.waited(c.a, c.b)) / c.n, sp = await speedFactor(q.page);
+  lp.wall = [lp.ms.ms, lp.base.ms]; lp.ms = workOf(lp.ms); lp.base = workOf(lp.base);
+  check(`loupe: a frame with it up at dpr 3 fits a 60 fps frame (x${sp.f.toFixed(2)} for this machine) and costs at most twice the frame without it (headless, software, the work of each frame)`,
+    lp.ms < 16.7 * sp.f && lp.ms < 2 * lp.base, `${lp.ms.toFixed(2)} ms with, ${lp.base.toFixed(2)} ms without (wall ${lp.wall.map(v => v.toFixed(2)).join(', ')}), speed ${sp.ms.toFixed(2)} ms`);
   check('dpr 3: no console errors', q.errors.length === 0, q.errors.join(' | '));
   await q.browser.close();
   /* bumper pool at dpr 3, upright and on its side, both cloths: both cups are dark through and

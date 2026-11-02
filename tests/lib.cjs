@@ -163,27 +163,193 @@ async function openPop(page, sel, { touch = false } = {}) {
   await page.waitForFunction(sel => { const s = document.querySelector(sel).closest('.seg.pop'); return s.classList.contains('open') && !s.getAnimations().some(a => a.playState === 'running'); }, sel, { timeout: 3000 }).catch(() => {});
 }
 
+/* ---- frame budgets on a busy machine ----
+   Wall time on a loaded box (the suites run side by side, other jobs share the runner) includes the
+   time the browser's threads sat runnable, waiting for a core. Linux counts that per thread
+   (/proc/<pid>/task/<tid>/schedstat: ns on a CPU, ns waiting on a run queue), so a window's stretch
+   is (run + wait) / run summed over every thread of the browser's processes (the renderer, the GPU
+   process's SwiftShader, the browser). A budget is multiplied by that stretch, measured over the same
+   window as the frames: only the waiting is divided out, never the work, so a frame that does more
+   (a real regression: a busy loop is run time) fails under load as it fails alone. Without /proc (not
+   Linux) the stretch is 1. loadMark(page) marks the browser's threads now; loadSince(page, mark)
+   gives { f, run, wait } (ms) for the window since (every browser this suite has open). */
+const fs = require('fs');
+/* the browsers this suite launched: every process under this one (each suite is its own process) */
+const browserPids = () => treePids(process.pid).slice(1);
+function treePids(root) {
+  if (!root) return [];
+  const kids = new Map();
+  let ents = [];
+  try { ents = fs.readdirSync('/proc'); } catch (e) { return []; }
+  for (const d of ents) {
+    if (!/^\d+$/.test(d)) continue;
+    try { const st = fs.readFileSync('/proc/' + d + '/stat', 'utf8'), pp = +st.slice(st.lastIndexOf(')') + 2).split(' ')[1]; if (!kids.has(pp)) kids.set(pp, []); kids.get(pp).push(+d); } catch (e) { }
+  }
+  const out = [root];
+  for (let i = 0; i < out.length; i++) for (const k of kids.get(out[i]) || []) out.push(k);
+  return out;
+}
+function schedOf(pids) {
+  const m = new Map();
+  for (const p of pids) {
+    let tids = [];
+    try { tids = fs.readdirSync('/proc/' + p + '/task'); } catch (e) { continue; }
+    for (const t of tids) {
+      try { const [run, wait] = fs.readFileSync('/proc/' + p + '/task/' + t + '/schedstat', 'utf8').split(' ').map(Number); m.set(p + '/' + t, [run, wait]); } catch (e) { }
+    }
+  }
+  return m;
+}
+function loadMark() { return { t: Date.now(), m: schedOf(browserPids()) }; }
+function loadSince(page, mark) {
+  const now = schedOf(browserPids());
+  let run = 0, wait = 0;
+  for (const [k, [r, w]] of now) { const a = mark.m.get(k) || [0, 0]; run += r - a[0]; wait += w - a[1]; }
+  const f = run > 0 ? (run + wait) / run : 1;
+  return { f: Math.max(1, f), run: run / 1e6, wait: wait / 1e6, ms: Date.now() - mark.t };
+}
+
+/* a single frame on a loaded box can wait a whole scheduling round (100 ms and more) for a core: a
+   window's stretch (above) is the average, the worst frame is not. frameClock(page) samples, every
+   millisecond from a worker thread, how long the threads that draw a frame have waited for a core
+   (schedstat): the renderers' main and compositor threads, the GPU process's main and display
+   compositor threads and SwiftShader's raster workers. work(d, end) is a frame of d ms that ended at
+   end (epoch ms) less what they waited in it (per process its most-waited thread, the processes
+   summed): the frame's own work, about the same on a busy box as on an idle one; a frame that does
+   more (a busy loop) is as long as ever. waited(a, b) is that waiting between two times (a gap
+   between frames, or a whole run of frames). trackFrames(page, expr) makes the page's array at expr (hero.ms, V3.ms: one duration pushed per
+   frame) also note each push's time; frameEnds(page, expr) reads them. Without /proc the clock
+   takes nothing out. */
+const { Worker } = require('worker_threads');
+const SAMPLER = `
+const { workerData: D } = require('worker_threads'), fs = require('fs');
+const flag = new Int32Array(D.sab), out = [], n = D.paths.length;
+const read = p => { try { return +fs.readFileSync(p, 'utf8').split(' ')[1]; } catch (e) { return NaN; } };
+const last = new Float64Array(n);
+for (;;) {
+  const t = performance.timeOrigin + performance.now(), row = [t];
+  for (let i = 0; i < n; i++) { const v = read(D.paths[i]); row.push(last[i] = Number.isNaN(v) ? last[i] : v); }
+  out.push(row);
+  if (out.length === 1) require('worker_threads').parentPort.postMessage('ready');
+  if (Atomics.load(flag, 0)) break;
+  Atomics.wait(flag, 0, 0, 1);
+}
+require('worker_threads').parentPort.postMessage(out);
+`;
+function frameThreads() {
+  const out = [];
+  for (const p of browserPids()) {
+    let cl = '';
+    try { cl = fs.readFileSync('/proc/' + p + '/cmdline', 'utf8'); } catch (e) { continue; }
+    const gpu = /--type=gpu-process/.test(cl);
+    if (!gpu && !/--type=renderer/.test(cl)) continue;
+    /* the main thread, and the threads a frame goes through: the renderer's compositor, the GPU
+       process's display compositor and SwiftShader's raster workers */
+    const want = gpu ? /^(VizCompositorTh|Thread<\d+>)$/ : /^Compositor$/;
+    let tids = [];
+    try { tids = fs.readdirSync('/proc/' + p + '/task'); } catch (e) { }
+    for (const t of tids) {
+      let comm = '';
+      try { comm = fs.readFileSync(`/proc/${p}/task/${t}/comm`, 'utf8').trim(); } catch (e) { continue; }
+      if (+t === p || want.test(comm)) out.push({ pid: p, comm, path: `/proc/${p}/task/${t}/schedstat` });
+    }
+  }
+  return out;
+}
+async function frameClock() {
+  const th = fs.existsSync('/proc/self/schedstat') ? frameThreads() : [];
+  const sab = new SharedArrayBuffer(4), flag = new Int32Array(sab);
+  const w = th.length ? new Worker(SAMPLER, { eval: true, workerData: { sab, paths: th.map(x => x.path) } }) : null;
+  if (w) w.unref();
+  const msgs = [];
+  const rows = w ? new Promise(res => w.on('message', m => { if (m === 'ready') msgs.push(m); else res(m); })) : Promise.resolve([]);
+  /* the first sample taken before any frame is measured */
+  if (w) await new Promise(res => { const t = setInterval(() => { if (msgs.length) { clearInterval(t); res(); } }, 1); });
+  let S = null;
+  return {
+    threads: th.length,
+    async stop() {
+      Atomics.store(flag, 0, 1); Atomics.notify(flag, 0);
+      const R = await rows;
+      S = R.map(r => { const o = [r[0]]; o.w = r.slice(1); return o; });
+      return { samples: S.length };
+    },
+    /* a frame's waiting: per process the most any one of its threads waited in it (a process's
+       threads run side by side: their waits overlap), summed over the processes (the renderer hands
+       the frame to the GPU process and blocks on it: one after the other) */
+    work: (d, end) => Math.max(0, d - waited(end - d, end)),
+    waited: (a, b) => waited(a, b),
+  };
+  function waited(a, b) {
+    if (!S || !S.length) return 0;
+    const A = at(a), B = at(b), per = new Map();
+    for (let i = 0; i < A.length; i++) per.set(th[i].pid, Math.max(per.get(th[i].pid) || 0, (B[i] - A[i]) / 1e6));
+    let sum = 0;
+    for (const v of per.values()) sum += v;
+    return sum;
+  }
+  /* each thread's waiting (ns) at time t, interpolated between samples */
+  function at(t) {
+    let lo = 0, hi = S.length - 1;
+    if (t <= S[0][0]) return S[0].w;
+    if (t >= S[hi][0]) return S[hi].w;
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (S[m][0] <= t) lo = m; else hi = m; }
+    const p = S[lo], q = S[hi], u = (t - p[0]) / (q[0] - p[0] || 1);
+    return p.w.map((v, i) => v + (q.w[i] - v) * u);
+  }
+}
+const trackFrames = (page, expr) => page.evaluate(expr => {
+  const T = (window.__frameEnds = window.__frameEnds || {});
+  const ends = T[expr] = [];
+  const arr = eval(expr), Tracked = class extends Array { push(...v) { for (let i = 0; i < v.length; i++) ends.push(performance.timeOrigin + performance.now()); return super.push(...v); } };
+  Object.setPrototypeOf(arr, Tracked.prototype);
+  arr.length = 0;
+}, expr);
+const frameEnds = (page, expr) => page.evaluate(expr => (window.__frameEnds || {})[expr] || [], expr);
+
 /* how much slower this machine draws than the one the absolute frame budgets were set on. A fixed
-   software-canvas workload, best of five; budgets are multiplied by it (never below 1), so a slow
-   or busy CI runner is judged against itself and a fast machine keeps the real 60 fps budget. The
-   relative checks (with vs without) carry the regression signal either way. */
+   software-canvas workload, the median of seven runs, each run's wall time with its own waiting for a
+   core taken out (loadSince), so it is the machine's speed and not what else is running at that moment
+   (the waiting is the frame clock's and the window's, above; the median and not the best, so a CPU
+   throttled in bursts, CDP's setCPUThrottlingRate, is not measured between its bursts); budgets are multiplied by it (never below 1, never above 3), so a slow
+   CI runner is judged against itself and a fast machine keeps the real 60 fps budget. The relative
+   checks (with vs without) carry the regression signal either way. */
 const SPEED_REF_MS = 6.4;   /* this dev machine, headless Chromium, 2026-10-30 */
 async function speedFactor(page) {
-  const ms = await page.evaluate(() => {
-    const c = document.createElement('canvas'); c.width = 1179; c.height = 2556;
-    const g = c.getContext('2d'), runs = [];
-    for (let r = 0; r < 5; r++) {
+  const runs = [];
+  for (let r = 0; r < 7; r++) {
+    const mk = loadMark(page);
+    const ms = await page.evaluate(() => {
+      const c = document.createElement('canvas'); c.width = 1179; c.height = 2556;
+      const g = c.getContext('2d');
       g.getImageData(0, 0, 1, 1); const t0 = performance.now();
       for (let i = 0; i < 40; i++) {
         const x = (i * 97) % 1100, y = (i * 211) % 2400, gr = g.createRadialGradient(x, y, 4, x, y, 160);
         gr.addColorStop(0, '#fff'); gr.addColorStop(1, '#0a3');
         g.fillStyle = gr; g.beginPath(); g.arc(x, y, 160, 0, 6.283); g.fill();
       }
-      g.getImageData(0, 0, 1, 1); runs.push(performance.now() - t0);
-    }
-    return Math.min(...runs);
-  });
+      g.getImageData(0, 0, 1, 1); return performance.now() - t0;
+    });
+    runs.push(ms / loadSince(page, mk).f);
+  }
+  const ms = runs.sort((a, b) => a - b)[3];
   return { ms, f: Math.min(3, Math.max(1, ms / SPEED_REF_MS)) };
 }
+/* a frame-budget window: const w = await budgetWindow(page); ...measure...; const k = await w.end().
+   k.load is the window's stretch (multiply every absolute budget measured in it), k.speed this
+   machine's speedFactor (for the budgets that are scaled by it), k.text says both for the check's
+   line. */
+async function budgetWindow(page, mark) {
+  const mk = mark || loadMark(page);
+  return {
+    async end({ speed = false } = {}) {
+      const L = loadSince(page, mk), sp = speed ? await speedFactor(page) : { f: 1, ms: 0 };
+      return { load: L.f, speed: sp.f, k: L.f * sp.f, L, sp, text: `load x${L.f.toFixed(2)}${speed ? `, speed x${sp.f.toFixed(2)}` : ''}` };
+    },
+  };
+}
+/* Node's own CPU time (ms) on this thread: a node-side budget (a search, a season) judged on the work
+   whatever else shares the cores */
+const cpuMs = () => process.threadCpuUsage ? (u => (u.user + u.system) / 1000)(process.threadCpuUsage()) : (u => (u.user + u.system) / 1000)(process.cpuUsage());
 
-module.exports = { speedFactor, URL, check, done, open, smallTargets, settled, lowContrast, badTitles, choose, openPop };
+module.exports = { speedFactor, loadMark, loadSince, budgetWindow, cpuMs, frameClock, trackFrames, frameEnds, URL, check, done, open, smallTargets, settled, lowContrast, badTitles, choose, openPop };

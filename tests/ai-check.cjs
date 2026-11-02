@@ -46,7 +46,7 @@ if (!isMainThread) {
   parentPort.postMessage(workerData.map(j => { S.setTable('bumper', j.shape || 'octagon'); S.setTable(j.size || '7'); S.setPockets(j.pockets || 'regulation'); return Object.assign(j, play(j.kind, j.levels, j.seed, j.first, j.mult)); }));
   return;
 }
-const { check, done } = require('./lib.cjs'), check0 = check;
+const { check, done, cpuMs } = require('./lib.cjs'), check0 = check;
 
 /* games, spread over worker threads */
 function playAll(jobs) {
@@ -336,9 +336,10 @@ function layouts(count) {
         const x = 0.1 + r() * (S.TL - 0.2), y = 0.1 + r() * (S.TW - 0.2);
         if (g.balls.every(o => o === b || !o.on || Math.hypot(o.x - x, o.y - y) > 2.2 * S.BALL_R)) { b.x = x; b.y = y; break; }
       }
-      const snap = JSON.stringify(g), first = JSON.stringify(S.suggestAim(g)), t0 = process.hrtime.bigint();
+      /* this thread's CPU time (lib's cpuMs), so the suites running beside it do not count */
+      const snap = JSON.stringify(g), first = JSON.stringify(S.suggestAim(g)), t0 = cpuMs();
       for (let i = 0; i < 200; i++) S.suggestAim(g);
-      const ms = Number(process.hrtime.bigint() - t0) / 1e6 / 200;
+      const ms = (cpuMs() - t0) / 200;
       check(T + 'pure, deterministic, well under 5 ms on 16 scattered balls', JSON.stringify(g) === snap && JSON.stringify(S.suggestAim(g)) === first && first !== 'null' && ms < 1, `${ms.toFixed(3)} ms, ${first}`);
     }
   }

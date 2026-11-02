@@ -9,7 +9,7 @@
    chips show the points over the race, the CPU plays yellow, the guide traces three cushions,
    the home fits either way up, and every overlay keeps 3:1 on each cloth, blue included. */
 'use strict';
-const { check, done, open, lowContrast, smallTargets, settled } = require('./lib.cjs');
+const { check, done, open, lowContrast, smallTargets, settled, cpuMs } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 const S = loadSim();
 
@@ -133,7 +133,7 @@ const play = (o = {}) => { const g = S.newGame('carom', o); g.breakShot = false;
   }
   const rate = level => {
     let pts = 0, ms = 0;
-    layouts.forEach((g, k) => { const t0 = Date.now(), s = S.cpuShot(g, k + 1, level); ms += Date.now() - t0; if (S.judge(g, S.simulateShot(g.balls, s)).verdict.point) pts++; });
+    layouts.forEach((g, k) => { const t0 = cpuMs(), s = S.cpuShot(g, k + 1, level); ms += cpuMs() - t0;   /* CPU time: the work, whatever shares the cores */ if (S.judge(g, S.simulateShot(g.balls, s)).verdict.point) pts++; });
     return { pts, ms: Math.round(ms / layouts.length) };
   };
   const e = rate('easy'), h = rate('hard');

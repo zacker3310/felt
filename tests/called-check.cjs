@@ -235,6 +235,14 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     /* felt.tableRect() at build 9cc059b, 7 ft, regulation pockets */
     const BASE = { '440x956': [2, 62.81, 438, 861.19], '393x852': [2, 45.65, 391, 758], '375x667': [23.4, 2, 351.6, 603], '956x440': [25.62, 2, 824, 438], '844x390': [15.14, 2, 722, 388] };
     const BASE_SNK = { '440x956': [2, 39.34, 438, 862], '393x852': [4.05, 34.58, 388.95, 758], '375x667': [26.54, 2, 348.46, 603], '956x440': [36.2, 6.34, 842, 433.66], '844x390': [22.6, 2.81, 745, 387.19] };
+    /* on its side a phone now shows its upright layout turned (2026-11-02, boot-check's footprint check): the table there
+       is the upright one turned (956x440's is 440x956's; 844x390's is 390x844's with its insets [47, 0, 34, 0]: the same
+       size, 2..388 across), placed where the turned layout puts it; never smaller than 9cc059b's side table */
+    const OLD_SIDE = { '956x440': [BASE['956x440'], BASE_SNK['956x440']], '844x390': [BASE['844x390'], BASE_SNK['844x390']] };
+    const TURN = r => [r[1], r[0], r[3], r[2]];
+    BASE['956x440'] = TURN(BASE['440x956']); BASE_SNK['956x440'] = TURN(BASE_SNK['440x956']);
+    BASE['844x390'] = TURN([2, 43.14, 388, 750]); BASE_SNK['844x390'] = TURN([2, 24.39, 388, 750]);
+    const notSmaller = Object.entries(OLD_SIDE).every(([k, [a, b]]) => [[a, BASE[k]], [b, BASE_SNK[k]]].every(([o, n]) => n[2] - n[0] >= o[2] - o[0] - 0.05 && n[3] - n[1] >= o[3] - o[1] - 0.05));
     const t = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
     const q = t.page, rows = [], plain = [];
     const qtap = async (x, y) => { await q.touchscreen.tap(x, y); await q.waitForTimeout(40); };
@@ -319,8 +327,8 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     }
     check('call off the table: with the menu closed, no call control (and not the bar that reads it) over the table\'s footprint, at 440x956, 393x852, 375x667, 956x440 and 844x390 with insets, in 9-ball called, 8-ball WPA and the custom detail',
       rows.every(r => r.over.length === 0), JSON.stringify(rows.filter(r => r.over.length).map(r => [r.key, r.game, r.over])));
-    check('call off the table: every game\'s table exactly as at 9cc059b (calling or not, 8, 9, snooker, every size)',
-      rows.every(r => r.same) && plain.every(p => p.ok), JSON.stringify([rows.filter(r => !r.same).map(r => [r.key, r.game, r.tr]), plain.filter(p => !p.ok)]));
+    check('call off the table: every game\'s table exactly as at 9cc059b upright, on its side the upright one turned and no smaller than 9cc059b\'s (calling or not, 8, 9, snooker, every size)',
+      notSmaller && rows.every(r => r.same) && plain.every(p => p.ok), JSON.stringify([rows.filter(r => !r.same).map(r => [r.key, r.game, r.tr]), plain.filter(p => !p.ok)]));
     check('call off the table: the bar\'s label reads the call ("1 · Bottom Left"), ellipsised in the bar, the full words in its aria-valuetext',
       rows.every(r => r.lab === r.want && r.labFits && /Calling: /.test(r.aria)), JSON.stringify(rows.filter(r => !(r.lab === r.want && r.labFits && /Calling: /.test(r.aria))).map(r => [r.key, r.game, r.lab, r.want, r.aria])));
     check('call off the table: a real tap on the bar opens the menu beside it (on screen, off the bar), each option (Safety, Push Out, Bank, Kick, Combo, Change Call) sets the call as the old chips did and the pick closes it; no tap shoots',

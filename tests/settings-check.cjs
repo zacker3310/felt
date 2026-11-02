@@ -179,10 +179,13 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.setViewportSize({ width: 956, height: 440 });
   await p.waitForTimeout(400);
   const w1 = await rects(), tr = await p.evaluate(() => felt.tableRect());
-  check('Controls: on its side, left-handed puts the column left of the table; at the edge the bar is its foot', w1.ctl.r <= w1.stage.l + 1 && tr.left >= w1.ctl.r && w1.powerBar.t > w1.fineWheel.t, JSON.stringify({ w1, tr }));
+  /* a phone on its side shows the upright strip turned (2026-11-02): with no island known, the column on the hand's side,
+     the strip turned clockwise for the left (its left end, where the edge bar stands for a left hand, at the top) */
+  check('Controls: on its side, left-handed puts the column left of the table; at the edge the bar is its outer end (the upright strip\'s left end, turned: the top)', w1.ctl.r <= w1.stage.l + 1 && tr.left >= w1.ctl.r && w1.powerBar.t <= Math.min(w1.menuBtn.t, w1.spinPad.t, w1.fineWheel.t), JSON.stringify({ w1, tr }));
   await p.evaluate(() => { setSetting('hand', 'right'); setSetting('bar', 'mid'); });
   const w2 = await rects();
-  check('Controls: back to right-handed, the column is on the right again, the bar above the wheel', w2.ctl.l >= w2.stage.r - 1 && w2.powerBar.t < w2.fineWheel.t, JSON.stringify(w2));
+  /* right-handed the strip is turned anticlockwise: its left end (the english) at the foot, then the bar, the wheel, pause on top */
+  check('Controls: back to right-handed, the column is on the right again, the upright strip turned (the english at the foot, the bar above it, then the wheel, pause on top)', w2.ctl.l >= w2.stage.r - 1 && w2.spinPad.t > w2.powerBar.t && w2.powerBar.t > w2.fineWheel.t && w2.fineWheel.t > w2.menuBtn.t, JSON.stringify(w2));
   await p.setViewportSize({ width: 440, height: 956 });
   await p.waitForTimeout(300);
 

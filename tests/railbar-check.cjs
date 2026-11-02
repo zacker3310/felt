@@ -14,7 +14,8 @@
       - top-down every pill lies wholly on the rail's band (a party's overflow on the far rail's), in 3D on the bottom row;
       - the score keeper always there, whole; the scoreboard on both snooker tables; the switch missing only with no room.
    3. the table fills the room (8-ball, top-down): on its binding axis the free bands sum to FIT_PX or less (counting the
-      inset its rails may run under), on its side the band across BAND_PX or less unless the column took its 24 px, and
+      inset its rails may run under), on its side the band across BAND_PX or less unless the column took its 24 px (a
+      phone on its side is the upright layout turned: the room left across stays empty, boot-check pins the footprint), and
       the bed inside the safe area.
    4. the controls, a replay playing, a party of three and four, and what rises clear of the row (the call bar, the
       exhibition's bar, the practice tools, a tutorial's coach card).
@@ -285,10 +286,10 @@ async function nextBallChecks() {
         const a = screenIn(viewBase, 0, 0), b = screenIn(viewBase, TL, TW), ins = i || [0, 0, 0, 0];
         const bedSafe = Math.min(a[0], b[0]) >= ins[3] - 0.5 && Math.max(a[0], b[0]) <= innerWidth - ins[1] + 0.5 && Math.min(a[1], b[1]) >= ins[0] - 0.5 && Math.max(a[1], b[1]) <= innerHeight - ins[2] + 0.5;
         const colx = parseFloat(document.documentElement.style.getPropertyValue('--colx')) || 0;
-        return { vert: +vert.toFixed(1), horiz: +horiz.toFixed(1), wide, colx, bedSafe, k: +viewBase.k.toFixed(1), R: [R.left, R.top, R.right, R.bottom].map(Math.round), ball: +felt.ballPx.toFixed(2) };
+        return { vert: +vert.toFixed(1), horiz: +horiz.toFixed(1), wide, rot: document.documentElement.dataset.rot || null, colx, bedSafe, k: +viewBase.k.toFixed(1), R: [R.left, R.top, R.right, R.bottom].map(Math.round), ball: +felt.ballPx.toFixed(2) };
       }, ins || null);
-      check(`${size}: the table fills the room (binding axis free bands ${Math.min(fit.vert, fit.horiz)} px <= ${FIT_PX}${fit.wide ? `, across ${fit.horiz} px <= ${BAND_PX} or the column wider by 24 px` : ''}), its bed inside the safe area (ball ${fit.ball} px)`,
-        Math.min(fit.vert, fit.horiz) <= FIT_PX && (!fit.wide || fit.horiz <= BAND_PX || fit.colx >= 24) && fit.bedSafe, JSON.stringify(fit));
+      check(`${size}: the table fills the room (binding axis free bands ${Math.min(fit.vert, fit.horiz)} px <= ${FIT_PX}${fit.wide ? (fit.rot ? `, across: a phone on its side is the upright layout turned, the room left stays empty (${fit.horiz} px)` : `, across ${fit.horiz} px <= ${BAND_PX} or the column wider by 24 px`) : ''}), its bed inside the safe area (ball ${fit.ball} px)`,
+        Math.min(fit.vert, fit.horiz) <= FIT_PX && (!fit.wide || fit.rot || fit.horiz <= BAND_PX || fit.colx >= 24) && fit.bedSafe, JSON.stringify(fit));
     }
     const bad = [], snkOff = [], seen = [];
     for (const [kind, o] of TABLES) {
@@ -318,17 +319,19 @@ async function nextBallChecks() {
     check(`${size}: snooker's scoreboard shows on the ${view === '3d' ? 'bottom row' : 'bottom rail'} on both snooker tables (${seen.join(', ')})`, snkOff.length === 0, snkOff.join());
 
     /* the controls: the chips gone from the strip, the fine-aim wheel takes their room (upright wide, on its side
-       tall), every control 44 px and on screen, the power bar still the biggest */
+       tall: a phone's column is the upright strip turned (data-rot, 2026-11-02), so its wheel is the upright one's
+       72 px or more turned, 56 across; a tablet's column keeps 112 px or more), every control 44 px and on screen,
+       the power bar still the biggest */
     const ctlr = await page.evaluate(() => {
       felt.start('8', { level: 'easy' });
       const R = e => e.getBoundingClientRect(), wl = R(fineWheel), bar = R(powerBar), port = document.documentElement.dataset.layout === 'portrait';
       const ctls = [menuBtn, spinPad, powerBar, fineWheel].map(R);
-      return { port, wheel: [Math.round(wl.width), Math.round(wl.height)], bar: [Math.round(bar.width), Math.round(bar.height)], offStrip: !ctl.contains(turnChip),
+      return { port, rot: document.documentElement.dataset.rot || null, wheel: [Math.round(wl.width), Math.round(wl.height)], bar: [Math.round(bar.width), Math.round(bar.height)], offStrip: !ctl.contains(turnChip),
         ok: ctls.every(r => Math.min(r.width, r.height) >= 44 && r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5),
         barBig: ctls.every(r => r === ctls[2] || r.width * r.height < bar.width * bar.height) };
     });
     check(`${size}: the controls: no chips in the strip, the fine-aim wheel wide upright, tall on its side (${ctlr.wheel.join('x')}), the bar the biggest (${ctlr.bar.join('x')}), all 44 px and on screen`,
-      ctlr.offStrip && ctlr.ok && ctlr.barBig && (ctlr.port ? ctlr.wheel[0] >= 72 : ctlr.wheel[1] >= 112), JSON.stringify(ctlr));
+      ctlr.offStrip && ctlr.ok && ctlr.barBig && (ctlr.port ? ctlr.wheel[0] >= 72 : ctlr.rot ? ctlr.wheel[1] >= 72 && ctlr.wheel[0] === 56 : ctlr.wheel[1] >= 112), JSON.stringify(ctlr));
     /* the replay playing: the badge and Skip on the row, Skip a 44 px target, apart and off the pockets (replays are drawn top-down) */
     await page.evaluate(() => { felt.start('8', { level: 'easy' }); felt.speed = 8; felt.shoot(0.02, 0.6, { x: 0, y: 0 }); });
     await page.waitForFunction(() => felt.state === 'aim' || felt.state === 'thinking' || felt.state === 'choose', null, { timeout: 30000 }).catch(() => { });

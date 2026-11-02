@@ -160,11 +160,10 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="portrait"] #spinPad { width: 56px; height: 56px; }
 /* landscape: the table takes the height (its bottom rail may run into the home-indicator inset:
    nothing there is touched), the controls stand in one column on the right, clear of every inset */
-/* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px).
-   --cfl/--cfr: the free side's inset (no cutout there, only the display's rounded glass: colFree(), layout()) less a
-   gutter (colGutter: the glass), taken from #ui's padding on the column's side and given to the column, so the stage keeps its size */
-[data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px));
-  padding: max(2px, var(--sat)) max(2px, calc(var(--sar) - var(--cfr, 0px))) 2px max(2px, calc(var(--sal) - var(--cfl, 0px))); }
+/* --colx: the room a height-bound table leaves beside it, given to the column (layout(), up to 24 px; not on a phone:
+   there the column is the upright strip turned, data-rot, below) */
+[data-layout="wide"] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) var(--col); --col: calc(48px + var(--colx, 0px));
+  padding: max(2px, var(--sat)) max(2px, var(--sar)) 2px max(2px, var(--sal)); }
 /* the column runs flush with the table's footprint, top to bottom (--ctl-t/--ctl-b, layout()): the bottom rail already
    sits in the home-indicator inset, so the column's foot does too */
 [data-layout="wide"] #ctl { flex-direction: column; padding: var(--ctl-t, 0px) 0 var(--ctl-b, 0px); }
@@ -174,7 +173,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 [data-layout="wide"] #fineWheel { width: var(--col); height: 120px; }
 /* a bigger screen: a roomier frame and a wider column */
 @media (min-width: 700px) and (min-height: 600px) {
-  [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px) + var(--cfl, 0px) + var(--cfr, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, calc(var(--sar) - var(--cfr, 0px))) max(8px, var(--sab)) max(8px, calc(var(--sal) - var(--cfl, 0px))); }
+  [data-layout="wide"] #ui { --col: calc(64px + var(--colx, 0px)); gap: 8px; padding: max(8px, var(--sat)) max(8px, var(--sar)) max(8px, var(--sab)) max(8px, var(--sal)); }
   [data-layout="wide"] #ctl { gap: 10px; }
   [data-layout="wide"] #menuBtn { height: 48px; }
   [data-layout="wide"] #powerBar { max-height: 440px; }
@@ -1014,7 +1013,7 @@ button.topic:active { background: var(--sys-press); transition-duration: 0s; }
   [data-text="115"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.15); max-height: none; }
   [data-text="130"] :is(#helpSheet, #prefsSheet, #statsSheet) .sheet { height: calc(var(--app-h, 100vh) / 1.3); max-height: none; }
 }
-/* Controls: left-handed mirrors the strip (portrait) and puts the column left of the table (wide);
+/* Controls: left-handed mirrors the strip (portrait) and puts the column left of the table (wide; a phone on its side: data-rot);
    the power bar at the edge is the last control of the strip, or the foot of the column */
 [data-hand="left"][data-layout="portrait"] #ctl { flex-direction: row-reverse; }
 [data-hand="left"][data-layout="wide"] #ui { grid-template: "ctl stage" minmax(0, 1fr) / var(--col) minmax(0, 1fr); }
@@ -1141,6 +1140,29 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 [data-layout="portrait"] #ctl:has(#soloCtl:not([hidden])) #powerBar { min-width: 110px; }
 [data-layout="wide"] #soloCtl { flex-direction: column; }
 [data-layout="wide"] #soloCtl .icon { width: var(--col); height: 44px; }
+/* on its side a phone's column is the upright strip turned a quarter (sideRot, layout()): 56 px across (the strip's
+   height), each control the upright one's size with width and height swapped, the strip's order (turned anticlockwise,
+   data-rot="r", its left end at the foot; clockwise, "l", at the top; a left hand's mirrored strip mirrored again),
+   the strip's end padding (--rp-e) along the table, the upright top's padding on the island's side and its foot's on
+   the column's (--rp-l, --rp-r) */
+[data-layout="wide"][data-rot] #ui { grid-template: "stage ctl" minmax(0, 1fr) / minmax(0, 1fr) 56px; --col: 56px; gap: 4px; padding: 2px var(--rp-r, 4px) 2px var(--rp-l, 2px); }
+[data-layout="wide"][data-rot="l"] #ui { grid-template: "ctl stage" minmax(0, 1fr) / 56px minmax(0, 1fr); }
+[data-layout="wide"][data-rot] #ctl { gap: 4px; padding: var(--rp-e, 0px) 0; flex-direction: column-reverse; }
+[data-layout="wide"][data-rot="l"] #ctl, [data-layout="wide"][data-rot="r"][data-hand="left"] #ctl { flex-direction: column; }
+[data-layout="wide"][data-rot="l"][data-hand="left"] #ctl { flex-direction: column-reverse; }
+[data-layout="wide"][data-rot] #spinBox { order: 1; }
+[data-layout="wide"][data-rot] #spinPad { width: 56px; height: 56px; }
+[data-layout="wide"][data-rot] #powerBar { order: 2; flex: 1; width: 56px; height: auto; min-height: 150px; max-height: none; }
+[data-layout="wide"][data-rot] #fineWheel { order: 3; flex: 1 1 72px; width: 56px; height: auto; min-height: 44px; max-height: 96px; }
+[data-layout="wide"][data-rot] #soloCtl { order: 4; flex-direction: column-reverse; }
+[data-layout="wide"][data-rot="l"] #soloCtl, [data-layout="wide"][data-rot="r"][data-hand="left"] #soloCtl { flex-direction: column; }
+[data-layout="wide"][data-rot="l"][data-hand="left"] #soloCtl { flex-direction: column-reverse; }
+[data-layout="wide"][data-rot] #soloCtl .icon { width: 56px; height: 44px; }
+[data-layout="wide"][data-rot] #menuBtn { order: 5; width: 56px; height: 44px; }
+[data-layout="wide"][data-rot][data-bar="edge"] #powerBar { order: 6; }
+[data-layout="wide"][data-rot][data-bar="edge"] #fineWheel { order: 3; }
+@media (max-height: 389px) { [data-layout="wide"][data-rot] #powerBar { min-height: 136px; } }
+[data-layout="wide"][data-rot] #ctl:has(#soloCtl:not([hidden])) #powerBar { min-height: 110px; }
 #toolBtn[aria-expanded="true"], #toolBtn.on { background: var(--panel-3); border-color: var(--text); }
 #tools { position: absolute; z-index: 2; right: 6px; bottom: calc(var(--rail-lift, 0px) + 6px); display: grid; gap: 6px; padding: 8px; border-radius: 14px; pointer-events: auto;
   background: rgba(22, 22, 24, .96); border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
@@ -8567,7 +8589,7 @@ const standalone = () => navigator.standalone === true || !!(window.matchMedia &
    short of it (under a translucent status bar) and the screen's height is taller than it (under
    the opaque bar), and either guess pushed the controls and the sheets' bottoms off the screen. */
 /* which build this is: shown in Settings (diag) so a phone can tell whether it has the latest */
-const BUILD = 'build 2026-11-01d';
+const BUILD = 'build 2026-11-02a';
 let sizeProbe = null;
 function appSize() {
   if (!sizeProbe) {
@@ -8603,13 +8625,10 @@ function tableExt(r) {
   const e = s => (at[s] && inset[s] > 2 ? Math.max(0, Math.min(inset[s], pad[s]) - 2) : 0);
   return { l: e('l'), t: e('t'), r: e('r'), b: 0 };
 }
-/* on its side, which side's inset is the cutout (the Dynamic Island, the notch) and which is free, with only the
-   display's rounded glass in it. Insets that differ: the larger is the cutout. Equal (iOS gives 59-62 pt on both sides
-   in landscape): the orientation angle says, screen.orientation.angle else window.orientation, 90 being the phone
-   turned anticlockwise (its top, the island, on the left) and 270 (or -90) clockwise (the island on the right); no
-   angle: both are treated as cutouts, as before. colFree() is the inset the controls column may take: only on the
-   column's own side (right, or left with data-hand="left"), only when that side is the free one, less COL_GUTTER. */
-const COL_GUTTER = 8, GLASS_R = 62;
+/* on its side, which side's inset is the cutout (the Dynamic Island, the notch). Insets that differ: the larger is the
+   cutout. Equal (iOS gives 59-62 pt on both sides in landscape): the orientation angle says, screen.orientation.angle
+   else window.orientation, 90 being the phone turned anticlockwise (its top, the island, on the left) and 270 (or -90)
+   clockwise (the island on the right); no angle (or 0, a desktop browser's landscape): 'both', unknown. */
 function islandSide() {
   if (!sizeProbe) appSize();
   const ps = getComputedStyle(sizeProbe), l = parseFloat(ps.paddingLeft) || 0, r = parseFloat(ps.paddingRight) || 0;
@@ -8620,28 +8639,23 @@ function islandSide() {
   const n = a === null ? null : ((Math.round(a) % 360) + 360) % 360;
   return { l, r, island: n === 90 ? 'l' : n === 270 ? 'r' : 'both' };
 }
-function colFree() {
-  const s = islandSide(), side = document.documentElement.dataset.hand === 'left' ? 'l' : 'r';
-  if (!s.island || s.island === 'both' || s.island === side) return null;
-  const px = Math.floor(s[side] - COL_GUTTER);
-  return px >= 8 ? { side, px, island: s.island, l: s.l, r: s.r, gutter: COL_GUTTER } : null;
-}
-/* the column clears the rounded glass (a GLASS_R corner, boot-check's model) as one piece: every control keeps the
-   column's one width and the whole column stands in from the free edge by the smallest gutter (COL_GUTTER or more)
-   that keeps the outer corners of its top and bottom controls (their own rounding counted) inside the corner, so it
-   stays flush with the table top to bottom. Returns the gutter; layout() gives the column the rest of the inset. */
-function colGutter(cf, h) {
-  const vis = [...ctl.children].filter(e => !e.hidden && e.getClientRects().length).map(e => ({ e, r: e.getBoundingClientRect() })).sort((a, b) => a.r.top - b.r.top);
-  let g = COL_GUTTER;
-  if (!vis.length) return g;
-  const R = GLASS_R, need = (o, top) => {
-    const cs = getComputedStyle(o.e);
-    const br = parseFloat(cf.side === 'r' ? (top ? cs.borderTopRightRadius : cs.borderBottomRightRadius) : (top ? cs.borderTopLeftRadius : cs.borderBottomLeftRadius)) || 0;
-    const k = br * (1 - Math.SQRT1_2), y = (top ? o.r.top : h - o.r.bottom) + k;
-    return y >= R ? 0 : R - k - Math.sqrt(Math.max(0, R * R - (R - y) * (R - y)));
-  };
-  g = Math.max(g, need(vis[0], true), need(vis[vis.length - 1], false));
-  return Math.ceil(g - 1e-9);
+/* on its side a phone shows the upright layout turned a quarter (Zac: "The table and controls must occupy the same
+   exact footprint no matter landscape or portrait"): the same table, the strip's controls at their upright sizes with
+   width and height swapped, the same gap, the strip's end gutters along the table. The strip sits at the phone's foot,
+   away from the island, so turned it stands on the side away from the island: right when the island is on the left
+   (turned anticlockwise, the strip's left end at the bottom), left when it is on the right (turned clockwise, its left
+   end at the top); island unknown, the hand's side (right, or left with data-hand="left"). The upright insets are
+   modelled from the ones on its side: the island's inset was the upright top (the same 59 or 62 pt), and a phone with a
+   home indicator (a bottom inset on its side) had HOME_UP at its upright foot; the island side's padding is the upright
+   top's, the column side's the upright foot's (max(4, HOME_UP)), the column's ends the strip's (35% of HOME_UP). The
+   column side may run into that inset, as the upright strip stands at its foot: the island's inset is never used. */
+const HOME_UP = 34;
+function sideRot(w, h) {
+  if (!(w > h && h < 600)) return null;
+  const s = islandSide(), hand = document.documentElement.dataset.hand === 'left' ? 'l' : 'r';
+  const col = s.island === 'l' ? 'r' : s.island === 'r' ? 'l' : hand, isl = col === 'r' ? 'l' : 'r';
+  const home = insetBottom() > 0 ? HOME_UP : 0;
+  return { col, island: s.island, top: Math.max(2, s[isl]), foot: Math.max(4, home), ends: Math.max(0, home * 0.35) };
 }
 /* the canvas is drawn at the device pixels it is shown at: the pixel ratio times any page zoom
    (a canvas sized for less is stretched, and everything on it goes soft while HTML text stays
@@ -8664,7 +8678,14 @@ function layout() {
   RAIL = railFor(w, h);
   railWood = false;
   /* upright: the strip under the table, or the side column where that is clearly bigger (a
-     tablet); on its side the column on the right */
+     tablet); on its side the column: a phone's is the strip turned a quarter (sideRot, data-rot) */
+  const rot = sideRot(w, h);
+  if (rot) {
+    root.dataset.rot = rot.col;
+    root.style.setProperty('--rp-' + rot.col, rot.foot + 'px'); root.style.setProperty('--rp-' + (rot.col === 'r' ? 'l' : 'r'), rot.top + 'px');
+    root.style.setProperty('--rp-e', rot.ends + 'px');
+  } else delete root.dataset.rot;
+  felt.sideRot = rot;
   const tries = h > w ? ['portrait', 'wide'] : ['wide'];
   let best = null;
   for (const m of tries) {
@@ -8674,16 +8695,10 @@ function layout() {
     if (!best || f.k > best.k * (best.m === 'portrait' && w < 600 ? 1.12 : 1.04)) best = { m, k: f.k };
   }
   root.dataset.layout = best.m;
-  /* on its side the column may take the free side's inset (colFree): the stage keeps its size, so the table does too */
-  const cf = best.m === 'wide' ? colFree() : null;
-  root.style.setProperty('--cfl', cf && cf.side === 'l' ? cf.px + 'px' : '0px');
-  root.style.setProperty('--cfr', cf && cf.side === 'r' ? cf.px + 'px' : '0px');
-  if (cf) root.dataset.cfree = cf.side; else delete root.dataset.cfree;
-  felt.colFree = cf;
   let r = stage.getBoundingClientRect(), ext = tableExt(r), f = fitTable(r, ext);
   /* on its side, a table bound by the height leaves room across: the column takes it (wider controls), not a black band */
   root.style.setProperty('--colx', '0px');
-  if (best.m === 'wide') {
+  if (best.m === 'wide' && !rot) {
     r = stage.getBoundingClientRect(); ext = tableExt(r); f = fitTable(r, ext);
     const bx = f.portrait ? TW : TL, lo = Math.max(-ext.l, -RAIL * f.k), hi = Math.min(r.width + ext.r - (bx + 2 * RAIL) * f.k, r.width - (RAIL + bx) * f.k), spare = Math.floor(hi - lo);
     if (spare >= 4) { root.style.setProperty('--colx', Math.min(24, spare) + 'px'); r = stage.getBoundingClientRect(); ext = tableExt(r); f = fitTable(r, ext); }
@@ -8697,15 +8712,10 @@ function layout() {
   felt.tableExt = ext;
   /* on its side the column's top and foot meet the table's: the footprint's top and bottom, measured from the column */
   root.style.setProperty('--ctl-t', '0px'); root.style.setProperty('--ctl-b', '0px');
-  if (best.m === 'wide') {
+  if (best.m === 'wide' && !rot) {
     const c = ctl.getBoundingClientRect(), ft = view.oy - RAIL * k, fb = view.oy + (bh + RAIL) * k;
     root.style.setProperty('--ctl-t', Math.max(0, Math.round(ft - c.top)) + 'px');
     root.style.setProperty('--ctl-b', Math.max(0, Math.round(c.bottom - fb)) + 'px');
-  }
-  /* the free inset's column: one width for every control, stood in from the edge as far as the glass needs */
-  if (cf) {
-    const g = colGutter(cf, h);
-    if (g > COL_GUTTER) { cf.px = Math.max(0, Math.floor(cf[cf.side === 'r' ? 'r' : 'l'] - g)); cf.gutter = g; root.style.setProperty(cf.side === 'l' ? '--cfl' : '--cfr', cf.px + 'px'); }
   }
   /* no tray on the game screen: the potted balls show in the pause menu. view.tray null is the
      render's explicit off state (no slot painted, nothing drawn on or under the rail). */
@@ -20592,7 +20602,7 @@ muted = !settings.sound;
 const relayout = () => { cancelGestures(); layout(); hud(); if (banner.classList.contains('show')) placeBanner(); paintArt(); fitSetupRows(); };
 addEventListener('resize', relayout);
 addEventListener('orientationchange', relayout);
-/* turned end over end (landscape to landscape) nothing changes size: the island's side (colFree) does */
+/* turned end over end (landscape to landscape) nothing changes size: the island's side (sideRot) does */
 if (window.screen && screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', () => { if (sizeSig() !== layoutSig) relayout(); });
 addEventListener('pageshow', relayout);
 if (window.visualViewport) visualViewport.addEventListener('resize', () => { if (sizeSig() !== layoutSig) relayout(); });

@@ -335,20 +335,21 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
   In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected. The table: `fitTable`
   lets the rails (never the bed) run under a safe-area inset on the status-bar or island side (`tableExt`, `railFit`,
-  `railStart`); on its side a height-bound table gives the spare width to the column (`--colx`, up to 24 px), and the
-  column takes the free side's inset (`colFree`, `--cfl`/`--cfr`, `data-cfree`): an iPhone on its side has an inset on
-  both long sides, the island in one and only rounded glass in the other. `islandSide()`: unequal insets, the larger is
-  the island's; equal (iOS, 59-62 pt), `screen.orientation.angle` else `window.orientation` (90 island left, 270/-90
-  right); no angle, both count as cutouts (the old layout). Only when the column's side (right, left with
-  `data-hand="left"`) is the free one: #ui's padding there drops to a gutter and the column grows by the rest of the
-  inset, so the stage and the table keep their size. The column is one piece (Zac: "the tools buttons need to be the
-  same size"): every control exactly the column's width (the pad's circle fills it), flush with the table top to
-  bottom, and the whole column stands in from the edge by `colGutter`, the smallest gutter (`COL_GUTTER` 8 pt or
-  more) that keeps its end controls' outer corners (their own rounding counted) inside the display's corner
-  (`GLASS_R` 62 pt): 33 pt at 956x440, so 66 to 95 pt; 48 to 81 at 844x390. Never narrow or inset one control. The island's side keeps the
-  old rule (rails only). boot-check's free-inset checks pin it (956x440, 844x390, 932x430, both ways round, both hands); `sizeSig`
+  `railStart`). On its side a phone (height under 600) shows the upright layout turned a quarter (Zac: "the same exact
+  footprint no matter landscape or portrait"; `sideRot`, `data-rot`, `--rp-l`/`--rp-r`/`--rp-e`): the same table, each
+  control the upright one's size with width and height swapped (a 56 px column), the same gap, the strip's extent and
+  end gutters along the table, its order turned (anticlockwise, `data-rot="r"`, column right, the strip's left end at
+  the foot: pause, wheel, bar, english top to bottom; clockwise, `"l"`, column left, the reverse; a left hand's
+  mirrored strip mirrored again). The column stands on the side away from the island (`islandSide()`: unequal
+  insets, the larger; equal, as iOS gives, `screen.orientation.angle` else `window.orientation`, 90 island left,
+  270/-90 right; unknown or no insets: the hand's side). The upright insets are modelled from the side ones: the
+  island's inset was the upright top, `HOME_UP` (34 pt) the foot when there is a home indicator; so the column side's
+  padding is the upright foot's (34 pt with a home indicator, else 4) and the column runs into that side's inset (no cutout there), never into the island's. Room
+  left over on its side stays empty. A tablet or desktop on its side keeps the old column (`--colx`, up to 24 px, flush
+  with the table, `--ctl-t`/`--ctl-b`). boot-check's footprint check pins it (440x956/956x440, 393x852/852x393,
+  375x667/667x375, the island either side or unknown, both hands, within 1 px); `sizeSig`
   carries the insets, the island's side and the stage's size, so an inset applied late (iOS) lays out again. The controls strip/column no longer
-  holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, on its side 112-200 px tall; the power bar
+  holds the chips: the fine-aim wheel takes their room (upright 72-96 px wide, a phone on its side the same turned, a tablet's column 112-200 px tall; the power bar
   stays the biggest control). The exhibition bar, free-ball pick and tools rise over it (`--rail-lift`; the call is the power bar's label and menu, 5c);
   the coach card avoids it; the callout stands over the far rail. Any new element placed from table geometry needs its
   3D place too, and nothing on a rail may cover a pocket or a diamond (`railbar-check`). No context: top-down. Replays, the menu

@@ -14814,15 +14814,15 @@ function heroShow(kind, replay) {
    (heroStep, each frame while it has time), so no frame is long and its first frame is ready to
    land on. It leaves what heroShow's task would (the data, the art for this size and look, the
    roll started: the cue's frames finish it, heroTick) and draws nothing on the hero's canvas. */
-const HERO_STEP_MS = 7, HERO_STEP_LATE_MS = 14;
+const HERO_STEP_MS = 7, HERO_FLUSH_EVERY = 4;
 function* heroBuildJob(kind) {
   const args = heroArgs(kind).join(), [W, H] = heroSize();
   heroStop(); hero.state = 'idle';
   let d = hero.data;
   if (!d || d.kind !== kind || d.args.join() !== args) { d = hero.data = heroPrep(kind); hero.run = null; }
   hero.kind = kind;
-  const artKey = heroArtKey(d, W, H);
-  if (!hero.art || hero.art.key !== artKey) {
+  const artKey = heroArtKey(d, W, H), fresh = !hero.art || hero.art.key !== artKey;
+  if (fresh) {
     const A = yield* heroStillJob(d, W, H);
     for (const c of [A.bg, A.fg, A.vg]) yield c.getContext('2d');
     yield* heroSpritesJob(d, A);
@@ -14831,18 +14831,23 @@ function* heroBuildJob(kind) {
   if (setupHeroArt.width !== W || setupHeroArt.height !== H) { setupHeroArt.width = W; setupHeroArt.height = H; }
   if (!hero.run) hero.run = heroRunStart(d);
   hero.run.sliced = true;   /* recorded in the cue's frames (heroTick) */
-  return { W, H };
+  return { W, H, built: !!fresh };
 }
 /* run a job's steps for up to ms, flushing what each drew; true once it is done */
 function heroStep(job, ms) {
   const t0 = performance.now();
   useCloth();
-  for (;;) {
-    const r = job.it.next();
-    if (r.done) { job.out = r.value; return true; }
-    if (r.value && r.value.getImageData) r.value.getImageData(0, 0, 1, 1);
-    if (performance.now() - t0 >= ms) return false;
-  }
+  try {
+    let x = null, n = 0;
+    for (;;) {
+      const r = job.it.next();
+      if (r.done) { job.out = r.value; return true; }
+      /* the canvas drawn on, flushed when it changes, every few steps and at the end, so the time
+         counted is the work done (a canvas rasterises lazily) without a read after every step */
+      if (r.value && r.value.getImageData) { if (x && x !== r.value) x.getImageData(0, 0, 1, 1); x = r.value; if (++n % HERO_FLUSH_EVERY === 0) x.getImageData(0, 0, 1, 1); }
+      if (performance.now() - t0 >= ms) { if (x) x.getImageData(0, 0, 1, 1); return false; }
+    }
+  } finally { job.work = (job.work || 0) + performance.now() - t0; job.steps = (job.steps || 0) + 1; }
 }
 /* draw: the still (reduced motion), the shot from the start, on from where it was, or its end */
 function heroGo() {
@@ -19510,7 +19515,7 @@ const MORPH_KEYS = 60;
    .mLayer el of w x h CSS px) counter-scaled so that on screen it covers the window at one scale
    both ways (its own aspect, cropped by the window, never stretched): exactly at each of the
    MORPH_KEYS keyframes and within 0.001 between them. The window and its animations. */
-function morphWin(a, b, ra, rb, pics) {
+function morphWin(a, b, ra, rb, pics, ms = MORPH_MS) {
   const big = a.width * a.height > b.width * b.height ? a : b, W = big.width, H = big.height;
   const win = mEl('mClip', { left: 0, top: 0, width: W, height: H }), kw = [], kp = pics.map(() => []);
   for (let i = 0; i <= MORPH_KEYS; i++) {
@@ -19523,7 +19528,7 @@ function morphWin(a, b, ra, rb, pics) {
       kp[j].push({ offset: o, transform: `translate(${(R.width - k * q.w) / 2 / sx}px, ${(R.height - k * q.h) / 2 / sy}px) scale(${k / sx}, ${k / sy})` });
     });
   }
-  const opt = { duration: MORPH_MS, easing: 'linear', fill: 'both' };
+  const opt = { duration: ms, easing: 'linear', fill: 'both' };
   return { win, anims: [...pics.map((q, j) => q.el.animate(kp[j], opt)), win.animate(kw, opt)] };
 }
 /* run a set of animations as one morph; end() (or a new morph) finishes it at once */
@@ -19583,7 +19588,10 @@ function morphOpen(card, sheet, open) {
      coming down to the card's size inside it (morphWin) */
   const face = mEl('mLayer', { left: 0, top: 0, width: r0.width, height: r0.height }), pics = [{ el: face, w: r0.width, h: r0.height }];
   const info = { type: 'morph', dir: 'open', from: card.id, to: sheet.id };
-  let pic = null, page = null, still = null, shot = null, job = null, show = null, grad = null;
+  let pic = null, page = null, still = null, shot = null, job = null, show = null, grad = null, buildStep = null;
+  /* the flight: MORPH_MS, longer on a machine too slow to build the hero in it (heroPlan) */
+  const plan = isSetup ? heroPlan(setupKind) : null;
+  let flight = plan ? plan.flight : MORPH_MS, flown = [];
   if (isSetup) {
     pic = art ? canvasCopy(art) : document.createElement('canvas');
     face.append(pic);
@@ -19596,21 +19604,53 @@ function morphOpen(card, sheet, open) {
     pics.push({ el: still, w: hr.width, h: hr.height }, { el: grad, w: hr.width, h: hr.height });
     /* the hero, built while the card flies (heroBuildJob, a few ms a frame): its first frame fades
        in over the card's art, so the landing is that frame and the shot starts from it */
-    job = hero.build = { it: heroBuildJob(setupKind), t0: performance.now() };
+    job = hero.build = { it: heroBuildJob(setupKind), t0: performance.now(), est: plan.est, cap: plan.cap, flight };
     const step = () => {
       if (hero.build !== job) return;
       if (!setupSheet.classList.contains('show')) { hero.build = null; return; }
+      /* each frame's share: what is left of the estimate over the frames left before HERO_AIM of the
+         flight (at the pace the frames are coming), at least HERO_STEP_MS, at most the cap; the
+         morph itself runs on the compositor (transforms and opacity), unhurt by the steps */
+      const now = performance.now();
+      if (job.last) {
+        const gap = now - job.last, r = Math.max(0, gap - (job.lastMs || 0));
+        job.gap = job.gap ? 0.6 * job.gap + 0.4 * gap : gap;
+        /* the frame's own cost besides the step (the page's rendering, a busy machine) */
+        job.r = job.r === undefined ? r : 0.6 * job.r + 0.4 * r;
+      }
+      job.last = now;
+      /* the cap: a frame stays near HERO_FRAME_MS times the pace, the rendering counted */
+      const cap = clamp(HERO_FRAME_MS * plan.k - (job.r || 0), HERO_STEP_MS, job.cap);
+      const frames = Math.max(1, (info.t0 + flight * HERO_AIM - now) / Math.max(16.7, job.gap || 16.7));
+      /* the first frame is the tap's own (the sheet laid out, the morph made): the least there */
+      const due = job.est - (job.work || 0);   /* past the estimate: it was low, so all the cap */
+      const first = !job.last0, ms = first ? HERO_STEP_MS : due > 0 ? clamp(due / frames, HERO_STEP_MS, cap) : cap;
+      job.last0 = now;
+      job.max = Math.max(job.max || 0, ms);
+      /* still behind at the cap (the estimate was low, or the machine got busy): the flight slows
+         from here (every animation of it at one rate, so it stays one motion) so the hero is there
+         before the landing, up to MORPH_MAX */
+      if (!first && mo.busy && mo.busy.info === info) {
+        const left = Math.max(due, (job.work || 0) * 0.15), took = now - info.t0;
+        const want = Math.min(MORPH_MAX, (took + Math.ceil(left / cap) * Math.max(16.7, job.gap || 16.7)) / HERO_AIM);
+        const main = flown[flown.length - anims0], ct = main && main.currentTime;
+        if (want > flight + 16 && ct !== null && ct !== undefined && want > took + 16) {
+          /* the rest of the flight's own time over the real time it now has */
+          const rate = Math.max(0.2, (main.effect.getComputedTiming().endTime - ct) / (want - took));
+          for (const a of flown) { try { a.updatePlaybackRate(rate); } catch (e) { } }
+          flight = info.flight = want; job.flight = Math.round(want); job.rate = +rate.toFixed(3);
+        }
+      }
       let ok = false;
-      /* past half the flight and not done (a slow or busy machine): bigger steps, so it lands on the
-         hero; the morph itself runs on the compositor (transforms and opacity), unhurt by them */
-      const late = performance.now() - info.t0 > MORPH_MS / 2;
-      try { ok = heroStep(job, late ? HERO_STEP_LATE_MS : HERO_STEP_MS); } catch (e) { hero.build = null; throw e; }
+      const w0 = job.work || 0;
+      try { ok = heroStep(job, ms); } catch (e) { hero.build = null; throw e; } finally { job.lastMs = (job.work || 0) - w0; }
       if (!ok) { requestAnimationFrame(step); return; }
       hero.build = null;
       job.at = performance.now();
+      if (job.out.built) mo.buildWork = job.work;
       if (mo.busy && mo.busy.info === info) {
         heroDraw(0, hero, shot);
-        const left = info.t0 + MORPH_MS - job.at;
+        const left = info.t0 + flight - job.at;
         /* done by the landing if there is time, else the hero's canvas finishes it (cleanup below) */
         show = still.animate([{ opacity: 0 }, { opacity: 1 }], { duration: clamp(left - 16, 80, 180), easing: 'ease-in-out', fill: 'both' });
       } else if (setupSheet.classList.contains('show') && !mo.hold) {
@@ -19619,7 +19659,7 @@ function morphOpen(card, sheet, open) {
         setupHeroArt.classList.remove('wait');
       }
     };
-    requestAnimationFrame(step);
+    buildStep = step;
   } else {
     const fc = document.createElement('div'), cs = getComputedStyle(card);
     fc.style.background = cs.backgroundImage !== 'none' ? `${cs.backgroundImage}, ${cs.backgroundColor}` : cs.backgroundColor;
@@ -19628,16 +19668,16 @@ function morphOpen(card, sheet, open) {
     page = document.createElement('div');
     Object.assign(page.style, { width: '100%', height: '100%', background: pBg });
   }
-  const { win, anims } = morphWin(r0, hr, [rad0, rad0], isSetup ? [rad, 0] : [rad, rad], pics);
+  const { win, anims } = morphWin(r0, hr, [rad0, rad0], isSetup ? [rad, 0] : [rad, rad], pics, flight);
   win.append(...pics.map(q => q.el), ...page ? [page] : []);
-  if (grad) grad.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS, easing: 'ease-out', fill: 'both' });
+  if (grad) flown.push(grad.animate([{ opacity: 0 }, { opacity: 1 }], { duration: flight, easing: 'ease-out', fill: 'both' }));
   for (const e of [dim, pan, win]) document.body.insertBefore(e, sheet);
   const ghost = cardGhost(card, r0, isSetup);
   card.classList.add('mHide');
   anims.push(
-    dim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.8, easing: 'ease-out', fill: 'both' }),
-    pan.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.7, easing: 'ease-out', fill: 'both' }),
-    panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.75, delay: isSetup ? 60 : 120, easing: 'ease-out', fill: 'both' }),
+    dim.animate([{ opacity: 0 }, { opacity: 1 }], { duration: flight * 0.8, easing: 'ease-out', fill: 'both' }),
+    pan.animate([{ opacity: 0 }, { opacity: 1 }], { duration: flight * 0.7, easing: 'ease-out', fill: 'both' }),
+    panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: flight * 0.75, delay: isSetup ? 60 : 120, easing: 'ease-out', fill: 'both' }),
     ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'both' }));
   if (page) anims.push(page.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.6, delay: MORPH_MS * 0.2, easing: 'ease-in-out', fill: 'both' }));
   let title = null;
@@ -19649,8 +19689,11 @@ function morphOpen(card, sheet, open) {
     document.body.appendChild(title);
     setupTitle.style.opacity = '0';
     const k = tbFont / trFont;
-    anims.push(title.animate([{ transform: `translate(${tb0.left - tr.left}px, ${tb0.top - tr.top}px) scale(${k})` }, { transform: 'none' }], { duration: MORPH_MS, easing: SPRING, fill: 'both' }));
+    anims.push(title.animate([{ transform: `translate(${tb0.left - tr.left}px, ${tb0.top - tr.top}px) scale(${k})` }, { transform: 'none' }], { duration: flight, easing: SPRING, fill: 'both' }));
   }
+  info.flight = flight;
+  const anims0 = anims.length;   /* the window's first picture's flight leads (flown's tail is anims) */
+  flown.push(...anims);
   morphRun(info, anims, () => {
     /* how far the hero's first frame had faded in over the card's art (1: all the way) */
     const seen = show ? +getComputedStyle(still).opacity : 0, rest = show ? Math.max(0, (show.effect.getComputedTiming().endTime || 0) - (show.currentTime || 0)) : 0;
@@ -19680,6 +19723,8 @@ function morphOpen(card, sheet, open) {
     }
   });
   mo.build = job;
+  /* the build's first step in the flight's first frame */
+  if (buildStep) requestAnimationFrame(buildStep);
 }
 /* while the hero builds: the art the card brought, under its canvas (and under its fade) */
 function heroUnder(pic) {
@@ -19709,9 +19754,29 @@ function heroWarm() {
     /* a card tapped meanwhile: its own build takes it from there */
     if (mo.busy || hero.build || hero.tex) return;
     if (!heroStep(job, HERO_STEP_MS)) { requestAnimationFrame(step); return; }
-    mo.warm = performance.now() - t0;
+    mo.warm = performance.now() - t0; mo.warmWork = job.work;
   };
   requestAnimationFrame(step);
+}
+/* the hero's build under the flight, planned at the tap. The machine's pace k is the warm-up's
+   work against this machine's (HERO_WARM_REF; 1 or more, 1.5 before any warm-up). The work: the
+   last fresh build's, else HERO_WORK_PER_WARM times the warm-up's (a table not yet painted adds
+   one more), with a margin; nothing when the art is already made for this size and look. A frame
+   gives the build at most HERO_STEP_CAP times k, and no more than HERO_FRAME_MS times k less what
+   the page's own rendering of a frame takes (so a frame stays under 50 ms times the machine's
+   pace); the flight is MORPH_MS, or long enough for those frames to finish the work by HERO_AIM
+   of it, up to MORPH_MAX: a slow phone gets a slower card, never a card that lands
+   before its hero. */
+const HERO_WARM_REF = 80, HERO_WORK_PER_WARM = 2.2, HERO_STEP_CAP = 20, HERO_FRAME_MS = 40, HERO_AIM = 0.85, MORPH_MAX = 900;
+function heroPlan(kind) {
+  const k = mo.warmWork ? clamp(mo.warmWork / HERO_WARM_REF, 1, 4) : 1.5, cap = HERO_STEP_CAP * k;
+  const d = hero.data, args = heroArgs(kind).join(), same = d && d.kind === kind && d.args.join() === args;
+  const [W, H] = heroSize(), ready = same && hero.art && hero.art.key === heroArtKey(d, W, H);
+  const tex = hero.tex && hero.tex.key === [args, lookSig()].join('|');
+  const base = mo.buildWork || (mo.warmWork || HERO_WARM_REF * k) * HERO_WORK_PER_WARM;
+  const est = ready ? 0 : (base + (tex ? 0 : (mo.warmWork || HERO_WARM_REF * k))) * 1.15;
+  const frames = Math.ceil(est / cap), frame = 16.7 * Math.max(1, 0.8 * k);
+  return { k, cap, est, flight: clamp(Math.round(frames * (cap + frame) / HERO_AIM), MORPH_MS, MORPH_MAX) };
 }
 /* a morph holding the hero: the sheet's code hands it what to do on landing */
 function morphHolds(fn) { if (!mo.hold) return false; mo.after = fn; return true; }
@@ -19956,7 +20021,8 @@ function powerTick(live) {
   if (typeof window.powerFull === 'function') { try { window.powerFull(); } catch (e) { } }
 }
 Object.defineProperty(felt, 'motion', { get: () => ({ on: motionOn(), busy: !!mo.busy, hold: mo.hold, runs: mo.runs, last: mo.last && Object.assign({}, mo.last), heroAt: mo.heroAt,
-  build: mo.build && { t0: mo.build.t0, at: mo.build.at || 0, done: !!mo.build.out }, warm: mo.warm,
+  build: mo.build && { t0: mo.build.t0, at: mo.build.at || 0, done: !!mo.build.out, work: mo.build.work || 0, steps: mo.build.steps || 0, est: mo.build.est || 0, max: mo.build.max || 0, flight: mo.build.flight },
+  warm: mo.warm, warmWork: mo.warmWork || 0,
   rolls: mo.rolls, fulls: mo.fulls, drags: mo.drags.slice(), dragging: !!(sg && sg.mode && sg.mode !== 'none'), spring: SPRING }) });
 
 /* ---- 6o. the opening ----

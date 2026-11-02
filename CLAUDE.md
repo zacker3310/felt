@@ -364,7 +364,11 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `morphClose(sheet)`; Reduce Motion cross-fades. The card grows as a window (`morphWin`, `.mClip`: transforms only, the
   spring sampled into `MORPH_KEYS` keyframes) and every picture in it (`.mLayer`) is counter-scaled to one scale both
   ways, cropped by the window: never stretch a picture to a box of another aspect. A game card's hero is built under the
-  flight (`heroBuildJob` stepped by `heroStep`, `HERO_STEP_MS` a frame, more past half way; `heroStillJob`,
+  flight (`heroBuildJob` stepped by `heroStep`; `heroPlan` at the tap sets the flight, `MORPH_MS` or longer up to
+  `MORPH_MAX` on a slow machine, from the machine's pace (`heroWarm`'s work against `HERO_WARM_REF`) and the work
+  estimate (the last fresh build's, else `HERO_WORK_PER_WARM` times the warm-up's); each frame's step is the work left
+  over the frames left before `HERO_AIM` of the flight, `HERO_STEP_MS` to `HERO_STEP_CAP` times the pace (the tap's
+  frame the least); still behind, the whole flight slows from there at one rate; `heroStillJob`,
   `heroTextureJob`/`paintTableJob`, `heroTurnedJob`, `heroSpritesJob` are the whole builders' step-by-step forms, each
   step yielding the context it drew on for the caller to flush; `drain` runs one whole; the roll is recorded in the
   cue's frames, `heroTick`), its first frame drawn into the window and faded in over the card's art, so the landing is
@@ -375,7 +379,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
   opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check` (its 2b watches 8-Ball and 9-Ball open
   every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform scale, no stretched canvas, the
-  hand-over frozen and diffed, frames under 50 ms times `speedFactor`).
+  hero built two frames or more before the landing, the hand-over frozen and diffed, frames under 50 ms times
+  `speedFactor`; and again with CDP `Emulation.setCPUThrottlingRate` 2 from before the warm-up, as a slow CI runner).
 - Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 4.5 s on a cold launch at home, never on a
   return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the
   home at the launch image's frame (the wordmark alone, the cards at `--ik` 0) from the first paint; the head's script

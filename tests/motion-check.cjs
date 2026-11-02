@@ -130,14 +130,23 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
      of 255 and under 0.5% of its pixels off by more than 24 (the Large Title, flown in on its own
      layer, is redrawn by the sheet: a glyph's edge may differ by a level; a stretched or cropped
      picture, a fade, a different image differ everywhere). ---- */
+  /* and again with the CPU throttled to half speed (CDP Emulation.setCPUThrottlingRate 2, from before
+     the home's warm-up, as a slower phone or a CI runner is from the start): the hero still built
+     before the landing (the flight stretches to what this machine needs, heroPlan, the steps grow to
+     the frames left), no frame over its budget (speedFactor measured under the throttle) */
   const MORPHS = [];
-  for (const [W, H, top] of [[393, 852, 59], [440, 956, 62]]) {
+  for (const [rate, W, H, top] of [[1, 393, 852, 59], [1, 440, 956, 62], [2, 393, 852, 59], [2, 440, 956, 62]]) {
     /* the insets from the first paint, as the phone gives them (env() is 0 headless) */
     const o = await open('', { viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, motion: true,
       init: `if (document.documentElement) { document.documentElement.style.setProperty('--sat', '${top}px'); document.documentElement.style.setProperty('--sab', '34px'); }` });
     const pg = o.page, c2 = await pg.context().newCDPSession(pg);
     /* the home idle long enough for its one warm-up (the pool table's art, heroWarm) */
     await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 10000 }).catch(() => {});
+    if (rate > 1) {
+      await c2.send('Emulation.setCPUThrottlingRate', { rate });
+      await pg.evaluate(() => { hero.tex = null; mo.warm = 0; mo.warmWork = 0; heroWarm(); });
+      await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 20000 }).catch(() => {});
+    }
     const sp = await speedFactor(pg);
     let t2 = Date.now() / 1000;
     const touch = async sel => {
@@ -188,6 +197,8 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
       const seen = w.last.seen === undefined ? 1 : w.last.seen, full = after.find(f => f.op >= 0.999);
       const handOver = !!(!first.wait && first.op >= seen - 0.01 && first.frames > at && next.some(f => f.frames > first.frames) && full && full.t - t1 <= 200);
       await home();
+      let px = null;
+      if (rate === 1) {
       /* the hand-over, frozen */
       await touch(`#play${kind}`);
       await pg.waitForFunction(() => felt.motion.busy, null, { polling: 'raf', timeout: 5000 }).catch(() => {});
@@ -204,7 +215,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
       await pg.waitForTimeout(120);
       const B = await pg.screenshot({ clip: box });
       if (process.env.MOTION_SHOTS) { fs.writeFileSync(path.join(process.env.MOTION_SHOTS, `handover-${W}-${kind}-a.png`), A); fs.writeFileSync(path.join(process.env.MOTION_SHOTS, `handover-${W}-${kind}-b.png`), B); }
-      const px = await pg.evaluate(async ([a, b]) => {
+      px = await pg.evaluate(async ([a, b]) => {
         const read = async s => { const bm = await createImageBitmap(await (await fetch('data:image/png;base64,' + s)).blob()); const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d'); g.drawImage(bm, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
         const p = await read(a), q = await read(b);
         let sum = 0, off = 0, n = 0;
@@ -212,16 +223,21 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
         return { mean: +(sum / n / 3).toFixed(2), off: +(off / n * 100).toFixed(2) };
       }, [A.toString('base64'), B.toString('base64')]);
       await home();
-      MORPHS.push({ at: `${W}x${H}`, kind, du: +du.toFixed(4), dist: +dist.toFixed(4), handOver, seen, op: first.op, firstMs: first.t !== undefined ? +(first.t - t1).toFixed(1) : null, built: w.build && w.build.at ? +(w.build.at - w.last.t0).toFixed(0) : null, morphMs: +(t1 - w.last.t0).toFixed(0), worst: +worst.toFixed(1), budget: +(50 * sp.f).toFixed(1), px, frames: fly.length });
+      }
+      MORPHS.push({ rate, at: `${W}x${H}`, kind, du: +du.toFixed(4), dist: +dist.toFixed(4), handOver, seen, op: first.op, firstMs: first.t !== undefined ? +(first.t - t1).toFixed(1) : null, built: w.build && w.build.at ? +(w.build.at - w.last.t0).toFixed(0) : null, morphMs: +(t1 - w.last.t0).toFixed(0), worst: +worst.toFixed(1), budget: +(50 * sp.f).toFixed(1), px, frames: fly.length });
     }
     errors.push(...o.errors);
     await o.browser.close();
   }
-  const mOf = f => MORPHS.filter(f).map(m => `${m.at} ${m.kind}`).join(', ') || 'none';
-  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball; 393x852, 440x956)', MORPHS.length === 4 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
-  check('the hero is built under the morph and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', MORPHS.length === 4 && MORPHS.every(m => m.handOver && m.built !== null && m.built <= m.morphMs), 'off: ' + mOf(m => !(m.handOver && m.built !== null && m.built <= m.morphMs)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
-  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', MORPHS.length === 4 && MORPHS.every(m => m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.px])));
-  check('no long frame from the tap to 300 ms after the landing (each under 50 ms times speedFactor)', MORPHS.length === 4 && MORPHS.every(m => m.worst <= m.budget), JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.worst, m.budget])));
+  const mOf = f => MORPHS.filter(f).map(m => `${m.rate}x ${m.at} ${m.kind}`).join(', ') || 'none';
+  const M1 = MORPHS.filter(m => m.rate === 1), M2 = MORPHS.filter(m => m.rate === 2);
+  /* built with room to spare: at least two frames before the landing */
+  const early = m => m.handOver && m.built !== null && m.built <= m.morphMs - 33;
+  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball; 393x852, 440x956)', M1.length === 4 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
+  check('the hero is built under the morph (two frames or more before the landing) and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', M1.length === 4 && M1.every(early), 'off: ' + mOf(m => m.rate === 1 && !early(m)) + ' ' + JSON.stringify(M1.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
+  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', M1.length === 4 && M1.every(m => m.px && m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(M1.map(m => [m.at, m.kind, m.px])));
+  check('no long frame from the tap to 300 ms after the landing (each under 50 ms times speedFactor)', M1.length === 4 && M1.every(m => m.worst <= m.budget), JSON.stringify(M1.map(m => [m.at, m.kind, m.worst, m.budget])));
+  check('on a CPU throttled to half speed the hero is still built two frames or more before the landing and takes over in its first frame, no frame over 50 ms times speedFactor (8-Ball, 9-Ball; 393x852, 440x956)', M2.length === 4 && M2.every(m => early(m) && m.worst <= m.budget), 'off: ' + mOf(m => m.rate === 2 && !(early(m) && m.worst <= m.budget)) + ' ' + JSON.stringify(M2.map(m => [m.at, m.kind, m.built, m.morphMs, m.handOver, m.seen, m.worst, m.budget])));
   /* Reduce Motion: a cross-fade, no layer */
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await tap('#play8');

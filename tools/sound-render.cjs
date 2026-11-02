@@ -2,11 +2,11 @@
 /* sound-render: renders the game's table sounds (index.html section 2: the recorded takes in
    sounds/ through the page's own graph) to WAV files to listen to, through soundRender (an
    OfflineAudioContext with the live graph and settings): a soft, a medium and a hard ball hit, a
-   run of hits at mixed speeds, a cushion (hard and soft), a corner and a side pocket, snooker's
-   net, a jaw, a bumper post, the cue (hard and soft), three seconds of roll slowing to a stop, a
+   run of hits at mixed speeds, a cushion (hard and soft), a corner and a side pocket, a snooker
+   pocket, a jaw, a bumper post, the cue (hard and soft), three seconds of roll slowing to a stop, a
    whole 8-ball break (every contact of a real break off the sim, the roll bed following the balls'
    speed), and a break and run: the hard CPU's shots one after another until it misses or wins,
-   each one's contacts at their sim times, a second between shots. Snooker (issue 7): a lone click
+   each one's contacts at their sim times, a second between shots. Snooker (which sounds exactly as 8-ball): a lone click
    on the snooker table beside the pool one, the hard CPU's break-off, a firm shot into the pack and
    a long red into a corner, on the 12 ft table. For every scene with contacts it prints what it
    heard: the voices played of the hits the sim made, the most ball voices sounding at once, the
@@ -61,7 +61,7 @@ function wav(samples) {
     await one('cue-soft', [['cue', 1.5, 0.05]], 0.5);
     out['roll-3s'] = arr(await soundRender([], 3.2, Array.from({ length: 181 }, (_, i) => [i / 60, 4 * Math.max(0, 1 - i / 170) ** 1.5]), SR));
     setTable('bumper'); await one('bumper-post', [['rail', 2.5, 0.05, 'post']], 0.6);
-    setTable('snooker', 'full'); await one('pot-snooker-net', [['pocket', 1.5, 0.05, 0]], 1);
+    setTable('snooker', 'full'); await one('pot-snooker', [['pocket', 1.5, 0.05, 0]], 1);
     await one('snooker-hit', [['ball', 1.2, 0.05]], 0.4);
     setTable('7'); await one('pool-hit', [['ball', 1.2, 0.05]], 0.4);
     out.__stats = {};

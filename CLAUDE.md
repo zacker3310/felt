@@ -244,11 +244,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `navigator.audioSession.type = 'playback'` keeps iOS's silent switch from muting the table. A hit is
   `hit()`: a take picked by `sfxPick` (a hash of the impact, never the same take twice running), low-pass, gain, rate
   +-3%, loudness and brightness from the impact speed. Hits come from `tab.hits` (`[kind, v, extra]`: the pocket index,
-  or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket, snooker's net and bumper's cup are the cushion and
-  pocket takes played faster, brighter or cut short. Snooker plays the same takes as its own ball (issue 7, read from `TABLE`
-  at call time): `snkClack` by `SFX_SNOOKER` (rate 1.12, bright from a soft touch, cut at 32 ms, level by v / 4.5 on a steeper
-  curve so a red cluster's soft touches sit about 20 dB under a firm contact), `VOICE_SNOOKER` thins a cluster, the cue a hair
-  higher, a rounded jaw one knock; pool's mapping is untouched. Beds: the roll (the looped take under a low-pass, `rollAt`, from
+  or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket and bumper's cup are the cushion and
+  pocket takes played faster, brighter or cut short. Snooker sounds exactly as 8-ball (Zac, on device, after a
+  snooker-only mix was tried for issue 7: "snooker should sound just like 8 ball"): no table-specific mapping, its pockets
+  pool's corner and side; sound-check renders the same events on both tables and requires the same samples. Beds: the roll (the looped take under a low-pass, `rollAt`, from
   `soundFrame`'s own rAF, no allocation; `ROLL_LVL` 0, off: its loop pulsed audibly) and the room tone (`ROOM_LVL` 0, off: it read as hiss). The UI cues stay small synthesised notes. A limiter and a
   soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes (offline at each voice's own time, `sfxOffT`);
   `felt.sound` reports them, `soundRender(ev, secs, rolls, sr, { log, pre })` renders offline (`log`: `soundRender.log`, a

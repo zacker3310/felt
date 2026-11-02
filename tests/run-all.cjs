@@ -31,6 +31,11 @@ const TIMING = new Set(['audit-check', 'boot-check', 'hero-check', 'intro-check'
 /* lanes a suite takes, about the cores it keeps busy (CPU seconds over wall seconds, 2026-11-02): stress-check
    runs its parts side by side (worker threads, a browser each), ai-check and ai2-check their games in workers */
 const COST = { 'stress-check': 3, 'ai-check': 3, 'ai2-check': 2 };
+/* suites that run alone, every lane theirs: view3d-check draws WebGL on SwiftShader, whose own threads take the
+   cores, and its checks count frames of animations on the clock (the pull back, a pot's drop, a drag), which
+   no take-out of waiting can rescue (CI 4c8c068: 81/86 beside three lanes, 86/86 alone). Its weight puts it
+   first, while every lane is free */
+const SOLO = new Set(['view3d-check']);
 /* seconds each took in a serial run on the dev machine (2026-11-02, 4 cores, other jobs running): longest
    first, so the long ones do not start last; a new suite counts as a minute until it is listed */
 const EST = {
@@ -85,7 +90,7 @@ function run(name, env) {
   const env = { ...process.env, CHROMIUM: exe, FELT_URL: url };
   const results = new Array(SUITES.length), T0 = Date.now();
   /* from three lanes up a multi-lane suite always leaves the timing lane free */
-  const cost = s => Math.min(JOBS > 2 ? JOBS - 1 : JOBS, COST[s] || 1);
+  const cost = s => SOLO.has(s) ? JOBS : Math.min(JOBS > 2 ? JOBS - 1 : JOBS, COST[s] || 1);
   /* the suites that take several lanes first (while the lanes are free: started later they would wait for
      every lane to drain and end the run alone), then longest first */
   const work = s => (EST[s] || 60) * cost(s);
@@ -110,7 +115,7 @@ function run(name, env) {
       for (let q = 0; q < queue.length;) {
         const keep = JOBS > 2 && !timingOn && queue.some(j => TIMING.has(SUITES[j])) ? 1 : 0;
         const i = queue[q], s = SUITES[i], c = cost(s), timing = TIMING.has(s), now = Date.now();
-        const fits = timing ? !timingOn && free >= 1 : c <= free - keep && (c > 1 || now + (EST[s] || 60) * 1000 <= until);
+        const fits = timing ? !timingOn && free >= c : c <= free - keep && (c > 1 || now + (EST[s] || 60) * 1000 <= until);
         if (!fits) {
           if (!timing && c > 1 && until === Infinity) {
             /* when this one could start: the running suites' expected ends, lanes freed in order */

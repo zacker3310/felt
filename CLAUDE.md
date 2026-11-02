@@ -473,7 +473,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   beside them, and a run that fails may be measured again (best of three: a real cost fails every run). A Node-side
   budget (a search, a season) times `cpuMs()` (this thread's CPU), never the clock. A new suite with a frame or
   wall-time budget goes in run-all's `TIMING` set (one at a time); one that runs its own parts side by side gets a
-  `COST`. Never loosen a budget's number to get a loaded run through.
+  `COST`; one whose drawing itself takes the cores and counts animation frames on the clock (view3d-check: SwiftShader)
+  is `SOLO` (it runs first, alone). Never loosen a budget's number to get a loaded run through.
 - Writing a test that reads final positions after a firm shot: balls bounce around for seconds.
   Read velocities just after the event instead (see the stun/follow/draw check).
 

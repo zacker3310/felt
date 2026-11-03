@@ -227,13 +227,13 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.evaluate(() => backToMenu());
 
   /* ---- 6. Audio: the volumes are the graph's gains ---- */
-  const au = await p.evaluate(() => {
-    audioOn();
-    setSetting('vol', 40); setSetting('volFx', 0);
-    const a = felt.audio;
-    setSetting('vol', 100); setSetting('volFx', 100);
-    return { a, b: felt.audio };
-  });
+  /* each state read once the graph reports it (an AudioParam's value can trail its setter by a render quantum on a
+     slow runner: CI db5378c read fx 0 just after it was set back to 1); a gain that never changes still fails */
+  const audioAt = (m, f) => p.waitForFunction(([m, f]) => felt.audio && Math.abs(felt.audio.master - m) < 1e-3 && Math.abs(felt.audio.fx - f) < 1e-3, [m, f], { timeout: 1500 }).catch(() => {}).then(() => p.evaluate(() => felt.audio));
+  await p.evaluate(() => { audioOn(); setSetting('vol', 40); setSetting('volFx', 0); });
+  const auA = await audioAt(0.22, 0);
+  await p.evaluate(() => { setSetting('vol', 100); setSetting('volFx', 100); });
+  const au = { a: auA, b: await audioAt(0.55, 1) };
   check('Audio: the master volume scales the bus (40% of 0.55), table sounds have their own gain (0 is silent); both back to full', Math.abs(au.a.master - 0.22) < 1e-3 && au.a.fx === 0 && Math.abs(au.b.master - 0.55) < 1e-3 && au.b.fx === 1, JSON.stringify(au));
   await p.click('#prefsBtn'); await p.click('#prAud');
   await p.waitForTimeout(500);

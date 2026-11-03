@@ -25,8 +25,9 @@ const only = oi >= 0 ? args[oi + 1].split(',').map(s => s.trim()) : null;
 const SUITES = fs.readdirSync(__dirname).filter(f => f.endsWith('-check.cjs')).map(f => f.slice(0, -4)).sort()
   .filter(s => !only || only.includes(s));
 const JOBS = Math.max(1, +process.env.FELT_JOBS || (os.availableParallelism ? os.availableParallelism() : os.cpus().length));
-/* the suites with absolute frame or wall-time budgets: one at a time */
-const TIMING = new Set(['audit-check', 'boot-check', 'hero-check', 'intro-check', 'look-check', 'motion-check', 'render-check', 'view3d-check']);
+/* the suites with absolute frame or wall-time budgets, and the ones whose input checks read a gesture's pace on the
+   clock (aim-check's rests and flicks, play-check's wheel and taps: CI 8ca3f4b, a 24 min run, read them as slow) */
+const TIMING = new Set(['aim-check', 'audit-check', 'boot-check', 'hero-check', 'intro-check', 'look-check', 'motion-check', 'play-check', 'render-check', 'view3d-check']);
 /* lanes a suite takes, about the cores it keeps busy (CPU seconds over wall seconds, 2026-11-02): stress-check
    runs its parts side by side (worker threads, a browser each), ai-check and ai2-check their games in workers */
 const COST = { 'stress-check': 3, 'ai-check': 3, 'ai2-check': 2 };

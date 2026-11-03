@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `35/35 suites, N/N checks  ok` (about 15 min on 4 cores, 15 to 25 on CI: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites first, each alone; `FELT_JOBS=1` is the old serial run, about 30 min) |
+| test | `npm test` | `36/36 suites, N/N checks  ok` (about 15 min on 4 cores, 15 to 25 on CI: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites first, each alone; `FELT_JOBS=1` is the old serial run, about 30 min) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -347,7 +347,25 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   a sight (`railSights`, `SIGHT_PAD`), in its own gap. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
   dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,
   then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
-  In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected. The table: `fitTable`
+  In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected.
+  The potted balls (6b3, `potTick` after each frame's draw; Zac: "like a bar table with a window for the balls"): 8, 9
+  and 10-ball only (practice too; never a trick shot, drill, lesson, tutorial or replay, nor while the 2D camera is
+  zoomed), each ball down in a window of its own in the wood of the rails at the screen's left and right (upright the
+  long rails, one window to a gap between sights; on its side, the upright layout turned a quarter, the end rails,
+  which then stand left and right: four gaps each, two windows to a gap; `potPlan` packs as many to a gap as
+  `POT_PER_RAIL` (8) needs), filling from the screen's foot upward: 8-ball's solids up the left, stripes up the right,
+  the 8 up its potter's group's side (left when open); 9 and 10-ball in pot order up the left, then the right. A
+  window is a dark round recess (`POT_RECESS`), its edge cut dark all round (`--ink-edge`), holding `nextBallEl`'s
+  true little ball sized to the wood band (a ball under 3:1 on the recess gets a rim of light, `.rim`); only occupied
+  ones are drawn, each clear of every hole and jaws (`RAIL_PAD`), sight (`POT_SIGHT_PAD`), the rail row and the
+  controls. A pot rolls up into its window after its drop (`POT_SLIDE_MS`, screen clock; Reduce Motion or
+  `feltNoMotion`: just there); a ball back on the table leaves it and the ones above move down. A window fades
+  (`.hid`) where the cue (`potCue`, recorded by `drawCue` and the 3D cue), the loupe or in 3D a ball lies over it. In
+  3D the windows are always on the long rails (an end rail is seen edge on), each its spot on the rail top projected,
+  the largest circle its slot's projection holds (under 7 px, off the stage or on the row: none). Source: `game.balls`
+  (`tab`'s during a roll), the order kept in `pw.order`; never writes `game` or `tab`. VoiceOver: `#potRail` is
+  aria-hidden, `#potSay` (visually hidden, not live) reads "Potted: 1, 3, 9". `felt.potRail` reports it. Pinned by
+  `pottray-check`. The table: `fitTable`
   lets the rails (never the bed) run under a safe-area inset on the status-bar or island side (`tableExt`, `railFit`,
   `railStart`). On its side a phone (height under 600) shows the upright layout turned a quarter (Zac: "the same exact
   footprint no matter landscape or portrait"; `sideRot`, `data-rot`, `--rp-l`/`--rp-r`/`--rp-e`): the same table, each

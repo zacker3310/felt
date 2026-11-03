@@ -245,6 +245,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 #turnChip.many .pchip .of { display: none; }
 
+/* ---- the potted balls (6b3, potTick): a window per ball cut into the side rails' wood, a dark round recess with its
+   edge cut dark all round like every inlay (--ink-edge), the lamp's light caught on its lower lip, the ball sat in it
+   (the rail's true little ball, nextBallEl, --tb across in a --ts window); a ball too dark for the recess has a rim of
+   light (.rim). Placed by potTick (left/top its middle); .hid while the cue, the loupe or a ball lies over it ---- */
+#potRail { position: absolute; z-index: 1; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+#potRail[hidden], #potRail .tw[hidden] { display: none; }
+#potRail .tw { position: absolute; left: 0; top: 0; width: var(--ts, 14px); height: var(--ts, 14px); margin: calc(var(--ts, 14px) / -2) 0 0 calc(var(--ts, 14px) / -2);
+  display: grid; place-items: center; border-radius: 50%; overflow: hidden; transition: opacity .12s ease-out;
+  background: radial-gradient(circle at 50% 22%, rgb(4, 3, 2) 0 38%, rgb(16, 11, 8) 72%, rgb(30, 21, 15));
+  box-shadow: 0 0 0 1px var(--ink-edge, rgba(20, 8, 3, .85)), 0 .5px 1px .5px rgba(255, 232, 200, .2), inset 0 1px 2px 1px rgba(0, 0, 0, .9); }
+#potRail .tw.hid { opacity: 0; }
+#potRail .nb { position: relative; flex: none; width: var(--tb, 11px); height: var(--tb, 11px); margin: 0; border-radius: 50%; overflow: hidden;
+  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .45); }
+/* the ball's light: the lamp's highlight up and to the left, its far side in shade */
+#potRail .nb::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, .62) 0, rgba(255, 255, 255, .14) 16%, rgba(255, 255, 255, 0) 34%), radial-gradient(circle at 42% 38%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, .42) 100%); }
+#potRail .nb.rim { box-shadow: 0 0 0 1px #77716b, inset 0 0 0 .5px rgba(0, 0, 0, .45); }
+#potRail .nb .nn, #potRail .nb .cb { position: absolute; inset: 21%; display: grid; place-items: center; border-radius: 50%;
+  font: 800 calc(var(--tb, 11px) * .44)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-style: normal; letter-spacing: -.07em; font-variant-numeric: tabular-nums; text-shadow: none; }
+#potRail .nb .nn { background: var(--nb-iv, #f7f4ea); color: #141414; }
+#potRail .nb .nn.w { letter-spacing: -.1em; }
+
 /* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
 #gameNow { margin: 0 0 14px; }
 #gameNow[hidden] { display: none; }
@@ -1611,6 +1633,8 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <div id="snkBar" aria-hidden="true" hidden></div>
     <!-- the score keeper (6b2): a chip per player on the bottom rail, the player to shoot lit -->
     <div id="turnChip"><div class="pchip" id="pchip0" role="group"><span class="pn" aria-hidden="true"></span><span class="pn nx" aria-hidden="true"></span><span class="pn ps"></span><span class="pb" aria-hidden="true"></span></div><div class="pchip" id="pchip1" role="group"><span class="pn" aria-hidden="true"></span><span class="pn nx" aria-hidden="true"></span><span class="pn ps"></span><span class="pb" aria-hidden="true"></span></div><div class="pchip" id="pchip2" role="group" hidden><span class="pn" aria-hidden="true"></span><span class="pn nx" aria-hidden="true"></span><span class="pn ps"></span><span class="pb" aria-hidden="true"></span></div><div class="pchip" id="pchip3" role="group" hidden><span class="pn" aria-hidden="true"></span><span class="pn nx" aria-hidden="true"></span><span class="pn ps"></span><span class="pb" aria-hidden="true"></span></div></div><div id="railSay" class="sr" role="status" aria-live="polite" aria-atomic="true"></div>
+    <!-- the potted balls (8, 9 and 10-ball, 6b3): a window in the side rails' wood per ball, read by VoiceOver from #potSay -->
+    <div id="potRail" aria-hidden="true" hidden></div><div id="potSay" class="sr"></div>
     <!-- a choice the rules give a player: take the table or hand it back, re-rack, spot the 8 -->
     <!-- an AI exhibition (6f): pause and the speed, over the table's foot -->
     <div id="exBar" role="group" aria-label="Exhibition" hidden><span class="exLab" id="exLab">Exhibition</span><button id="exPause" aria-label="Pause the exhibition">Pause</button><button id="exS1" aria-pressed="true">1x</button><button id="exS2" aria-pressed="false">2x</button><button id="exS4" aria-pressed="false">4x</button></div>
@@ -10690,6 +10714,7 @@ function cueWrap(pat) {
 }
 function drawCue(c, ang, gap, alpha = 1) {
   const dx = Math.cos(ang), dy = Math.sin(ang), tx = c.x - dx * gap, ty = c.y - dy * gap, bx = tx - dx * CUE_LEN, by = ty - dy * CUE_LEN;
+  potCue = [tx, ty, bx, by];   /* the rails' windows give way where it lies over them (6b3) */
   const nx = -dy, ny = dx, sd = tdir(-LIGHT[0], -LIGHT[1]);
   ctx.globalAlpha = alpha;
   tableXform(ctx);
@@ -11957,6 +11982,7 @@ function frameBody(now) {
   railNextTick();
   placeRail();
   draw(now);
+  potTick(now);   /* after the draw: the cue and the loupe as this frame has them (6b3) */
 }
 /* the CPU's turn begins: its search starts, one slice a frame (think) */
 function cpuBegin() {
@@ -16507,6 +16533,7 @@ function v3Scene(C, S, full) {
     gl.bindBuffer(gl.ARRAY_BUFFER, cue3.b); attr(pr, 'p', 3, 10, 0); attr(pr, 'n', 3, 10, 3); attr(pr, 'c', 4, 10, 6);
     gl.drawArrays(gl.TRIANGLES, 0, cue3.n);
     off(pr);
+    potCue = [tip, ax];   /* the rails' windows give way where it lies over them (6b3) */
     lastCue = { x: c.x, y: c.y, ang: aimAngle };
   } else if (state !== 'rolling') lastCue = null;
   v3Lamp(C, G, attr, off, lamp);
@@ -17282,7 +17309,7 @@ function railSpans(x0, x1, top, bot, holes) {
 }
 /* each pocket's hole and jaws, and each sight, on screen [x0, x1, y0, y1, pad]: top-down through the fitted view,
    in 3D as projected (the sights at the rail's top) */
-function railHoles(at, atRail) {
+function railHoles(at, atRail, sightPad = SIGHT_PAD) {
   const out = [], box = (pts, pad, f) => {
     const s = pts.map(q => f(q[0], q[1])).filter(Boolean);
     if (s.length < pts.length) return;
@@ -17294,7 +17321,7 @@ function railHoles(at, atRail) {
     if (m) for (const j of m) pts.push(j.p, j.e);
     box(pts, RAIL_PAD, at);
   });
-  for (const [x, y, hx, hy] of railSights()) box([[x - hx, y - hy], [x + hx, y - hy], [x + hx, y + hy], [x - hx, y + hy]], SIGHT_PAD, atRail);
+  for (const [x, y, hx, hy] of railSights()) box([[x - hx, y - hy], [x + hx, y - hy], [x + hx, y + hy], [x - hx, y + hy]], sightPad, atRail);
   return out;
 }
 function placeRail(force) {
@@ -17469,6 +17496,207 @@ function placeRail(force) {
   /* the widest room left on the row (railbar-check: an item given way had no room) */
   out.free = Math.max(0, ...segs.flatMap(g => free(g).map(([a, b]) => b - a)));
   felt.railBar = out;
+}
+/* ---- 6b3. the potted balls, in windows in the side rails (8, 9 and 10-ball; Zac: "like a bar table with a window
+   for the balls ... just go up the left rail and the right rail"). Each ball down sits in a window of its own cut into
+   the wood of the rails at the screen's left and right (upright the two long rails; on its side, the upright layout
+   turned a quarter, the end rails, which then stand at the screen's left and right: four gaps each, two windows to a
+   gap), filling from the screen's foot upward: 8-ball's solids up the left rail and stripes up the right, the 8 (the
+   game's end) up its potter's group's side (the left on an open table); 9 and 10-ball in pot order up the left rail,
+   then up the right. A window is a dark round recess, its edge cut dark all round like every inlay (--ink-edge), holding
+   the rail's true little ball (nextBallEl: the ball set's colour, a stripe's caps, the number on its circle, the mark
+   with marks on; a ball too dark for the recess gets a rim of light, 3:1 or more), sized to the wood band like the rail
+   row's pills (--ph). Only a window with a ball is drawn. Each lies in a gap of its own between a pocket's hole and
+   jaws (RAIL_PAD) and a sight (railSights, POT_SIGHT_PAD), as many to a gap as the rail needs for POT_PER_RAIL (one
+   upright), never under the rail row (placeRail) or a control. A ball potted rolls into its window when its drop
+   ends (POT_SLIDE_MS on the screen's clock, up the rail, its number turning to the front); Reduce Motion: it is just
+   there. A ball that comes back (spotted, undone, a new rack) leaves its window. Every mode that plays those games,
+   practice too; never a trick shot, a drill, the lesson or a tutorial, never in a replay, nor while the 2D camera is
+   zoomed (the rails are off its window). In 3D (4o) the windows are on the long rails whichever way up the phone is
+   (behind the cue ball they stand at the screen's left and right; an end rail is seen edge on), each its spot on the
+   rail's top as the camera projects it, the largest circle its slot's projection holds (too small, behind the camera, off the stage or on the
+   row: none). A window gives way (fades) where the cue, the loupe or, in 3D, a ball lies over it. The source is the
+   game's balls (the roll's while one runs); nothing here writes game or tab. VoiceOver reads #potSay ("Potted: 1, 3,
+   9", pot order; not live); the windows are aria-hidden. felt.potRail reports it. Pinned by pottray-check. ---- */
+const POT_KINDS = ['8', '9', '10'], POT_SLIDE_MS = 250, POT_LEAVE_MS = 160, POT_MOVE_MS = 200, POT_GAP = 3, POT_SIGHT_PAD = 3, POT_PER_RAIL = 8;
+/* the recess's floor: the colour a ball must stand 3:1 from (pottray-check measures it) */
+const POT_RECESS = [16, 11, 8];
+let potCue = null;
+const pw = { order: [], by: {}, at: {}, els: new Map(), plan: null, planKey: '', tracking: false, words: null, sig: '' };
+/* the windows are shown at all (the game and the mode), and right now (no replay, no zoom) */
+const potGame = () => state !== 'menu' && POT_KINDS.includes(game.kind) && !tutOn() && !(solo && solo.kind === 'lesson') && (!game.mode || game.mode === 'practice');
+/* a ball's colour in the ball set, as nextBallEl paints it */
+const potRGB = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n); };
+const potLum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const potRatio = (a, b) => { const x = potLum(a), y = potLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+/* the slots, top-down through the fitted view: per side (0 the screen's left, 1 its right) bottom to top, each
+   { x, y } (CSS px), its spot on the table [tx, ty] and the rail's up as a table direction; s the window, b the ball */
+function potPlan() {
+  /* 3D: always the long rails (laid out as upright, off the screen's own bounds): they stand at the screen's left and
+     right behind the cue ball, where an end rail is seen edge on */
+  const td = !V3.live, B = td ? viewBase : { k: viewBase.k, portrait: true, ox: 0, oy: 0 };
+  const key = [td, B.k, B.ox, B.oy, B.portrait, TL, TW, RAIL, TABLE, POCKETS_STYLE, POCKETS.length, innerWidth, innerHeight].join();
+  if (key === pw.planKey && pw.plan) return pw.plan;
+  pw.planKey = key;
+  const co = cushionDepth(), wk = (RAIL - co) * B.k, mid = (co + RAIL) / 2, at = (x, y) => screenIn(B, x, y);
+  const a = at(0, 0), b = at(TL, TW), left = Math.min(a[0], b[0]), right = Math.max(a[0], b[0]), top = Math.min(a[1], b[1]), bottom = Math.max(a[1], b[1]);
+  const s = Math.max(9, Math.floor(wk - 2)), ball = s - 3, holes = railHoles(at, at, POT_SIGHT_PAD);
+  const toT = (sx, sy) => B.portrait ? [TL - (sy - B.oy) / B.k, (sx - B.ox) / B.k] : [(sx - B.ox) / B.k, (sy - B.oy) / B.k];
+  const up = B.portrait ? [1, 0] : [0, -1];
+  const sides = [left - mid * B.k, right + mid * B.k].map(cx => {
+    /* the gaps along the band, bottom first */
+    let gaps = [[top, bottom]];
+    for (const [x0, x1, y0, y1, pad] of holes) {
+      if (x1 < cx - wk / 2 || x0 > cx + wk / 2) continue;
+      gaps = gaps.flatMap(([g0, g1]) => [[g0, Math.min(g1, y0 - pad)], [Math.max(g0, y1 + pad), g1]]).filter(([g0, g1]) => g1 - g0 >= s);
+    }
+    gaps.sort((p, q) => q[0] - p[0]);
+    const cap = gaps.map(([g0, g1]) => Math.floor((g1 - g0 + POT_GAP) / (s + POT_GAP)));
+    let m = 1;
+    while (m < Math.max(1, ...cap) && cap.reduce((n, c) => n + Math.min(m, c), 0) < POT_PER_RAIL) m++;
+    const slots = [];
+    gaps.forEach(([g0, g1], i) => {
+      const k = Math.min(m, cap[i]), run = k * s + (k - 1) * POT_GAP;
+      /* room: the half length along the rail a window may take in 3D (its gap's, or its share of a packed gap) */
+      const room = (k > 1 ? (s + POT_GAP) / 2 : (g1 - g0) / 2) / B.k;
+      for (let j = 0; j < k; j++) {
+        const y = (g0 + g1) / 2 + run / 2 - s / 2 - j * (s + POT_GAP);
+        if (!td || (cx - s / 2 >= 0 && cx + s / 2 <= innerWidth && y - s / 2 >= 0 && y + s / 2 <= innerHeight)) slots.push({ x: cx, y, t: toT(cx, y), room });
+      }
+    });
+    return slots;
+  });
+  pw.plan = { sides, s, ball, up, k: B.k, half: Math.max(0.3, wk / 2 - 1) / B.k };
+  return pw.plan;
+}
+/* which window each ball down goes in: [side, index] by number */
+function potSeats() {
+  const P = potPlan(), out = new Map(), L = P.sides[0].length, R = P.sides[1].length;
+  if (game.kind === '8') {
+    const n8 = [0, 0];
+    for (const n of pw.order) {
+      let side = n > 8 ? 1 : 0;
+      if (n === 8) { const gr = game.groups && game.groups[pw.by[8]]; side = gr === 'stripes' ? 1 : 0; }
+      if (n8[side] < (side ? R : L)) out.set(n, [side, n8[side]++]);
+    }
+  } else pw.order.forEach((n, i) => { if (i < L) out.set(n, [0, i]); else if (i - L < R) out.set(n, [1, i - L]); });
+  return out;
+}
+/* the window's place on screen [x, y, s] (null: none now): top-down the slot, in 3D its spot on the rail top projected */
+function potPlace(P, slot) {
+  if (!V3.live) return [slot.x, slot.y, P.s];
+  /* the slot on the rail's top: its share of the gap along the rail, the wood band across */
+  const z = cushionTop(), ha = slot.room, hc = P.half, [ux, uy] = P.up, vx = -uy, vy = ux, [tx, ty] = slot.t;
+  const q = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => v3Proj(tx + ux * i * ha + vx * j * hc, ty + uy * i * ha + vy * j * hc, z));
+  const c = v3Proj(tx, ty, z);
+  if (!c || q.some(p => !p)) return null;
+  const area = Math.abs(q.reduce((A, p, i) => { const r = q[(i + 1) % 4]; return A + p[0] * r[1] - r[0] * p[1]; }, 0)) / 2;
+  const e1 = Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]), e2 = Math.hypot(q[3][0] - q[0][0], q[3][1] - q[0][1]);
+  const d = Math.min(area / Math.max(e1, 1e-6), area / Math.max(e2, 1e-6), P.s * 1.6) - 1;
+  return d >= 7 ? [c[0], c[1], Math.floor(d)] : null;
+}
+/* the cue over a window (this frame's, 2D in table metres, 3D projected), the loupe, and in 3D a ball on the table */
+function potCovered(x, y, r) {
+  if (loupe && loupeA > 0.02 && Math.hypot(x - loupe.x, y - loupe.y) < loupe.r + r + 2) return true;
+  const near = (p, q, w) => { const dx = q[0] - p[0], dy = q[1] - p[1], u = clamp(((x - p[0]) * dx + (y - p[1]) * dy) / (dx * dx + dy * dy || 1), 0, 1); return Math.hypot(x - p[0] - dx * u, y - p[1] - dy * u) < w; };
+  if (V3.live) {
+    if (potCue) {
+      const [tip, ax] = potCue, pts = [];
+      for (let i = 0; i <= 8; i++) { const s = CUE_LEN * i / 8, p = v3Proj(tip[0] + ax[0] * s, tip[1] + ax[1] * s, -(tip[2] + ax[2] * s)); if (p) pts.push(p); }
+      for (let i = 1; i < pts.length; i++) if (near(pts[i - 1], pts[i], r + 4 + 0.03 * V3.cam.F / Math.max(0.2, pts[i][2]))) return true;
+    }
+    for (const b of (tab && state === 'rolling' ? tab : game).balls) {
+      if (!b.on) continue;
+      const c = v3Proj(b.x, b.y, BALL_R + (b.z || 0)), e = c && v3Proj(b.x + BALL_R, b.y, BALL_R + (b.z || 0));
+      if (c && Math.hypot(x - c[0], y - c[1]) < r + 2 + Math.max(Math.hypot(e[0] - c[0], e[1] - c[1]), BALL_R * V3.cam.F / c[2])) return true;
+    }
+    return false;
+  }
+  if (!potCue) return false;
+  const [tx, ty, bx, by] = potCue, a = screenIn(view, tx, ty), b = screenIn(view, bx, by);
+  return near(a, b, r + 3 + (cueR(CUE_LEN) + 0.012) * view.k);
+}
+/* a ball's window: the recess and the ball in it (rebuilt when the ball set or the marks change) */
+function potEl(n) {
+  const el = document.createElement('span'), b = nextBallEl(n), c = potRGB(n);
+  el.className = 'tw';
+  el.dataset.n = String(n);
+  /* a ball too dark to stand 3:1 from the recess (a stripe has its ivory caps) gets a rim of light */
+  if (n < 9 && potRatio(c, POT_RECESS) < 3) b.classList.add('rim');
+  el.appendChild(b);
+  el.dataset.key = look().balls + (settings.marks ? 'm' : '');
+  return el;
+}
+function potTick(now) {
+  const show = potGame();
+  if (!show) {
+    if (pw.tracking || !potRail.hidden) { pw.tracking = false; pw.order = []; pw.by = {}; pw.at = {}; pw.els.clear(); potRail.replaceChildren(); potRail.hidden = true; }
+    if (potSay.textContent) potSay.textContent = '';
+    felt.potRail = { on: false, left: [], right: [], items: [], words: '' };
+    potCue = null;
+    return;
+  }
+  /* what is down: the roll's balls while one runs, else the game's (a replay never touches either) */
+  const live = state === 'rolling' && !!tab, src = (live ? tab : game).balls, off = [];
+  for (const b of src) if (!b.on && b.n >= 1 && b.n <= 15) off.push(b.n);
+  const fresh = !pw.tracking, motion = motionOn() && !reducedMotion();
+  pw.tracking = true;
+  pw.order = pw.order.filter(n => off.includes(n));
+  for (const n of off.filter(n => !pw.order.includes(n)).sort((a, b) => a - b)) {
+    pw.order.push(n);
+    const p = [0, 1].find(q => stats.potted[q] && stats.potted[q].includes(n));
+    pw.by[n] = live || p === undefined ? game.turn : p;
+    pw.at[n] = { t: now, wait: live ? potMs() : 0, slide: motion && !fresh };
+  }
+  const words = pw.order.length ? 'Potted: ' + pw.order.join(', ') : '';
+  if (potSay.textContent !== words) potSay.textContent = words;
+  const vis = !rp && (V3.live || !(cam.z > 1.02));
+  if (potRail.hidden === vis) potRail.hidden = !vis;
+  const P = potPlan(), seats = potSeats(), items = [], st = railStage || stage.getBoundingClientRect(), sb = st.top + st.height;
+  /* balls back on the table leave their windows */
+  for (const [n, el] of pw.els) if (!seats.has(n) || !pw.order.includes(n)) {
+    pw.els.delete(n);
+    if (motion && vis) { el.classList.add('out'); const a = el.animate([{ opacity: el.classList.contains('hid') ? 0 : 1 }, { opacity: 0 }], { duration: POT_LEAVE_MS, easing: 'ease-in' }); a.onfinish = () => el.remove(); a.oncancel = () => el.remove(); }
+    else el.remove();
+  }
+  for (const [n, [side, i]] of seats) {
+    const A = pw.at[n], slot = P.sides[side][i];
+    if (!slot || (A && now - A.t < A.wait)) continue;   /* still dropping into its pocket */
+    let el = pw.els.get(n);
+    const key = look().balls + (settings.marks ? 'm' : '');
+    if (el && el.dataset.key !== key) { el.remove(); el = null; pw.els.delete(n); }
+    const fit = vis ? potPlace(P, slot) : null;
+    const isNew = !el;
+    if (!el) { el = potEl(n); pw.els.set(n, el); potRail.appendChild(el); }
+    if (!fit) { if (!el.hidden) el.hidden = true; items.push({ n, side, i, shown: false }); continue; }
+    if (el.hidden) el.hidden = false;
+    const [x, y, s] = fit, ball = Math.max(5, Math.round(s * P.ball / P.s)), r = s / 2;
+    /* 3D: never on the row at the stage's foot, never off the stage */
+    const cut = V3.live && (y + r > Math.min(railTop, sb) - 2 || x - r < st.left || x + r > st.left + st.width || y - r < st.top);
+    const lx = Math.round((x - st.left) * 2) / 2, ly = Math.round((y - st.top) * 2) / 2, was = el._p;
+    if (!was || was[0] !== lx || was[1] !== ly || was[2] !== s) {
+      el.style.left = lx + 'px'; el.style.top = ly + 'px';
+      if (!was || was[2] !== s) { el.style.setProperty('--ts', s + 'px'); el.style.setProperty('--tb', ball + 'px'); }
+      /* a ball moved down a window (one below it came back): it rolls there (top-down) */
+      if (was && was[3] !== i && motion && !V3.live) el.animate([{ transform: `translate(${was[0] - lx}px, ${was[1] - ly}px)` }, { transform: 'none' }], { duration: POT_MOVE_MS, easing: 'ease-out' });
+      el._p = [lx, ly, s, i];
+    }
+    const hid = cut || potCovered(x, y, r);
+    if (el.classList.contains('hid') !== hid) el.classList.toggle('hid', hid);
+    /* the roll in: up the rail from the window below, its number coming round to the front */
+    if (isNew && A && A.slide) {
+      A.slide = false;
+      const u = V3.live ? (() => { const a = v3Proj(slot.t[0], slot.t[1], cushionTop()), b = v3Proj(slot.t[0] + P.up[0] * 0.05, slot.t[1] + P.up[1] * 0.05, cushionTop()); if (!a || !b) return [0, -1]; const l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; })() : [0, -1];
+      const d = s + POT_GAP, nb = el.firstChild, num = nb.firstChild;
+      nb.animate([{ transform: `translate(${-u[0] * d}px, ${-u[1] * d}px)` }, { transform: 'none' }], { duration: POT_SLIDE_MS, easing: 'cubic-bezier(.25, .8, .35, 1)' });
+      num.animate([{ transform: `translate(${-u[0] * ball * 0.32}px, ${-u[1] * ball * 0.32}px) scale(${Math.abs(u[0]) > 0.5 ? 0.55 : 1}, ${Math.abs(u[0]) > 0.5 ? 1 : 0.55})` }, { transform: 'none' }], { duration: POT_SLIDE_MS, easing: 'cubic-bezier(.25, .8, .35, 1)' });
+      el.animate([{ opacity: 0 }, { opacity: 1, offset: 0.35 }, { opacity: 1 }], { duration: POT_SLIDE_MS, easing: 'linear' });
+    }
+    items.push({ n, side, i, shown: !hid, x, y, s, ball });
+  }
+  potCue = null;
+  felt.potRail = { on: vis, left: items.filter(e => e.side === 0).sort((a, b) => a.i - b.i).map(e => e.n), right: items.filter(e => e.side === 1).sort((a, b) => a.i - b.i).map(e => e.n),
+    items, words, slots: P.sides.map(q => q.length), s: P.s, ball: P.ball, order: pw.order.slice() };
 }
 const spinWords = s => {
   const parts = [];

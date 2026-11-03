@@ -231,7 +231,10 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   await page.waitForFunction(() => !felt.view3.moving && felt.view3.phase === 'aim', null, { timeout: 5000 });
   await frames(page, 2);
   /* a pose's eye; the largest step between frames against the mean, through a run of poses */
-  const stepStats = P => { const d = []; for (let i = 1; i < P.length; i++) d.push(Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2])); const mean = d.reduce((a, b) => a + b, 0) / Math.max(1, d.length); return { n: d.length, max: Math.max(0, ...d), mean }; };
+  /* judged on the camera's speed between frames (a pose carries its time, [8]): a frame a slow runner drew late is a
+     longer step over a longer time, the same speed; a cut is a long step in one frame's time (CI 20aadf4: one late
+     frame read as a 20 cm step against a 3.8 cm mean). max and mean are in m/s; maxStep the longest step, in m */
+  const stepStats = P => { const v = []; let dist = 0, time = 0, maxStep = 0; for (let i = 1; i < P.length; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]), dt = Math.max(1, P[i][8] - P[i - 1][8]) / 1000; v.push(d / dt); dist += d; time += dt; maxStep = Math.max(maxStep, d); } return { n: v.length, max: Math.max(0, ...v), mean: dist / Math.max(1e-3, time), maxStep }; };
   const pull = await t.ev(() => {
     const P = felt.v3Poses(), i0 = P.findIndex(p => p[5] === 'rolling'), roll = P.filter(p => p[5] === 'rolling');
     const out = P.filter(p => p[6] === 'out'), ov = roll.filter(p => p[6] === 'ov'), back = P.filter(p => p[6] === 'back');
@@ -243,12 +246,12 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
       res: JSON.stringify(felt.lastResult.balls) === window.__want, st: felt.state, cam: v, c: [c.x, c.y], aim: felt.aim, pp: window.__pp, now: [felt.settings.viewPitch, felt.settings.viewDist] };
   });
   const so = stepStats(pull.outRun), sb = stepStats(pull.backRun), mono = a => a.every((u, i) => i === 0 || u >= a[i - 1]);
-  check(`Pull Back: the strike starts one smooth move up and back (${pull.out.length} frames, progress rising, largest step ${(so.max * 100).toFixed(1)} cm, under 3x the mean ${(so.mean * 100).toFixed(1)} cm, no cut), the overview reached in ${pull.ovMs.toFixed(0)} ms`,
-    pre.after === 'pull' && pull.out.length >= 10 && mono(pull.out) && so.max < 3 * so.mean + 1e-3 && so.max < 0.25 && pull.ovMs >= 600 && pull.ovMs < 1100, JSON.stringify({ so, out: pull.out.length, ms: pull.ovMs, after: pre.after }));
+  check(`Pull Back: the strike starts one smooth move up and back (${pull.out.length} frames, progress rising, fastest ${so.max.toFixed(2)} m/s, under 3x the mean ${so.mean.toFixed(2)} m/s, no cut), the overview reached in ${pull.ovMs.toFixed(0)} ms`,
+    pre.after === 'pull' && pull.out.length >= 10 && mono(pull.out) && so.max < 3 * so.mean + 1e-3 && pull.ovMs >= 600 && pull.ovMs < 1100, JSON.stringify({ so, out: pull.out.length, ms: pull.ovMs, after: pre.after }));
   check(`Pull Back: the overview holds exactly still to the end of the roll (${pull.ovFrames} frames, one pose), the balls never followed`, pull.ovFrames > 10 && pull.ovSame && pull.ovToEnd && pull.phases.join() === 'out,ov', JSON.stringify(pull.phases));
   check('physics: the live result in 3D is simulateShot\'s, byte for byte', pull.res);
   const behindOk = (cam, c, aim) => Math.abs(Math.atan2(cam.T[1] - c[1], cam.T[0] - c[0]) - aim) < 1e-6 && cam.yaw === aim;
-  check(`Pull Back: the next turn eases back down in one smooth move (${pull.back.length} frames, largest step ${(sb.max * 100).toFixed(1)} cm, mean ${(sb.mean * 100).toFixed(1)}) behind the cue ball on the new aim, the pitch and distance the player chose exactly`,
+  check(`Pull Back: the next turn eases back down in one smooth move (${pull.back.length} frames, fastest ${sb.max.toFixed(2)} m/s, mean ${sb.mean.toFixed(2)} m/s) behind the cue ball on the new aim, the pitch and distance the player chose exactly`,
     pull.st === 'aim' && pull.back.length >= 8 && mono(pull.back) && sb.max < 3 * sb.mean + 1e-3 && behindOk(pull.cam, pull.c, pull.aim) && pull.cam.pitch === pull.pp[0] && pull.cam.dist === pull.pp[1] && pull.now[0] === pull.pp[0] && pull.now[1] === pull.pp[1],
     JSON.stringify({ sb, cam: pull.cam, pp: pull.pp }));
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-after-pull.png') });

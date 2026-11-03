@@ -302,6 +302,9 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
           }, sel);
           const xy = await centre(sel);
           await qtap(xy[0], xy[1]);
+          /* a pick closes the menu a task later (callBar's click: setTimeout 0): read once it has, not before it on a busy
+             runner; a menu that never closes still fails */
+          await q.waitForFunction(() => !callBar.classList.contains('open'), null, { timeout: 2000 }).catch(() => {});
           const a = await q.evaluate(() => ({ open: callBar.classList.contains('open'), call: humanCall(), lab: powerLab.textContent, st: felt.state, shots: felt.game.shots }));
           const c = a.call || {};
           const ok = sel === '#safetyBtn' ? c.safety === true && a.lab === 'Safety' : sel === '#pushBtn' ? c.push === true && a.lab === 'Push Out'

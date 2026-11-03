@@ -17608,7 +17608,8 @@ function potCovered(x, y, r) {
     for (const b of (tab && state === 'rolling' ? tab : game).balls) {
       if (!b.on) continue;
       const c = v3Proj(b.x, b.y, BALL_R + (b.z || 0)), e = c && v3Proj(b.x + BALL_R, b.y, BALL_R + (b.z || 0));
-      if (c && Math.hypot(x - c[0], y - c[1]) < r + 2 + Math.max(Math.hypot(e[0] - c[0], e[1] - c[1]), BALL_R * V3.cam.F / c[2])) return true;
+      /* the centre can project while the edge does not (a ball right by a low camera): its size from the depth alone */
+      if (c && Math.hypot(x - c[0], y - c[1]) < r + 2 + Math.max(e ? Math.hypot(e[0] - c[0], e[1] - c[1]) : 0, BALL_R * V3.cam.F / c[2])) return true;
     }
     return false;
   }

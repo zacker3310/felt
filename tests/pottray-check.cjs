@@ -151,7 +151,26 @@ async function view3dChecks() {
     }
     check(`${size}: the windows on the side rails' tops as the camera projects them, off the holes, jaws and sights, apart, off the row, inside the stage (${out.map(o => `${o.kind}-ball ${o.wins} of ${o.st.all} shown`).join(', ')})`,
       out.every(o => o.live && o.fails.length === 0 && o.wins >= least), JSON.stringify(out));
-    check(`${size}: no console errors`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
+    /* the lowest, closest camera swung all round with balls by the cue ball: a ball whose centre projects while its edge
+       does not (beside the camera) must not throw (the playtest's potCovered TypeError, every frame, on a phone on its side) */
+    const sweep = await page.evaluate(async () => {
+      setSetting('viewPitch', 8); setSetting('viewDist', 0.45);
+      const c = felt.game.balls[0], ring = felt.game.balls.filter(b => b.n > 0).slice(0, 8);
+      ring.forEach((b, i) => { b.on = true; b.x = clamp(c.x + Math.cos(i) * 0.08 * (1 + i % 3), 0.05, TL - 0.05); b.y = clamp(c.y + Math.sin(i) * 0.08 * (1 + i % 3), 0.05, TW - 0.05); });
+      let n = 0;
+      for (let a = 0; a < Math.PI * 2; a += 0.05) { aimAngle = a; await new Promise(r => requestAnimationFrame(r)); n++; }
+      /* and pinned: a ball put where its centre projects but its edge falls behind the camera's near plane */
+      aimAngle = Math.PI; for (let k = 0; k < 4; k++) await new Promise(r => requestAnimationFrame(r));   /* looking back down the table: the edge's +x is nearer the camera */
+      let found = null, threw = null;
+      for (let i = -60; i <= 60 && !found; i++) for (let j = -60; j <= 60 && !found; j++) {
+        const x = V3.cam.Er[0] + i * 0.004, y = V3.cam.Er[1] + j * 0.004;
+        if (x < 0 || y < 0 || x > TL || y > TW) continue;
+        if (v3Proj(x, y, BALL_R) && !v3Proj(x + BALL_R, y, BALL_R)) found = [x, y];
+      }
+      if (found) { ring[0].x = found[0]; ring[0].y = found[1]; try { potCovered(100, 100, 10); } catch (e) { threw = String(e); } }
+      return { n, live: felt.view3.live, found, threw };
+    });
+    check(`${size}: the lowest, closest camera swung all round with balls beside the cue ball: no console errors (${sweep.n} frames), and potCovered over a ball on the camera\'s near plane does not throw`, sweep.live && !!sweep.found && !sweep.threw && t.errors.length === 0, JSON.stringify({ found: sweep.found, threw: sweep.threw, errors: t.errors.slice(0, 3) }));
     await t.browser.close();
   }
 }

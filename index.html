@@ -671,7 +671,8 @@ html.introFade #menu .newgame > :not(.brand), html.introFade #menu .brand .foot 
   .newgame #playLab { margin-top: 12px; }
   #playRow { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; }
   /* the ninth game a slim strip under the eight, its name and line on one row, so all nine stay on
-     the first screen (956x440 with the iOS insets) */
+     the first screen (852x393 to 956x440 with the iOS insets; homeCards() makes the cards a little
+     wider in shape where the screen is short) */
   #playRow > .wide { min-height: 48px; height: 48px; align-items: center; }
   #playRow > .wide .tt { display: flex; align-items: baseline; gap: 10px; padding-bottom: 0; }
   #playRow > .wide small { margin-top: 0; }
@@ -14500,9 +14501,34 @@ function quitToHome() {
    setTable or setPockets sees only the game's own calls. A key per canvas skips repaints. ---- */
 const GEO = { setTable, setPockets };
 const artTilt = n => rotate(rotate(IDENT, [0, 0, 1], (n * 2.39) % 6.28), [1, 0.2, 0], 0.32);
+/* the nine games on the first screen at any size (a phone on its side, iOS insets in: 852x393 put the
+   ninth's strip 13 px under the fold): when the cards at --card-ar would run past the screen's foot
+   (above the home indicator), every card, games and modes, takes one wider shape, just enough to fit
+   (never under its real minimum, --tile-min: a screen too short for that scrolls). The default text
+   size only; Large and Larger text may scroll (QA F2). Measured on the layout (offsets, so the
+   opening's rise, a translate, never skews it). */
+function homeCards() {
+  const ng = playRow.parentElement;
+  ng.style.removeProperty('--card-ar');
+  if (state !== 'menu' || paused || !menu.classList.contains('show') || settings.text !== 100) return;
+  const tile = playRow.querySelector('.tile:not(.wide)'), last = playRow.lastElementChild;
+  if (!tile || getComputedStyle(tile).aspectRatio === 'auto') return;
+  const [, H] = appSize(), foot = H - insetBottom();
+  const brand = ng.querySelector('.brand'), top0 = brand.getBoundingClientRect().top + menu.scrollTop - brand.offsetTop;
+  const pr = playRow.getBoundingClientRect(), lr = last.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+  const bottom = top0 + playRow.offsetTop + lr.bottom - pr.top;
+  if (bottom <= foot) return;
+  /* the rows that grow with the cards: the eight's, and the ninth's when it is a row as tall (upright) */
+  const cols = getComputedStyle(playRow).gridTemplateColumns.split(' ').length;
+  const rows = Math.ceil((playRow.children.length - 1) / cols) + (Math.abs(lr.height - tr.height) < 1 ? 1 : 0);
+  /* half a pixel spare: the grid rounds each row to the device's pixels */
+  const h = Math.max(parseFloat(getComputedStyle(ng).getPropertyValue('--tile-min')) || 62, tr.height - (bottom - foot + 0.5) / rows);
+  ng.style.setProperty('--card-ar', String(Math.ceil(tr.width / h * 1000) / 1000));
+}
 function paintArt() {
   if (setupSheet.classList.contains('show') && hero.data) heroShow(setupKind);
   if (state !== 'menu' || paused) return;
+  homeCards();
   const words = b => b.querySelector('.tt').offsetHeight;
   const list = [...playRow.querySelectorAll('.tile')].map(b => [b.querySelector('.art'), b.dataset.kind, 'card', words(b)]);
   for (const [cv, kind, mode, low] of list) paintRack(cv, kind, mode, low);

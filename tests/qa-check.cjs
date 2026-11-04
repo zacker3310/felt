@@ -275,6 +275,28 @@ const homeFit = page => page.evaluate(() => {
   await touchAt(H2.page, '#playRot');
   check('home 440x956: a real tap on Rotation opens its setup', await H2.page.evaluate(() => setupSheet.classList.contains('show') && setupSheet.dataset.kind === 'rotation'));
   await H2.browser.close();
+  /* on its side with the iOS insets (the island's side, the home indicator): an iPhone 17 Pro (852x393; the
+     ninth's strip was 13 px under the fold), a Pro Max (932x430, 956x440), a 390-wide phone (844x390). All
+     nine on the first screen above the home indicator; when the cards give room they keep one shape
+     together (the eight games and the four modes), never under --tile-min; insets applied after boot, as
+     iOS reports them late */
+  for (const [w, h, ins] of [[852, 393, [0, 59, 21, 59]], [932, 430, [0, 59, 21, 59]], [956, 440, [0, 62, 21, 62]], [844, 390, [0, 47, 21, 47]]]) {
+    const L = await phone(w, h);
+    const f = await L.page.evaluate(async ins => {
+      const st = document.createElement('style');
+      st.textContent = `html:root { --sat: ${ins[0]}px; --sar: ${ins[1]}px; --sab: ${ins[2]}px; --sal: ${ins[3]}px; }`;
+      document.head.appendChild(st);
+      relayout();
+      await new Promise(r => setTimeout(r, 300));
+      const R = e => e.getBoundingClientRect(), g = [...playRow.children].map(R), foot = innerHeight - ins[2];
+      const ars = [...playRow.querySelectorAll('.tile:not(.wide)'), ...modeRow.children].map(e => R(e).width / R(e).height);
+      return { foot, last: +g[g.length - 1].bottom.toFixed(2), first: menu.scrollTop === 0 && g.length === 9 && g.every(r => r.top >= ins[0] - 0.5 && r.bottom <= foot + 0.5 && r.left >= ins[3] - 0.5 && r.right <= innerWidth - ins[1] + 0.5),
+        spread: +(Math.max(...ars) - Math.min(...ars)).toFixed(3), minH: Math.min(...g.map(r => r.height)), sw: document.documentElement.scrollWidth - innerWidth };
+    }, ins);
+    check(`home ${w}x${h} with the iOS insets: all nine game cards on the first screen above the home indicator; every card one shape (games and modes), none under its minimum; no sideways scroll`,
+      f.first && f.spread < 0.03 && f.minH >= 47.5 && f.sw <= 0, JSON.stringify(f));
+    await L.browser.close();
+  }
 
   /* ---------- pinned setup actions (build 2026-10-29b): every setup's primary action (Break or Play,
      Start Tournament, Watch, Start, Start Career, Start Drill) is pinned at the foot of its sheet,

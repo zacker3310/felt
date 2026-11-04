@@ -137,7 +137,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `showModes(page)`, Back straight home; `showModes()` with no page is the list How to play opens) and Solo (Learn
   to play, Practice, `drillsRow`, Trick shots, Daily shot). Cards share one shape (`--card-ar`) over a real minimum
   (`--tile-min`, `--cc-min`): two columns upright (the nine games on the first screen at 393x852 and 440x956), four
-  on its side (all nine on the first screen at 956x440 with the iOS insets), one a row with Large/Larger text on a narrow phone; the rest scrolls, never sideways. Forfeit match
+  on its side (all nine on the first screen at 852x393, 932x430 and 956x440 with the iOS insets: where the cards at
+  `--card-ar` would run past the home indicator, `homeCards()` (from `paintArt`) gives every card, games and modes, one
+  wider shape just short enough, never under `--tile-min`; default text size only), one a row with Large/Larger text on a narrow phone; the rest scrolls, never sideways. Forfeit match
   and Concede frame take two taps (`armOrAct`). `qa-check` pins the QA pass (F1 to F10) and the home's real-touch
   taps on every card with real touch and mouse input.
 - Shot moments: `shotMoments` (sim 1i) is the one classifier. The callout (page 6c), the game-over chips and

@@ -127,7 +127,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   90 s; add a new part as another parallel one.
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
-  `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
+  `tab` while one plays, and `game`/`tab`/the turn are never touched. Any other tap, click or key only ends a replay
+  (eaten whole), but a press on the power bar on the player's turn ends it and is the bar's: the pull arms and shoots.
+  `replay-check` pins both.
 - Home layout: no Play again and no More rows. Three sections: Games (`#playRow`, all nine games as `.tile` cards
   with their rack art, the ninth (Chinese 8-ball, `.wide`) a row wide and as tall as the row (`grid-auto-rows: 1fr`),
   on its side a 48 px strip with its name and line on one row, each `data-kind` opening `showSetup(kind)`; the setup opens on the last choices, which are

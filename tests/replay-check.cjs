@@ -1,8 +1,8 @@
 /* replay-check: the game camera (section 3b) and the shot replay (5r). The camera maps exactly
    both ways at any zoom, never shows past the table, follows a roll and is back to the whole
    table when the next turn starts, and stays put with Camera: Fixed. A replay re-plays the shot
-   byte for byte into its own table without touching game or tab, swallows every sweep, tap and
-   bar pull while it plays, and a bank pot is offered as a notable replay. */
+   byte for byte into its own table without touching game or tab, swallows every sweep and tap while it plays
+   (a pull on the power bar ends it and is the player's shot), and a bank pot is offered as a notable replay. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -91,13 +91,28 @@ const { check, done, open } = require('./lib.cjs');
   const sw = await page.evaluate(() => ({ aim: felt.aim, shots: felt.game.shots, replaying: felt.replaying, st: felt.state }));
   check('replay: a sweep on the table ends it and turns nothing', pre.replaying && !sw.replaying && sw.aim === pre.aim && sw.shots === pre.shots && sw.st === 'aim', JSON.stringify({ pre, sw }));
   await page.evaluate(() => felt.replay());
-  const bar = await page.evaluate(() => { const r = powerBar.getBoundingClientRect(); return { x: r.left + r.width / 2, y0: r.top + 20, y1: r.bottom - 10, shots: felt.game.shots }; });
+  const bar = await page.evaluate(() => { window.__ls = felt.lastShot; const r = powerBar.getBoundingClientRect(); return { x: r.left + r.width / 2, y0: r.top + 20, y1: r.bottom - 10, shots: felt.game.shots }; });
   await page.mouse.move(bar.x, bar.y0); await page.mouse.down();
   for (let i = 1; i <= 12; i++) await page.mouse.move(bar.x, bar.y0 + (bar.y1 - bar.y0) * i / 12);
+  const midPull = await page.evaluate(() => ({ replaying: felt.replaying, pulling: felt.pulling, lab: powerLab.textContent }));
   await page.mouse.up();
-  await page.waitForTimeout(400);
-  const pb = await page.evaluate(() => ({ shots: felt.game.shots, st: felt.state, replaying: felt.replaying, pulling: felt.pulling }));
-  check('replay: a full pull on the power bar never shoots', pb.shots === bar.shots && pb.st === 'aim' && !pb.pulling && !pb.replaying, JSON.stringify(pb));
+  const struck = await page.waitForFunction(ls => felt.lastShot !== window.__ls, null, { timeout: 5000 }).then(() => true, () => false);
+  const pb = await page.evaluate(() => ({ struck: felt.lastShot !== window.__ls, st: felt.state, replaying: felt.replaying, pulling: felt.pulling, power: felt.lastShot && felt.lastShot.power }));
+  await page.evaluate(() => { felt.speed = 20; });
+  /* a pull on the bar during a replay is the player's next shot (a playtest: it used to do nothing): the press ends
+     the replay, the pull arms as ever, the let-go shoots at the pull's power */
+  check('replay: a pull on the power bar ends the replay, arms on the way and shoots on the let-go', !midPull.replaying && midPull.pulling && /%$/.test(midPull.lab)
+    && struck && pb.struck && ['rolling', 'aim'].includes(pb.st) && !pb.replaying && pb.power > 0.5, JSON.stringify({ midPull, pb }));
+  await page.waitForFunction(() => !['stroke', 'rolling'].includes(felt.state), null, { timeout: 30000 });
+  await setup(); await page.evaluate(() => { felt.speed = 0.5; });
+  /* a press that is not on the bar is still eaten whole: a tap on the bar's neighbour, the english pad, changes nothing */
+  await page.evaluate(() => felt.replay());
+  const sp0 = await page.evaluate(() => JSON.stringify(cueSpin));
+  const pad = await page.evaluate(() => { const r = spinPad.getBoundingClientRect(); return [r.left + r.width * 0.8, r.top + r.height * 0.2]; });
+  await page.mouse.click(pad[0], pad[1]);
+  await page.waitForTimeout(100);
+  const sp = await page.evaluate(() => ({ spin: JSON.stringify(cueSpin), replaying: felt.replaying }));
+  check('replay: a tap anywhere but the bar only ends it (the english pad keeps its tip)', !sp.replaying && sp.spin === sp0, JSON.stringify({ sp0, sp }));
   const key = await page.evaluate(() => {
     felt.replay();
     const a = felt.aim;

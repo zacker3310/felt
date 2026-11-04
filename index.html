@@ -12136,7 +12136,8 @@ function think(now) {
    run-up with the cue (REPLAY_LEAD), then real speed, slowed to REPLAY_SLOW round the first contact
    and the first object ball's drop, the camera in close (CAM_REPLAY), the hits sounding at
    REPLAY_GAIN. Any tap, click or key ends it, and none of it reaches the table or the controls;
-   the bar reads Replay. */
+   the bar reads Replay. The one exception is a press on the power bar on the player's turn: it ends
+   the replay and is the bar's own, so the pull goes on to arm and shoot. */
 const REPLAY_OFFER_MS = 3500, REPLAY_NOTABLE_MS = 6500;
 const REPLAY_LEAD = 0.5;          /* s: the cue at address, drawn back, then through */
 const REPLAY_SLOW = 0.35, SLOW_IN = 0.09, SLOW_OUT = 0.12, SLOW_RAMP = 0.06;   /* sim s round each moment: 0.6 s at 0.35x */
@@ -12280,6 +12281,9 @@ function drawReplayCue(now) {
 for (const t of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'wheel']) {
   addEventListener(t, e => {
     const eaten = e.pointerId !== undefined && e.pointerId === eatId && t !== 'pointerdown';
+    /* a press on the power bar on the player's turn: the replay ends and the press is the bar's, so the pull
+       that follows arms and shoots as ever (a playtest: a pull during a replay did nothing) */
+    if (rp && t === 'pointerdown' && powerBar.contains(e.target) && state === 'aim' && human()) { endReplay(); return; }
     if (!rp && !eaten && !((t === 'click' || t.startsWith('mouse')) && performance.now() < eatUntil)) {
       if (t === 'pointerdown' && offer && !replayBtn.contains(e.target)) hideOffer();
       return;

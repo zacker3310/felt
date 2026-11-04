@@ -216,7 +216,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pchip .nb .nn, .pchip .nb .cb { position: absolute; inset: 19%; display: grid; place-items: center; border-radius: 50%; font: 800 calc(var(--ph, 22px) * .5)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-style: normal; letter-spacing: -.07em; font-variant-numeric: tabular-nums; text-shadow: none; }
 .pchip .nb .nn { background: var(--nb-iv, #f7f4ea); color: #141414; }
-.pchip .nb .nn.w { letter-spacing: -.1em; }
+.pchip .nb .nn.w { letter-spacing: 0; font-variant-numeric: proportional-nums; }
+/* 10 to 15: the pair a hair apart and condensed, at the one-digit size, inside the circle (nextBallEl's .nd) */
+.pchip .nb .nn.w .nd, #potRail .nb .nn.w .nd { display: block; letter-spacing: .04em; transform: scaleX(.8); }
 .pchip .tal { display: flex; gap: 2px; margin-left: 2px; }
 .pchip .tal i { width: 5px; height: 5px; }
 .pchip .tal i.o { background: transparent; box-shadow: inset 0 0 0 1px var(--ink, #ece4d6), 0 0 0 1px var(--ink-edge, rgba(25, 10, 4, .6)); }
@@ -265,7 +267,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #potRail .nb .nn, #potRail .nb .cb { position: absolute; inset: 21%; display: grid; place-items: center; border-radius: 50%;
   font: 800 calc(var(--tb, 11px) * .44)/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-style: normal; letter-spacing: -.07em; font-variant-numeric: tabular-nums; text-shadow: none; }
 #potRail .nb .nn { background: var(--nb-iv, #f7f4ea); color: #141414; }
-#potRail .nb .nn.w { letter-spacing: -.1em; }
+#potRail .nb .nn.w { letter-spacing: 0; font-variant-numeric: proportional-nums; }
 
 /* ---- the game in the pause menu: both players, the potted balls, the latest word ---- */
 #gameNow { margin: 0 0 14px; }
@@ -17358,7 +17360,10 @@ function nextBallEl(n) {
   d.style.setProperty('--nb-iv', iv);
   d.dataset.n = String(n);
   i.className = m ? 'cb ' + (m[1] ? 'd' : 'l') : 'nn' + (n > 9 ? ' w' : '');
-  i.textContent = String(n);
+  /* two digits (10 to 15): set apart, not run together, and drawn condensed in their own box (.nd) so the pair sits
+     inside the ivory circle at the one-digit size (pottray-check measures the glyphs) */
+  if (n > 9 && !m) { const d = document.createElement('span'); d.className = 'nd'; d.textContent = String(n); i.appendChild(d); }
+  else i.textContent = String(n);
   d.appendChild(i);
   return d;
 }

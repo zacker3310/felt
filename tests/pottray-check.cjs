@@ -16,7 +16,8 @@
       has them.
    6. a real pot: the ball rolls into its window after its drop (animated, on the screen's clock, done within about
       250 ms); Reduce Motion: it is just there; a ball that comes back leaves its window, the ones above it move down;
-      the cue lying over a window hides it. */
+      the cue lying over a window hides it.
+   7. two-digit numbers (10 to 15) in the windows and on the rail's next ball read cleanly at 375x667 and 393x852. */
 'use strict';
 const { check, done, open } = require('./lib.cjs');
 
@@ -334,9 +335,46 @@ async function motionChecks() {
     await t.browser.close();
   }
 }
+/* 7. two-digit numbers (10 to 15) read cleanly at the small sizes: in the windows and on the rail's next ball, at 375x667
+   and 393x852 (dpr 3), each number's glyph box (its ink, measured on a canvas at 100 px in the number's own font, weight,
+   letter-spacing and numerals, times its transform's horizontal scale) lies inside the ivory circle with room (its corners
+   within 90% of the radius), the two digits apart (a positive gap, not run together), at the one-digit size (the same
+   font size as the 9's) and no narrower than 0.75 of it */
+async function numberChecks() {
+  for (const [w, h] of [[375, 667], [393, 852]]) {
+    const t = await open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 3,
+      init: `try { localStorage.setItem('felt.settings', JSON.stringify({ sv: 3, cpu: true })); } catch (e) { }` });
+    const { page } = t;
+    await page.evaluate(potSome, ['8', [9, 10, 11, 13, 14, 15, 1], ['stripes', 'solids'], 0]);
+    await page.evaluate(() => { const c = game.balls.find(b => b.n === 0), o = game.balls.find(b => b.n === 12); Object.assign(c, { x: TL / 2, y: TW / 2 }); Object.assign(o, { x: TL * 0.3, y: TW * 0.3 }); aimAngle = Math.atan2(o.y - c.y, o.x - c.x); handAimed = true; aimLock = 'held'; aimAnim = null; });
+    await frames(page, 4);
+    const r = await page.evaluate(() => {
+      const cv = document.createElement('canvas').getContext('2d');
+      const one = e => {
+        const c = e.getBoundingClientRect(), t = e.textContent, x = e.querySelector('.nd') || e, cs = getComputedStyle(x);
+        const fs = parseFloat(cs.fontSize), K = 100 / fs, ls = parseFloat(cs.letterSpacing) || 0;
+        cv.font = `${cs.fontWeight} 100px ${cs.fontFamily}`; cv.fontVariantNumeric = cs.fontVariantNumeric; cv.letterSpacing = (ls * K) + 'px';
+        const sx = cs.transform === 'none' ? 1 : new DOMMatrix(cs.transform).a;
+        const m = cv.measureText(t), d = [...t].map(ch => cv.measureText(ch));
+        const gap = t.length === 2 ? ((d[0].width + ls * K - d[0].actualBoundingBoxRight) + d[1].actualBoundingBoxLeft) / K * sx : null;
+        const gw = (m.actualBoundingBoxLeft + m.actualBoundingBoxRight - (t.length === 2 ? ls * K : 0)) / K * sx, gh = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) / K;
+        return { t, D: +c.width.toFixed(2), fs: +fs.toFixed(2), sx, fit: +(Math.hypot(gw / 2, gh / 2) / (c.width / 2)).toFixed(3), gap: gap === null ? null : +(gap / fs).toFixed(3) };
+      };
+      const nb = pchip0.querySelector('.nb .nn');
+      return { wins: [...potRail.querySelectorAll('.tw .nn')].map(one), next: nb ? one(nb) : null };
+    });
+    const nine = r.wins.find(x => x.t === '9'), two = r.wins.filter(x => x.t.length === 2);
+    const ok = x => x.fit <= 0.9 && x.gap > 0 && x.sx >= 0.75;
+    check(`${w}x${h}: the windows' 10, 11, 13, 14 and 15 read cleanly: each glyph box inside the ivory circle with room (at most ${Math.max(...two.map(x => x.fit))} of the radius), the digits apart (${Math.min(...two.map(x => x.gap))} em), at the 9's size`,
+      two.length === 5 && !!nine && two.every(x => ok(x) && x.fs === nine.fs && x.D === nine.D), JSON.stringify(r.wins));
+    check(`${w}x${h}: the rail's next ball, the 12, reads cleanly the same way (${r.next && r.next.fit} of the radius, ${r.next && r.next.gap} em apart)`, !!r.next && r.next.t === '12' && ok(r.next), JSON.stringify(r.next));
+    check(`${w}x${h}: no console errors (the numbers)`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
+    await t.browser.close();
+  }
+}
 (async () => {
   /* a part that throws (a page without the windows: the base build) fails as a check, and the rest still run */
-  for (const [name, part] of [['the layout', layoutChecks], ['3D', view3dChecks], ['the looks', lookChecks], ['VoiceOver and where there are none', voiceAndNoneChecks], ['the motion', motionChecks]]) {
+  for (const [name, part] of [['the layout', layoutChecks], ['3D', view3dChecks], ['the looks', lookChecks], ['VoiceOver and where there are none', voiceAndNoneChecks], ['the motion', motionChecks], ['the two-digit numbers', numberChecks]]) {
     try { await part(); } catch (e) { check(`${name}: ran through`, false, String(e.message || e).split('\n')[0]); }
   }
   done();

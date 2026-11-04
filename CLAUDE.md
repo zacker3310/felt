@@ -368,7 +368,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   (`legalTargets`: the group, the 8 once cleared, any but the 8 on an open table), else auto aim's `hint`, so it falls
   back to the white ring, which stays the turn's suggestion and may differ from the rail; 9, 10 and rotation the lowest
   whatever the aim; none on the CPU's turn, in practice or a replay) as a true
-  little ball (`nextBallEl`: `--ph` tall, the ball set's colour and ivory, its number on the ivory circle, the `.cb`
+  little ball (`nextBallEl`: `--ph` tall, the ball set's colour and ivory, its number on the ivory circle (10 to 15 in
+  their own `.nd` box: proportional figures a hair apart, condensed `scaleX(.8)`, at the one-digit size, so the pair sits
+  inside the circle; pottray-check measures each glyph box at 375x667 and 393x852), the `.cb`
   mark when `marks` is on; `nextWords` in the hidden `.nx`: "Next: the 12, stripe"; `railNextTick` each frame lays the
   seats again when it changes), points engraved (snooker, carom, 14.1, rotation), racks
   of a career or tournament match as tally pips (`rackTally`); the shooter lit (full colour, the lamp's glow), the other

@@ -177,6 +177,14 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await touch('touchStart', c0[0], c0[1]);
   for (let i = 1; i <= 10; i++) await touch('touchMove', c0[0] + (to[0] - c0[0]) * i / 10, c0[1] + (to[1] - c0[1]) * i / 10);
   await touch('touchEnd');
+  /* a tap at once after that quick drag: an unconsumed flick left Chromium a fling, and the tap that stopped it was
+     swallowed whole (pointer events, no click: Tools "left no trace" in full runs). The page consumes its drags' touch
+     moves, so this tap is a click like any other */
+  const tb = await page.evaluate(() => { const r = toolBtn.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+  await touch('touchStart', tb[0], tb[1]); await touch('touchEnd');
+  const flick = await page.waitForFunction(() => !tools.hidden, null, { timeout: 1500 }).then(() => true, () => false);
+  check('a tap straight after a quick drag on the table is a tap: Tools opens (no fling swallows it)', flick, JSON.stringify(await page.evaluate(() => ({ s: felt.state, tools: felt.solo.tools }))));
+  if (flick) { await page.tap('#toolBtn'); await page.waitForFunction(() => tools.hidden, null, { timeout: 3000 }); }
   await page.waitForTimeout(100);
   const bh = await page.evaluate(() => ({ hand: felt.game.inHand, on: felt.game.hand, pressed: handBtn.getAttribute('aria-pressed'), c: [felt.game.balls[0].x, felt.game.balls[0].y], hx: HEAD_X, s: felt.state, shots: felt.game.shots }));
   check('ball in hand (touch): the toggle gives ball in hand anywhere and a drag takes the cue ball past the head string; nothing shoots',
@@ -185,18 +193,8 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('ball in hand stays on for the next shot while the toggle is on', await page.evaluate(() => felt.game.inHand === 'table'));
 
   /* reset rack, then the stats in the pause menu */
-  /* the tools panel opens before Reset Rack is tapped; if it does not (a rare CI flake, origin unknown), say what the
-     page was doing instead of a bare 30 s tap timeout */
-  const pre0 = await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, rp: typeof rp !== 'undefined' && !!rp, offer: typeof offer !== 'undefined' && !!offer, th: tools.hidden }));
   await page.tap('#toolBtn');
-  const opened = await page.waitForFunction(() => !tools.hidden, null, { timeout: 3000 }).then(() => true, () => false);
-  if (!opened) {
-    /* seen in some full runs under load: state aim, the button visible, a replay offer up, and the tap left no
-       trace (solo.tools still false). Cause not found; said and tapped once more, so a panel that never opens
-       still fails here */
-    console.log('DIAG tools did not open on the first tap', JSON.stringify(pre0), JSON.stringify(await page.evaluate(() => ({ s: felt.state, tools: felt.solo && felt.solo.tools, th: tools.hidden, bh: getComputedStyle(toolBtn).visibility, msg: msg.textContent }))));
-    await page.tap('#toolBtn');
-  }
+  check('tools: a tap after a shot opens the panel', await page.waitForFunction(() => !tools.hidden, null, { timeout: 3000 }).then(() => true, () => false));
   await page.tap('#resetBtn');
   await page.waitForTimeout(100);
   const rs = await page.evaluate(() => ({ eq: JSON.stringify(felt.game.balls.slice(1)) === JSON.stringify(newPractice('9', 1).balls.slice(1)), shots: felt.game.shots, undo: felt.solo.undo.length, st: felt.solo.st.shots, hand: felt.game.inHand }));

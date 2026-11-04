@@ -218,6 +218,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   shows a one-time banner (`showMouseTip`, `felt.mouseTip.v1`; `tests/lib.cjs` marks it seen unless
   `firstRun: true`). Touch and pen never hold. `aim-check`'s `desk()` pins it with real mouse input at
   1280x800 and 956x440.
+  Every touch move on `#table` and `#ui` is consumed (a non-passive `touchmove` that calls `preventDefault`, an open
+  pop-up menu excepted): `touch-action: none` alone left Chromium a fling after a quick drag, and the next tap, which
+  stopped it, was swallowed whole (pointer events, no click). `solo-check` taps Tools straight after a flick.
 - Looks (section 4l): `LOOKS` (`CLOTHS`, `CUES`, `CHALKS`, `RAILS`, `BALLSETS`, `RINGS`); `look()` is the career's
   equipped items in a career match (`lookCareer`, 6d) else the settings' (`cloth`, `cue`, `chalk`, `rail`, `balls`,
   each only if unlocked: `felt.looks.v1`, the base plus anything any career owned). A shop id names its look

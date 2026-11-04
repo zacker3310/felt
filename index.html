@@ -12514,6 +12514,12 @@ function cancelGestures() {
   if (g.msg0 !== undefined && (g.armed || g.mode === 'dead')) say(g.msg0);
   hudControls();
 }
+/* a drag on the table or on a control is the page's, every move of it: its touch moves are consumed, so the browser
+   never reads a fast one as a fling of its own. An unconsumed flick (the cue ball in hand thrown across the cloth, a
+   quick sweep) left Chromium a fling, and the next tap, which stops it, was swallowed whole: pointer events and no
+   click, so Tools, Undo or the menu did nothing (solo-check). touch-action: none alone does not stop it. An open
+   pop-up menu keeps its own scroll. */
+for (const el of [table, document.getElementById('ui')]) el.addEventListener('touchmove', e => { if (e.cancelable && !e.target.closest('.seg.pop.open')) e.preventDefault(); }, { passive: false });
 
 table.addEventListener('pointerdown', e => {
   audioOn();

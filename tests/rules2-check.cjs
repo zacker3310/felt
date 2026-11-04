@@ -35,7 +35,7 @@ const call = (g, c) => S.withCall(g, c);
 /* ---- the registry ---- */
 {
   const ids = Object.keys(S.RULESETS);
-  check('registry: every ruleset has its id, game, name, description and source', ids.every(id => { const r = S.RULESETS[id]; return r.id === id && r.game && r.name && r.description && /WPA|felt house rule|UMB|WPBSA|rotation/.test(r.source); }), ids.join(' '));
+  check('registry: every ruleset has its id, game, name, description and source', ids.every(id => { const r = S.RULESETS[id]; return r.id === id && r.game && r.name && r.description && /WPA|felt house rule|UMB|WPBSA|rotation|World Chinese 8-Ball Masters/.test(r.source); }), ids.join(' '));
   check('registry: 8, 9, 10, 14.1 and rotation have WPA or house rulesets; every game a default', ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker'].every(k => S.RULESETS[S.DEFAULT_RULESET[k]].game === k)
     && S.rulesetsFor('8').length >= 2 && S.rulesetsFor('9').length >= 2 && S.rulesetsFor('10').length >= 2 && S.RULESETS['8-wpa'].source === 'WPA world standardized rules' && S.RULESETS['8-house'].source === 'felt house rule');
   const r = S.makeRules('9', { ruleset: '8-wpa' });

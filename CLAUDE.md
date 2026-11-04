@@ -8,7 +8,7 @@
 
 ## What this is
 
-felt: 8-ball, 9-ball, 10-ball, straight pool, rotation, bumper pool, carom and snooker in one offline `index.html` (2D canvas, no libraries, no network) plus its recorded sounds in `sounds/`.
+felt: 8-ball, 9-ball, 10-ball, straight pool, rotation, Chinese 8-ball (heyball), bumper pool, carom and snooker in one offline `index.html` (2D canvas, no libraries, no network) plus its recorded sounds in `sounds/`.
 Two players on one device or against a CPU. The physics is puttX's hand-rolled, fixed-step,
 deterministic sim, extended with ball-ball contact, pockets and follow/draw. `SPEC.md` is the
 design, `TASKS.md` the queue, `.buildloop/` the artifact chain.
@@ -20,7 +20,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 | Job | Command | Healthy output |
 |---|---|---|
 | install | `npm ci && npx playwright-core install chromium` | `found 0 vulnerabilities` |
-| test | `npm test` | `36/36 suites, N/N checks  ok` (about 15 min on 4 cores, 15 to 25 on CI: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites first, each alone; `FELT_JOBS=1` is the old serial run, about 30 min) |
+| test | `npm test` | `37/37 suites, N/N checks  ok` (about 15 min on 4 cores, 15 to 25 on CI: the suites run side by side, `FELT_JOBS` lanes, default the cores; the frame-timing suites first, each alone; `FELT_JOBS=1` is the old serial run, about 30 min) |
 | one suite | `node tests/run-all.cjs --only rules-check` | `1/1 suites ... ok` |
 | lint | `npm run lint` | `0 finding(s)` |
 | run | `npm run serve`, then http://localhost:4173 | the menu |
@@ -67,7 +67,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   list and pages live in Practice (`#drillSheet`), records in `felt.drills.v1` (corrupt fields dropped on load). Drill ids are
   the career's `DRILLS` ids: the hub's Practice rows launch the drill and the score goes to `Career.practice`. Good runs come
   from `node tools/drill-solver.cjs` (`tests/drill-solutions.json`, 7r). Pinned by `drills-check`.
-- Tutorials: one per game (`TUTORIALS`, sim 1l; page 6d after the lesson), steps judged by the real `judge`
+- Tutorials: one per game (`TUTORIALS`, sim 1l; page 6d after the lesson; Chinese 8-ball's pushed after the list, on
+  8-ball's layouts where the lesson is the same, the group taken from the step whose verdict is `grouped`), steps judged by the real `judge`
   (the game has no `game.mode`; `solo.kind === 'tutorial'`, `tutOn()`). Each plays on its own table and puts the
   geometry back exactly on the way home (`tutRestore`); settings are never touched. Show me plays `TUT_SOLS`
   through `commit()`, like the trick shots. Re-solve with `node tools/tutorial-solver.cjs` (writes
@@ -101,6 +102,19 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `cpuSnookerOption`): play it, play again, a free ball (`game.free`; snookered is pure geometry, `snkSnookered`), or
   after a miss the put-back from `game.prev`; three misses lose the frame (`game.missRun`). Cite WPBSA rule numbers.
   `tests/snooker-check.cjs` pins it.
+- Chinese 8-ball (heyball): `game.kind === 'heyball'`, sim 1o, on its own table `setTable('heyball')` (`HEYBALL_SIZE`
+  2540 x 1270 mm, pool's 57.15 mm ball and cloth, `POOL_PHYS`; the head string at 635 mm) with `POCKET_STYLES.heyball`:
+  snooker's mouths (jaw points 90 and 104 mm) round pool's balls, rounded jaws (`JAW_ARCS`, `roundJaws`), the throat
+  between the facings 85 and 90 mm (Joy's listed openings); `setPockets` does not change it, and the setup offers no
+  table or pockets. Judged by 8-ball's own `judge8` (`RULE_MODULES.heyball`; `is8(kind)` wherever 8-ball's groups, game
+  ball, rail seats, pot windows or CPU group scoring are read, never a copy) under the ruleset `heyball`, the World
+  Chinese 8-Ball Masters rules (Rev. 2017, cited in sim 1e above `RULESETS`): four to the cushions or a pot on the break,
+  balls potted on the break never choose the groups (the first legal pot after it does), the 8 never first on an open
+  table, ball in hand anywhere (behind the head string after a break scratch), the 8 on the break spotted or re-broken
+  (`eightBreak`), the 8 to a called pocket (`calls: 'game'`, obvious calls from the aim), no three-foul rule; felt's
+  choices where the sources differ: an illegal break is WPA 8-ball's take, re-break or break (`badBreak: 'rerack'`),
+  balls off the table stay off. Its home card is the ninth (`#playH`, `.tile.wide`) with its own art (`heyArt`: a
+  corner pocket close up, the 8 in the jaws). Sounds exactly as 8-ball (sound-check). `heyball-check` pins it.
 - Three-cushion carom: `setTable('carom')` (sim 1k), 61.5 mm balls on its own cloth and rubber. No pockets:
   `POCKETS`, `POCKET_AIM`, `MOUTHS` are empty, so never assume six. Balls 70 (white), 71 (yellow), 72 (red);
   `game.striker` is the shooter's cue ball. Points are counted from `resultOf(tab).seq`; `carom-check` covers it.
@@ -114,13 +128,14 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Camera (section 3b): `view` is `viewBase` (the fit `layout()` makes) under a zoom; draw and input both go
   through it, so never cache `view`. Replay (5r): `shotRecord` keeps each shot, `rp.tab` is drawn instead of
   `tab` while one plays, and `game`/`tab`/the turn are never touched. `replay-check` pins both.
-- Home layout: no Play again and no More rows. Three sections: Games (`#playRow`, all eight games as `.tile` cards
-  with their rack art, each `data-kind` opening `showSetup(kind)`; the setup opens on the last choices, which are
+- Home layout: no Play again and no More rows. Three sections: Games (`#playRow`, all nine games as `.tile` cards
+  with their rack art, the ninth (Chinese 8-ball, `.wide`) a row wide and as tall as the row (`grid-auto-rows: 1fr`),
+  on its side a 48 px strip with its name and line on one row, each `data-kind` opening `showSetup(kind)`; the setup opens on the last choices, which are
   settings), Modes (`#modeRow`: `careerBtn`, `modeTour`, `modeEx`, `modeParty`, each opening its page alone via
   `showModes(page)`, Back straight home; `showModes()` with no page is the list How to play opens) and Solo (Learn
   to play, Practice, `drillsRow`, Trick shots, Daily shot). Cards share one shape (`--card-ar`) over a real minimum
-  (`--tile-min`, `--cc-min`): two columns upright (the eight games on the first screen at 393x852 and 440x956), four
-  on its side, one a row with Large/Larger text on a narrow phone; the rest scrolls, never sideways. Forfeit match
+  (`--tile-min`, `--cc-min`): two columns upright (the nine games on the first screen at 393x852 and 440x956), four
+  on its side (all nine on the first screen at 956x440 with the iOS insets), one a row with Large/Larger text on a narrow phone; the rest scrolls, never sideways. Forfeit match
   and Concede frame take two taps (`armOrAct`). `qa-check` pins the QA pass (F1 to F10) and the home's real-touch
   taps on every card with real touch and mouse input.
 - Shot moments: `shotMoments` (sim 1i) is the one classifier. The callout (page 6c), the game-over chips and
@@ -129,13 +144,13 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Rules engine (sim 1e): `RULESETS` is the registry (id, game, name, description, source, rule options; documented
   above it). A game carries `game.rules` (`makeRules(kind, { ruleset, call, options, race, locked })`); `judge` hands
   each shot to its game's module in `RULE_MODULES` (`judge8`, `judgeLowest` for 9 and 10, `judgeStraight` for 14.1,
-  `judgeRotation`, then bumper, snooker, carom), and the pocket games share `poolFoul`, `callResult`, `breakLegal`
+  `judgeRotation`, Chinese 8-ball on `judge8` too, then bumper, snooker, carom), and the pocket games share `poolFoul`, `callResult`, `breakLegal`
   and `poolEnd`: add a rule there or as an option, never a copy in one module. A ball off the table (a jump, pocketOf
   -1) is a foul everywhere: `poolBase` takes it out of the pots and `poolFoul` names it (the cue ball off is a
   scratch); option `offSpot` ('spot' house, 14.1, rotation; 'stay' WPA 8, 9, 10, which spot only the game ball;
   the 8 off a shot that is not the break loses); snooker spots a colour and leaves a red off, and a cue ball that
   jumped a ball before its first contact is a jump shot foul (`r.over`); carom and bumper put the ball back. Kinds: '8', '9', '10', 'straight',
-  'rotation' (`POCKET_KINDS`), 'bumper', 'snooker', 'carom'. The default rulesets ('8-house', '9-house') are the
+  'rotation', 'heyball' (`POCKET_KINDS`), 'bumper', 'snooker', 'carom'. The default rulesets ('8-house', '9-house') are the
   old felt rules exactly; WPA variants and 10-ball, 14.1 and rotation are opt-in. Pinned by `rules2-check`.
 - Called shots: `game.call` (`{ ball, pocket, safety, push, bank, kick, combo, auto }`) is a pure input judge reads;
   `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
@@ -183,9 +198,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   on a ring ruleset (`ring: true`, `rules.players`, `playersOf`/`nextOf` in sim 1e; `rulesetsFor` lists only
   two-player sets), the handoff sheet when the turn passes; with 3 or 4 players every player has a turn chip
   (`pchip0`-`pchip3`, `chipCount`, `#turnChip.many`: inlaid on the rail, 6b2). The tournament
-  plays 8, 9, 10, 14.1, rotation, snooker and carom (`T_KINDS`, `tRaces`): 14.1 and carom race to points in one game
+  plays 8, 9, 10, 14.1, rotation, Chinese 8-ball, snooker and carom (`T_KINDS`, `tRaces`): 14.1 and carom race to points in one game
   (`tmatch.units` 'points', need 1), snooker in frames. Pinned by `modes-check`.
-- How to play (page 6, `TABS`, `HELP_KINDS`, `showHelp(kind)`): fifteen topics, one push page each (rules rows, fine
+- How to play (page 6, `TABS`, `HELP_KINDS`, `showHelp(kind)`): sixteen topics, one push page each (rules rows, fine
   print, a pinned action); a new topic is a row in `howList`, a `pan` section and a `TABS` entry, and boot-check's
   list and page loops must name it (fit at 375x667, 44 px, 4.5:1).
 - Trick shots keep their tries per challenge (`trickTries`, `felt.trickTries.v1`, audit F12): stars go by the tries
@@ -247,7 +262,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   or `'post'` on a bumper post's `'rail'`); jaw, post, side pocket and bumper's cup are the cushion and
   pocket takes played faster, brighter or cut short. Snooker sounds exactly as 8-ball (Zac, on device, after a
   snooker-only mix was tried for issue 7: "snooker should sound just like 8 ball"): no table-specific mapping, its pockets
-  pool's corner and side; sound-check renders the same events on both tables and requires the same samples. Beds: the roll (the looped take under a low-pass, `rollAt`, from
+  pool's corner and side; sound-check renders the same events on both tables and requires the same samples. Chinese
+  8-ball sounds exactly as 8-ball too (Zac's rule for snooker, the same goes there; sound-check). Beds: the roll (the looped take under a low-pass, `rollAt`, from
   `soundFrame`'s own rAF, no allocation; `ROLL_LVL` 0, off: its loop pulsed audibly) and the room tone (`ROOM_LVL` 0, off: it read as hiss). The UI cues stay small synthesised notes. A limiter and a
   soft clipper keep a break from clipping; `NODE_CAP` bounds live nodes (offline at each voice's own time, `sfxOffT`);
   `felt.sound` reports them, `soundRender(ev, secs, rolls, sr, { log, pre })` renders offline (`log`: `soundRender.log`, a
@@ -348,8 +364,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,
   then the scoreboard; the score keeper never does. Wood slimmer than `WOOD_MIN` px is drawn wider (`RAIL` only, layout()).
   In 3D the row pins to the stage's bottom (`V3_PIN_B`), off the pockets and sights as projected.
-  The potted balls (6b3, `potTick` after each frame's draw; Zac: "like a bar table with a window for the balls"): 8, 9
-  and 10-ball only (practice too; never a trick shot, drill, lesson, tutorial or replay, nor while the 2D camera is
+  The potted balls (6b3, `potTick` after each frame's draw; Zac: "like a bar table with a window for the balls"): 8, 9,
+  10-ball and Chinese 8-ball only (practice too; never a trick shot, drill, lesson, tutorial or replay, nor while the 2D camera is
   zoomed), each ball down in a window of its own in the wood of the rails at the screen's left and right (upright the
   long rails, one window to a gap between sights; on its side, the upright layout turned a quarter, the end rails,
   which then stand left and right: four gaps each, two windows to a gap; `potPlan` packs as many to a gap as
@@ -406,9 +422,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   cue's frames, `heroTick`), its first frame drawn into the window and faded in over the card's art, so the landing is
   that frame and `#setupHeroArt` takes over in the same frame (`.snap`, no fade of its own; a fade still running is
   finished on the canvas). `heroWarm` makes the hero's table texture for every table a card opens on (`HERO_WARM_KINDS`:
-  pool, snooker, carom, bumper; cached in `hero.texs`, `heroTexOf`; a game keeps only the one in use, `heroTexKeep`,
+  pool, snooker, carom, bumper, heyball; cached in `hero.texs`, `heroTexOf`; a game keeps only the one in use, `heroTexKeep`,
   and the home makes them again) while the home is idle; the pool table's work is the pace (`mo.warmWork`), `mo.warm`
-  is set once all four are made. A setup that changes the table (Snooker, Three-Cushion, Bumper Pool; issue #1) lays
+  is set once all five are made. A setup that changes the table (Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball; issue #1) lays
   the game screen out with `layout(true)`: its table image and the camera's (`tableDue`, `hiDue`) are left for later,
   the menu keeping its last frame meanwhile, and made whole (never rasterised in steps: pieces differ from a whole by
   a level) by `menuArt` once the menu is idle (no flight, no hero build or roll, `MENU_QUIET_MS` after a touch;
@@ -417,10 +433,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   edge (touch only, `DRAG_SHEETS`, `EDGE_BACK`). `numRoll(el, key, text)` rolls a rising score; `powerTick` adds
   `.full` and calls `window.powerFull()` once per pull. `tests/lib.cjs` sets `window.feltNoMotion` unless a suite
   opens with `motion: true`; `felt.motion` reports it. Pinned by `motion-check` (its 2b watches 8-Ball, 9-Ball, Snooker,
-  Three-Cushion and Bumper Pool open every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform
+  Three-Cushion, Bumper Pool and Chinese 8-Ball open every rAF on a dpr 3 phone at 393x852 and 440x956, insets set before boot: uniform
   scale, no stretched canvas, the hero built two frames or more before the landing, the hand-over frozen and diffed,
   frames under 50 ms times `speedFactor`; and again with CDP `Emulation.setCPUThrottlingRate` 2 from before the
-  warm-up, as a slow CI runner; its 2c: the four tables warmed, Break after a table-changing setup opens on
+  warm-up, as a slow CI runner; its 2c: the five tables warmed, Break after a table-changing setup opens on
   `drawTableImage()`'s picture byte for byte in four looks, the idle menu's images the same as whole ones).
 - Opening (page 6o, `introBoot` from boot, visual only): a cold open of about 4.5 s on a cold launch at home, never on a
   return from the background (only boot starts it) and never over a game. `<html class="intro">` in the markup holds the

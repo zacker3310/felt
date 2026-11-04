@@ -150,8 +150,8 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
     return out;
   });
   const sk = { small: (await smallTargets(page)).length, low: await lowContrast(page) };
-  check('tournament setup: seven games (8, 9, 10, 14.1, rotation, snooker, carom); the race is in points for 14.1 and carom, frames for snooker, racks for rotation; fits, 44 px, 4.5:1',
-    setupKinds.every(s => s.game === 7 && s.sw) && /points/i.test(setupKinds[0].races) && /racks/i.test(setupKinds[1].races) && /frames/i.test(setupKinds[2].races) && /points/i.test(setupKinds[3].races) && !sk.small && !sk.low.length, JSON.stringify([setupKinds, sk]));
+  check('tournament setup: eight games (8, 9, 10, 14.1, rotation, Chinese 8-ball, snooker, carom); the race is in points for 14.1 and carom, frames for snooker, racks for rotation; fits, 44 px, 4.5:1',
+    setupKinds.every(s => s.game === 8 && s.sw) && /points/i.test(setupKinds[0].races) && /racks/i.test(setupKinds[1].races) && /frames/i.test(setupKinds[2].races) && /points/i.test(setupKinds[3].races) && !sk.small && !sk.low.length, JSON.stringify([setupKinds, sk]));
   const kinds = [];
   for (const [kind, race] of [['straight', 25], ['rotation', 1], ['snooker', 1], ['carom', 5]]) {
     kinds.push(await ev(async ([kind, race]) => {

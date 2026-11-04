@@ -45,7 +45,7 @@ const EST = {
   'settings-check': 57, 'snooker-check': 51, 'called-check': 47, 'cosmetics-check': 46, 'aim-check': 45, 'ai-check': 43,
   'boot-check': 38, 'modes-check': 32, 'carom-check': 28, 'drills-check': 23, 'render-check': 23, 'audit-check': 20,
   'physics-check': 19, 'moments-check': 17, 'replay-check': 17, 'sound-check': 17, 'solo-check': 14, 'look-check': 11,
-  'jumptricks-check': 10, 'career2-check': 6, 'pottray-check': 60, 'pwa-check': 5, 'rules2-check': 2, 'rules-check': 1,
+  'jumptricks-check': 10, 'heyball-check': 30, 'career2-check': 6, 'pottray-check': 60, 'pwa-check': 5, 'rules2-check': 2, 'rules-check': 1,
 };
 
 function chromium() {

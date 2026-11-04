@@ -1234,14 +1234,14 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
     await k.browser.close();
   }
   /* every game kind on one page, in turn and back: 8-ball, snooker (compact), carom, 9-ball on
-     the 9 ft table, bumper pool (octagon, then the rectangle), snooker on the full table, 8-ball
-     again. Each shot through felt.shoot rolls live equal to simulateShot byte for byte, on the
+     the 9 ft table, bumper pool (octagon, then the rectangle), snooker on the full table, Chinese
+     8-ball on its own table, 8-ball again. Each shot through felt.shoot rolls live equal to simulateShot byte for byte, on the
      table's own ball and cloth (physOf), and 8-ball's values come back exactly. */
   {
     const k = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
     const runs = [];
     for (const [kind, set] of [['8', { table: '7' }], ['snooker', { snookerTable: 'compact' }], ['carom', {}], ['9', { table: '9' }], ['bumper', { bumperTable: 'octagon' }],
-      ['bumper', { bumperTable: 'rect' }], ['snooker', { snookerTable: 'full' }], ['8', { table: '7' }]]) {
+      ['bumper', { bumperTable: 'rect' }], ['snooker', { snookerTable: 'full' }], ['heyball', { table: '7' }], ['8', { table: '7' }]]) {
       runs.push(await k.page.evaluate(async ([kind, set]) => {
         Object.assign(settings, set); felt.start(kind); felt.speed = 40;
         const g = felt.game, ph = physOf(TABLE);
@@ -1255,8 +1255,8 @@ const barPower = (d, pos, lo, hi, armPx) => { const span = Math.max(hi - pos, (h
       }, [kind, set]));
       await settled(k.page);
     }
-    check('every game kind in turn (8, snooker compact, carom, 9 on 9 ft, bumper octagon and rectangle, snooker full, 8 again): live equals simulateShot byte for byte on the table\'s own ball and cloth, and 8-ball comes back exactly',
-      runs.every(r => r.same && r.rec) && runs[0].vals === runs[7].vals && new Set(runs.map(r => r.vals)).size === 7 && k.errors.length === 0, JSON.stringify(runs.map(r => [r.kind, r.table, r.same, r.rec])) + k.errors.join(' | '));
+    check('every game kind in turn (8, snooker compact, carom, 9 on 9 ft, bumper octagon and rectangle, snooker full, Chinese 8-ball, 8 again): live equals simulateShot byte for byte on the table\'s own ball and cloth, and 8-ball comes back exactly',
+      runs.every(r => r.same && r.rec) && runs[0].vals === runs[8].vals && new Set(runs.map(r => r.vals)).size === 8 && k.errors.length === 0, JSON.stringify(runs.map(r => [r.kind, r.table, r.same, r.rec])) + k.errors.join(' | '));
     await k.browser.close();
   }
   done();

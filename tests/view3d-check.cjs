@@ -17,7 +17,7 @@
       and bumper) on every table, portrait and landscape.
    5. the physics: a shot in 3D ends exactly as simulateShot says and as the same shot top-down.
    6. every table renders (8-ball 7 ft and 9 ft, snooker 10 ft and 12 ft, bumper octagon and
-      rectangle, carom): the canvas is drawn (not blank), every ball on the table drawn.
+      rectangle, carom, Chinese 8-ball): the canvas is drawn (not blank), every ball on the table drawn.
    8. the aim's lines on red, green and blue cloth, read off the canvas: each line's width at half height within a
       device px of the 2D width (CSS px times the canvas scale), feathered edges, 3:1 against what it lies on; rings
       cut so no chord is over 3.5 device px up close; the call ring hidden behind its ball, shown in front of it.
@@ -338,7 +338,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   check('replay: plays top-down, and the 3D view comes back after it', rp1.ok && rp2.replaying && !rp2.live && rp3, JSON.stringify({ rp1, rp2, rp3 }));
 
   /* ---- 6. every table renders ---- */
-  const kinds = [['8', { table: '7' }], ['9', { table: '9' }], ['snooker', { snookerTable: 'compact' }], ['snooker', { snookerTable: 'full' }], ['bumper', { bumperTable: 'octagon' }], ['bumper', { bumperTable: 'rect' }], ['carom', {}], ['straight', {}]];
+  const kinds = [['8', { table: '7' }], ['9', { table: '9' }], ['snooker', { snookerTable: 'compact' }], ['snooker', { snookerTable: 'full' }], ['bumper', { bumperTable: 'octagon' }], ['bumper', { bumperTable: 'rect' }], ['carom', {}], ['straight', {}], ['heyball', {}]];
   for (const [kind, set] of kinds) {
     await t.ev(([k, s]) => { for (const key of Object.keys(s)) setSetting(key, s[key]); setSetting('viewPitch', 34); setSetting('viewDist', 1.6); felt.start(k); }, [kind, set]);
     await frames(page, 3);

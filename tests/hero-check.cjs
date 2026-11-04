@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* hero-check: the setup hero (page 4m, sim 1n), in a real browser at 393x852 (dpr 3).
-   For each of the eight games:
+   For each of the nine games:
    1. the hero canvas is there, full bleed, 30-50% of the height, taking the room a short form
       leaves (no band over 24 px above Break unless at its 50% cap), not blank (pixel variance) and
       unlike every other game's;
@@ -26,7 +26,7 @@
 const { check, done, open, choose, budgetWindow, frameClock, trackFrames, frameEnds } = require('./lib.cjs');
 const { loadSim } = require('./sim.cjs');
 
-const KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom'];
+const KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom', 'heyball'];
 const phone = (w, h, o = {}) => open('', { viewport: { width: w, height: h }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, ...o });
 const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, TL, TW, HEAD_X, FOOT, BALL_R, MU_ROLL, CUE_RATIO, CUSH_MU, RAIL_E, MU_SP,
   CUSH, CUSHION_POLYS, POCKETS, POCKET_R, POCKET_AIM, MOUTHS, BUMPERS, BED_LINES, JAW_ARCS, SPOTS, D_R, RAIL, view]);
@@ -75,7 +75,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const same = JSON.stringify(sim.balls) === JSON.stringify(a.h.final);
     /* Node's sim on the same table */
     const [kd, t1, t2] = sim.key.split('|');
-    if (kd === 'snooker') S.setTable('snooker', t1); else if (kd === 'bumper') S.setTable('bumper', t1); else if (kd === 'carom') S.setTable('carom'); else { S.setTable(t1); S.setPockets(t2); }
+    if (kd === 'snooker') S.setTable('snooker', t1); else if (kd === 'bumper') S.setTable('bumper', t1); else if (kd === 'carom' || kd === 'heyball') S.setTable(kd); else { S.setTable(t1); S.setPockets(t2); }
     const H = S.heroSetup(kind), r = S.simulateShot(H.balls, H.shot), node = r.balls.map(x => ({ n: x.n, x: x.x, y: x.y, on: x.on }));
     const diff = (p, q) => (p || []).filter((x, i) => !q || JSON.stringify(x) !== JSON.stringify(q[i])).map(x => x.n);
     check(`${kind}: the final frame is simulateShot's rest positions for the stored inputs (${sim.key}) on the page, byte for byte`, same, JSON.stringify({ page: diff(sim.balls, a.h.final) }));
@@ -86,7 +86,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
     const g = S.newGame(kind);
     g.balls = H.balls.map(x => Object.assign({}, x));
     const v = S.judge(g, r).verdict;
-    const moment = ['8', '9', '10', 'straight', 'rotation'].includes(kind) ? !v.foul && r.potted.length > 0 && !r.potted.includes(0)
+    const moment = ['8', '9', '10', 'straight', 'rotation', 'heyball'].includes(kind) ? !v.foul && r.potted.length > 0 && !r.potted.includes(0)
       : kind === 'snooker' ? !v.foul && r.potted.some(S.isRed) && !r.potted.includes(0)
         : kind === 'bumper' ? !v.foul && r.pocketOf[S.B_MARK[0]] === 1 && r.rails[S.B_MARK[0]] >= 1 : v.point;
     check(`${kind}: the shot is the game's moment (${kind === 'carom' ? 'a point' : 'down: ' + r.potted.join(' ')}), a legal shot`, moment);
@@ -216,7 +216,7 @@ const GEO = () => JSON.stringify([TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE,
   check('Snooker: Opponent CPU adds the cards, the hero shrinks for them (the form still whole); Two Players gives the room back', opp.h1 < opp.h0 && opp.fit1 && opp.h2 === opp.h0, JSON.stringify(opp));
   await ev(() => { backToMenu(); setSetting('cpu', false); showSetup('8'); });
   /* balanced lines: the game's line never ends on one word alone */
-  const wid = await ev(() => ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom'].map(k => { showSetup(k); const r = document.createRange(); r.selectNodeContents(setupSub); const rs = [...r.getClientRects()];
+  const wid = await ev(() => ['8', '9', '10', 'straight', 'rotation', 'bumper', 'snooker', 'carom', 'heyball'].map(k => { showSetup(k); const r = document.createRange(); r.selectNodeContents(setupSub); const rs = [...r.getClientRects()];
     const lines = [...new Set(rs.map(x => Math.round(x.top)))].length; const t = setupSub.textContent, last = t.slice(t.lastIndexOf(' ') + 1); return { k, lines, ok: lines < 2 || /\u00a0/.test(t) || last.includes('\u00a0'), wrap: getComputedStyle(setupSub).textWrap }; }));
   check('the game\'s line wraps balanced (text-wrap: balance), its last two words held together', wid.every(w => w.ok && /balance/.test(w.wrap)), JSON.stringify(wid));
   await ev(() => { backToMenu(); showSetup('8'); fitSetupRows(); });

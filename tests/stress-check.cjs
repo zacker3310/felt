@@ -39,6 +39,7 @@ const TABLES = [
   { tag: 'snooker compact', set: () => S.setTable('snooker', 'compact'), kind: 'snooker' },
   { tag: 'snooker full', set: () => S.setTable('snooker', 'full'), kind: 'snooker' },
   { tag: 'carom', set: () => S.setTable('carom'), kind: 'carom' },
+  { tag: 'heyball', set: () => { if (S.setTable('heyball') !== 'heyball') throw new Error('no Chinese 8-ball table'); }, kind: 'heyball' },
 ];
 const fresh = kind => kind === 'snooker' ? S.snookerGame() : S.newGame(kind, kind === 'carom' ? { race: 5 } : undefined);
 const striker = g => g.kind === 'bumper' || g.kind === 'carom' ? g.striker : 0;
@@ -109,9 +110,11 @@ function rackPlay(kind, level, set, seed0, opts) {
   let k = 0, seed = seed0;
   for (; k < CAP && g.winner === null; k++) {
     /* snooker's choice after a foul (free ball, put back): the CPU's answer, as the page plays it */
-    if (kind === 'snooker' && g.option) { g = S.chooseOption(g, S.cpuOption(g, level)); log.push('o' + g.verdict.chose); continue; }
+    /* and Chinese 8-ball's (an illegal break, the 8 on the break): the same, and the 8's call */
+    if (g.option) { g = S.chooseOption(g, S.cpuOption(g, level)); log.push('o' + g.verdict.chose); continue; }
     const s = S.cpuShot(g, seed++, level);
     let g1 = s.place ? S.placeCue(g, s.place[0], s.place[1]) : g;
+    if (s.call) g1 = S.withCall(g1, s.call);
     if (g1.kind === 'bumper' && s.ball != null) { g1 = S.copyGame(g1); g1.striker = s.ball; }
     const r = S.simulateShot(g1.balls, { angle: s.angle, power: s.power, spin: s.spin, ball: striker(g1) });
     if (r.end !== 'rest' || r.balls.some(b => !Number.isFinite(b.x + b.y))) return { k, stuck: 'roll ' + r.end };
@@ -126,6 +129,7 @@ const RACKS = [
   ['bumper', 'easy', 3, () => S.setTable('bumper', 'octagon')], ['bumper', 'easy', 2, () => S.setTable('bumper', 'rect')],
   ['carom', 'easy', 3, () => S.setTable('carom'), { race: 5, cushions: 1 }],
   ['snooker', 'easy', 1, () => S.setTable('snooker', 'compact')],
+  ['heyball', 'easy', 6, () => S.setTable('heyball')],
 ];
 function cpuPart() {
   const { rec, check } = part(), t0 = Date.now();

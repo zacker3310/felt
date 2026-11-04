@@ -538,8 +538,9 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    painted into the art), Modes (the career, the quick tournament, the AI exhibition, the party:
    each card opens its own setup) and Solo (a quiet grouped list). The wordmark leads the header;
    Stats, Settings and How to play are three round glass icon buttons. One accent colour, taken
-   from the cloth. Upright: two columns, the eight games in four rows inside the first screen of a
-   phone, the rest a scroll away. On its side: the games in one row of four over two, the modes
+   from the cloth. Upright: two columns, the nine games in five rows inside the first screen of a
+   phone (Chinese 8-ball, the ninth, a row wide), the rest a scroll away. On its side: the games
+   in rows of four (the ninth a slim strip under them), the modes
    beside the list. Every card has a real minimum (its name and line, at any text size); with
    large text on a narrow phone it is one card a row, and the home scrolls (QA F2, F3). ---- */
 #menu:not([data-paused]) {
@@ -583,6 +584,10 @@ kbd { font: 600 11px/1 var(--font); padding: 2px 5px; border-radius: 5px; border
    career's faces --cc-min) */
 .tiles { display: grid; gap: var(--tile-gap); grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: auto; }
 .tiles > * { aspect-ratio: var(--card-ar); min-height: var(--tile-min); container-type: inline-size; }
+/* the ninth game, Chinese 8-ball, closes the grid as one card the width of the row, as tall as the
+   cards beside it (the rows share one height: its own aspect gives way to the row's) */
+#playRow { grid-auto-rows: 1fr; }
+#playRow > .wide { grid-column: 1 / -1; aspect-ratio: auto; }
 .tiles.modes > * { min-height: var(--cc-min); }
 /* text size Large on a small phone, Larger on any phone upright: one card to a row, so every name
    and line fits whole; the solo rows' words wrap rather than cut off */
@@ -657,14 +662,19 @@ html:is(.introFade, .introDone) #menu .newgame > :not(.brand) { animation: none 
 html.introFade #menu .newgame > :not(.brand), html.introFade #menu .brand .foot { transition: opacity .24s ease-out; }
 #menuTitle.introSheen > span { color: transparent; -webkit-background-clip: text; background-clip: text; background-size: 300% 100%; background-position: var(--sx, 0%) 0;
   background-image: linear-gradient(100deg, #f5f5f7 0 41%, #ffffff 46%, #fff1d6 50%, #ffffff 54%, #b9b9be 59% 100%); }
-/* on its side: the eight games four to a row, then the modes beside the solo list */
+/* on its side: the games four to a row (the ninth the row's width), then the modes beside the solo list */
 @media (orientation: landscape) and (min-width: 560px) {
   #menu:not([data-paused]) { --gut: 24px; }
   #menu:not([data-paused]) .sheet.home { max-width: 1100px; }
   .newgame { --tile-gap: 10px; column-gap: 16px; grid-template: "brand brand" auto "glab glab" auto "games games" auto "mlab slab" auto "modes solos" auto / minmax(0, 1fr) minmax(0, 1fr); }
   .newgame .sect { margin: 20px 0 8px; font-size: 20px; }
   .newgame #playLab { margin-top: 12px; }
-  #playRow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #playRow { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: auto; }
+  /* the ninth game a slim strip under the eight, its name and line on one row, so all nine stay on
+     the first screen (956x440 with the iOS insets) */
+  #playRow > .wide { min-height: 48px; height: 48px; align-items: center; }
+  #playRow > .wide .tt { display: flex; align-items: baseline; gap: 10px; padding-bottom: 0; }
+  #playRow > .wide small { margin-top: 0; }
   .solo { min-height: 52px; gap: 12px; padding-block: 6px; }
   .solo b { font-size: 16px; }
   .solo small { font-size: 12px; }
@@ -1735,6 +1745,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="tile" id="playS" data-kind="snooker"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Snooker</b><small>Reds, then colours</small></span></button>
         <button class="tile" id="playC" data-kind="carom"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Three-Cushion</b><small>No pockets, 3 rails</small></span></button>
         <button class="tile" id="playB" data-kind="bumper"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Bumper Pool</b><small>Round the posts</small></span></button>
+        <button class="tile wide" id="playH" data-kind="heyball"><canvas class="art" aria-hidden="true"></canvas><span class="tt"><b>Chinese 8-Ball</b><small>Snooker pockets, pool balls</small></span></button>
       </div>
       <h2 class="sect" id="modeLab">Modes</h2>
       <div class="tiles modes" id="modeRow" role="group" aria-labelledby="modeLab">
@@ -2039,6 +2050,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <button class="topic" id="tab10" aria-controls="pan10"><span class="htile" aria-hidden="true"><span class="ball b10">10</span></span><span class="tt"><b>10-Ball</b><small>Call every shot</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabStr" aria-controls="panStr"><span class="htile" aria-hidden="true"><span class="ball b14">14</span></span><span class="tt"><b>Straight Pool</b><small>14.1, a point a ball</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabRot" aria-controls="panRot"><span class="htile" aria-hidden="true"><span class="ball b15">15</span></span><span class="tt"><b>Rotation</b><small>Numbers score, 61 wins</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
+        <button class="topic" id="tabHey" aria-controls="panHey"><span class="htile" aria-hidden="true"><span class="ball b8">8</span></span><span class="tt"><b>Chinese 8-Ball</b><small>Snooker pockets, pool balls</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabCall" aria-controls="panCall"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="11" cy="20" r="5" fill="#f6f4ec"/><circle cx="21" cy="11" r="6.2" fill="none" stroke="#ffe27a" stroke-width="1.8"/><circle cx="21" cy="11" r="3.4" fill="#2f6fd0"/></svg></span><span class="tt"><b>Called Shots</b><small>Ball, pocket, safety</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabSolo" aria-controls="panSolo"><span class="htile" aria-hidden="true"><svg viewBox="0 0 24 24" fill="#f2c94c" width="20" height="20"><path d="M10 3.5l1.7 5 5 1.7-5 1.7-1.7 5-1.7-5-5-1.7 5-1.7z"/><path d="M18 13.5l.85 2.15L21 16.5l-2.15.85L18 19.5l-.85-2.15L15 16.5l2.15-.85z"/></svg></span><span class="tt"><b>Solo Modes</b><small>Practice, tricks, career</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
         <button class="topic" id="tabCue" aria-controls="panCue"><span class="htile" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 27 20.5 11.5" stroke="#d9b37a" stroke-width="2.4" stroke-linecap="round"/><circle cx="23.5" cy="20.5" r="5.2" fill="#f6f4ec"/><path d="M10 25.5a10 10 0 0 1 4-8" fill="none" stroke="#f2c94c" stroke-width="1.5" stroke-linecap="round"/></svg></span><span class="tt"><b>Cue Elevation</b><small>Swerve and masse</small></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 6l6 6-6 6"/></svg></button>
@@ -2182,6 +2194,28 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li>Balls never leave the table's plane in felt, so the jump shot foul cannot happen.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the Snooker Tutorial</span></button></div>
+    </section>
+    <section class="pan" id="panHey" aria-labelledby="helpTitle" hidden>
+      <ul class="group rules">
+        <li><div><b>The Table</b><p>A 9 ft table with snooker pockets round pool balls: rounded jaws, the corners about 85 mm across. A ball has to be dead on line to drop.</p></div></li>
+        <li><div><b>Break</b><p>Ball in hand behind the head string. Pot a ball or drive four object balls to the cushions.</p></div></li>
+        <li><div><b>Open Table</b><p>Balls potted on the break do not choose the groups. The first legal pot after the break does: solids (1 to 7) or stripes (9 to 15).</p></div></li>
+        <li><div><b>Your Shot</b><p>Hit one of yours first. Then pot a ball or send any ball to a rail.</p></div></li>
+        <li><div><b>Fouls</b><p>The wrong ball first, no rail, or the cue ball down. Your opponent gets ball in hand anywhere.</p></div></li>
+        <li><div><b>Win</b><p>Clear your group, then pot the 8 in the pocket you name.</p></div></li>
+        <li><div><b>Lose</b><p>Pot the 8 before your group is clear, on a foul, in another pocket, or knock it off the table.</p></div></li>
+      </ul>
+      <h3 class="fineHead">Fine Print</h3>
+      <ul class="fine">
+        <li>A scratch on the break gives ball in hand behind the head string; the first ball hit must lie past it, unless the cue ball crosses it first.</li>
+        <li>An illegal break: your opponent plays the table as it lies, or has it racked again.</li>
+        <li>An 8 on the break is not a foul: the breaker has it spotted and plays on, or breaks again.</li>
+        <li>On an open table the 8 may not be the first ball hit.</li>
+        <li>The 8 is called for you from your aim; tap the power bar to choose another pocket.</li>
+        <li>A ball knocked off the table is a foul and stays off. There is no three-foul rule.</li>
+        <li>The rules are the World Chinese 8-Ball Masters rules (Rev. 2017), played at the Joy World Heyball Masters, whose final is a race to 21.</li>
+      </ul>
+      <div class="howAct"><button class="lessonGo tutGo" id="tutGoH" data-tut="heyball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the Chinese 8-Ball Tutorial</span></button></div>
     </section>
     <section class="pan" id="pan10" aria-labelledby="helpTitle" hidden>
       <ul class="group rules">
@@ -2604,6 +2638,15 @@ const POCKET_STYLES = {
      radius of the rubber's curve from the nose into the facing, JAW_ARCS) and the drops set
      deeper behind the nose. Tuned in physics against the pool pockets (snooker-check). */
   snooker: { corner: 0.090, side: 0.104, cornerFace: 137, sideFace: 101, cornerR: 0.05, sideR: 0.05, shelf: 0.045, sideBack: 0.04, round: 0.03, sideRound: 0.022 },
+  /* Chinese 8-ball (1o), whatever setPockets says: snooker-style pockets round pool's balls,
+     the game's identity. The Joy tables the World Chinese 8-Ball Masters plays on are listed with
+     corner openings of about 85 mm (Joy Q7/Q8 listings; aimgeometry's Chinese 8-ball guide) and
+     the middles a little wider (about 90 mm, Stellarway's Chinese table): here that is the throat,
+     the narrowest gap a ball passes, between the facings where they meet the rail (84.9 and 89.9
+     mm); the jaw points on the nose line stand 90 and 104 mm apart, snooker's own, so these are
+     snooker's mouths round a ball 9% larger (heyball-check pins both). Rounded jaws as snooker's
+     (JAW_ARCS); the middles cut squarer (98 degrees), the holes and shelves sized for 57.15 mm. */
+  heyball: { corner: 0.090, side: 0.104, cornerFace: 137, sideFace: 98, cornerR: 0.056, sideR: 0.056, shelf: 0.047, sideBack: 0.043, round: 0.03, sideRound: 0.022 },
 };
 const CUSH_W = 0.05;              /* cushion depth, nose to rail */
 const POCKET_LIP = 0.02;          /* the cloth falls away into the hole over this much: a ball dying on it drops */
@@ -2636,6 +2679,12 @@ const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
    m/s of impact (pool 0.88 and 0.03) and a grippier nose (0.24, pool 0.2), so english takes more
    off a rail. physics-check and carom-check measure what those give. */
 const CAROM_SIZE = [2.84, 1.42];
+/* Chinese 8-ball (setTable('heyball'), 1o): the 9 ft bed, 2540 x 1270 mm between the cushion
+   noses (World Chinese 8-Ball Masters Rules of Chinese 8-ball, Rev. 2017, equipment: 2540 x
+   1260-1270 mm; Joy's tables list 100 x 50 in), pool's 57.15 mm balls and cloth (POOL_PHYS), and
+   its own pockets, POCKET_STYLES.heyball. The head string ("break line") a quarter of the length
+   from the head cushion, 635 mm, as the Masters rules and Joy have it. */
+const HEYBALL_SIZE = [2.54, 1.27];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre;
@@ -2725,8 +2774,8 @@ function buildTable() {
   if (TABLE === 'carom') { buildCarom(); return; }
   if (TABLE === 'bumper') { buildBumper(); return; }
   BUMPERS = [];
-  const snk = TABLE === 'snooker', st = POCKET_STYLES[snk ? 'snooker' : POCKETS_STYLE];
-  [TL, TW] = snk ? SNOOKER_SIZES[SNOOKER_SIZE] : TABLE_SIZES[TABLE];
+  const snk = TABLE === 'snooker', hey = TABLE === 'heyball', st = POCKET_STYLES[snk ? 'snooker' : hey ? 'heyball' : POCKETS_STYLE];
+  [TL, TW] = snk ? SNOOKER_SIZES[SNOOKER_SIZE] : hey ? HEYBALL_SIZE : TABLE_SIZES[TABLE];
   HEAD_X = TL / 4; FOOT = [TL * 3 / 4, TW / 2];
   CORNER_W = st.corner; SIDE_W = st.side; CORNER_SHELF = st.shelf; SIDE_BACK = st.sideBack;
   CORNER_FACE = st.cornerFace * Math.PI / 180; SIDE_FACE = st.sideFace * Math.PI / 180;
@@ -2743,8 +2792,10 @@ function buildTable() {
   CPU_MOUTH_N = POCKET_AIM.map((p, k) => k === 1 || k === 4 ? [0, p[1] < TW / 2 ? 1 : -1]
     : [(p[0] < TL / 2 ? 1 : -1) * Math.SQRT1_2, (p[1] < TW / 2 ? 1 : -1) * Math.SQRT1_2]);
   if (snk) buildSnooker(st);
+  if (hey) roundJaws(st);
 }
-/* size '7' or '9' (anything else is '7'), 'bumper' (1g), 'snooker' (1j) or 'carom' (1k). Each table
+/* size '7' or '9' (anything else is '7'), 'bumper' (1g), 'snooker' (1j), 'carom' (1k) or 'heyball'
+   (Chinese 8-ball, 1o: its own bed and pockets, whatever setPockets says). Each table
    brings its own ball and cloth (physOf). Ball, mouths, jaws, shelf and cushions are the same on the
    two pool sizes; only the bed changes, with the head string and foot spot at a quarter from each end.
    shape, when given, sets the bumper table's shape ('rect', anything else 'octagon') for this and
@@ -2757,7 +2808,7 @@ function setTable(size, shape) {
     TABLE = 'snooker';
   } else {
     if (shape !== undefined) BUMPER_SHAPE = shape === 'rect' ? 'rect' : 'octagon';
-    TABLE = size === 'bumper' || size === 'carom' ? size : (POOL_TABLE = String(size) === '9' ? '9' : '7');
+    TABLE = size === 'bumper' || size === 'carom' || size === 'heyball' ? size : (POOL_TABLE = String(size) === '9' ? '9' : '7');
   }
   buildTable();
   return TABLE;
@@ -2771,11 +2822,13 @@ function setPockets(style) {
 }
 setTable('7');
 function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
-/* 8-ball (and 14.1): a triangle with the 8 in the middle, a solid and a stripe in the back corners.
+/* 8-ball (and 14.1, and Chinese 8-ball: the Masters rules rack the 15 in a triangle, its apex on
+   the foot spot and the 8 in the middle of the third row): a triangle with the 8 in the middle, a
+   solid and a stripe in the back corners.
    9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. 10-ball: a four-row triangle,
    the 1 at the apex and the 10 in the middle of the third row. Rotation: the 1 at the apex, the 2
    and 3 in the back corners, the 15 in the middle. */
-const RACKS = { 8: [[1], [9, 2], [10, 8, 3], [11, 4, 12, 5], [6, 13, 7, 14, 15]], 9: [[1], [2, 3], [4, 9, 5], [6, 7], [8]], 10: [[1], [2, 3], [4, 10, 5], [6, 7, 8, 9]],
+const RACKS = { 8: [[1], [9, 2], [10, 8, 3], [11, 4, 12, 5], [6, 13, 7, 14, 15]], heyball: [[1], [9, 2], [10, 8, 3], [11, 4, 12, 5], [6, 13, 7, 14, 15]], 9: [[1], [2, 3], [4, 9, 5], [6, 7], [8]], 10: [[1], [2, 3], [4, 10, 5], [6, 7, 8, 9]],
   rotation: [[1], [10, 11], [12, 15, 13], [4, 5, 6, 7], [2, 8, 9, 14, 3]] };
 function rack(kind) {
   const sp = 2 * BALL_R + RACK_GAP, dx = sp * Math.sqrt(3) / 2;
@@ -3218,7 +3271,10 @@ function simulateShot(balls, shot) {
    groups), bumper pool, snooker and carom are two-player games and have none. The ring sets
    leave out what assumes one opponent: no push-out, no three-foul loss. rulesetsFor(kind) lists
    the two-player sets; ringRulesets() the ring ones. */
-const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation'];
+const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation', 'heyball'];
+/* the 8-ball games: 8-ball and Chinese 8-ball (heyball, 1o), one module (judge8), the same groups,
+   the same 8 last; only the table and the ruleset differ */
+const is8 = k => k === '8' || k === 'heyball';
 const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
   pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2, offSpot: 'spot' };
 const RULESETS = {
@@ -3244,6 +3300,24 @@ const RULESETS = {
   bumper: { game: 'bumper', name: 'Bumper pool', source: 'felt house rule', description: 'Five balls each round the posts to the far cup; the marked ball first.' },
   carom: { game: 'carom', name: 'Three-cushion', source: 'UMB rules, simplified', description: 'Your cue ball meets both others, with three cushions before the second. A point each.' },
   snooker: { game: 'snooker', name: 'Snooker', source: 'WPBSA rules, simplified', description: 'A red, then a colour, until the reds are gone; then the colours in order.' },
+  /* Chinese 8-ball (heyball, 1o), the game of the Joy World Heyball Masters, on judge8 like
+     8-ball. The World Chinese 8-Ball Masters Rules of Chinese 8-ball (Rev. 2017; the WCBS and
+     Joy's "Rules of Chinese Pool", Rev. 2017, updated 2019), as they are published and quoted:
+     the cue ball in hand behind the head string for the break; a legal break pots a ball or drives
+     four or more object balls to the cushions (breakRails 4); balls potted on the break do not
+     choose the groups: the table stays open after the break, and the first ball legally potted
+     after it does (judge8 never groups on the break); on an open table the 8 may not be hit
+     first (legalTargets); an 8 potted on a legal break is not a foul: the breaker has it spotted
+     and plays on, or re-breaks (gameBallBreak 'option'); a scratch on the break gives the
+     incoming player the cue ball in hand behind the head string (breakScratch 'kitchen', with the
+     WPA's first-contact rule in poolFoul), any other foul ball in hand anywhere (foulHand
+     'table'); the 8 is played to a nominated pocket (calls 'game'), and the game is lost by
+     potting it before the group is clear, on a foul, in another pocket, or by driving it off the
+     table. No three-foul rule. felt's choices where the sources differ or are silent: an illegal
+     break hands the incoming player the table as it lies or a re-rack, as WPA 8-ball does
+     (badBreak 'rerack'); balls driven off the table stay off (offSpot 'stay', as WPA 8-ball). */
+  heyball: { game: 'heyball', name: 'Chinese 8-ball', source: 'World Chinese 8-Ball Masters rules (Rev. 2017)', breakAny: true, calls: 'game', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option', offSpot: 'stay',
+    description: 'Balls potted on the break leave the table open: the first legal pot after it chooses your group. A legal break pots a ball or drives four to the cushions. Ball in hand anywhere after a foul, and the 8 last, to the pocket you name.' },
   '9-ring': { game: '9', ring: true, name: '9-ball ring', source: 'ring game, felt house rule', gameBallBreak: 'win',
     description: 'Two to four players in turn. Lowest ball first; a foul gives the next player ball in hand. Whoever pots the 9 legally wins the rack.' },
   'rotation-ring': { game: 'rotation', ring: true, name: 'Rotation ring', source: 'American rotation, ring game, felt house rule', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
@@ -3253,7 +3327,7 @@ const RULESETS = {
     description: 'Straight pool for two to four in turn: any ball, called, a point each, fourteen down and the rack again. A foul costs a point. First to the race wins.' },
 };
 for (const [id, r] of Object.entries(RULESETS)) Object.assign(r, Object.assign({}, RULE_BASE, r), { id });
-const DEFAULT_RULESET = { 8: '8-house', 9: '9-house', 10: '10-wpa', straight: 'straight-wpa', rotation: 'rotation', bumper: 'bumper', carom: 'carom', snooker: 'snooker' };
+const DEFAULT_RULESET = { 8: '8-house', 9: '9-house', 10: '10-wpa', straight: 'straight-wpa', rotation: 'rotation', bumper: 'bumper', carom: 'carom', snooker: 'snooker', heyball: 'heyball' };
 const rulesetsFor = kind => Object.values(RULESETS).filter(r => r.game === kind && !r.ring);
 const ringRulesets = () => Object.values(RULESETS).filter(r => r.ring);
 /* the called-shot configuration: mode (who must call: 'off', 'eight' (8-ball games, by the
@@ -3293,14 +3367,14 @@ const rulesOf = g => g.rules || makeRules(g.kind);
 /* the players at the table (2 to 4), and who comes after p round it */
 const playersOf = g => g.rules && g.rules.players > 2 ? g.rules.players : 2;
 const nextOf = (g, p) => (p + 1) % playersOf(g);
-const gameBallOf = g => g.kind === '8' ? 8 : g.kind === '9' ? 9 : g.kind === '10' ? 10 : null;
+const gameBallOf = g => is8(g.kind) ? 8 : g.kind === '9' ? 9 : g.kind === '10' ? 10 : null;
 /* who must call this game's shots: 'none', 'game' (only a shot at the game ball) or 'all' */
 function callScope(g) {
   const R = rulesOf(g);
   if (!POCKET_KINDS.includes(g.kind) || g.mode) return 'none';
   const m = R.call.mode;
-  let s = m === 'off' ? 'none' : m === 'eight' ? (g.kind === '8' ? R.calls === 'none' ? 'all' : R.calls : 'none') : m === 'all' ? 'all' : R.calls;
-  if (s === 'none' && R.call.eight && g.kind === '8') s = 'game';
+  let s = m === 'off' ? 'none' : m === 'eight' ? (is8(g.kind) ? R.calls === 'none' ? 'all' : R.calls : 'none') : m === 'all' ? 'all' : R.calls;
+  if (s === 'none' && R.call.eight && is8(g.kind)) s = 'game';
   return s;
 }
 /* what the next shot's declaration must name, or null when it needs none: pocket (the pocket
@@ -3348,7 +3422,8 @@ const groupOf = n => n === 0 || n === 8 ? null : n < 8 ? 'solids' : 'stripes';
 const otherGroup = gr => gr === 'solids' ? 'stripes' : 'solids';
 const onTable = g => g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
 const copyGame = g => JSON.parse(JSON.stringify(g));
-/* kind: '8', '9', '10', 'straight' (14.1 continuous), 'rotation', 'bumper', 'snooker' or 'carom'.
+/* kind: '8', '9', '10', 'straight' (14.1 continuous), 'rotation', 'heyball' (Chinese 8-ball, on its
+   own table: newGame sets it), 'bumper', 'snooker' or 'carom'.
    opts.rules: the rules (makeRules); carom takes its own opts. A pocket game also carries call (the
    declaration for the next shot, set by the page or the CPU before the shot: { ball, pocket,
    safety, push, bank, kick, combo, auto }), option (a choice pending for a player, see
@@ -3358,7 +3433,8 @@ function newGame(kind, opts) {
   if (kind === 'bumper') return bumperGame();
   if (kind === 'snooker') return snookerGame();
   if (kind === 'carom') return caromGame(opts);
-  if (TABLE === 'bumper' || TABLE === 'snooker' || TABLE === 'carom') setTable(POOL_TABLE);
+  if (kind === 'heyball') { if (TABLE !== 'heyball') setTable('heyball'); }
+  else if (TABLE === 'bumper' || TABLE === 'snooker' || TABLE === 'carom' || TABLE === 'heyball') setTable(POOL_TABLE);
   const R = makeRules(kind, opts && opts.rules);
   const np = R.players, zeros = () => Array(np).fill(0);
   const g = { kind, balls: rack(kind), turn: 0, groups: [null, null], open: true, breakShot: true, inHand: 'kitchen', fouls: zeros(), winner: null, shots: 0, dry: 0, verdict: null,
@@ -3373,7 +3449,7 @@ function legalTargets(g) {
   if (g.kind === 'carom') return caromTargets(g);
   const on = onTable(g);
   if (g.mode || g.kind === 'straight') return on;   /* practice, trick shots and 14.1: any ball first */
-  if (g.kind !== '8') return on.slice(0, 1);       /* 9-ball, 10-ball, rotation: the lowest */
+  if (!is8(g.kind)) return on.slice(0, 1);       /* 9-ball, 10-ball, rotation: the lowest */
   if (g.open) { const t = on.filter(n => n !== 8); return t.length ? t : [8]; }
   const mine = on.filter(n => groupOf(n) === g.groups[g.turn]);
   return mine.length ? mine : [8];
@@ -3630,7 +3706,7 @@ function judgeStraight(g, r) {
 }
 /* the modules: each game's judge; legalTargets and callNeed read the game the same way */
 const RULE_MODULES = {
-  8: { judge: judge8 }, 9: { judge: judgeLowest }, 10: { judge: judgeLowest }, rotation: { judge: judgeRotation }, straight: { judge: judgeStraight },
+  8: { judge: judge8 }, heyball: { judge: judge8 }, 9: { judge: judgeLowest }, 10: { judge: judgeLowest }, rotation: { judge: judgeRotation }, straight: { judge: judgeStraight },
   bumper: { judge: (g, r) => judgeBumper(g, r) }, snooker: { judge: (g, r) => judgeSnooker(g, r) }, carom: { judge: (g, r) => judgeCarom(g, r) },
 };
 /* a pending choice (game.option, for player option.who) made: a new game, g untouched, or null
@@ -4362,7 +4438,7 @@ function cpuValue(g, j, L) {
   /* points games: a little for each point (rotation's balls are worth their numbers) */
   if (R.score) v += (R.score === 'numbers' ? 2 : 20) * (j.verdict.scored || 0);
   v -= cpuDryCost(g, j, v);
-  if (g.kind === '8' && j.groups[me]) for (const n of j.verdict.potted) v += groupOf(n) === j.groups[me] ? 12 : groupOf(n) ? -12 : 0;
+  if (is8(g.kind) && j.groups[me]) for (const n of j.verdict.potted) v += groupOf(n) === j.groups[me] ? 12 : groupOf(n) ? -12 : 0;
   return v;
 }
 /* the nearest legal ball the cue ball at (x, y) can hit full on a straight, clear line, as its
@@ -4444,7 +4520,7 @@ function cpuSafeties(g, cx, cy, targets, place) {
 /* the break: from the kitchen, full and square on the head ball (the 1 in 9-ball), a touch of draw */
 function cpuBreak(g, rnd, L) {
   const objs = g.balls.filter(b => b.on && b.n > 0);
-  const head = (g.kind !== '8' && g.kind !== 'straight' && objs.find(b => b.n === 1)) || objs.reduce((a, b) => b.x < a.x ? b : a);
+  const head = (!is8(g.kind) && g.kind !== 'straight' && objs.find(b => b.n === 1)) || objs.reduce((a, b) => b.x < a.x ? b : a);
   const place = [HEAD_X - 0.03, TW / 2 + (rnd() - 0.5) * 0.3];
   return { angle: Math.atan2(head.y - place[1], head.x - place[0]), power: L.brk, spin: { x: 0, y: -0.2 }, place };
 }
@@ -5279,7 +5355,7 @@ function shotMoments(g, r, n, run = { pots: 0, fromBreak: false }) {
   /* a foul, a push-out, a safety or a missed call (the called-shot games) earns no moment */
   if (v.foul || (v.call && (v.call.push || v.call.safety || (v.call.need && !v.call.made)))) legal = [];
   else if (g.kind === 'bumper') legal = down;
-  else if (g.kind === '8' && !g.mode) {
+  else if (is8(g.kind) && !g.mode) {
     const mine = g.groups[me];
     legal = down.filter(x => x === 8 ? v.win === me : g.open || groupOf(x) === mine);
   } else legal = down;
@@ -6133,6 +6209,26 @@ const TUTORIALS = [
       goal: (g, r, n) => TUT_FOUL(n.verdict) || (n.verdict.potted.includes(57) ? null : 'The yellow stayed up.') },
   ] },
 ];
+/* Chinese 8-ball (heyball): its own table and its rules' differences from 8-ball, on 8-ball's
+   own layouts where they are the same lesson (the open table, ball in hand anywhere). A legal
+   break leaves the table open whatever drops (World Chinese 8-Ball Masters rules); and the 8
+   goes to a nominated pocket: the step names it for the player (g.call, the page's call is not
+   taken in a tutorial), as the referee would hear it. */
+{
+  const E = TUTORIALS[0].steps;
+  TUTORIALS.push({ id: 'heyball', kind: 'heyball', name: 'Chinese 8-ball', table: ['heyball'], pockets: 'regulation', ctx: () => ({ group: 'solids' }), steps: [
+    { head: 'The break', text: () => 'Break from behind the line: pot a ball or drive four to the cushions. Whatever drops, the table stays open.',
+      balls: () => rack('heyball').map(b => [b.n, b.n ? [b.x, b.y] : [HEAD_X * 0.8, TW / 2]]),
+      setup: g => { g.breakShot = true; g.shots = 0; }, aim: 1, ring: () => ({ ball: 1 }),
+      goal: (g, r, n) => n.verdict.illegalBreak ? 'Not a legal break: four balls to the cushions, or a pot.' : TUT_FOUL(n.verdict) || (n.option ? 'The 8 went down on the break.' : null),
+      done: () => ['Legal break', 'and the table is still open'] },
+    Object.assign({}, E[0], { text: () => 'After the break the table is open: pot any ball but the 8, and its group is yours.' }),
+    E[2],
+    Object.assign({}, E[3], { head: 'The 8, named', text: c => `Your ${c.group} are down. The 8 goes to the pocket you name: here, the marked one.`,
+      setup: (g, c) => { E[3].setup(g, c); g.call = { ball: 8, pocket: 2, auto: true }; }, ring: () => ({ pocket: 2 }),
+      goal: (g, r, n) => n.winner === 0 ? null : n.winner === 1 ? (n.verdict.foul ? 'The 8 went down on a foul: that loses the rack.' : 'The 8 went in another pocket: that loses the rack.') : TUT_FOUL(n.verdict) || 'The 8 stayed up.' }),
+  ] });
+}
 /* carom's "why no point", in words (the page's banner says the same) */
 function caromNo(c, need) {
   return !c.balls.length ? 'No ball hit.' : c.balls.length < 2 ? 'Only one ball.' : `${c.cushions} cushion${c.cushions === 1 ? '' : 's'} before the second ball: it needs ${need}.`;
@@ -6168,6 +6264,7 @@ const TUT_SOLS = {
   'bumper': [[1.492257, 0.55, -0.5, 0, 21], [0.506145, 0.22, 0, 0, 22], [1.937315, 0.15, 0, 0, 23], [-1.902409, 0.15, 0, 0, 23]],
   'carom': [[-0.829031, 0.38, 0, 0], [-1.37881, 1, 0, 0], [-2.975786, 0.65, 0.5, 0]],
   'snooker': [[0.445059, 0.38, 0, 0], [-0.872665, 0.22, 0, 0], [2.356194, 0.65, 0, 0, 0.570105, 0.911562], [2.443461, 0.22, 0, 0]],
+  'heyball': [[-0.02618, 0.75, 0, 0], [0.445059, 0.38, 0, 0], [0.794125, 0.22, 0, 0, 2.184891, 0.914891], [-0.383972, 0.3, 0, 0]],
 };
 /* the stored solution of a step as a shot: { angle, power, spin, place ([x, y] or null), ball } */
 function tutSol(id, i) {
@@ -6409,13 +6506,14 @@ const HERO_SHOTS = {
   'rotation|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
   'rotation|9|regulation': { c: [0.25, 0.58], a: -0.090302, p: 1, s: [0, 0.2] },
   'rotation|9|generous': { c: [0.25, 0.66], a: -0.163891, p: 1, s: [0, -0.25] },
+  'heyball': { c: [0.25, 0.34], a: 0.145565, p: 1, s: [0, 0.2] },
   'snooker|compact': { c: [0.196414, 0.570208], a: -0.001708, p: 0.85, s: [0.4, 0] },
   'snooker|full': { c: [0.198095, 0.570208], a: -0.007422, p: 1, s: [0, -0.3] },
   'bumper|octagon': { a: -2.805617, p: 0.7, s: [0, 0] },
   'bumper|rect': { a: -2.207842, p: 0.55, s: [0, 0] },
   'carom': { a: -2.801253, p: 0.9, s: [0.5, 0.2] },
 };
-const heroKey = kind => POCKET_KINDS.includes(kind) ? `${kind}|${TABLE}|${POCKETS_STYLE}` : kind === 'snooker' ? 'snooker|' + SNOOKER_SIZE : kind === 'bumper' ? 'bumper|' + BUMPER_SHAPE : 'carom';
+const heroKey = kind => kind === 'heyball' ? 'heyball' : POCKET_KINDS.includes(kind) ? `${kind}|${TABLE}|${POCKETS_STYLE}` : kind === 'snooker' ? 'snooker|' + SNOOKER_SIZE : kind === 'bumper' ? 'bumper|' + BUMPER_SHAPE : 'carom';
 /* the struck ball: the cue ball, carom's white, bumper pool's marked red */
 const heroBall = kind => kind === 'bumper' ? B_MARK[0] : kind === 'carom' ? C_CUE[0] : 0;
 /* the layout and the shot on the current table (the caller sets the game's table first):
@@ -10590,7 +10688,7 @@ function guideLines(c, ang) {
   let first = null, legal = guideLegal, cue = [], bounces = [];
   if (P) {
     first = P.first === null ? null : game.balls.find(b => b.n === P.first);
-    const wrong = first && !(game.kind === '8' && game.breakShot) && !legalTargets(game).includes(first.n);
+    const wrong = first && !(is8(game.kind) && game.breakShot) && !legalTargets(game).includes(first.n);
     /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
     const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
       && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
@@ -11201,6 +11299,7 @@ function start(kind, o = null) {
   setTable(o ? o.table : settings.table, o ? o.bumperTable : settings.bumperTable);
   setPockets(o ? o.pockets : settings.pockets);
   if (kind === 'snooker') setTable('snooker', o && o.snooker ? o.snooker : settings.snookerTable);
+  if (kind === 'heyball') setTable('heyball');   /* Chinese 8-ball: its own table, whatever the pool size and pockets say */
   /* a pocket game's rules: the event's when it passes them (locked), else the settings' (5c) */
   game = kind === 'snooker' ? snookerGame(o ? 1 : settings.snookerFrames) : newGame(kind, kind === 'carom' ? (o && o.carom ? o.carom : caromOpts()) : { rules: rulesFor(kind, o) });
   if (o && o.breaker > 0 && o.breaker < playersOf(game) && kind !== 'bumper' && kind !== 'carom') { game.turn = o.breaker; game.breaker = o.breaker; }
@@ -11547,7 +11646,9 @@ function pickPocket(k) {
   if (!callOn() || callLocked()) return;
   callSafe = false;
   if (!callMan || callMan.ball == null) {
-    const a = obviousCall() || (hint && hint.n ? { ball: hint.n } : null);
+    /* the ball from the aim, else auto aim's (a legal one), else the one legal ball (the 8 with the group clear: a tap on its
+       pocket is the whole call, even when the tap meant the 8 sitting in the jaws) */
+    const t = legalTargets(game), a = obviousCall() || (hint && t.includes(hint.n) ? { ball: hint.n } : null) || (t.length === 1 ? { ball: t[0] } : null);
     callMan = { ball: a ? a.ball : null, pocket: k, bank: false, kick: false, combo: false };
   } else callMan.pocket = k;
   callTick(); hud();
@@ -11563,7 +11664,7 @@ function callWarn(c) {
   if (!settings.calls.warn || !c || c.ball == null) return '';
   const t = legalTargets(game);
   if (game.kind === 'straight' || t.includes(c.ball) || (c.combo && c.ball !== t[0])) return '';
-  return game.kind === '8' ? `The ${c.ball} is not yours to hit first` : `The ${c.ball} is not on: hit the ${t[0]} first`;
+  return is8(game.kind) ? `The ${c.ball} is not yours to hit first` : `The ${c.ball} is not on: hit the ${t[0]} first`;
 }
 /* a pocket in words as the player sees the table: "top left corner", "right side" (the view turns
    the table upright on a phone, so the words come from the screen) */
@@ -13728,7 +13829,7 @@ function loadSettings() {
        Follow was the default, is not kept */
     if (o.camV === 2 && ['auto', 'off'].includes(o.camera)) s.camera = o.camera;
     if (Array.isArray(o.names)) s.names = [cleanName(o.names[0]), cleanName(o.names[1])];
-    if (['8', '9', 'bumper', 'carom', 'snooker', '10', 'straight', 'rotation'].includes(o.last)) s.last = o.last;
+    if (['8', '9', 'bumper', 'carom', 'snooker', '10', 'straight', 'rotation', 'heyball'].includes(o.last)) s.last = o.last;
   } catch (e) { }
   return s;
 }
@@ -14020,7 +14121,7 @@ function hideOverlays() {
   if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
 }
 
-/* ---- 6a. the menu's sheets. Home: the eight games (each opens its setup), the modes (each opens
+/* ---- 6a. the menu's sheets. Home: the nine games (each opens its setup), the modes (each opens
    its own setup), the solo list, Stats, Settings and How to play. Setup: the opponent (two players, named or not, or one
    of three CPU opponents), the table options that game has, Break. Every sheet goes back to the
    menu it came from (home, or the pause menu); so does Esc. ---- */
@@ -14060,6 +14161,7 @@ const KINDS = {
   10: { name: '10-ball', ball: 'b10', num: '10', sub: 'Lowest ball first, and call every shot. A called 10 wins.' },
   straight: { name: 'Straight pool', ball: 'b14', num: '14', sub: '14.1 continuous: any ball, called, a point each. Fourteen down, rack again.' },
   rotation: { name: 'Rotation', ball: 'b15', num: '15', sub: 'Lowest ball first; every ball scores its number. 61 wins.' },
+  heyball: { name: 'Chinese 8-ball', ball: 'b8', num: '8', sub: 'Snooker pockets, pool balls. Clear your group, then the 8 to a named pocket.' },
 };
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
@@ -14093,6 +14195,7 @@ function setupWords(kind, short) {
   const tb = kind === 'bumper' ? (settings.bumperTable === 'rect' ? 'rectangle' : 'octagon')
     : kind === 'carom' ? `${settings.caromRace} points` + (settings.caromCush === 1 ? ', one cushion' : '')
     : kind === 'snooker' ? (settings.snookerTable === 'full' ? 'full 12 ft' : 'compact 10 ft') + (settings.snookerFrames === 3 ? ', best of 3' : '')
+    : kind === 'heyball' ? '9 ft'
     : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '') + (kind === 'straight' ? `, to ${settings.race141}` : '')
       + ({ '8-wpa': ', WPA', '9-wpa': ', WPA', '10-house': ', obvious free' }[kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : kind === '10' ? settings.rules10 : ''] || '');
   const w = KINDS[kind].name + who + ', ' + tb;
@@ -14113,11 +14216,13 @@ function syncSetupRules() {
    back to the button. ---- */
 const RULES_SRC = { '8-house': 'House rules', '8-wpa': 'WPA world standardized rules', '9-house': 'House rules', '9-wpa': 'WPA world standardized rules, with the push out',
   '10-wpa': 'WPA world standardized rules', '10-house': 'WPA rules, obvious shots called for you', 'straight-wpa': '14.1 continuous, WPA world standardized rules',
-  rotation: 'American rotation, house rules', bumper: 'House rules', carom: 'UMB rules, simplified', snooker: 'WPBSA rules, simplified' };
+  rotation: 'American rotation, house rules', bumper: 'House rules', carom: 'UMB rules, simplified', snooker: 'WPBSA rules, simplified',
+  heyball: 'World Chinese 8-Ball Masters rules' };
 function rulesInfoOf(kind) {
   const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : RULESETS[DEFAULT_RULESET[kind]], ps = [R.description];
   if (kind === '8' || kind === '9') ps.push(settings.stalemate ? `Stalemate: after ${STALEMATE_INNINGS} innings with no ball potted, the balls are racked again.` : 'Stalemate: play on. A rack with no ball potted is played out.');
   if (kind === 'straight') ps.push(`First to ${settings.race141} points wins.`);
+  if (kind === 'heyball') ps.push('The 8 loses the rack if it drops before your group is clear, on a foul, in another pocket, or off the table. An 8 on the break is spotted, or the breaker breaks again.');
   if (kind === 'carom') ps.push(`First to ${settings.caromRace} points wins.` + (settings.caromCush === 1 ? ' The easier game: one cushion before the second ball is enough.' : ''));
   if (kind === 'snooker') ps.push(settings.snookerFrames === 3 ? 'Best of three frames.' : 'One frame.', 'After a foul the player fouled chooses: play on, have it played again, or take a free ball when snookered.');
   return { id: R.id, title: titleCase(KINDS[kind].name) + ' Rules', src: RULES_SRC[R.id] || R.source, ps };
@@ -14189,6 +14294,7 @@ function previewGame(kind) {
   setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
   setPockets(settings.pockets);
   if (kind === 'snooker') setTable('snooker', settings.snookerTable);
+  if (kind === 'heyball') setTable('heyball');
   game = newGame(kind);
   /* with motion on its table's image waits for the card to land (layout(true), menuArt) */
   if (sig() !== was) layout(motionOn());
@@ -14201,7 +14307,7 @@ function showSetup(kind) {
   setupTitle.textContent = titleCase(k.name); setupSub.textContent = noWidow(k.sub);
   setupBall.className = 'ball ' + k.ball; setupBall.textContent = k.num;
   breakBtn.textContent = kind === 'bumper' ? 'Play' : 'Break';
-  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'carom' || kind === 'snooker';
+  for (const el of setupSheet.querySelectorAll('.pool')) el.hidden = kind === 'bumper' || kind === 'carom' || kind === 'snooker' || kind === 'heyball';
   for (const el of setupSheet.querySelectorAll('.bump')) el.hidden = kind !== 'bumper';
   for (const el of setupSheet.querySelectorAll('.carom')) el.hidden = kind !== 'carom';
   for (const el of setupSheet.querySelectorAll('.snk')) el.hidden = kind !== 'snooker';
@@ -14283,7 +14389,7 @@ function quitToHome() {
   if (tutOn()) tutRestore();   /* a tutorial's own table goes, the one before it comes back (6d) */
   solo = null; paused = null; state = 'menu'; career = null;
   tab = null; stroke = null; pull = null; hint = null; placeAt = null; placeBack = null; move = null; cpuIt = null; cpuPlan = null; cpuReady = null; aimAnim = null;
-  game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9', '10', 'straight', 'rotation'].includes(game.kind) ? game.kind : '8'));
+  game = newGame(tutKeptKind || (['bumper', 'carom', 'snooker', '9', '10', 'straight', 'rotation', 'heyball'].includes(game.kind) ? game.kind : '8'));
   resetCall(); optBox.hidden = true; freePick = false;
   tutKeptKind = null;
   closeSolo();
@@ -14361,17 +14467,19 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
   const keep = { view, dpr, RAIL, table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE };
   try {
     if (kind === 'snooker') GEO.setTable('snooker', settings.snookerTable);
-    else GEO.setTable(kind === 'bumper' ? 'bumper' : settings.table, settings.bumperTable);
+    else GEO.setTable(kind === 'bumper' || kind === 'heyball' ? kind : settings.table, settings.bumperTable);
     GEO.setPockets(settings.pockets);
     /* a card shows the rack alone: the cue ball would sit under its words */
-    const g = newGame(kind), balls = g.balls.filter(b => b.on && !(mode === 'card' && b.n === 0 && (POCKET_KINDS.includes(kind) || kind === 'snooker')));
+    const g = newGame(kind), hey = kind === 'heyball' && mode === 'card' ? heyArt(g.balls, w, h) : null;
+    const balls = g.balls.filter(b => b.on && !(mode === 'card' && b.n === 0 && !hey && (POCKET_KINDS.includes(kind) || kind === 'snooker')));
     if (kind === 'carom' && mode !== 'fit') caromArt(balls, w > h * 1.6);
     dpr = d; RAIL = RAIL_MAX;
     /* the table's long side along the canvas's; a tall tile zooms in on the rack's end */
     const up = h > w * 1.05, W = (up ? TW : TL) + 2 * RAIL, H = (up ? TL : TW) + 2 * RAIL, fit = Math.min(w / W, h / H);
     /* snooker: a close-up of the reds' triangle and the pink (the black just beyond them) */
     const obj = kind === 'snooker' ? balls.filter(b => isRed(b.n) || b.n === 61) : balls.filter(b => b.n > 0);
-    if (mode !== 'fit') view = coverView(w, h, kind, mode, obj, low);
+    if (hey) view = hey;
+    else if (mode !== 'fit') view = coverView(w, h, kind, mode, obj, low);
     else {
       const k = kind === 'bumper' ? fit : Math.min(up ? w / W : h / H, fit * 1.7), span = (up ? h : w) / k, mid = obj.reduce((a, b) => a + b.x, 0) / Math.max(1, obj.length);
       const c = kind === 'bumper' || span >= TL + 2 * RAIL ? TL / 2 : clamp(mid, span / 2 - RAIL, TL + RAIL - span / 2);
@@ -14393,6 +14501,19 @@ function paintRack(cv, kind, mode = 'fit', low = 0) {
   }
 }
 
+/* Chinese 8-ball's card (the ninth, a row wide): the game is its pockets, so the card is one of
+   them close up, the foot corner's rounded jaws and its drop in the card's top right, the rail's
+   wood beyond, the 8 hanging in the jaws and the cue ball coming down the line at it (its setup
+   shows the break). Returns the view, the cloth a third of a metre high whatever the card's size;
+   balls is the card's rack, the rest taken off. */
+function heyArt(balls, w, h) {
+  const k = Math.max(h / (h < 60 ? 0.2 : 0.31), w / (TL + RAIL_MAX)), P = POCKET_AIM[2], u = [-Math.SQRT1_2, Math.SQRT1_2], r = BALL_R;
+  const at = d => [P[0] + u[0] * d, P[1] + u[1] * d];
+  const pos = { 8: at(1.9 * r), 0: at(1.9 * r + 0.15) };
+  for (const b of balls) { const p = pos[b.n]; if (p) { b.x = p[0]; b.y = p[1]; b.on = true; } else b.on = false; }
+  /* the rail's outer edge at the card's right edge, the mouth's middle 40% down the card */
+  return { k, portrait: false, ox: w - (TL + RAIL_MAX) * k + 1, oy: h * 0.4 - P[1] * k, tray: null };
+}
 /* carom's card: the three balls in play near the middle of the table, close up (its setup shows
    the start instead) */
 function caromArt(balls, wide) {
@@ -14428,7 +14549,7 @@ let heroNoPosts = false;   /* drawTableImage leaves bumper pool's posts out: the
 const hero = { kind: null, data: null, run: null, art: null, raf: 0, t0: 0, held: 0, state: 'idle', frames: 0, ms: [], tex: null, texs: {}, job: null, build: null };
 /* the hero's table for kind from the settings (paintRack's), and the game's back exactly */
 const heroArgs = kind => kind === 'snooker' ? ['snooker', settings.snookerTable, settings.pockets]
-  : [kind === 'bumper' || kind === 'carom' ? kind : settings.table, settings.bumperTable, settings.pockets];
+  : [kind === 'bumper' || kind === 'carom' || kind === 'heyball' ? kind : settings.table, settings.bumperTable, settings.pockets];
 function heroOn(args) {
   const keep = { table: TABLE, pool: POOL_TABLE, shape: BUMPER_SHAPE, snk: SNOOKER_SIZE, pockets: POCKETS_STYLE };
   GEO.setTable(args[0], args[1]); GEO.setPockets(args[2]);
@@ -14538,7 +14659,7 @@ function heroCamera(d, W, H, box, tall) {
 /* (a job: paintTable's passes one step each, the table, view and scale swapped in for each step
    and the game's put back before it yields, so nothing else ever sees the hero's table) */
 /* made once per table and look: hero.tex the one in use, hero.texs every one made (heroWarm makes the
-   four tables' on the home; a game keeps only the one in use, heroTexKeep) */
+   five tables' on the home; a game keeps only the one in use, heroTexKeep) */
 const heroTexKey = args => [args.join(), lookSig()].join('|');
 const heroTexOf = key => hero.tex && hero.tex.key === key ? hero.tex : hero.texs[key] || null;
 const heroTexDims = g => { const ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)); return { ext, K, w: Math.ceil((g.TL + 2 * ext) * K), h: Math.ceil((g.TW + 2 * ext) * K) }; };
@@ -16614,7 +16735,7 @@ Object.assign(felt, {
    value that is not a count reads as zero, a date that is not a date as none. Nothing saved is
    ever removed. ---- */
 const REC_KEY = 'felt.record.v1', REC_PREV = 'felt.record.prev', REC_V1_BAK = 'felt.record.v1.bak', REC_V = 2, FORM_MAX = 40, LEVELS = ['easy', 'medium', 'hard'];
-const REC_KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker'];
+const REC_KINDS = ['8', '9', '10', 'straight', 'rotation', 'bumper', 'carom', 'snooker', 'heyball'];
 function freshKind(kind) {
   const k = { played: 0, two: 0, cpu: { easy: { w: 0, l: 0 }, medium: { w: 0, l: 0 }, hard: { w: 0, l: 0 } }, sh: 0, pot: 0, fo: 0, br: 0, brOk: 0, run: [0, null], lp: [0, null] };
   return kind === 'snooker' ? Object.assign(k, { frames: 0, high: 0, highD: null }) : k;
@@ -16754,7 +16875,7 @@ function recordFrame(v) {
    level, the career's numbers) and one page (statsPage) rebuilt for what is pushed: a game's
    numbers, the records book or the form. Every rate shows its denominator ("7 of 9, 78%"). All of
    it reads the record (rec, above); nothing here writes it. ---- */
-const STAT_BALL = { 8: ['ball b8', '8'], 9: ['ball b9', '9'], 10: ['ball b10', '10'], straight: ['ball b14', '14'], rotation: ['ball b15', '15'], bumper: ['ball bb', ''], carom: ['ball bc', ''], snooker: ['ball bsblk', ''] };
+const STAT_BALL = { 8: ['ball b8', '8'], 9: ['ball b9', '9'], 10: ['ball b10', '10'], straight: ['ball b14', '14'], rotation: ['ball b15', '15'], bumper: ['ball bb', ''], carom: ['ball bc', ''], snooker: ['ball bsblk', ''], heyball: ['ball b8', '8'] };
 const statName = kind => KINDS[kind].name;
 /* "7 of 9, 78%", or "none yet" with nothing to divide by */
 const ofWords = (n, d) => d ? `${n} of ${d}, ${Math.round(100 * n / d)}%` : 'none yet';
@@ -16883,8 +17004,8 @@ Object.defineProperty(felt, 'statsPage', { get: () => statsAt });
    (TABS: its row, its page), pushed from the right; the back button pops to the list, and from the
    list goes home. pickTab(null) is the list. Each game's page ends with its tutorial (6d), the
    controls' with the lesson, pinned at the foot. ---- */
-const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tab10, pan10], [tabStr, panStr], [tabRot, panRot], [tabCall, panCall], [tabSolo, panSolo], [tabCue, panCue], [tabModes, panModes], [tabDrills, panDrills], [tabCareer, panCareer]];
-const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, 10: tab10, straight: tabStr, rotation: tabRot, call: tabCall, solo: tabSolo, cue: tabCue, modes: tabModes, drills: tabDrills, career: tabCareer };
+const TABS = [[tabCtl, panCtl], [tab8, pan8], [tab9, pan9], [tabBump, panBump], [tabCarom, panCarom], [tabSnk, panSnk], [tab10, pan10], [tabStr, panStr], [tabRot, panRot], [tabHey, panHey], [tabCall, panCall], [tabSolo, panSolo], [tabCue, panCue], [tabModes, panModes], [tabDrills, panDrills], [tabCareer, panCareer]];
+const HELP_KINDS = { ctl: tabCtl, 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, 10: tab10, straight: tabStr, rotation: tabRot, heyball: tabHey, call: tabCall, solo: tabSolo, cue: tabCue, modes: tabModes, drills: tabDrills, career: tabCareer };
 let helpPage = null;
 function pickTab(tab, anim) {
   const was = helpPage, page = tab ? TABS.find(([t]) => t === tab)[1] : howList;
@@ -17019,7 +17140,7 @@ function cardOf(p) {
     const mine = on.filter(n => bOwner(n) === p).sort((a, b) => a - b);
     return { meta: `${colourOf(p)}, ${mine.length} left` + (mine.includes(B_MARK[p]) && mine.length > 1 ? ', marked first' : ''), dots: mine, warn: false };
   }
-  if (game.kind === '8') {
+  if (is8(game.kind)) {
     const gr = game.groups[p];
     if (!gr) return { meta: 'Open table', dots: [] };
     const left = on.filter(n => groupOf(n) === gr);
@@ -17066,7 +17187,7 @@ function chipOf(p) {
 function railNext() {
   if (rp || game.mode || tutOn() || game.winner !== null || state !== 'aim' || !human() || !POCKET_KINDS.includes(game.kind)) return null;
   const on = n => n != null && game.balls.some(b => b.n === n && b.on);
-  if (game.kind !== '8' && game.kind !== 'straight') { const t = legalTargets(game); return t.length ? t[0] : null; }
+  if (!is8(game.kind) && game.kind !== 'straight') { const t = legalTargets(game); return t.length ? t[0] : null; }
   const c = humanCall();
   if (c && on(c.ball)) return c.ball;
   const a = aimBall();
@@ -17121,7 +17242,7 @@ function rackTally(p) {
 const lcFirst = t => t ? t[0].toLowerCase() + t.slice(1) : t;
 function seatSum(p) {
   const g = game, k = g.kind, up = p === g.turn && g.winner === null, w = [], on = g.balls.filter(b => b.on && b.n > 0).map(b => b.n).sort((a, b) => a - b);
-  if (k === '8') { const gr = g.groups[p]; w.push(!gr ? 'open table' : on.some(n => groupOf(n) === gr) ? gr : 'on the 8'); }
+  if (is8(k)) { const gr = g.groups[p]; w.push(!gr ? 'open table' : on.some(n => groupOf(n) === gr) ? gr : 'on the 8'); }
   else if (k === 'bumper') w.push(lcFirst(cardOf(p).meta));
   else if (k === 'carom') w.push(p ? 'yellow' : 'white');
   if ((k === '9' || k === '10' || k === 'rotation') && up && on.length) w.push(`on the ${on[0]}`);
@@ -17518,7 +17639,7 @@ function placeRail(force) {
    row: none). A window gives way (fades) where the cue, the loupe or, in 3D, a ball lies over it. The source is the
    game's balls (the roll's while one runs); nothing here writes game or tab. VoiceOver reads #potSay ("Potted: 1, 3,
    9", pot order; not live); the windows are aria-hidden. felt.potRail reports it. Pinned by pottray-check. ---- */
-const POT_KINDS = ['8', '9', '10'], POT_SLIDE_MS = 250, POT_LEAVE_MS = 160, POT_MOVE_MS = 200, POT_GAP = 3, POT_SIGHT_PAD = 3, POT_PER_RAIL = 8;
+const POT_KINDS = ['8', '9', '10', 'heyball'], POT_SLIDE_MS = 250, POT_LEAVE_MS = 160, POT_MOVE_MS = 200, POT_GAP = 3, POT_SIGHT_PAD = 3, POT_PER_RAIL = 8;
 /* the recess's floor: the colour a ball must stand 3:1 from (pottray-check measures it) */
 const POT_RECESS = [16, 11, 8];
 let potCue = null;
@@ -17572,7 +17693,7 @@ function potPlan() {
 /* which window each ball down goes in: [side, index] by number */
 function potSeats() {
   const P = potPlan(), out = new Map(), L = P.sides[0].length, R = P.sides[1].length;
-  if (game.kind === '8') {
+  if (is8(game.kind)) {
     const n8 = [0, 0];
     for (const n of pw.order) {
       let side = n > 8 ? 1 : 0;
@@ -17872,7 +17993,7 @@ function overBallOf(w) {
   return { 9: ['ball b9', '9'], 10: ['ball b10', '10'], straight: ['ball b14', '14'], rotation: ['ball b15', '15'] }[game.kind] || ['ball b8', '8'];
 }
 function showOver() {
-  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind === 'carom' ? (game.need === 1 ? 'One-cushion' : 'Three-cushion') : game.kind + '-ball';
+  const w = game.winner, kind = game.kind === 'bumper' ? 'Bumper pool' : game.kind === 'snooker' ? 'Snooker' : game.kind === 'carom' ? (game.need === 1 ? 'One-cushion' : 'Three-cushion') : (KINDS[game.kind] || {}).name || game.kind + '-ball';
   const n = stats.shots.reduce((a, b) => a + b, 0), P = stats.shots.map((_, p) => p);
   overKind.textContent = `${party ? rulesOf(game).name : kind}${cpuMode ? ` vs ${FOES[cpuLevel]}` : exhib ? ', exhibition' : ''}, ${n} shot${n === 1 ? '' : 's'}`;
   overText.textContent = cpuMode ? (w === 0 ? 'You win' : 'The CPU wins') : `${nameOf(w)} wins`;
@@ -18142,15 +18263,16 @@ doneHome.addEventListener('click', () => quitToHome());
    tab, and the offer on a game's first Break (Show me, Skip: not for this game again, Don't ask
    again: not for any). tutRec persists under TUT_KEY: { v: 1, done: { id: true }, skipped:
    { id: true }, never }; anything unreadable starts fresh. ---- */
-const TUT_KEY = 'felt.tutorials.v1', TUT_IDS = ['8', '9', 'bumper', 'carom', 'snooker'];
-const TUT_TABS = { 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk };
-const TUT_WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker' };
+const TUT_KEY = 'felt.tutorials.v1', TUT_IDS = ['8', '9', 'bumper', 'carom', 'snooker', 'heyball'];
+const TUT_TABS = { 8: tab8, 9: tab9, bumper: tabBump, carom: tabCarom, snooker: tabSnk, heyball: tabHey };
+const TUT_WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker', heyball: 'Chinese 8-ball' };
 const TUT_RECAP = {
   8: 'Open table, your group first, ball in hand after a foul, and the 8 last. The full rules are in How to play.',
   9: 'The lowest ball first, any pot counts, and a legal 9 wins whenever it drops. The full rules are in How to play.',
   bumper: 'Your marked ball first, round the posts to the far cup, and never your own cup. The full rules are in How to play.',
   carom: 'Both balls, with three cushions before the second, and the cushions can come first. The full rules are in How to play.',
   snooker: 'A red, then a colour, and again; ball in hand in the D after an in-off; then the colours in order. The full rules are in How to play.',
+  heyball: 'A legal break, an open table until the first pot after it, ball in hand anywhere after a foul, and the 8 last to a named pocket. The full rules are in How to play.',
 };
 let tutRec = loadTut();
 function freshTut() { return { v: 1, done: {}, skipped: {}, never: false }; }
@@ -18247,7 +18369,7 @@ function tutSettle(r) {
     hud();
     return;
   }
-  if (t.ctx && i === 0 && j.n.groups && j.n.groups[0]) s.ctx.group = j.n.groups[0];
+  if (t.ctx && j.n.verdict && j.n.verdict.grouped && j.n.groups[0]) s.ctx.group = j.n.groups[0];   /* the step that chose the group (8-ball's first, Chinese 8-ball's second) */
   game = Object.assign(j.n, { balls: j.n.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0, wx: 0, wy: 0, wz: 0 })) });
   if (st.then) {
     state = 'over'; s.then = true; s.again = false; hint = null;
@@ -19315,7 +19437,7 @@ const TOURNEY_KEY = 'felt.tourney.v1';
    for 8, 9, 10-ball and rotation, frames for snooker, points for 14.1 and three-cushion. A points
    race is one game to that score (the game's own race: rules.race, carom.race), so the match is
    that game; the career's match model reads the same race in the same units (modelUnits). */
-const T_KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom'], T_SIZES = [4, 8, 16], T_FMTS = ['single', 'double'], T_FIELDS = ['mixed', 'easy', 'medium', 'hard'];
+const T_KINDS = ['8', '9', '10', 'straight', 'rotation', 'heyball', 'snooker', 'carom'], T_SIZES = [4, 8, 16], T_FMTS = ['single', 'double'], T_FIELDS = ['mixed', 'easy', 'medium', 'hard'];
 const T_RACES = [1, 2, 3, 5], T_RACES_OF = { straight: [25, 50, 75, 100], snooker: [1, 2, 3], carom: [5, 10, 15] };
 const tRaces = kind => T_RACES_OF[kind] || T_RACES;
 const tPoints = kind => kind === 'straight' || kind === 'carom';
@@ -19518,8 +19640,8 @@ function hudModesMenu() {
 }
 
 /* ---- the AI exhibition ---- */
-const EX_KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
-const EX_WORDS = { 8: '8-ball', 9: '9-ball', 10: '10-ball', straight: '14.1', rotation: 'Rotation', snooker: 'Snooker', carom: 'Carom', bumper: 'Bumper' };
+const EX_KINDS = ['8', '9', '10', 'straight', 'rotation', 'heyball', 'snooker', 'carom', 'bumper'];
+const EX_WORDS = { 8: '8-ball', 9: '9-ball', 10: '10-ball', straight: '14.1', rotation: 'Rotation', heyball: 'Chinese 8-Ball', snooker: 'Snooker', carom: 'Carom', bumper: 'Bumper' };
 /* the table terms every mode passes start(): the settings' table, pockets and sizes */
 const tableTerms = kind => ({ table: settings.table, pockets: settings.pockets, bumperTable: settings.bumperTable, snooker: settings.snookerTable, carom: kind === 'carom' ? caromOpts() : undefined });
 /* o: { kind, a, b: { level, arch }, seed }: start(kind, terms) plays it */
@@ -20109,7 +20231,7 @@ function heroUnder(pic) {
    It looks again every second on the home (a new look or table, or a game let them go: heroTexKeep);
    a step waits out MENU_QUIET_MS after a touch. Only with motion on (no morph, no need: the suites
    without motion never see it). */
-const HERO_WARM_KINDS = ['8', 'snooker', 'carom', 'bumper'];
+const HERO_WARM_KINDS = ['8', 'snooker', 'carom', 'bumper', 'heyball'];
 function heroWarm() {
   clearTimeout(mo.warmT); mo.warmT = 0;
   if (!motionOn() || mo.warmJob) return;

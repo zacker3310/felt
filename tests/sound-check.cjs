@@ -167,6 +167,12 @@ function shape({ x, sr }) {
     const ps = await soundRender(EV, 2.4, null, SR);
     let diff = 0, pk = 0; for (let i = 0; i < p7.length; i++) { diff = Math.max(diff, Math.abs(p7[i] - ps[i])); pk = Math.max(pk, Math.abs(p7[i])); }
     o.same = { diff, pk, n: p7.length === ps.length };
+    /* and Chinese 8-ball's table, its pockets snooker's mouths round pool's balls: 8-ball's samples too */
+    setTable('heyball');
+    const ph = await soundRender(EV, 2.4, null, SR);
+    let dh = 0; for (let i = 0; i < p7.length; i++) dh = Math.max(dh, Math.abs(p7[i] - ph[i]));
+    o.hey = { diff: dh, n: p7.length === ph.length, table: TABLE + JAW_ARCS.length };
+    setTable('snooker', 'full');
     let g = newGame('snooker');
     const br = cpuShot(g, 7, 'hard');
     if (br.place) g = placeCue(g, br.place[0], br.place[1]);
@@ -177,6 +183,7 @@ function shape({ x, sr }) {
     return o;
   });
   const r2 = x => JSON.stringify(x, (k, v) => typeof v === 'number' ? +v.toFixed(3) : v);
+  check('Chinese 8-ball sounds exactly as 8-ball: the same events render the same samples on its table as on pool\'s', snk.hey.n && snk.hey.diff === 0 && snk.hey.table === 'heyball12' && snk.same.pk > 0.01, r2(snk.hey));
   check('snooker sounds exactly as 8-ball: a ball (soft, medium, firm), the cue, a cushion, a jaw and a corner pocket render the same samples on the snooker table as on pool\'s', snk.same.n && snk.same.pk > 0.01 && snk.same.diff === 0, r2(snk.same));
   check('snooker break-off and a shot into the pack, rendered whole: never on the clipper\'s shoulder, peak under -3 dBFS, the limiter under 3 dB of gain reduction', [snk.brk, snk.pack].every(x => x.sh7 === 0 && x.pk < -3 && x.gr < 3), r2({ brk: snk.brk, pack: snk.pack }));
   check('snooker: no take plays twice running in the break-off or the shot into the pack', [snk.brk, snk.pack].every(x => x.logged > 0 && x.twice === 0), r2({ brk: snk.brk, pack: snk.pack }));

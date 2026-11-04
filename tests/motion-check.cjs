@@ -93,6 +93,9 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
   const l2 = await landed();
   const backed = await ev(() => ({ home: menu.classList.contains('show'), setup: setupSheet.classList.contains('show') || setupSheet.classList.contains('keep'), card: play9.classList.contains('mHide'), left: document.querySelectorAll('.mLayer, .mPiece, .mTitle, .mGhost').length }));
   check('Back reverses it: home at once, the hero flying back into its card, then the card itself', back.home && back.layer && back.card && back.last.dir === 'close' && back.last.to === 'play9' && l2 && backed.home && !backed.setup && !backed.card && backed.left === 0, JSON.stringify({ back, backed }));
+  /* the ninth game's card puts the modes a scroll down at 393x852: there first, as a finger would */
+  await ev(() => modeEx.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(150);
   await tap('#modeEx');
   const mm = await ev(() => ({ show: modesSheet.classList.contains('show'), layer: !!document.querySelector('.mLayer'), last: felt.motion.last }));
   await landed();
@@ -100,6 +103,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
   await tap('#modesBack');
   const mb = await ev(() => ({ home: menu.classList.contains('show'), layer: !!document.querySelector('.mLayer'), last: felt.motion.last }));
   await landed();
+  await ev(() => { menu.scrollTop = 0; });
   check('a mode card (AI Exhibition) morphs into its page and Back morphs it home', mm.show && mm.layer && mm.last.type === 'morph' && mm.last.to === 'modesSheet' && mb.home && mb.layer && mb.last.dir === 'close' && mb.last.to === 'modeEx', JSON.stringify({ mm, mb }));
   await tap('#careerBtn');
   const cm = await ev(() => ({ show: careerSheet.classList.contains('show'), last: felt.motion.last }));
@@ -167,13 +171,13 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     /* an open that misses (too few frames, the hero built late, a frame over its budget) is opened
        again, up to three times in all: a loaded box's late frames come and go, a morph that is late or
        slow on every try fails. The five pool cards share the pool table the home's warm-up painted;
-       snooker, three-cushion and bumper each open on a table of their own (issue #1: their first open
+       snooker, three-cushion, bumper and Chinese 8-ball each open on a table of their own (issue #1: their first open
        redrew the game screen's table mid-flight and the hero came late) */
-    const KINDS2 = ['8', '9', 'snooker', 'carom', 'bumper'];
+    const KINDS2 = ['8', '9', 'snooker', 'carom', 'bumper', 'heyball'];
     let tryN = 1;
     for (let ki = 0; ki < KINDS2.length; ki++) {
       const kind = KINDS2[ki];
-      const card = '#' + ({ snooker: 'playS', carom: 'playC', bumper: 'playB' }[kind] || 'play' + kind);
+      const card = '#' + ({ snooker: 'playS', carom: 'playC', bumper: 'playB', heyball: 'playH' }[kind] || 'play' + kind);
       /* the open, every frame */
       await pg.evaluate(() => {
         window.__mo = [];
@@ -251,11 +255,11 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
   }
   const mOf = f => MORPHS.filter(f).map(m => `${m.rate}x ${m.at} ${m.kind}`).join(', ') || 'none';
   const M1 = MORPHS.filter(m => m.rate === 1), M2 = MORPHS.filter(m => m.rate === 2);
-  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool; 393x852, 440x956)', M1.length === 10 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
-  check('the hero is built under the morph (two frames or more before the landing) and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', M1.length === 10 && M1.every(early), 'off: ' + mOf(m => m.rate === 1 && !early(m)) + ' ' + JSON.stringify(M1.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
-  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', M1.length === 10 && M1.every(m => m.px && m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(M1.map(m => [m.at, m.kind, m.px])));
-  check('no long frame from the tap to 300 ms after the landing (each under 50 ms of work times speedFactor)', M1.length === 10 && M1.every(m => m.worst <= m.budget), JSON.stringify(M1.map(m => [m.at, m.kind, m.worst, m.budget])));
-  check('on a CPU throttled to half speed the hero is still built two frames or more before the landing and takes over in its first frame, no frame over 50 ms of work times speedFactor (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool; 393x852, 440x956)', M2.length === 10 && M2.every(m => early(m) && m.worst <= m.budget), 'off: ' + mOf(m => m.rate === 2 && !(early(m) && m.worst <= m.budget)) + ' ' + JSON.stringify(M2.map(m => [m.at, m.kind, m.built, m.morphMs, m.handOver, m.seen, m.worst, m.budget])));
+  check('the morph keeps every picture\'s aspect: each layer scaled the same both ways (|sx - sy| < 0.01) and no canvas drawn at another aspect, every rAF of the open (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball; 393x852, 440x956)', M1.length === 12 && MORPHS.every(m => m.frames >= 8 && m.du < 0.01 && m.dist < 0.01), 'off: ' + mOf(m => !(m.frames >= 8 && m.du < 0.01 && m.dist < 0.01)) + ' ' + JSON.stringify(MORPHS.map(m => [m.at, m.kind, m.du, m.dist, m.frames])));
+  check('the hero is built under the morph (two frames or more before the landing) and takes over in the first frame after it lands, already drawn and moving on (no wait, no fade of its own: at most the rest of the morph\'s)', M1.length === 12 && M1.every(early), 'off: ' + mOf(m => m.rate === 1 && !early(m)) + ' ' + JSON.stringify(M1.map(m => [m.at, m.kind, m.handOver, m.firstMs, m.built, m.morphMs, m.seen, m.op])));
+  check('the hand-over is seamless: the morph\'s last instant against the first frame after it, in the hero\'s box, a mean difference under 1.5 of 255 and under 0.5% of pixels off by more than 24', M1.length === 12 && M1.every(m => m.px && m.px.mean < 1.5 && m.px.off < 0.5), JSON.stringify(M1.map(m => [m.at, m.kind, m.px])));
+  check('no long frame from the tap to 300 ms after the landing (each under 50 ms of work times speedFactor)', M1.length === 12 && M1.every(m => m.worst <= m.budget), JSON.stringify(M1.map(m => [m.at, m.kind, m.worst, m.budget])));
+  check('on a CPU throttled to half speed the hero is still built two frames or more before the landing and takes over in its first frame, no frame over 50 ms of work times speedFactor (8-Ball, 9-Ball, Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball; 393x852, 440x956)', M2.length === 12 && M2.every(m => early(m) && m.worst <= m.budget), 'off: ' + mOf(m => m.rate === 2 && !(early(m) && m.worst <= m.budget)) + ' ' + JSON.stringify(M2.map(m => [m.at, m.kind, m.built, m.morphMs, m.handOver, m.seen, m.worst, m.budget])));
   /* ---- 2c. the game screen's table behind a setup that changes it (issue #1): opening Snooker,
      Three-Cushion or Bumper Pool lays the game screen out for its table, its image left for later
      (layout(true): tableDue at the landing), so Break paints it at once (start's tableArtNow, and the
@@ -264,7 +268,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
      cloth and a shop cloth and rails (each open a change of table). Left in the setup, the menu
      paints it once idle (menuArt: the hero played out, no touch for MENU_QUIET_MS), the same
      picture, then the camera's high-resolution image (against one made at once).
-     The home warms the hero's art for all four tables (heroWarm). ---- */
+     The home warms the hero's art for all five tables (heroWarm). ---- */
   {
     const o = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 3, motion: true,
       init: `try { localStorage.setItem('felt.looks.v1', JSON.stringify({ v: 1, own: ['cloth-teal', 'rail-oak', 'rail-ebony'] })); } catch (e) { }` });
@@ -287,9 +291,9 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
       for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) off++;
       return { off, w: tableImg.width, h: tableImg.height };
     });
-    const CARD = { snooker: '#playS', carom: '#playC', bumper: '#playB' }, BREAKS = [], IDLE = [];
+    const CARD = { snooker: '#playS', carom: '#playC', bumper: '#playB', heyball: '#playH' }, BREAKS = [], IDLE = [];
     for (const [cloth, rail] of [['green', 'walnut'], ['red', 'oak'], ['blue', 'walnut'], ['teal', 'ebony']]) {
-      for (const kind of ['snooker', 'carom', 'bumper']) {
+      for (const kind of ['snooker', 'carom', 'bumper', 'heyball']) {
         await pg.evaluate(([c, r]) => { setSetting('cloth', c); setSetting('rail', r); }, [cloth, rail]);
         await pg.waitForTimeout(150);
         await touch(CARD[kind]);
@@ -318,11 +322,11 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     }
     errors.push(...o.errors);
     await o.browser.close();
-    check('the home warms the hero\'s table art for all four tables a card opens on (pool, snooker, three-cushion, bumper pool)', warm.every(Boolean), JSON.stringify(warm));
+    check('the home warms the hero\'s table art for all five tables a card opens on (pool, snooker, three-cushion, bumper pool, Chinese 8-ball)', warm.every(Boolean), JSON.stringify(warm));
     const goodBreak = b => b.dueAtLanding && !b.dueAtBreak && b.hi && b.state !== 'menu' && b.table === b.setupTable && b.off === 0;
-    check('a setup that changes the table leaves its image for later (deferred at the landing) and Break opens the game on drawTableImage()\'s own picture for that table, byte for byte, the camera\'s image made for it (Snooker, Three-Cushion, Bumper Pool; green, red, blue, teal cloth; walnut, oak, ebony rails)', BREAKS.length === 12 && BREAKS.every(goodBreak),
+    check('a setup that changes the table leaves its image for later (deferred at the landing) and Break opens the game on drawTableImage()\'s own picture for that table, byte for byte, the camera\'s image made for it (Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball; green, red, blue, teal cloth; walnut, oak, ebony rails)', BREAKS.length === 16 && BREAKS.every(goodBreak),
       'off: ' + JSON.stringify(BREAKS.filter(b => !goodBreak(b))));
-    check('left in the setup, the idle menu paints that table (the same picture) and then the camera\'s high-resolution image (identical to one made at once)', IDLE.length === 3 && IDLE.every(r => !r.due && r.off === 0 && r.hiOff === 0), JSON.stringify(IDLE));
+    check('left in the setup, the idle menu paints that table (the same picture) and then the camera\'s high-resolution image (identical to one made at once)', IDLE.length === 4 && IDLE.every(r => !r.due && r.off === 0 && r.hiOff === 0), JSON.stringify(IDLE));
   }
   /* Reduce Motion: a cross-fade, no layer */
   await page.emulateMedia({ reducedMotion: 'reduce' });

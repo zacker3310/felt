@@ -19,7 +19,7 @@
 'use strict';
 const { check, done, open, choose, openPop, smallTargets, lowContrast } = require('./lib.cjs');
 const RAMP = [34, 28, 22, 20, 17, 16, 15, 13, 12, 11];
-const KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
+const KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper', 'heyball'];
 const RULESETS_10 = { wpa: 'Lowest ball first, and call every shot, obvious or not.', house: 'an obvious shot is called for you from your aim' };
 
 /* the screens the components appear on, each opened by the page's own functions */
@@ -236,7 +236,7 @@ const ROOTS = '#setupSheet, #prefsSheet, #helpSheet, #statsSheet, #modesSheet, #
       return r;
     }, KINDS);
     const bad = out.filter(o => !o.ok);
-    check(`no scroll ${w}x${h}: all eight games' setups, two players and CPU, fit whole (the form still, Break wholly in view, the hero at least its floor)`, !bad.length, JSON.stringify(bad));
+    check(`no scroll ${w}x${h}: all nine games' setups, two players and CPU, fit whole (the form still, Break wholly in view, the hero at least its floor)`, !bad.length, JSON.stringify(bad));
     /* a real finger drag up the form (the tallest: 8-ball against the CPU) moves nothing */
     await P.page.evaluate(() => { backToMenu(); setSetting('cpu', true); showSetup('8'); });
     await P.page.waitForTimeout(300);

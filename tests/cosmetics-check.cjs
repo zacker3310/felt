@@ -265,7 +265,7 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
     await t.page.waitForTimeout(300);
     const root = await ev(t, () => ({ rows: [...statsKinds.querySelectorAll('.topic')].map(b => b.textContent), book: stBookSub.textContent, form: stFormSub.textContent, page: felt.statsPage, title: statsTitle.textContent }));
     check(`${vp.width}x${vp.height}: Stats lists every game with what was played (9-ball: 1 played, none vs CPU; 8-ball: 1 won of 1 vs CPU), the records book and the form`,
-      root.rows.length === 8 && /9-Ball1 played, none vs CPU$/.test(root.rows[1]) && /8-Ball1 played, 1 won of 1 vs CPU$/.test(root.rows[0]) && /3 records/.test(root.book) && /Last 1: W/.test(root.form) && root.page === null && root.title === 'Stats', JSON.stringify(root));
+      root.rows.length === 9 && /9-Ball1 played, none vs CPU$/.test(root.rows[1]) && /8-Ball1 played, 1 won of 1 vs CPU$/.test(root.rows[0]) && /3 records/.test(root.book) && /Last 1: W/.test(root.form) && root.page === null && root.title === 'Stats', JSON.stringify(root));
     const a0 = { s: await smallTargets(t.page), l: await lowContrast(t.page), f: await ev(t, () => [statsBody.scrollWidth, statsBody.clientWidth, statsBody.scrollHeight, statsBody.clientHeight]) };
     await t.page.click('#st-9');
     await t.page.waitForTimeout(450);

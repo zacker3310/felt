@@ -16,7 +16,7 @@ const artContrast = page => page.evaluate(() => {
   const rgba = c => { const m = c.match(/[\d.]+/g).map(Number); return [m[0], m[1], m[2], m.length > 3 ? m[3] : 1]; };
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
   const out = [];
-  for (const card of [play8, play9, play10, playStr, playRot, playS, playC, playB]) {
+  for (const card of [play8, play9, play10, playStr, playRot, playS, playC, playB, playH]) {
     const cv = card.querySelector('.art'), cr = cv.getBoundingClientRect(), k = cv.width / cr.width, g = cv.getContext('2d');
     for (const el of card.querySelectorAll('.tt small, .tt b')) {
       const r = el.getBoundingClientRect();
@@ -43,14 +43,14 @@ const artContrast = page => page.evaluate(() => {
   check('no network requests beyond the page origin', foreign.length === 0, foreign.join(' '));
   check('opens on the menu', await page.evaluate(() => felt.state === 'menu' && getComputedStyle(menu).display !== 'none'));
   check('menu targets are at least 44 px', (await smallTargets(page)).length === 0, JSON.stringify(await smallTargets(page)));
-  check('home: the eight game cards, the four modes, the solo list and Stats, Settings, How to play; no pause part',
-    await page.evaluate(() => [play8, play9, play10, playStr, playRot, playS, playC, playB, careerBtn, modeTour, modeEx, modeParty, pracBtn, drillsRow, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
+  check('home: the nine game cards, the four modes, the solo list and Stats, Settings, How to play; no pause part',
+    await page.evaluate(() => [play8, play9, play10, playStr, playRot, playS, playC, playB, playH, careerBtn, modeTour, modeEx, modeParty, pracBtn, drillsRow, trickBtn, dailyBtn, statsBtn, prefsBtn, helpBtn].every(b => b.getClientRects().length)
       && getComputedStyle(document.querySelector('#menu .pausePart')).display === 'none' && !resumeBtn.getClientRects().length));
   /* no Play again hero and no More rows: every game and mode is its own card, in three sections */
   const secs = await page.evaluate(() => ({ gone: ['againBtn', 'heroArt', 'playMore', 'playModes', 'moreSheet'].filter(id => document.getElementById(id)), heads: [...document.querySelectorAll('.newgame .sect')].map(h => h.textContent),
     games: [...playRow.children].map(b => b.dataset.kind).join(), modes: [...modeRow.children].map(b => b.id).join() }));
-  check('home: no Play again hero and no More games or More modes; sections Games, Modes, Solo; the eight games and four modes in order', !secs.gone.length && secs.heads.join() === 'Games,Modes,Solo'
-    && secs.games === '8,9,10,straight,rotation,snooker,carom,bumper' && secs.modes === 'careerBtn,modeTour,modeEx,modeParty', JSON.stringify(secs));
+  check('home: no Play again hero and no More games or More modes; sections Games, Modes, Solo; the nine games (Chinese 8-ball last, a row wide) and four modes in order', !secs.gone.length && secs.heads.join() === 'Games,Modes,Solo'
+    && secs.games === '8,9,10,straight,rotation,snooker,carom,bumper,heyball' && secs.modes === 'careerBtn,modeTour,modeEx,modeParty', JSON.stringify(secs));
   /* the header: three round icon buttons, 44 px, each named for a screen reader, no visible words */
   const hdr = await page.evaluate(() => [statsBtn, prefsBtn, helpBtn].map(b => { const r = b.getBoundingClientRect(); return { l: b.getAttribute('aria-label'), w: r.width, h: r.height, round: parseFloat(getComputedStyle(b).borderTopLeftRadius) >= r.width / 2 - 0.5, text: b.textContent.trim() }; }));
   check('home header: Stats, Settings, How to play are 44 px round icon buttons with aria-labels',
@@ -63,7 +63,7 @@ const artContrast = page => page.evaluate(() => {
   /* each game card has its rack drawn edge to edge at the device's pixels */
   const art = await page.evaluate(() => [...document.querySelectorAll('#playRow .art')].map(c => { const d = c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data, p = c.parentElement.getBoundingClientRect(), r = c.getBoundingClientRect();
     return { w: c.width, ok: c.width === Math.round(c.clientWidth * devicePixelRatio) && c.height === Math.round(c.clientHeight * devicePixelRatio), a: d[3], bleed: Math.abs(r.width - p.width) < 1 && Math.abs(r.height - p.height) < 1 }; }));
-  check('home: every game card shows its table edge to edge, drawn at the device pixel ratio', art.length === 8 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
+  check('home: every game card shows its table edge to edge, drawn at the device pixel ratio', art.length === 9 && art.every(a => a.ok && a.a === 255 && a.bleed), JSON.stringify(art));
   check('home words over the art read at 4.5:1 on the cloth', (await artContrast(page)).every(c => c.r >= 4.5), JSON.stringify(await artContrast(page)));
   /* bumper setup: the Table control (Octagon, Rectangle) only, 44 px each, the octagon by default */
   await page.click('#playB');
@@ -97,10 +97,10 @@ const artContrast = page => page.evaluate(() => {
   await page.click('#helpBtn');
   const fitsNow = async () => (await page.waitForFunction(() => !document.getAnimations().some(a => a.playState === 'running' && helpSheet.contains(a.effect.target))), page.evaluate(() => (r => r.left >= 0 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5)(howSheet.getBoundingClientRect()) && document.documentElement.scrollWidth <= innerWidth && howSheet.scrollWidth <= howSheet.clientWidth));
   const root = await page.evaluate(() => ({ list: !howList.hidden, rows: [...howList.querySelectorAll('.topic')].map(b => b.id), title: helpTitle.textContent, pages: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).length }));
-  check('how to play from home: the list of fifteen topics (the three More games and Called shots after snooker; cue elevation, More modes, Drills and the career after Solo modes), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabCall,tabSolo,tabCue,tabModes,tabDrills,tabCareer' && root.title === 'How to Play' && root.pages === 0 && await fitsNow()
+  check('how to play from home: the list of sixteen topics (the three More games, then Chinese 8-ball, and Called shots after snooker; cue elevation, More modes, Drills and the career after Solo modes), no page open', root.list && root.rows.join() === 'tabCtl,tab8,tab9,tabBump,tabCarom,tabSnk,tab10,tabStr,tabRot,tabHey,tabCall,tabSolo,tabCue,tabModes,tabDrills,tabCareer' && root.title === 'How to Play' && root.pages === 0 && await fitsNow()
     && (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify(root));
   const tabs = [];
-  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabSolo', 'tabCue', 'tabModes', 'tabDrills', 'tabCareer']) {
+  for (const id of ['tabCtl', 'tab8', 'tab9', 'tabBump', 'tabCarom', 'tabSnk', 'tabHey', 'tabSolo', 'tabCue', 'tabModes', 'tabDrills', 'tabCareer']) {
     await page.click('#' + id);
     tabs.push(await page.evaluate(id => ({ id, list: !howList.hidden, shown: [...document.querySelectorAll('#helpSheet .pan')].filter(p => !p.hidden).map(p => p.id), title: helpTitle.textContent === document.getElementById(id).querySelector('b').textContent, text: document.querySelector('#helpSheet .pan:not([hidden])').textContent.length }), id));
     const t = tabs[tabs.length - 1];
@@ -108,7 +108,7 @@ const artContrast = page => page.evaluate(() => {
     await page.click('#helpBack');
     t.back = await page.evaluate(() => helpSheet.classList.contains('show') && !howList.hidden && helpTitle.textContent === 'How to Play');
   }
-  check('how to play: eleven topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, solo, cue elevation, More modes, Drills, career), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 11 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
+  check('how to play: twelve topic pages (controls, 8-ball, 9-ball, bumper, carom, snooker, Chinese 8-ball, solo, cue elevation, More modes, Drills, career), each alone with its title, the sheet inside the screen, 44 px, text 4.5:1; back returns to the list', tabs.length === 12 && tabs.every(t => !t.list && t.shown.length === 1 && t.title && t.text > 100 && t.fits && !t.small && !t.low.length && t.back), JSON.stringify(tabs));
   await page.click('#tabSnk');
   const pin = await page.evaluate(() => { const r = tutGoS.getBoundingClientRect(), s = howSheet.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, foot: s.bottom, long: howSheet.scrollHeight > howSheet.clientHeight }; });
   check('how to play: the longest page (snooker) scrolls under its tutorial button, pinned at the foot of the screen', pin.long && pin.bottom <= pin.foot + 0.5 && pin.bottom >= pin.foot - 40, JSON.stringify(pin));
@@ -153,7 +153,7 @@ const artContrast = page => page.evaluate(() => {
   }
   check('back from the sheets: home again', await page.evaluate(() => menu.classList.contains('show') && ![setupSheet, prefsSheet, statsSheet, helpSheet].some(s => s.classList.contains('show'))));
 
-  /* the home's eight games are all on the first screen, inside the safe area: an iPhone 18 Pro Max
+  /* the home's nine games are all on the first screen, inside the safe area: an iPhone 18 Pro Max
      either way up (insets simulated), an iPhone 17 Pro upright with its insets, and the other
      listed sizes but the smallest; the rest (modes, solo) is a scroll away, never sideways */
   const fits = [];
@@ -175,7 +175,7 @@ const artContrast = page => page.evaluate(() => {
         across: rest.every(r => r.left >= ins[3] - 0.5 && r.right <= w - ins[1] + 0.5) };
     }, [ins, w, h]));
   }
-  check('home: all eight game cards on the first screen inside the safe area (440x956 and 956x440 with and without the iOS insets, 393x852 with them, 390x844, 1280x800, 768x1024); the modes and solo list inside it across, the last row reached by scrolling; no sideways scroll', fits.every(f => f.sw <= f.vw && f.inside && f.across && f.end), JSON.stringify(fits));
+  check('home: all nine game cards on the first screen inside the safe area (440x956 and 956x440 with and without the iOS insets, 393x852 with them, 390x844, 1280x800, 768x1024); the modes and solo list inside it across, the last row reached by scrolling; no sideways scroll', fits.every(f => f.sw <= f.vw && f.inside && f.across && f.end), JSON.stringify(fits));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(150);
   const h390 = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, w: innerWidth }));

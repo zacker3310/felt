@@ -739,7 +739,7 @@ for (const shape of ['rect', 'octagon']) {
 }
 
 /* every per-table value comes back exactly after a round of the tables: 8-ball -> snooker ->
-   carom -> 9-ball -> bumper (both shapes), twice over. Geometry, the ball and the cloth
+   carom -> 9-ball -> bumper (both shapes) -> Chinese 8-ball (heyball), twice over. Geometry, the ball and the cloth
    (physOf's record), and a fixed shot's roll on each. */
 {
   const GLOBALS = ['TABLE', 'TL', 'TW', 'BALL_R', 'MU_ROLL', 'CUE_RATIO', 'CUSH_MU', 'RAIL_E', 'MU_SP', 'HEAD_X', 'FOOT', 'CUSH', 'CUSHION_POLYS', 'POCKETS', 'POCKET_R', 'POCKET_AIM',
@@ -747,7 +747,7 @@ for (const shape of ['rect', 'octagon']) {
   const visit = [['8', () => { S.setTable('7'); return S.newGame('8'); }], ['snooker compact', () => { S.setTable('snooker', 'compact'); return S.newGame('snooker'); }],
     ['carom', () => S.newGame('carom')], ['9 (9 ft)', () => { S.setTable('9'); return S.newGame('9'); }],
     ['bumper octagon', () => { S.setTable('bumper', 'octagon'); return S.newGame('bumper'); }], ['bumper rect', () => { S.setTable('bumper', 'rect'); return S.newGame('bumper'); }],
-    ['snooker full', () => { S.setTable('snooker', 'full'); return S.newGame('snooker'); }]];
+    ['snooker full', () => { S.setTable('snooker', 'full'); return S.newGame('snooker'); }], ['heyball', () => S.newGame('heyball')]];
   const snap = make => {
     const g = make(), ph = S.physOf(S.TABLE), cue = g.kind === 'bumper' ? 21 : g.kind === 'carom' ? 70 : 0;
     const roll = S.simulateShot(g.balls, { angle: 0.37, power: 0.55, spin: { x: 0.2, y: -0.3 }, ball: cue });
@@ -756,9 +756,9 @@ for (const shape of ['rect', 'octagon']) {
   };
   const first = visit.map(([, make]) => snap(make)), again = visit.map(([, make]) => snap(make));
   const diff = visit.map(([name], i) => (first[i].vals === again[i].vals && first[i].roll === again[i].roll && first[i].rec && again[i].rec ? '' : name)).filter(Boolean);
-  const radii = visit.map(([, make]) => { make(); return S.BALL_R; });
-  check('tables: 8-ball, snooker, carom, 9-ball and bumper pool round and round, every per-table value (geometry, ball, cloth, rubber) and a fixed roll come back exactly, each from its physics record',
-    diff.length === 0 && radii.join() === [0.028575, 0.02625, 0.03075, 0.028575, 0.028575, 0.028575, 0.02625].join(), JSON.stringify({ diff, radii }));
+  const radii = visit.map(([, make]) => { make(); return S.BALL_R; }), hey = (visit[visit.length - 1][1](), [S.TABLE, S.JAW_ARCS.length, S.TL].join());
+  check('tables: 8-ball, snooker, carom, 9-ball, bumper pool and Chinese 8-ball round and round, every per-table value (geometry, ball, cloth, rubber) and a fixed roll come back exactly, each from its physics record',
+    diff.length === 0 && radii.join() === [0.028575, 0.02625, 0.03075, 0.028575, 0.028575, 0.028575, 0.02625, 0.028575].join() && hey === 'heyball,12,2.54', JSON.stringify({ diff, radii, hey }));
 }
 S.setTable('7');
 check('bumper: back on a pool table every pool global is rebuilt and the posts are gone', S.BUMPERS.length === 0 && S.POCKETS.length === 6 && S.CUSH.length === 18 && Math.abs(S.TL - 1.981) < 1e-9 && S.BED_LINES === null);
@@ -775,7 +775,7 @@ check('bumper: back on a pool table every pool global is rebuilt and the posts a
   const A = 2.5 * (10 * 2 / 5 / 9) * 9.8, DT = S.SIM_DT;
   /* every table: the documented rate, a stationary ball spinning in place, and its decay */
   const TABLES = [['7', () => S.setTable('7'), 0], ['9', () => S.setTable('9'), 0], ['snooker', () => S.setTable('snooker', 'compact'), 0], ['carom', () => S.setTable('carom'), 70],
-    ['bumper octagon', () => S.setTable('bumper', 'octagon'), 21], ['bumper rect', () => S.setTable('bumper', 'rect'), 21]];
+    ['bumper octagon', () => S.setTable('bumper', 'octagon'), 21], ['bumper rect', () => S.setTable('bumper', 'rect'), 21], ['heyball', () => S.setTable('heyball'), 0]];
   const spinRows = [], rollRows = [];
   for (const [name, set, n] of TABLES) {
     set();
@@ -792,7 +792,7 @@ check('bumper: back on a pool table every pool global is rebuilt and the posts a
     rollRows.push({ name, dwz: 40 - c.wz });
   }
   S.setTable('7');
-  check('F10 spinning friction: every table (7 and 9 ft, snooker, carom, both bumper tables) takes the vertical spin off at 5/2 (4/9) g = 10.89 rad/s^2, pooltool\'s default',
+  check('F10 spinning friction: every table (7 and 9 ft, snooker, carom, both bumper tables, Chinese 8-ball) takes the vertical spin off at 5/2 (4/9) g = 10.89 rad/s^2, pooltool\'s default',
     spinRows.every(r => Math.abs(r.rate - A) < 1e-12) && Math.abs(A - 10.8889) < 1e-4, JSON.stringify(spinRows.map(r => [r.name, r.rate])));
   check('F9 a ball at rest with side spin keeps turning in place: after 1 s it has not moved and has 30 - 10.89 rad/s left; the shot ends when the spin has gone, at 30 / 10.89 s (within a step)',
     spinRows.every(r => r.at1.moved === 0 && r.at1.v === 0 && r.at1.on && Math.abs(r.at1.wz - (30 - A)) < 1e-6 && r.end === 'rest' && r.wz === 0 && r.on && Math.abs(r.t - 30 / A) < 2 * DT), JSON.stringify(spinRows));
@@ -928,7 +928,7 @@ check('bumper: back on a pool table every pool global is rebuilt and the posts a
 
   /* judged in every game kind: the cue ball off the table is a foul (a scratch's ball in hand, the D at snooker), the shooter's turn over */
   const offFoul = [];
-  for (const kind of ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper']) {
+  for (const kind of ['8', '9', '10', 'straight', 'rotation', 'heyball', 'snooker', 'carom', 'bumper']) {
     const g = S.newGame(kind);
     Object.assign(g, { breakShot: false, opening: 0, inHand: null });
     const cueN = kind === 'carom' ? S.C_CUE[0] : kind === 'bumper' ? S.B_MARK[0] : 0, cb = g.balls.find(b => b.n === cueN);

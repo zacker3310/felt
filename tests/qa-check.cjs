@@ -32,7 +32,7 @@ const clickAt = async (page, sel) => { const [x, y] = await centre(page, sel); a
 /* what is on top at the element's centre is the element (or inside it) */
 const onTop = (page, sel) => page.evaluate(sel => { const b = document.querySelector(sel), r = b.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!t && b.contains(t); }, sel);
 
-/* the home's measures: each card's box (the eight games, the four modes), its words inside it and
+/* the home's measures: each card's box (the nine games, the four modes), its words inside it and
    not cut, the career's faces, the game cards on the first screen, the page's scroll */
 const homeFit = page => page.evaluate(() => {
   const R = e => e.getBoundingClientRect(), bad = [];
@@ -56,7 +56,7 @@ const homeFit = page => page.evaluate(() => {
   }
   for (const b of cards) if (R(b).right > innerWidth + 0.5 || R(b).left < -0.5) bad.push(b.id + ' overflows');
   const tiles = cards.map(c => Math.round(R(c).height)), games = [...playRow.children].map(R);
-  return { bad, tiles, first: menu.scrollTop === 0 && games.length === 8 && games.every(r => r.top >= 0 && r.bottom <= innerHeight + 0.5), sh: menu.scrollHeight, ch: menu.clientHeight, sw: Math.max(menu.scrollWidth - menu.clientWidth, document.documentElement.scrollWidth - innerWidth), text: document.documentElement.dataset.text };
+  return { bad, tiles, first: menu.scrollTop === 0 && games.length === 9 && games.every(r => r.top >= 0 && r.bottom <= innerHeight + 0.5), sh: menu.scrollHeight, ch: menu.clientHeight, sw: Math.max(menu.scrollWidth - menu.clientWidth, document.documentElement.scrollWidth - innerWidth), text: document.documentElement.dataset.text };
 });
 
 (async () => {
@@ -67,7 +67,7 @@ const homeFit = page => page.evaluate(() => {
     const f = await homeFit(T.page);
     check(`home ${tag}, text ${ts}%: every card 44 px or more, its name and line inside it and whole; the career faces whole; no card past the edge; no sideways scroll`,
       f.text === String(ts) && !f.bad.length && f.sw <= 1, JSON.stringify(f));
-    if (ts === 100 && h > 800) check(`home ${tag} at the default text size: all eight game cards on the first screen, no scrolling needed; the modes and solo list scroll`, f.first && f.sh > f.ch, JSON.stringify(f));
+    if (ts === 100 && h > 800) check(`home ${tag} at the default text size: all nine game cards on the first screen, no scrolling needed; the modes and solo list scroll`, f.first && f.sh > f.ch, JSON.stringify(f));
     if (ts === 100 && tag === '375x667') check('home 375x667 (F3): the cards are at least 62 px (were 48), so it scrolls a little', Math.min(...f.tiles) >= 61 && f.sh > f.ch, JSON.stringify(f.tiles));
     if (ts > 100 && w < 500) {
       /* the last solo row comes into view by scrolling, and a card is tapped where it is */
@@ -218,7 +218,7 @@ const homeFit = page => page.evaluate(() => {
   const hp = H.page, hev = (f, a) => hp.evaluate(f, a);
   await hp.waitForTimeout(300);
   check('home 393x852: no Play again hero, no More games or More modes row', await hev(() => !['againBtn', 'playMore', 'playModes', 'moreSheet'].some(id => document.getElementById(id))));
-  const GAMES = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper']];
+  const GAMES = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper'], ['#playH', 'heyball']];
   const opened = [];
   for (const [sel, kind] of GAMES) {
     await hev(() => { menu.scrollTop = 0; });
@@ -229,7 +229,7 @@ const homeFit = page => page.evaluate(() => {
     const back = await hev(() => menu.classList.contains('show') && !setupSheet.classList.contains('show'));
     opened.push({ sel, kind, seen, ...o, back });
   }
-  check('home 393x852: a real tap on each of the eight game cards (each on screen without scrolling) opens that game\'s setup; Back goes straight home',
+  check('home 393x852: a real tap on each of the nine game cards (each on screen without scrolling) opens that game\'s setup; Back goes straight home',
     opened.every(o => o.seen && o.open && o.back) && opened.every((o, i) => o.kind === GAMES[i][1]), JSON.stringify(opened));
   const MODES = [['#careerBtn', 'careerSheet', null], ['#modeTour', 'modesSheet', 'tsetup'], ['#modeEx', 'modesSheet', 'exsetup'], ['#modeParty', 'modesSheet', 'psetup']];
   const mo = [];
@@ -267,11 +267,11 @@ const homeFit = page => page.evaluate(() => {
   check('setup remembers: the opponent and table carry to the other games\' setups too (as Play again had them)', mem8.every(v => v === 'true'), JSON.stringify(mem8));
   check('home taps: no page errors', !H.errors.length, H.errors.join(' | '));
   await H.browser.close();
-  /* 440x956: the eight games on the first screen too */
+  /* 440x956: the nine games on the first screen too */
   const H2 = await phone(440, 956);
   await H2.page.waitForTimeout(300);
   const g440 = await H2.page.evaluate(() => [...playRow.children].map(b => { const r = b.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }));
-  check('home 440x956: all eight game cards on screen without scrolling', g440.length === 8 && g440.every(Boolean), JSON.stringify(g440));
+  check('home 440x956: all nine game cards on screen without scrolling', g440.length === 9 && g440.every(Boolean), JSON.stringify(g440));
   await touchAt(H2.page, '#playRot');
   check('home 440x956: a real tap on Rotation opens its setup', await H2.page.evaluate(() => setupSheet.classList.contains('show') && setupSheet.dataset.kind === 'rotation'));
   await H2.browser.close();
@@ -294,7 +294,7 @@ const homeFit = page => page.evaluate(() => {
   }, sel);
   /* segment words whole (never cut off by their button) */
   const crowded = page => page.evaluate(() => [...document.querySelectorAll('#setupSheet .seg button')].filter(b => b.getClientRects().length && b.scrollWidth > b.clientWidth + 1).map(b => b.id));
-  const GK = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper']];
+  const GK = [['#play8', '8'], ['#play9', '9'], ['#play10', '10'], ['#playStr', 'straight'], ['#playRot', 'rotation'], ['#playS', 'snooker'], ['#playC', 'carom'], ['#playB', 'bumper'], ['#playH', 'heyball']];
   for (const [w, h] of [[393, 852], [375, 667]]) {
     const P = await phone(w, h), pp = P.page, pev = (f, a) => pp.evaluate(f, a), tag = `${w}x${h}`;
     await pp.waitForTimeout(300);
@@ -315,7 +315,7 @@ const homeFit = page => page.evaluate(() => {
       }
       await pev(() => felt.quitToHome());
     }
-    check(`setup ${tag}: each of the eight games' setups (opened by a real tap) has Break (Play) pinned inside the screen above the safe area without scrolling, on top, 50 px; a real tap there starts that game; no choice crowded, no sideways scroll`,
+    check(`setup ${tag}: each of the nine games' setups (opened by a real tap) has Break (Play) pinned inside the screen above the safe area without scrolling, on top, 50 px; a real tap there starts that game; no choice crowded, no sideways scroll`,
       rows.every(r => r.ok && r.h === 50 && r.side && !r.cr.length && r.started), JSON.stringify(rows.filter(r => !(r.ok && r.h === 50 && r.side && !r.cr.length && r.started))));
     check(`setup ${tag}: 8-ball and snooker setups: 44 px targets, text 4.5:1`, !bad.length, JSON.stringify(bad));
     /* 8-Ball, two players: the whole form fits without scrolling (at 393x852 and at 375x667), Break where it was */
@@ -374,7 +374,7 @@ const homeFit = page => page.evaluate(() => {
       out.push({ kind, ...(await pinned(lp, '#breakBtn')), cr: await crowded(lp) });
     }
     await tapHere(lp, '#breakBtn');
-    const go = await lp.evaluate(() => !setupSheet.classList.contains('show') && felt.game.kind === 'bumper');
+    const go = await lp.evaluate(k => !setupSheet.classList.contains('show') && felt.game.kind === k, GK[GK.length - 1][1]);
     check(`setup ${w}x${h}, text ${ts}%: Break pinned inside the screen for every game (no sideways scroll, no crowded choice); a real tap there starts the game`,
       out.every(r => r.ok && r.side && !r.cr.length) && go, JSON.stringify(out.filter(r => !(r.ok && r.side && !r.cr.length))));
     await L.browser.close();
@@ -386,7 +386,7 @@ const homeFit = page => page.evaluate(() => {
   const scanAt = async where => { for (const b of await badTitles(tp)) flagged.push(where + ': ' + JSON.stringify(b.text) + ' (' + b.wrong.join(' ') + ')'); };
   const SCREENS = [
     ['home', () => backToMenu()],
-    ...['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'].map(k => ['setup ' + k, `showSetup('${k}')`]),
+    ...['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper', 'heyball'].map(k => ['setup ' + k, `showSetup('${k}')`]),
     ['settings', () => showPrefs()], ...['game', 'ctl', 'gfx', 'aud', 'a11y', 'about'].map(p => ['settings ' + p, `showPrefs(); prefsPage('${p}')`]),
     ['how to play', () => showHelp()], ...Object.keys({ ctl: 1, 8: 1, 9: 1, 10: 1, bumper: 1, carom: 1, snooker: 1, straight: 1, rotation: 1, call: 1, solo: 1, cue: 1, modes: 1, drills: 1, career: 1 }).map(k => ['how to play ' + k, `showHelp('${k}')`]),
     ['stats', () => showStats()], ['stats book', () => { showStats(); statsGo('book'); }], ['stats form', () => { showStats(); statsGo('form'); }], ['stats 9-ball', () => { showStats(); statsGo('9'); }],
@@ -405,11 +405,11 @@ const homeFit = page => page.evaluate(() => {
     ['career recap', () => { Career.retire(); showCareer(); felt.careerGo('recap'); }],
   ];
   for (const [where, go] of SCREENS) { await tev(typeof go === 'string' ? go : `(${go})()`); await tp.waitForTimeout(60); await scanAt(where); }
-  check('titles: on every screen reached (home, the eight setups, every Settings and How to play page, Stats, the modes, a tournament and its end, drills, trick shots, practice, the career\'s pages, the pause menu, a rules choice) no title has a word Title Case capitalizes in lower case',
+  check('titles: on every screen reached (home, the nine setups, every Settings and How to play page, Stats, the modes, a tournament and its end, drills, trick shots, practice, the career\'s pages, the pause menu, a rules choice) no title has a word Title Case capitalizes in lower case',
     !flagged.length, flagged.slice(0, 12).join(' | '));
   const named = await tev(() => ({ home: [...document.querySelectorAll('#playRow .tt b, #modeRow .tt b, #soloRow .tt b')].map(b => b.textContent), help: tabModes.querySelector('b').textContent, quit: exitBtn.textContent.trim() }));
-  check('titles: the home reads 8-Ball, 9-Ball, 10-Ball, Straight Pool, Rotation, Snooker, Three-Cushion, Bumper Pool, Career, Quick Tournament, AI Exhibition, Party, Learn to Play, Practice, Drills, Trick Shots, Daily Shot',
-    named.home.join() === '8-Ball,9-Ball,10-Ball,Straight Pool,Rotation,Snooker,Three-Cushion,Bumper Pool,Career,Quick Tournament,AI Exhibition,Party,Learn to Play,Practice,Drills,Trick Shots,Daily Shot' && named.help === 'More Modes', JSON.stringify(named));
+  check('titles: the home reads 8-Ball, 9-Ball, 10-Ball, Straight Pool, Rotation, Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball, Career, Quick Tournament, AI Exhibition, Party, Learn to Play, Practice, Drills, Trick Shots, Daily Shot',
+    named.home.join() === '8-Ball,9-Ball,10-Ball,Straight Pool,Rotation,Snooker,Three-Cushion,Bumper Pool,Chinese 8-Ball,Career,Quick Tournament,AI Exhibition,Party,Learn to Play,Practice,Drills,Trick Shots,Daily Shot' && named.help === 'More Modes', JSON.stringify(named));
   const sc = await tev(() => {
     backToMenu(); showSetup('8');
     const t = setupTitle.textContent;

@@ -22,25 +22,25 @@ const path = require('path');
 const { check, done, open, choose, openPop, smallTargets, lowContrast, settled } = require('./lib.cjs');
 const { loadSim, regionSource } = require('./sim.cjs');
 const SHOTS = process.env.FELT_SHOTS || '';
-const IDS = ['8', '9', 'bumper', 'carom', 'snooker'];
-const TILE = { 8: '#play8', 9: '#play9', bumper: '#playB', carom: '#playC', snooker: '#playS' };
-const GO = { 8: '#tutGo8', 9: '#tutGo9', bumper: '#tutGoB', carom: '#tutGoC', snooker: '#tutGoS' };
-const WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker' };
+const IDS = ['8', '9', 'bumper', 'carom', 'snooker', 'heyball'];
+const TILE = { 8: '#play8', 9: '#play9', bumper: '#playB', carom: '#playC', snooker: '#playS', heyball: '#playH' };
+const GO = { 8: '#tutGo8', 9: '#tutGo9', bumper: '#tutGoB', carom: '#tutGoC', snooker: '#tutGoS', heyball: '#tutGoH' };
+const WORD = { 8: '8-ball', 9: '9-ball', bumper: 'bumper pool', carom: 'three-cushion', snooker: 'snooker', heyball: 'Chinese 8-ball' };
 /* the same names as button titles (Title Case) */
-const TITLE = { 8: '8-Ball', 9: '9-Ball', bumper: 'Bumper Pool', carom: 'Three-Cushion', snooker: 'Snooker' };
+const TITLE = { 8: '8-Ball', 9: '9-Ball', bumper: 'Bumper Pool', carom: 'Three-Cushion', snooker: 'Snooker', heyball: 'Chinese 8-Ball' };
 
 /* ---------- Node: the tutorials, their solutions and goals ---------- */
 function nodeChecks() {
   const S = loadSim();
   const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'tutorial-solutions.json'), 'utf8'));
-  check('five tutorials, one per game, three to five steps each', S.TUTORIALS.map(t => t.id).join() === IDS.join() && S.TUTORIALS.every(t => t.steps.length >= 3 && t.steps.length <= 5),
+  check('six tutorials, one per game, three to five steps each', S.TUTORIALS.map(t => t.id).join() === IDS.join() && S.TUTORIALS.every(t => t.steps.length >= 3 && t.steps.length <= 5),
     JSON.stringify(S.TUTORIALS.map(t => [t.id, t.steps.length])));
   check('the page\'s TUT_SOLS equal tests/tutorial-solutions.json (tools/tutorial-solver.cjs), a solution for every step',
     JSON.stringify(S.TUT_SOLS) === JSON.stringify(file) && S.TUTORIALS.every(t => t.steps.every((_, i) => !!S.tutSol(t.id, i))));
   const bad = [], soft = [], words = [], layout = [], extra = {};
   for (const t of S.TUTORIALS) {
     S.setTable(...t.table); S.setPockets(t.pockets);
-    for (const group of t.id === '8' ? ['solids', 'stripes'] : [null]) {
+    for (const group of t.ctx ? ['solids', 'stripes'] : [null]) {
       t.steps.forEach((st, i) => {
         const c = group ? { group } : {};
         let g = S.tutGame(t, i, c);
@@ -83,6 +83,9 @@ function nodeChecks() {
   check('snooker: a red (1), the black (7, re-spotted, on a red again), a red from the D after an in-off, then the yellow in order (it stays down)',
     e('snooker/0').n.verdict.pts === 1 && e('snooker/1').n.verdict.pts === 7 && e('snooker/1').n.verdict.back.includes(62) && e('snooker/1').n.on === 'red'
     && e('snooker/2').n.verdict.pts >= 1 && e('snooker/3').n.verdict.potted.includes(57));
+  check('Chinese 8-ball (World Chinese 8-Ball Masters rules): step 1 is a legal break that leaves the table open whatever drops, step 2 the first pot after it takes a group, step 4 the 8 in its named pocket wins (in another pocket it loses)',
+    e('heyball/0').n.open && !e('heyball/0').n.groups[0] && !e('heyball/0').n.verdict.foul && !e('heyball/0').n.verdict.illegalBreak && !!e('heyball/1').n.groups[0] && e('heyball/1').n.verdict.grouped
+    && e('heyball/3').n.winner === 0 && e('heyball/3').r.pocketOf[8] === 2 && (() => { const t = S.tutById('heyball'); S.setTable('heyball'); const g = S.tutGame(t, 3, { group: 'solids' }); g.call = { ball: 8, pocket: 5 }; return S.judge(g, e('heyball/3').r).winner === 1; })());
   check('the sim region has no clocks and no Math.random', !/Math\.random|Date\.now|performance\.now|new Date/.test(regionSource()));
 }
 
@@ -322,7 +325,7 @@ async function portrait() {
 
   /* stats: tutorials done */
   await T.page.click('#statsBtn');
-  check('the stats sheet: "Tutorials: 5 of 5 done."', await ev(T, () => tutStat.textContent === 'Tutorials: 5 of 5 done.'));
+  check('the stats sheet: "Tutorials: 5 of 6 done." (Chinese 8-ball\'s is played in heyball-check)', await ev(T, () => tutStat.textContent === 'Tutorials: 5 of 6 done.'));
   await T.page.click('#statsBack');
 
   /* the offer on a first Break */
@@ -381,7 +384,7 @@ async function portrait() {
   await T.page.setViewportSize({ width: 375, height: 667 });
   await T.page.click('#helpBtn');
   const tabs = [];
-  for (const [tab, go] of [['#tabCtl', null], ['#tab8', '#tutGo8'], ['#tab9', '#tutGo9'], ['#tabBump', '#tutGoB'], ['#tabCarom', '#tutGoC'], ['#tabSnk', '#tutGoS']]) {
+  for (const [tab, go] of [['#tabCtl', null], ['#tab8', '#tutGo8'], ['#tab9', '#tutGo9'], ['#tabBump', '#tutGoB'], ['#tabCarom', '#tutGoC'], ['#tabSnk', '#tutGoS'], ['#tabHey', '#tutGoH']]) {
     await T.page.click(tab);
     tabs.push(await ev(T, ([go]) => {
       const sh = document.querySelector('#helpSheet .sheet').getBoundingClientRect(), b = go ? document.querySelector(go) : lessonAgain;

@@ -10,6 +10,7 @@
    and on any table with pockets every pot goes in at POT_V or faster and nothing rests on a lip
    and the shortest shot breaks ties (the hero plays it in about three seconds). One worker per
    table, four at a time. About five minutes.
+   Chinese 8-ball (heyball) is a pocket game on its own table: its one key is 'heyball'.
    Usage: node tools/hero-solver.cjs [key,key,...]   (keys as heroKey makes them, e.g. 8|7|regulation) */
 'use strict';
 const { fork } = require('child_process');
@@ -18,12 +19,12 @@ const { loadSim } = require('../tests/sim.cjs');
 const D = Math.PI / 180;
 const POOL = ['8', '9', '10', 'straight', 'rotation'];
 const KEYS = [...POOL.flatMap(k => ['7', '9'].flatMap(t => ['regulation', 'generous'].map(p => `${k}|${t}|${p}`))),
-  'snooker|compact', 'snooker|full', 'bumper|octagon', 'bumper|rect', 'carom'];
+  'heyball', 'snooker|compact', 'snooker|full', 'bumper|octagon', 'bumper|rect', 'carom'];
 const r6 = v => Math.round(v * 1e6) / 1e6;
 
 function setFor(S, key) {
   const [kind, a, b] = key.split('|');
-  if (POOL.includes(kind)) { S.setTable(a); S.setPockets(b); } else if (kind === 'snooker') S.setTable('snooker', a); else if (kind === 'bumper') S.setTable('bumper', a); else S.setTable('carom');
+  if (POOL.includes(kind)) { S.setTable(a); S.setPockets(b); } else if (kind === 'heyball') S.setTable('heyball'); else if (kind === 'snooker') S.setTable('snooker', a); else if (kind === 'bumper') S.setTable('bumper', a); else S.setTable('carom');
   return kind;
 }
 /* how spread the object balls lie: their mean distance from their centroid, over the table's length */
@@ -60,8 +61,8 @@ function score(S, kind, sh) {
   if (kind === 'bumper') return 2 - slow - Math.abs((r.rails[n] || 0) - 1) * 0.2;
   return Math.min(3, r.potted.length) + 3 * spread(S, r.balls) + 0.3 * mid - slow;
 }
-const POCKET_OK = kind => POOL.includes(kind);
-const gameBall = kind => kind === '8' ? 8 : kind === '9' ? 9 : kind === '10' ? 10 : -1;
+const POCKET_OK = kind => POOL.includes(kind) || kind === 'heyball';
+const gameBall = kind => kind === '8' || kind === 'heyball' ? 8 : kind === '9' ? 9 : kind === '10' ? 10 : -1;
 
 function candidates(S, kind) {
   const out = [], n = S.heroBall(kind), b0 = S.heroSetup(kind, { a: 0, p: 1, s: [0, 0] }).balls;
@@ -78,7 +79,7 @@ function candidates(S, kind) {
     }
     return out;
   }
-  if (POOL.includes(kind)) {
+  if (POCKET_OK(kind)) {
     const apex = b0.find(b => b.n === 1);
     /* 14.1 racks as 8-ball does: its break comes from the other side of the table, so the two heroes differ */
     const spots = (kind === 'straight' ? [0.58, 0.66, 0.74] : [0.5, 0.42, 0.58, 0.34, 0.66, 0.26, 0.74]).flatMap(y => [[0.25, y], [0.21, y]]);

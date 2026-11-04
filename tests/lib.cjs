@@ -29,7 +29,7 @@ async function open(query = '', { viewport = { width: 1280, height: 800 }, hasTo
      asks for a first run: as if it had been seen, unless the page has its own record */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.lesson.v1')) localStorage.setItem('felt.lesson.v1', '{"v":1,"seen":true,"done":false}'); } catch (e) { } });
   /* likewise each game's tutorial offer on its first Break: as if turned down for every game */
-  if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.tutorials.v1')) localStorage.setItem('felt.tutorials.v1', '{"v":1,"done":{},"skipped":{"8":true,"9":true,"bumper":true,"carom":true,"snooker":true},"never":false}'); } catch (e) { } });
+  if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.tutorials.v1')) localStorage.setItem('felt.tutorials.v1', '{"v":1,"done":{},"skipped":{"8":true,"9":true,"bumper":true,"carom":true,"snooker":true,"heyball":true},"never":false}'); } catch (e) { } });
   /* and the elevation tip on the first jump or masse trick shot (5s): as if seen */
   if (!firstRun) await page.addInitScript(() => { try { if (!localStorage.getItem('felt.elevTip.v1')) localStorage.setItem('felt.elevTip.v1', '{"v":1,"seen":true}'); } catch (e) { } });
   /* and the mouse tip on the first hover of the cloth (5 input): as if seen */

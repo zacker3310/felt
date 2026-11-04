@@ -12101,7 +12101,11 @@ function pause() {
   if (keyPull) cancelKeyPull();
   /* an auto-aim swing in flight lands first: left to stepAutoAim it would stop half way */
   finishAutoAim();
-  paused = { state, at: performance.now() };
+  /* a party's handoff up (6f; the page hidden while the device is passed): it waits under the pause menu and comes
+     back with Resume, never left over the menu's Resume */
+  const ho = handoff.classList.contains('show');
+  if (ho) handoff.classList.remove('show');
+  paused = { state, at: performance.now(), handoff: ho };
   state = 'menu';
   showMenu();
   hud();
@@ -12111,8 +12115,10 @@ function resume() {
   const dt = performance.now() - paused.at;
   if (stroke) stroke.t0 += dt;
   cpuAnim += dt; cpuT0 += dt;
+  const ho = paused.handoff && party && game.winner === null;
   state = paused.state; paused = null;
   hideOverlays();
+  if (ho) handoff.classList.add('show');
   hud();
 }
 

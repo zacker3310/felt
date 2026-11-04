@@ -268,6 +268,19 @@ const { check, done, open, smallTargets, lowContrast } = require('./lib.cjs');
   await shoot(Math.PI, 0.1);
   const s4 = await st();
   check('party: the turn goes round in order: Bob fouls to Cy, Cy fouls back to Ann, each with a handoff', s3.turn === 2 && s3.ho.title === 'Pass to Cy' && s4.turn === 0 && s4.ho.title === 'Pass to Ann' && s4.fouls.join() === '1,1,1' && s4.ho.count === c0 + 3 && s4.chip === 'Ann', JSON.stringify([s3, s4]));
+  /* the page hidden with the handoff up (the phone locked while it is passed round): it comes back to the pause menu
+     alone (the handoff once sat over its Resume), and Resume brings the handoff back for the same player */
+  const away = await ev(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange'));
+    delete document.hidden; document.dispatchEvent(new Event('visibilitychange'));
+    const top = (() => { const r = resumeBtn.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && resumeBtn.contains(e); })();
+    return { menu: menu.classList.contains('show'), ho: felt.handoff.shown, top, st: felt.state };
+  });
+  await page.tap('#resumeBtn', { timeout: 3000 }).catch(() => {});   /* covered (the bug): no tap, and the check says so */
+  await page.waitForTimeout(100);
+  const backHo = await ev(() => ({ menu: menu.classList.contains('show'), ho: felt.handoff, st: felt.state, turn: game.turn }));
+  check('party: hidden with the handoff up, it comes back to the pause menu alone (Resume on top); Resume brings back the handoff for Ann',
+    away.menu && !away.ho && away.top && away.st === 'menu' && !backHo.menu && backHo.ho.shown && backHo.ho.who === 0 && backHo.ho.title === 'Pass to Ann' && backHo.st === 'aim' && backHo.turn === 0, JSON.stringify({ away, backHo }));
   /* Ann, ball on the 9 alone, pots it: she wins the rack */
   await setup([9], [[9, 1.4, 0.75]]);
   a = await potAim(9, 2);

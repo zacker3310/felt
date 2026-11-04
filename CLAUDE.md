@@ -203,7 +203,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   tournament's seed, shown as simulated; `felt.tourney.v1`, a match left mid-way is a forfeit (`t.live`). Exhibition:
   both players CPU (`exhib`, `humanP`), `o.seed` is `cpuSeed`, the speed bar sets `felt.speed`. Party: 2 to 4 players
   on a ring ruleset (`ring: true`, `rules.players`, `playersOf`/`nextOf` in sim 1e; `rulesetsFor` lists only
-  two-player sets), the handoff sheet when the turn passes; with 3 or 4 players every player has a turn chip
+  two-player sets), the handoff sheet when the turn passes (a pause with it up, the page hidden, keeps it under the
+  pause menu, `paused.handoff`, and Resume brings it back); with 3 or 4 players every player has a turn chip
   (`pchip0`-`pchip3`, `chipCount`, `#turnChip.many`: inlaid on the rail, 6b2). The tournament
   plays 8, 9, 10, 14.1, rotation, Chinese 8-ball, snooker and carom (`T_KINDS`, `tRaces`): 14.1 and carom race to points in one game
   (`tmatch.units` 'points', need 1), snooker in frames. Pinned by `modes-check`.

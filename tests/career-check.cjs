@@ -445,6 +445,24 @@ async function pullBar(T, frac) {
     await T.browser.close();
   }
 
+  /* ---------- Chinese 8-ball in the career: an event of its own, played on its own table under its own rules ---------- */
+  {
+    const T = await phone({ width: 393, height: 852 });
+    const e0 = await ev(T, () => {
+      Career.create({ name: 'Sam Rivers', nat: 'GB', start: 'skilled' }, { seed: 18 });
+      const e = Career.availableEvents().find(x => x.disc === 'heyball' && x.eligibility.ok);
+      return e && { id: e.id, name: e.name, r: Career.enter(e.id), rules: e.rules, words: [tableWords(e.rules), rulesWords(e.rules)] };
+    });
+    let guard = 0;
+    while (e0 && !(await ev(T, () => !!Career.nextMatch())) && guard++ < 30) await ev(T, () => felt.careerAdvance('week'));
+    const m0 = await ev(T, () => { const n = Career.nextMatch(); if (!n) return null; const ok = felt.careerPlay(); return { ok, game: n.rules.game, kind: felt.game.kind, table: TABLE, ruleset: felt.game.rules.game, calls: felt.game.rules.calls, src: felt.game.rules.source, locked: !!felt.game.rules.locked, state: felt.state, career: !!felt.careerMatch }; });
+    check(`career, Chinese 8-ball: its event (${e0 && e0.name}) is entered, its match plays on the table: Chinese 8-ball on its own table, its rules locked (${e0 && e0.words.join('; ')})`,
+      !!e0 && e0.r.ok && e0.rules.table === 'heyball' && !!m0 && m0.ok && m0.game === 'heyball' && m0.kind === 'heyball' && m0.table === 'heyball' && m0.ruleset === 'heyball' && m0.calls === 'game' && /Chinese 8-Ball Masters/.test(m0.src) && m0.locked && m0.career && m0.state !== 'menu'
+        && e0.words[0] === 'Chinese 8-ball table, snooker pockets' && /^Chinese 8-ball, official calls/.test(e0.words[1]), JSON.stringify({ e0, m0 }));
+    check('career, Chinese 8-ball: no page errors', T.errors.length === 0, T.errors.join(' | '));
+    await T.browser.close();
+  }
+
   /* ---------- home with the Career row and the lesson row: fits, 44 px, contrast ---------- */
   const H = await phone({ width: 440, height: 956 });
   const fits = [];

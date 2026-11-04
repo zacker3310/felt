@@ -206,6 +206,20 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     check('an elite invitational is labelled a custom format, strict calls', elite.length >= 1 && elite.every(e => e.kind === 'invitational' && e.tier === 11 && e.rules.call.detail === 'strict' && /Custom format/.test(e.rules.custom)));
     check('snooker, carom and bumper events call nothing (their own rules govern)', evs.filter(e => ['snooker', 'carom', 'bumper'].includes(e.disc) && !e.rules.custom).every(e => e.rules.call.require === 'off'));
     check('money: ranking events have a purse; invitations and finals are free to enter; one tier-1 series is a free roll', evs.filter(e => e.kind !== 'qualifier').every(e => e.purse > 0) && evs.filter(e => ['invitational', 'finals'].includes(e.kind)).every(e => e.fee === 0) && evs.some(e => e.tier === 1 && e.fee === 0));
+    /* Chinese 8-ball (heyball): a discipline of the career, appended (a discipline's index is saved), with events from the
+       regional tiers up on its own table and rules; the population is a pure function of the seed and did not change
+       when it came (its fingerprint for seed 99 as at 72a8c87, before Chinese 8-ball) */
+    check('Chinese 8-ball in the career: the last discipline, live, its own ruleset', C1.DISCS[C1.DISCS.length - 1] === 'heyball' && C1.DISCS.indexOf('bumper') === 7 && C1.GAMES.heyball.live && C1.GAMES.heyball.name === 'Chinese 8-ball' && C1.RULESETS['heyball-masters'].game === 'heyball');
+    const pfp = (() => { const s = JSON.stringify(C1.population().map(p => [p.name, p.disc, p.attrs, p.arch, p.tier])); let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16); })();
+    check('Chinese 8-ball in the career: the AI population is unchanged by it (seed 99, every name, game, attribute, archetype and tier as before)', pfp === 'dbfcdfc7', pfp);
+    const hey = [];
+    for (let seed = 1; seed <= 12; seed++) { const { C } = fresh(); C.create({ name: 'Hey ' + seed, nat: 'GB', start: 'amateur' }, { seed }); hey.push(...C.calendar().events.filter(e => e.disc === 'heyball')); }
+    const heyOk = e => e.tier >= 3 && e.rules.game === 'heyball' && e.rules.ruleset === 'heyball-masters' && e.rules.table === 'heyball' && e.rules.pockets === 'regulation' && (e.rules.custom ? e.rules.call.require === 'all' : e.rules.call.require === 'official' && e.rules.call.detail === 'pocket') && Number.isInteger(e.race) && e.race > 1 && (!['open', 'league', 'championship'].includes(e.kind) || / Chinese 8-Ball /.test(' ' + e.name + ' '));
+    check(`Chinese 8-ball in the career: twelve careers' calendars hold its events (${hey.length}), from the regional tiers up (tiers ${[...new Set(hey.map(e => e.tier))].sort((a, b) => a - b).join()}), each on its own table with its own rules (the 8 to a called pocket; an elite invitation's custom format calls every shot), an open or championship named for it`,
+      hey.length >= 12 && hey.every(heyOk) && hey.some(e => e.tier >= 8), JSON.stringify(hey.find(e => !heyOk(e)) || hey.slice(0, 2).map(e => [e.name, e.tier, e.rules])));
+    const top = hey.filter(e => e.tier >= 8);
+    check(`Chinese 8-ball in the career: its tour events (tier 8 up) are mostly held in China (${top.filter(e => e.nat === 'CN').length} of ${top.length})`, top.length > 0 && top.filter(e => e.nat === 'CN').length * 2 > top.length, JSON.stringify(top.map(e => e.nat)));
+    { const { C } = fresh(); C.create({ name: 'Hey Pro', disc: 'heyball', start: 'amateur' }, { seed: 7 }); check('Chinese 8-ball in the career: a player may name it their best game', C.profile().disc === 'heyball', JSON.stringify(C.profile().disc)); }
   }
 
   /* ---------- registration, qualification, clashes, fees ---------- */

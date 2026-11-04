@@ -43,7 +43,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - `.buildloop/spec/T2.1.md` (and T2.2) is the contract between the sim, rules/CPU, canvas, DOM and audio code: who owns
   which globals, and the exported shapes (`CUSH`, `CUSHION_POLYS`, `POCKETS`, `POCKET_R`, `POCKET_AIM`, `spinOf`).
 - Practice and trick shots: `game.mode` (`'practice' | 'trick'`), sim 1e+ and 1h, page section 5s; contract in
-  `.buildloop/spec/T2.3-solo.md`. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
+  `.buildloop/spec/T2.3-solo.md`. Practice's racks (`newPractice(layout)`, `PRACTICE_NAMES`, the sheet's `#prac8`,
+  `#prac9`, `#pracH`, `#pracScatter`, `#pracEmpty`): 8-ball, 9-ball, Chinese 8-ball (`'heyball'`: `game.kind` heyball,
+  on its own table, which `beginSolo` sets before the rack is made), a free table and an empty one; solo-check pins them. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
   Two groups (`TRICK_GROUPS`, the list's `.tgroup` heads): the 14 classics (no `group`; the daily shot draws only from
   them, `DAILY_TRICKS`) and Jump and Massé (`group: 'jump'`, contract and research `.buildloop/spec/T5-jump-tricks.md`):
   each has a `level`, an `elev` in whole degrees for the hint (`trickHint`) and a `sweep` (elevations, tips) the solver
@@ -184,7 +186,12 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   league, series, qualifier), rankings, sponsors, stats, seasons. Slots in `felt.careers.v1`, saves
   `felt.career.v2.<id>` (atomic: `.tmp`, `.bak`, checksum); `Career.migrate` turns `felt.career.v1` into a slot and
   never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }`; every discipline is
-  `live` (played on the table). The engine saves at boundaries; the screens save their own changes (`cvSave`). Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
+  `live` (played on the table). Chinese 8-ball is the ninth discipline (`DISCS` is append-only: `S.aw` stores a
+  discipline's index): ruleset `heyball-masters` (the page's `heyball`), its own table (`table: 'heyball'`), official
+  calls (the 8 to a called pocket), from tier 3 up (`discW`), its tour events mostly in China (`HEY_NAT`). The AI
+  population is a pure function of the seed and was left exactly as it was (no AI player's leaning changed; career2-check
+  pins seed 99's fingerprint); a career started before it keeps its saved calendar (`S.ser`), so only new careers hold its
+  events. A player may name it their best game. No drill or shop item is per game, so neither changed. The engine saves at boundaries; the screens save their own changes (`cvSave`). Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).
 - CPU personalities (sim 1f): every search runs on `cpuProfile(levelOrKnobs, { hill })`. A bare level
   ('easy' | 'medium' | 'hard') is `CPU_LEVELS` exactly (personality knobs neutral, same shots); a person is
   `{ level, arch }` plus, optionally, the career's `aiProfileOf` numbers (it now carries `arch`). `CPU_ARCH` keys

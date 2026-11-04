@@ -138,8 +138,26 @@ const KNOWN = require('./trick-solutions.json')['7r'];
     sz[0][0] > sz[3][0] + sz[3][1] && sz[0][0] < sz[1][0] && sz[1][0] < sz[2][0] && sz.every(s => s[1] >= 44), JSON.stringify(sz));
   await page.tap('#pracBtn');
   const pick = await page.evaluate(() => ({ shown: prac.classList.contains('show'), ids: [...prac.querySelectorAll('.pick .game')].map(b => b.id).join() }));
-  check('Practice opens its picker: the drills, 8-ball rack, 9-ball rack, free table, empty table', pick.shown && pick.ids === 'drillBtn,prac8,prac9,pracScatter,pracEmpty', JSON.stringify(pick));
+  check('Practice opens its picker: the drills, 8-ball rack, 9-ball rack, Chinese 8-ball rack, free table, empty table', pick.shown && pick.ids === 'drillBtn,prac8,prac9,pracH,pracScatter,pracEmpty', JSON.stringify(pick));
   check('practice picker: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
+  /* Chinese 8-ball's rack: on its own table (snooker's pockets), its rack of fifteen, ball in hand behind the head
+     string; the live break equals simulateShot; home again, a game of 8-ball is back on the pool table */
+  await page.tap('#pracH');
+  await page.waitForTimeout(150);
+  const ph = await page.evaluate(() => ({ s: felt.state, mode: felt.game.mode, kind: felt.game.kind, layout: felt.game.layout, table: TABLE, n: felt.game.balls.length, hand: felt.game.inHand, title: PRACTICE_NAMES[felt.solo.layout] }));
+  check('practice: the Chinese 8-ball rack opens on its own table, fifteen balls and the cue ball, ball in hand behind the head string, named in the pause menu',
+    ph.s === 'aim' && ph.mode === 'practice' && ph.kind === 'heyball' && ph.layout === 'heyball' && ph.table === 'heyball' && ph.n === 16 && ph.hand === 'kitchen' && ph.title === 'Chinese 8-Ball Rack', JSON.stringify(ph));
+  const hb = await page.evaluate(() => { const c = felt.game.balls[0]; return Math.atan2(FOOT[1] - c.y, FOOT[0] - c.x); });
+  const hwant = await page.evaluate(a => JSON.stringify(simulateShot(felt.game.balls, { angle: a, power: 0.9, spin: { x: 0, y: 0 } })), hb);
+  await page.evaluate(a => felt.shoot(a, 0.9, { x: 0, y: 0 }), hb);
+  await page.waitForFunction(() => felt.state === 'aim', null, { timeout: 30000 });
+  const hlive = await page.evaluate(() => ({ r: JSON.stringify(felt.lastResult), turn: felt.game.turn, kind: felt.game.kind, table: TABLE }));
+  check('practice, Chinese 8-ball: the live break equals simulateShot byte for byte, and it is your shot again on the same table', hlive.r === hwant && hlive.turn === 0 && hlive.kind === 'heyball' && hlive.table === 'heyball', JSON.stringify({ turn: hlive.turn, kind: hlive.kind, table: hlive.table }));
+  await page.evaluate(() => { closeSolo(); showMenu(); felt.start('8'); });
+  const back8 = await page.evaluate(() => ({ table: TABLE, kind: felt.game.kind }));
+  check('practice, Chinese 8-ball: the next game of 8-ball is back on the pool table', back8.kind === '8' && ['7', '9'].includes(back8.table), JSON.stringify(back8));
+  await page.evaluate(() => { felt.quitToHome(); showPractice(); });
+  await page.waitForTimeout(150);
   await page.tap('#prac9');
   await page.waitForTimeout(150);
   const p0 = await page.evaluate(() => ({ s: felt.state, mode: felt.game.mode, n: felt.game.balls.length, chip: getComputedStyle(turnChip).display, ctl: getComputedStyle(soloCtl).display, hand: felt.game.inHand }));

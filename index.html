@@ -2491,6 +2491,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <button class="game" id="drillBtn"><span class="ball bdrill" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 19v-4M10 19v-7M14 19V9M18 19V5"/></svg></span><span><b>Drills</b><small id="drillSub">11 scored drills, medals to win</small></span><span class="acc dacc"><svg class="medal" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7.5 2h3.2l1.3 5-2.6 2.6zM16.5 2h-3.2L12 7l2.6 2.6z" opacity=".6"/><circle cx="12" cy="15.2" r="5.8"/></svg><span id="drillSum">0 of 33</span></span></button>
       <button class="game" id="prac8"><span class="ball b8" aria-hidden="true">8</span><span><b>8-Ball Rack</b><small>Break and run</small></span></button>
       <button class="game" id="prac9"><span class="ball b9" aria-hidden="true">9</span><span><b>9-Ball Rack</b><small>The diamond</small></span></button>
+      <button class="game" id="pracH"><span class="ball b8" aria-hidden="true">8</span><span><b>Chinese 8-Ball Rack</b><small>Its own table, snooker's pockets</small></span></button>
       <button class="game" id="pracScatter"><span class="ball bscat" aria-hidden="true"></span><span><b>Free Table</b><small>Seven balls, scattered</small></span></button>
       <button class="game" id="pracEmpty"><span class="ball bcue" aria-hidden="true"></span><span><b>Empty Table</b><small>Tap the cloth to drop balls</small></span></button>
     </div>
@@ -3753,6 +3754,7 @@ function chooseOption(g, choice) {
 /* Practice is one player, no opponent and no fouls: game.mode 'practice'. Any ball may be hit
    first (legalTargets), nothing a shot does ends the turn, a scratch only gives ball in hand
    anywhere, and potted balls (the 8 and 9 too) stay down. game.layout is the rack: '8', '9',
+   'heyball' (Chinese 8-ball's rack, game.kind 'heyball': the page sets its table first, beginSolo),
    'scatter' (PRACTICE_SCATTER balls at seeded random spots, game.seed) or 'empty' (the cue ball
    alone; balls are added by hand). game.hand: the ball-in-hand toggle, ball in hand anywhere
    before every shot while it is on. */
@@ -3776,8 +3778,8 @@ function scatter(seed, count = PRACTICE_SCATTER) {
   return g.balls;
 }
 function newPractice(layout, seed = 1) {
-  const g = newGame(layout === '9' ? '9' : '8');
-  Object.assign(g, { mode: 'practice', layout: ['8', '9', 'scatter', 'empty'].includes(layout) ? layout : '8', seed: seed >>> 0, hand: false });
+  const g = newGame(layout === '9' ? '9' : layout === 'heyball' ? 'heyball' : '8');
+  Object.assign(g, { mode: 'practice', layout: ['8', '9', 'heyball', 'scatter', 'empty'].includes(layout) ? layout : '8', seed: seed >>> 0, hand: false });
   if (g.layout === 'scatter') g.balls = scatter(g.seed);
   if (g.layout === 'empty') g.balls = [newBall(0, HEAD_X, TW / 2)];
   if (g.layout === 'scatter' || g.layout === 'empty') { g.breakShot = false; g.inHand = 'table'; }
@@ -6580,15 +6582,17 @@ const Career = (() => {
   /* ---------------- constants and data ---------------- */
   const HUMAN = -1, YEAR = 364, POP = 300, MAX_SLOTS = 6, VERSION = 2, HOF_LEG = 1500;
   const K_INDEX = 'felt.careers.v1', K_V1 = 'felt.career.v1', K_V1_BAK = 'felt.career.v1.bak', K_PRE = 'felt.career.v2.';
-  const DISCS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper'];
-  /* live: playable in today's game (the rules engine plays all eight); a discipline that is not
+  /* Chinese 8-ball (heyball) last: a discipline's index is stored (S.aw), so a new one is only ever appended */
+  const DISCS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper', 'heyball'];
+  /* live: playable in today's game (the rules engine plays all nine); a discipline that is not
      is settled by simMatch, labelled as simulated on the page */
   const GAMES = {
     8: { name: '8-ball', live: true }, 9: { name: '9-ball', live: true }, 10: { name: '10-ball', live: true },
     straight: { name: 'Straight pool (14.1)', live: true }, rotation: { name: 'Rotation', live: true },
     snooker: { name: 'Snooker', live: true }, carom: { name: 'Three-cushion', live: true }, bumper: { name: 'Bumper pool', live: true },
+    heyball: { name: 'Chinese 8-ball', live: true },
   };
-  const SHORT = { 8: '8-Ball', 9: '9-Ball', 10: '10-Ball', straight: 'Straight Pool', rotation: 'Rotation', snooker: 'Snooker', carom: 'Three-Cushion', bumper: 'Bumper Pool' };
+  const SHORT = { 8: '8-Ball', 9: '9-Ball', 10: '10-Ball', straight: 'Straight Pool', rotation: 'Rotation', snooker: 'Snooker', carom: 'Three-Cushion', bumper: 'Bumper Pool', heyball: 'Chinese 8-Ball' };
   /* the career's ruleset ids; the rules stream's RULESETS registry maps them to its own */
   const RULESETS = {
     '8-bar': { game: '8', label: 'Bar 8-ball', note: 'house rules: call the 8 only' },
@@ -6603,6 +6607,7 @@ const Career = (() => {
     'snooker-wpbsa': { game: 'snooker', label: 'Official snooker' },
     '3c-umb': { game: 'carom', label: 'Three-cushion' },
     'bumper-house': { game: 'bumper', label: 'Bumper pool' },
+    'heyball-masters': { game: 'heyball', label: 'Chinese 8-ball', note: 'World Chinese 8-Ball Masters rules, the 8 to a called pocket' },
   };
   const CIRCUITS = ['local', 'regional', 'national', 'pro', 'intl'];
   const CIRC_NAMES = ['Local', 'Regional', 'National', 'Pro Tour', 'International'];
@@ -6664,9 +6669,14 @@ const Career = (() => {
     snooker: { acc: 0.35, cb: 0.25, safe: 0.25, tac: 0.1, con: 0.05 },
     carom: { cb: 0.35, bank: 0.35, acc: 0.15, tac: 0.15 },
     bumper: { acc: 0.3, bank: 0.3, cb: 0.2, tac: 0.2 },
+    /* Chinese 8-ball: 8-ball's game on snooker's tight pockets, so the pot counts for more */
+    heyball: { acc: 0.35, cb: 0.25, brk: 0.1, safe: 0.15, tac: 0.1, con: 0.05 },
   };
-  const BRK_ADV = { 8: 0.15, 9: 0.12, 10: 0.06, straight: 0.03, rotation: 0.08, snooker: 0, carom: 0.02, bumper: 0.1 };
-  const BNR_F = { 8: 1, 9: 1.1, 10: 0.8, straight: 0.5, rotation: 0.6, snooker: 0.2, carom: 0.1, bumper: 0.4 };
+  const BRK_ADV = { 8: 0.15, 9: 0.12, 10: 0.06, straight: 0.03, rotation: 0.08, snooker: 0, carom: 0.02, bumper: 0.1, heyball: 0.1 };
+  const BNR_F = { 8: 1, 9: 1.1, 10: 0.8, straight: 0.5, rotation: 0.6, snooker: 0.2, carom: 0.1, bumper: 0.4, heyball: 0.7 };
+  /* the nations that host Chinese 8-ball's big events, the rest a quarter of their weight (the population's own leanings are left as they were: a
+     player is a pure function of the seed, so no AI player's game changed when the discipline came) */
+  const HEY_NAT = { CN: 8, GB: 1.5 };
   const SPECIALIST = new Set(['snooker', 'carom']);
   /* nationalities: id, name, first names, family names, cities, weight, discipline leanings */
   const NAT = [
@@ -7132,9 +7142,11 @@ const Career = (() => {
     if (kind === 'league') return { 8: 3, 9: 2 };
     if (kind === 'finals') return { 9: 1 };
     if (tier <= 2) return { 8: 6, 9: 3, bumper: 1 };
-    if (tier <= 5) return { 8: 5, 9: 4, 10: 1, straight: 1, snooker: 1, carom: 0.5 };
-    if (tier <= 9) return { 8: 3, 9: 4, 10: 2, straight: 1, rotation: 0.5, snooker: 1.5, carom: 1 };
-    return { 8: 2, 9: 3, 10: 2, snooker: 2, carom: 1.5, straight: 1 };
+    /* Chinese 8-ball from the regional tiers up (a bar's tables are pool's), most at the top: its Masters
+       are among the richest events in the game */
+    if (tier <= 5) return { 8: 5, 9: 4, 10: 1, straight: 1, snooker: 1, carom: 0.5, heyball: 0.6 };
+    if (tier <= 9) return { 8: 3, 9: 4, 10: 2, straight: 1, rotation: 0.5, snooker: 1.5, carom: 1, heyball: 1.2 };
+    return { 8: 2, 9: 3, 10: 2, snooker: 2, carom: 1.5, straight: 1, heyball: 1.5 };
   }
   function eventName(r, kind, tier, disc, city, venue, nat, x) {
     const d = SHORT[disc];
@@ -7152,7 +7164,7 @@ const Career = (() => {
     for (const [tier, kind, fmt, size, len, per, x] of PLAN) {
       let disc = pickW(r, discW(tier, kind));
       if (disc === 'bumper' && len > 1) disc = '8';
-      const nat = tier >= 8 ? NAT_BY[pickW(r, Object.fromEntries(NAT.map(n => [n.id, n.w * (n.lean[disc] || 1)])))] : home;
+      const nat = tier >= 8 ? NAT_BY[pickW(r, Object.fromEntries(NAT.map(n => [n.id, n.w * (disc === 'heyball' ? HEY_NAT[n.id] || 0.25 : n.lean[disc] || 1)])))] : home;
       const city = tier <= 3 && town && r() < 0.4 ? town : pick(r, nat.cities);
       const venue = tier <= 5 ? `${pick(r, VEN_A)} ${pick(r, VEN_B)}` : `${city} ${pick(r, VEN_BIG)}`;
       let name = '';
@@ -7196,6 +7208,7 @@ const Career = (() => {
      elite invitationals a labelled custom format */
   function callFor(d, t, kind, custom) {
     if (custom) return { require: 'all', detail: 'strict' };
+    if (d === 'heyball') return { require: 'official', detail: 'pocket' };   /* its own rules: the 8 to a called pocket */
     if (!isPool(d)) return { require: 'off', detail: 'ball' };
     if (d === 'straight') return { require: 'all', detail: t >= 8 ? 'rails' : 'pocket' };
     if (t <= 2) return d === '8' ? { require: '8ball', detail: 'pocket' } : { require: 'off', detail: 'ball' };
@@ -7206,11 +7219,11 @@ const Career = (() => {
   function rulesFor(s, race) {
     const t = s.tier, d = s.disc;
     const ruleset = d === '8' ? (t <= 2 ? '8-bar' : t <= 4 ? '8-league' : '8-wpa') : d === '9' ? (t <= 2 ? '9-bar' : '9-wpa') : d === '10' ? '10-wpa'
-      : d === 'straight' ? '14.1-wpa' : d === 'rotation' ? 'rotation-61' : d === 'snooker' ? (t <= 5 ? 'snooker-club' : 'snooker-wpbsa') : d === 'carom' ? '3c-umb' : 'bumper-house';
+      : d === 'straight' ? '14.1-wpa' : d === 'rotation' ? 'rotation-61' : d === 'snooker' ? (t <= 5 ? 'snooker-club' : 'snooker-wpbsa') : d === 'carom' ? '3c-umb' : d === 'heyball' ? 'heyball-masters' : 'bumper-house';
     const rules = {
       game: d, ruleset, call: callFor(d, t, s.kind, s.custom), race,
-      table: isPool(d) ? (t <= 3 ? '7' : '9') : d === 'snooker' ? (t <= 5 ? 'compact' : 'full') : d === 'carom' ? 'carom' : 'octagon',
-      pockets: isPool(d) && t <= 2 ? 'generous' : 'regulation',
+      table: d === 'heyball' ? 'heyball' : isPool(d) ? (t <= 3 ? '7' : '9') : d === 'snooker' ? (t <= 5 ? 'compact' : 'full') : d === 'carom' ? 'carom' : 'octagon',
+      pockets: isPool(d) && d !== 'heyball' && t <= 2 ? 'generous' : 'regulation',
     };
     if (s.custom) rules.custom = 'Custom format: every shot called (ball, pocket and any rails), alternating breaks, no push-out';
     return rules;
@@ -13152,7 +13165,7 @@ function loadTricks() {
 }
 function saveTricks() { try { localStorage.setItem(TRICKS_KEY, JSON.stringify(trickBest)); } catch (e) { } }
 const starTotal = () => TRICKS.reduce((a, c) => a + (trickBest[c.id] || 0), 0);
-const PRACTICE_NAMES = { 8: '8-Ball Rack', 9: '9-Ball Rack', scatter: 'Free Table', empty: 'Empty Table' };
+const PRACTICE_NAMES = { 8: '8-Ball Rack', 9: '9-Ball Rack', heyball: 'Chinese 8-Ball Rack', scatter: 'Free Table', empty: 'Empty Table' };
 const freeTable = () => !!solo && solo.kind === 'practice' && (solo.layout === 'scatter' || solo.layout === 'empty');
 /* a tutorial (6d): an ordinary game (no game.mode, the real rules) run as a solo session */
 const tutOn = () => !!solo && solo.kind === 'tutorial';
@@ -13180,6 +13193,7 @@ function beginSolo(make, s) {
   const was = [TABLE, POCKETS_STYLE, TL, TW].join();
   setTable(settings.table);
   setPockets(settings.pockets);
+  if (s.kind === 'practice' && s.layout === 'heyball') setTable('heyball');   /* Chinese 8-ball's rack on its own table */
   game = make();
   if ([TABLE, POCKETS_STYLE, TL, TW].join() !== was) layout();
   /* a setup's table, if its images were left for later (previewGame, 6m): the camera's as the menu
@@ -13582,6 +13596,7 @@ pracBtn.addEventListener('click', () => { audioOn(); showPractice(); });
 trickBtn.addEventListener('click', () => { audioOn(); showTricks(); });
 prac8.addEventListener('click', () => { audioOn(); startPractice('8', 1); });
 prac9.addEventListener('click', () => { audioOn(); startPractice('9', 1); });
+pracH.addEventListener('click', () => { audioOn(); startPractice('heyball', 1); });
 pracScatter.addEventListener('click', () => { audioOn(); startPractice('scatter'); });
 pracEmpty.addEventListener('click', () => { audioOn(); startPractice('empty', 1); });
 dailyBtn.addEventListener('click', () => { audioOn(); startDaily(); });
@@ -18702,7 +18717,7 @@ lookCareer = () => career ? (career.look || (career.look = Career.loaded && Care
 /* every item the loaded career owns is unlocked for Settings' look too (never taken away) */
 function noteCareerLooks() { if (Career.loaded && noteLookOwn(Career.shop().filter(i => i.owned).map(i => i.id))) syncMenu(); }
 /* the career's ruleset ids onto the rules engine's (1e); the call requirement onto CALL_MODES */
-const CAREER_RULES = { '8-bar': '8-house', '8-league': '8-house', '8-wpa': '8-wpa', '9-bar': '9-house', '9-wpa': '9-wpa', '10-wpa': '10-wpa', '14.1-wpa': 'straight-wpa', 'rotation-61': 'rotation' };
+const CAREER_RULES = { '8-bar': '8-house', '8-league': '8-house', '8-wpa': '8-wpa', '9-bar': '9-house', '9-wpa': '9-wpa', '10-wpa': '10-wpa', '14.1-wpa': 'straight-wpa', 'rotation-61': 'rotation', 'heyball-masters': 'heyball' };
 function careerRules(r) {
   const c = r.call || {}, call = c.require === '8ball' ? { mode: 'off', eight: true } : { mode: c.require === 'off' ? 'off' : c.require === 'all' ? 'all' : 'official', eight: false };
   call.detail = CALL_DETAILS.includes(c.detail) ? c.detail : 'pocket';
@@ -18711,7 +18726,7 @@ function careerRules(r) {
 const CALL_WORDS = { off: 'no calls', '8ball': 'call the 8', official: 'official calls', all: 'call every shot' };
 const DETAIL_WORDS = { ball: 'the ball', pocket: 'ball and pocket', rails: 'ball, pocket and rails', strict: 'strict' };
 const rulesWords = r => `${(Career.RULESETS[r.ruleset] || {}).label || KINDS[r.game].name}, ${CALL_WORDS[r.call.require] || 'official calls'}` + (r.call.require !== 'off' ? ` (${DETAIL_WORDS[r.call.detail] || 'ball and pocket'})` : '');
-const tableWords = r => r.game === 'snooker' ? (r.table === 'full' ? '12 ft table' : '10 ft table') : r.game === 'carom' ? '10 ft carom table' : r.game === 'bumper' ? 'Octagon bumper table' : `${r.table} ft table, ${r.pockets} pockets`;
+const tableWords = r => r.game === 'heyball' ? 'Chinese 8-ball table, snooker pockets' : r.game === 'snooker' ? (r.table === 'full' ? '12 ft table' : '10 ft table') : r.game === 'carom' ? '10 ft carom table' : r.game === 'bumper' ? 'Octagon bumper table' : `${r.table} ft table, ${r.pockets} pockets`;
 const unitWords = (kind, n) => kind === 'straight' || kind === 'carom' ? `${n} points` : kind === 'snooker' ? `${n} frame${n === 1 ? '' : 's'}` : `${n} rack${n === 1 ? '' : 's'}`;
 const rackWord = kind => kind === 'snooker' ? 'Frame' : kind === 'bumper' ? 'Game' : 'Rack';
 const careerFoe = () => { const o = career.nm.opponent; return { name: o.name, first: o.name.split(' ')[0], card: o }; };

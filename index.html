@@ -12809,7 +12809,9 @@ function endBar(e, cancel) {
   gest = null; pull = null;
   /* a tap (no pull: it never armed, it hardly moved) opens or closes the call's menu (5c); it never shoots */
   const tap = !g.armed && !cancel && g.mode !== 'dead' && g.far <= BAR_TAP && e.timeStamp - g.t0 < BAR_TAP_MS;
-  if (g.nocall) { if (tap) callMenuToggle(); hudControls(); return; }
+  /* no call: a tap opens or closes the menu; a pull that could not arm opens it on the let-go, the pockets first, so
+     the bar never just refuses (a player pulling and pulling on the 8 read the game as frozen) */
+  if (g.nocall) { if (tap || (g.nudged && !cancel && popOpen !== callBar && callMenuOffered())) callMenuToggle(); hudControls(); return; }
   if (tap && callMenuOffered()) callMenuToggle();
   if (g.armed && !cancel && power > 0 && state === 'aim') { commit(power); return; }
   if (g.armed || g.mode === 'dead') { power = markPower; say(g.msg0); }

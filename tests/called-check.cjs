@@ -88,7 +88,9 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   await touch('touchEnd');
   await p.waitForTimeout(150);
   s = await state();
-  check('touch: with no call the power bar does not arm and nothing is shot', !armed && s.st === 'aim' && s.shots === 0, JSON.stringify(s));
+  const pm = await p.evaluate(() => ({ open: popOpen === callBar, pk: CALL_PK.filter(b => !b.hidden).length }));
+  check('touch: with no call the power bar does not arm and nothing is shot; the let-go opens the call\'s menu on the pockets', !armed && s.st === 'aim' && s.shots === 0 && pm.open && pm.pk === 6, JSON.stringify([s, pm]));
+  await p.keyboard.press('Escape');
   /* tap the ball, then the pocket */
   const b1s = await p.evaluate(() => { const b = felt.game.balls.find(o => o.n === 1); return felt.toScreen(b.x, b.y); });
   await tap(b1s[0], b1s[1]);

@@ -158,7 +158,8 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
   (`game.option`: push-out, uncalled ball, illegal break, 8 on the break) are answered by `chooseOption(g, c)`
   (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the bar's label, the
-  Safety and Push Out options, `obviousCall`), and the bar does not arm without a needed call. The table is never
+  Safety and Push Out options, `obviousCall`), and the bar does not arm without a needed call: a pull it refuses
+  opens the call's menu on the let-go (the pockets first), so it never just does nothing. The table is never
   smaller for calls and nothing of the call sits on it while idle: the call's state is the power bar's own label
   (`callLab`: "1 · Bottom Left", "Bank: 1 · Top Right", "Safety", "Push Out", "Call your shot"; ellipsised in the
   bar, the full words in its `aria-valuetext` via `callSay`), and its options (Change/Clear Call, Bank, Kick, Combo,

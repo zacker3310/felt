@@ -1538,8 +1538,23 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
 #callGlyph { position: absolute; right: 10px; top: calc(50% - 8px); width: 10px; height: 16px; color: var(--text); opacity: .8; pointer-events: none; display: none; }
 #powerBar.calls:not(.live) #callGlyph { display: block; }
 [data-layout="wide"] #callGlyph { right: auto; left: calc(50% - 5px); top: auto; bottom: 10px; }
-#callBar.open { pointer-events: auto; min-width: 220px; }
-#callBar > button[hidden] { display: none; }
+#callBar.open { pointer-events: auto; min-width: 220px; touch-action: pan-y; }
+#callBar > button[hidden], #callBar > [hidden] { display: none; }
+/* the pockets as items (5c): every pocket callable from the menu, the one off the 3D camera's screen too; a section
+   head in Footnote, a hairline between the pockets and the options */
+#callBar .mHead { display: block; padding: 8px var(--row-px) 4px 36px; color: var(--sys-label-2); font: var(--t-footnote); letter-spacing: var(--tr-footnote); }
+#callBar .mSep { height: calc(var(--hl) * 1px); margin: 6px 0; background: var(--sys-sep); }
+/* the pockets as the player sees the table (pocketCell): a small bed with its six holes, each a 44 pt target, the
+   called one filled with a checkmark */
+#callBar .pkMap { display: grid; grid-auto-columns: 44px; grid-auto-rows: 44px; column-gap: 28px; row-gap: 6px; justify-content: center; width: max-content;
+  margin: 2px auto 8px; padding: 4px 6px; border-radius: 12px; background: var(--sys-fill-3); }
+#callBar .pkMap.tall { column-gap: 22px; row-gap: 10px; }
+#callBar .pkMap[hidden], #callBar .callPk[hidden] { display: none; }
+#callBar .callPk { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 22px; background: none; cursor: pointer; }
+#callBar .callPk i { display: block; width: 24px; height: 24px; border-radius: 50%; background: #0b0b0c; box-shadow: inset 0 0 0 2px var(--sys-label-2); }
+#callBar .callPk[aria-checked="true"] i { background: var(--sys-label) no-repeat center / 14px 14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.8 8.6l3.4 3.4 7-7.6'/%3E%3C/svg%3E"); box-shadow: none; }
+#callBar .callPk:hover i, #callBar .callPk:focus-visible i { box-shadow: inset 0 0 0 2px var(--sys-label); }
+#callBar .callPk:focus-visible { outline: none; background: rgba(255, 255, 255, .08); }
 /* a choice the rules give: over the table's middle, two or three answers */
 #optBox { position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%); width: max-content; max-width: min(92%, 380px); display: grid; gap: 6px; padding: 12px 14px 14px;
   border-radius: 16px; text-align: center; pointer-events: auto; background: rgba(22, 22, 24, .97); border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(0, 0, 0, .6); }
@@ -1663,6 +1678,9 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
   </div>
   <!-- the called shot's options (section 5c): a pop-up menu opened by a tap on the power bar, never left on the table -->
   <div id="callBar" class="seg pop callMenu" role="menu" aria-label="Your call">
+    <b class="mHead" id="callPkHead" aria-hidden="true" hidden>Pocket</b>
+    <div class="pkMap" id="callPkMap" role="group" aria-labelledby="callPkHead" hidden><button id="callPk0" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button><button id="callPk1" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button><button id="callPk2" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button><button id="callPk3" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button><button id="callPk4" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button><button id="callPk5" class="callPk" role="menuitemradio" aria-checked="false" hidden><i></i></button></div>
+    <div class="mSep" id="callSep" role="separator" hidden></div>
     <button id="callPill" role="menuitem">Change Call</button>
     <button id="flagBank" role="menuitemcheckbox" aria-pressed="false" hidden>Bank</button><button id="flagKick" role="menuitemcheckbox" aria-pressed="false" hidden>Kick</button><button id="flagCombo" role="menuitemcheckbox" aria-pressed="false" hidden>Combo</button>
     <button id="safetyBtn" role="menuitemcheckbox" aria-pressed="false">Safety</button><button id="pushBtn" role="menuitemcheckbox" aria-pressed="false" hidden>Push Out</button>
@@ -11638,7 +11656,8 @@ function callTick() { if (settings.calls.sound) sfx('tap', 1); }
 function pickCallBall(n) {
   if (!callOn() || callLocked()) return;
   callSafe = false;
-  if (!callMan || callMan.ball !== n) callMan = { ball: n, pocket: null, bank: false, kick: false, combo: false };
+  /* a pocket named first (from the menu, with no ball yet) stays named */
+  if (!callMan || callMan.ball !== n) callMan = { ball: n, pocket: callMan && callMan.ball == null ? callMan.pocket : null, bank: false, kick: false, combo: false };
   callTick(); hud();
 }
 /* a tap on a pocket: the called pocket (the ball from the aim when none is picked yet) */
@@ -11653,10 +11672,17 @@ function pickPocket(k) {
   } else callMan.pocket = k;
   callTick(); hud();
 }
-/* the pocket under a tap at screen (sx, sy), within a finger's reach of its hole, or -1 */
+/* the pocket under a tap at screen (sx, sy), within a finger's reach of its hole, or -1: at least 26 px round its
+   centre (a 52 px target), more where the hole itself is drawn larger (the 3D camera close to a pocket: its
+   projected radius, each pocket its own) */
 function pocketAt(sx, sy) {
-  let best = -1, bd = Math.max(26, 1.6 * BALL_R * view.k);
-  POCKETS.forEach((p, k) => { const s = toScreen(p[0], p[1]), d = Math.hypot(s[0] - sx, s[1] - sy); if (d < bd) { bd = d; best = k; } });
+  let best = -1, bd = Infinity;
+  POCKETS.forEach((p, k) => {
+    const s = toScreen(p[0], p[1]), r = POCKET_R[k] || BALL_R, ex = toScreen(p[0] + r, p[1]), ey = toScreen(p[0], p[1] + r);
+    const hole = Math.max(Math.hypot(ex[0] - s[0], ex[1] - s[1]), Math.hypot(ey[0] - s[0], ey[1] - s[1]));
+    const reach = Math.max(26, 1.6 * BALL_R * view.k, 1.3 * (hole < 1e4 ? hole : 0)), d = Math.hypot(s[0] - sx, s[1] - sy);
+    if (d < reach && d < bd) { bd = d; best = k; }
+  });
   return best;
 }
 /* why the call cannot stand as it is (invalid-shot warnings), or '' */
@@ -11666,15 +11692,44 @@ function callWarn(c) {
   if (game.kind === 'straight' || t.includes(c.ball) || (c.combo && c.ball !== t[0])) return '';
   return is8(game.kind) ? `The ${c.ball} is not yours to hit first` : `The ${c.ball} is not on: hit the ${t[0]} first`;
 }
-/* a pocket in words as the player sees the table: "top left corner", "right side" (the view turns
-   the table upright on a phone, so the words come from the screen) */
-function pocketWords(k) {
+/* where pocket k lies from the table's middle as the player looks at it: f ahead (up the screen top-down, away from
+   the 3D camera), r to the right; screen px top-down, metres in 3D (where a pocket may be off the screen or behind the
+   eye, so the camera's own axes, never a projection) */
+function pocketFrame(k) {
   const p = POCKET_AIM[k];
-  if (!p) return 'pocket';
-  const s = toScreen(p[0], p[1]), c = toScreen(TL / 2, TW / 2), e = 4;
-  const v = s[1] < c[1] - e ? 'top' : s[1] > c[1] + e ? 'bottom' : '', h = s[0] < c[0] - e ? 'left' : s[0] > c[0] + e ? 'right' : '';
+  if (!p) return null;
+  if (V3.live && !V3.flat && V3.cam) {
+    const C = V3.cam, fl = Math.hypot(C.f[0], C.f[1]) || 1, rl = Math.hypot(C.r[0], C.r[1]) || 1, vx = p[0] - TL / 2, vy = p[1] - TW / 2;
+    return { f: (vx * C.f[0] + vy * C.f[1]) / fl, r: (vx * C.r[0] + vy * C.r[1]) / rl, d3: true };
+  }
+  const s = toScreen(p[0], p[1]), c = toScreen(TL / 2, TW / 2);
+  return { f: c[1] - s[1], r: s[0] - c[0], d3: false };
+}
+/* a pocket in words as the player sees the table: "top left corner", "right side" (the view turns
+   the table upright on a phone, so the words come from the screen); in 3D from the player's camera:
+   "far left corner", "near side" */
+function pocketWords(k) {
+  const q = pocketFrame(k);
+  if (!q) return 'pocket';
+  if (q.d3) {
+    /* the corners ranked, never two of a name: the two farthest are far, of a pair the one more to the left left;
+       the side pockets (opposite each other) by the axis they lie along */
+    if (k === 1 || k === 4) return `${Math.abs(q.r) >= Math.abs(q.f) ? (q.r >= 0 ? 'right' : 'left') : (q.f >= 0 ? 'far' : 'near')} side`;
+    const cs = POCKET_AIM.map((_, j) => j).filter(j => j !== 1 && j !== 4).map(j => Object.assign({ j }, pocketFrame(j))).sort((a, b) => b.f - a.f);
+    const i = cs.findIndex(o => o.j === k), pair = i < 2 ? cs.slice(0, 2) : cs.slice(2), o = pair.find(x => x.j !== k);
+    return `${i < 2 ? 'far' : 'near'} ${q.r <= o.r ? 'left' : 'right'} corner`;
+  }
+  const e = 4, v = q.f > e ? 'top' : q.f < -e ? 'bottom' : '', h = q.r < -e ? 'left' : q.r > e ? 'right' : '';
   return k === 1 || k === 4 ? `${v || h} side` : `${v} ${h} corner`;
 }
+/* the pockets in reading order as the player sees them: the far (top) corners left then right, the sides, the near
+   (bottom) corners */
+const POCKET_RANK = ['far left corner', 'far side', 'far right corner', 'left side', 'right side', 'near left corner', 'near side', 'near right corner'];
+const POCKET_CELL = [[0, 0], [0, 1], [0, 2], [1, 0], [1, 2], [2, 0], [2, 1], [2, 2]];
+const pocketRank = k => POCKET_RANK.indexOf(pocketWords(k).replace(/^top/, 'far').replace(/^bottom/, 'near'));
+function pocketOrder() { return POCKET_AIM.map((_, k) => k).sort((a, b) => pocketRank(a) - pocketRank(b) || a - b); }
+/* pocket k's cell [row, column] in a 3 x 3 picture of the table as the player sees it */
+const pocketCell = k => POCKET_CELL[pocketRank(k)] || [1, 1];
 const callName = c => c.push ? 'Push out' : c.safety ? 'Safety' : c.ball == null ? 'Call your shot' : c.pocket == null ? `Calling the ${c.ball}` : `Calling: ${c.ball} in ${pocketWords(c.pocket)}`;
 /* the call in words: the full sentence (VoiceOver, felt.callState) and its hint */
 function callSay() {
@@ -11703,11 +11758,12 @@ const callMenuOffered = () => callOn() || pushOffer();
 /* the call's options as a pop-up menu (6p's material and rules) anchored to the power bar: upright over the bar,
    its trailing edge on the bar's; on its side beside the column, level with the bar */
 callBar._pop = powerBar;
+const CALL_PK = [callPk0, callPk1, callPk2, callPk3, callPk4, callPk5];
 for (const it of callBar.querySelectorAll(':scope > button')) it.insertAdjacentHTML('afterbegin', '<svg class="mChk" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.8 8.6l3.4 3.4 7-7.6"/></svg>');
 function callMenuPlace() {
   const r = powerBar.getBoundingClientRect(), m = 8, gap = 8;
   callBar.style.animation = 'none';
-  callBar.style.left = '0px'; callBar.style.top = '0px';
+  callBar.style.left = '0px'; callBar.style.top = '0px'; callBar.style.maxHeight = '';
   const o = callBar.getBoundingClientRect(), w = o.width, h = o.height, side = r.height > r.width;
   let x, y;
   if (side) { x = r.left - gap - w; if (x < m) x = r.right + gap; y = r.top + r.height / 2 - h / 2; }
@@ -11715,6 +11771,8 @@ function callMenuPlace() {
   /* clear of the bottom rail's row (6b2: the score keeper, the replay, the 3D switch) */
   if (y + h > railTop - 6 && railTop - 6 - h >= m) y = railTop - 6 - h;
   x = Math.max(m, Math.min(innerWidth - m - w, x)); y = Math.max(m, Math.min(innerHeight - m - h, y));
+  /* a short screen (a phone on its side, the pockets listed): the menu scrolls in what the screen leaves */
+  callBar.style.maxHeight = h > innerHeight - 2 * m ? innerHeight - 2 * m + 'px' : '';
   callBar.style.left = x + 'px'; callBar.style.top = y + 'px';
   callBar.style.setProperty('--pop-o', side ? 'center right' : 'bottom right');
   void callBar.offsetWidth;
@@ -11734,7 +11792,7 @@ function callMenuToggle() {
 callBar.addEventListener('click', e => { if (popOpen === callBar && e.target.closest('button')) setTimeout(() => { if (popOpen === callBar) popClose(true); }, 0); });
 callBar.addEventListener('keydown', e => {
   if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-  const its = [...callBar.querySelectorAll(':scope > button:not([hidden])')], i = its.indexOf(document.activeElement);
+  const its = [...callBar.querySelectorAll('button')].filter(b => b.getClientRects().length), i = its.indexOf(document.activeElement);
   const n = its[(i + (e.key === 'ArrowDown' ? 1 : its.length - 1)) % its.length];
   if (n) n.focus(); e.preventDefault();
 });
@@ -11746,17 +11804,37 @@ function hudCall() {
   if (!shown) { if (popOpen === callBar) popClose(); if (callKey) { callKey = ''; hudControls(); } return; }
   const { open, push, need, c, text, sub } = callSay(), flags = !!(need && need.flags) && !callSafe && !(callPushOn && push);
   const change = open && !callSafe && !(callPushOn && push) && !!c && c.ball != null && !callLocked();
-  const key = [text, sub, flags, open, push, change, callSafe, callPushOn, c && c.bank, c && c.kick, c && c.combo].join('|');
+  /* the pockets as items while the call names one: the pocket off the screen (3D) is as callable as the rest */
+  const pk = open && !callSafe && !(callPushOn && push) && !callLocked() && !!need && !!need.pocket ? pocketOrder() : [];
+  const pkWords = pk.map(k => pocketShort(k));
+  const key = [text, sub, flags, open, push, change, callSafe, callPushOn, c && c.bank, c && c.kick, c && c.combo, pk.join(), pkWords.join(), c && c.pocket, c && c.ball].join('|');
   if (key === callKey) return;
   callKey = key;
   hudControls();
   callPill.hidden = !change;
   callPill.lastChild.textContent = c && c.auto ? 'Change Call' : 'Clear Call';
+  callPkHead.hidden = !pk.length;
+  callPkHead.textContent = c && c.ball != null ? `Pocket for the ${c.ball}` : 'Pocket';
+  callPkMap.hidden = !pk.length;
+  /* each pocket in its cell of a 3 x 3 grid of the table as seen (pocketCell), the empty row or column closed up */
+  const cells = pk.map(pocketCell), rows = [...new Set(cells.map(q => q[0]))].sort(), cols = [...new Set(cells.map(q => q[1]))].sort();
+  callPkMap.classList.toggle('tall', rows.length > cols.length);
+  CALL_PK.forEach((b, i) => {
+    const k = pk[i];
+    b.hidden = k === undefined;
+    if (k === undefined) return;
+    b.dataset.k = k;
+    b.style.gridRow = String(rows.indexOf(cells[i][0]) + 1); b.style.gridColumn = String(cols.indexOf(cells[i][1]) + 1);
+    b.setAttribute('aria-label', pkWords[i]);
+    b.setAttribute('aria-checked', String(!!c && c.pocket === k));
+  });
   for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) { b.hidden = !flags; b.setAttribute('aria-pressed', String(!!(c && c[f]))); }
   safetyBtn.hidden = !open; safetyBtn.setAttribute('aria-pressed', String(callSafe));
   pushBtn.hidden = !push; pushBtn.setAttribute('aria-pressed', String(callPushOn && push));
+  callSep.hidden = !pk.length;
   if (popOpen === callBar) callMenuPlace();
 }
+for (const b of CALL_PK) b.addEventListener('click', () => { if (b.dataset.k !== undefined) pickPocket(+b.dataset.k); });
 callPill.addEventListener('click', () => {
   if (!callable()) return;
   if (callPushOn) { callPushOn = false; hud(); return; }

@@ -204,6 +204,68 @@ S.setTable('heyball');
 }
 S.setTable('7');
 
+/* calling a pocket by touch in the 3D view (5c): with the 8 by a far corner, some pockets are off the screen or at its
+   edge from the player's camera. Every pocket is still callable by real touch: from the call's menu (a tap on the bar,
+   then the pocket in its picture of the table as seen), and by a tap on its hole wherever the hole is on the table;
+   each pocket's words come from the camera ("Far Left"), never two alike; the obvious call from the aim works in 3D */
+async function call3d(page, size) {
+  const ev = (f, a) => page.evaluate(f, a), out = { size, pockets: [] };
+  const lay = await ev(async () => {
+    setSetting('view', '3d'); settings.autoAim = false; felt.start('heyball', { cpu: false });
+    await new Promise(r => setTimeout(r, 500));
+    const g = felt.game;
+    Object.assign(g, { breakShot: false, open: false, groups: ['solids', 'stripes'], inHand: null, option: null, turn: 0, winner: null });
+    for (const b of g.balls) b.on = b.n === 0 || b.n === 8 || b.n > 8;
+    const c = g.balls[0], e = g.balls.find(b => b.n === 8);
+    c.x = TL * 0.3; c.y = TW * 0.5; e.x = TL - 0.12; e.y = TW - 0.12;
+    let i = 0;
+    for (const b of g.balls) if (b.n > 8) { b.x = TL * 0.45 + 0.08 * (i % 4); b.y = 0.12 + 0.08 * Math.floor(i / 4); i++; }
+    aimAngle = Math.atan2(e.y - c.y, e.x - c.x); resetCall(); hint = null; hud();
+    await new Promise(r => setTimeout(r, 400));
+    return { live: !!felt.view3 && felt.view3.live, words: POCKET_AIM.map((_, k) => pocketWords(k)) };
+  });
+  out.live = lay.live; out.words = lay.words;
+  for (let k = 0; k < 6; k++) {
+    const at = await ev(k => {
+      resetCall(); hud();
+      const s = felt.toScreen(POCKETS[k][0], POCKETS[k][1]), on = s[0] >= 0 && s[1] >= 0 && s[0] < innerWidth && s[1] < innerHeight, el = on && document.elementFromPoint(s[0], s[1]);
+      return { s, table: !!el && el.id === 'table' };
+    }, k);
+    const row = { k, onTable: at.table };
+    if (at.table) {
+      await page.touchscreen.tap(at.s[0], at.s[1]); await page.waitForTimeout(250);
+      row.hole = await ev(() => { const c = felt.callState.call; return c && c.ball === 8 ? c.pocket : null; });
+    }
+    await ev(() => { resetCall(); hud(); });
+    const bar = await ev(() => { const r = powerBar.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+    await page.touchscreen.tap(bar[0], bar[1]); await page.waitForTimeout(350);
+    const it = await ev(k => {
+      const e = CALL_PK.find(x => !x.hidden && +x.dataset.k === k), m = callBar.getBoundingClientRect();
+      if (!e) return { open: popOpen === callBar };
+      const r = e.getBoundingClientRect();
+      return { open: popOpen === callBar, at: [r.left + r.width / 2, r.top + r.height / 2], w: r.width, h: r.height, seen: r.top >= m.top && r.bottom <= m.bottom && r.top >= 0 && r.bottom <= innerHeight, label: e.getAttribute('aria-label') };
+    }, k);
+    row.menu = it.open && !!it.at && it.seen && it.w >= 44 && it.h >= 44;
+    if (it.at) { await page.touchscreen.tap(it.at[0], it.at[1]); await page.waitForTimeout(250); }
+    const after = await ev(() => ({ c: felt.callState.call, lab: felt.callState.lab, ready: felt.callState.ready, open: popOpen === callBar, shots: felt.game.shots }));
+    row.picked = !!after.c && after.c.ball === 8 && after.c.pocket === k && after.ready && !after.open && after.shots === 0;
+    row.lab = after.lab; row.label = it.label;
+    out.pockets.push(row);
+  }
+  /* the obvious call from the aim, in 3D: the 8 straight in line with the far right corner */
+  out.auto = await ev(async () => {
+    const g = felt.game, c = g.balls[0], e = g.balls.find(b => b.n === 8), P = POCKET_AIM[5], u = Math.hypot(P[0] - e.x, P[1] - e.y);
+    e.x = P[0] - 0.5 * (P[0] - TL / 2) / Math.hypot(P[0] - TL / 2, P[1] - TW / 2); e.y = P[1] - 0.5 * (P[1] - TW / 2) / Math.hypot(P[0] - TL / 2, P[1] - TW / 2);
+    const d = Math.hypot(P[0] - e.x, P[1] - e.y), ux = (P[0] - e.x) / d, uy = (P[1] - e.y) / d;
+    c.x = e.x - ux * 0.6; c.y = e.y - uy * 0.6; aimAngle = Math.atan2(uy, ux); resetCall(); hud();
+    await new Promise(r => setTimeout(r, 300));
+    const s = felt.callState;
+    return { u, live: felt.view3.live, auto: s.auto, ready: s.ready, lab: s.lab };
+  });
+  await ev(() => { resetCall(); setSetting('view', 'top'); });
+  return out;
+}
+
 /* ---------- 5. the page ---------- */
 (async () => {
   const T = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
@@ -284,6 +346,12 @@ S.setTable('7');
   /* the 3D view */
   const v3 = await ev(async () => { setSetting('view', '3d'); felt.start('heyball'); await new Promise(r => setTimeout(r, 600)); return { live: !!felt.view3 && felt.view3.live, drawn: felt.view3 && felt.view3.drawn.length, on: felt.game.balls.filter(b => b.on).length, table: TABLE }; });
   check('the 3D view draws the Chinese 8-ball table and every ball', v3.table === 'heyball' && (!v3.live || v3.drawn >= 1), JSON.stringify(v3));
+  const okCall = r => r.live && new Set(r.words).size === 6 && r.words.every(w => /^(far|near) (left|right) corner$|^(far|near|left|right) side$/.test(w))
+    && r.pockets.length === 6 && r.pockets.every(p => p.menu && p.picked && (!p.onTable || p.hole === p.k)) && r.pockets.some(p => !p.onTable)
+    && r.auto.live && r.auto.auto && r.auto.auto.ball === 8 && r.auto.auto.pocket === 5 && r.auto.ready && /^8 · Far/.test(r.auto.lab);
+  const c393 = await call3d(page, '393x852');
+  check('3D at 393x852, the 8 by a far corner and pockets off the screen: every pocket called by real touch, from the bar\'s menu (its picture of the table, 44 pt holes) and by a tap on any hole on the table; the camera\'s words ("Far Left"), six apart; the obvious call from the aim',
+    okCall(c393), JSON.stringify(c393));
   await ev(() => setSetting('view', 'top'));
   /* the tutorial, through Show me, step by step */
   const tut = await ev(async () => {
@@ -315,6 +383,8 @@ S.setTable('7');
   const ls = await ev(async () => { felt.start('heyball'); await new Promise(r => setTimeout(r, 400)); const s = stage.getBoundingClientRect();
     return { table: TABLE, st: felt.state, sw: document.documentElement.scrollWidth <= innerWidth, stage: s.width > 0 && s.height > 0 }; });
   check('on its side (852x393): the game opens on its table, nothing sideways', ls.table === 'heyball' && ls.st === 'aim' && ls.sw && ls.stage, JSON.stringify(ls));
+  const c852 = await call3d(page, '852x393');
+  check('3D on its side (852x393): every pocket called by real touch, from the menu and on the table, the obvious call from the aim', okCall(c852), JSON.stringify(c852));
   check('no console errors', T.errors.length === 0, T.errors.join(' | '));
   await T.browser.close();
   done();

@@ -166,7 +166,12 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   tap on the bar (`BAR_TAP` px, `BAR_TAP_MS`: never arms, never shoots; `callMenuToggle`, `callMenuPlace`: upright
   over the bar, on its side beside the column), only on a turn that has options (`callMenuOffered`; the bar then
   carries chevron.up.chevron.down, `#callGlyph`). A pick, a tap outside (swallowed, pointer events too), Esc or a
-  pull closes it. Settings `calls`
+  pull closes it. While the call names a pocket the menu opens on the pockets (`#callPkMap`, `CALL_PK`): a picture of
+  the table as the player sees it (`pocketCell`, `pocketOrder`; 44 pt holes, the called one checked), so a pocket off
+  the 3D camera's screen or at its edge is as callable as the rest; it scrolls (`max-height`) on a short screen. A tap
+  on a hole reaches 26 px round it or its projected radius x 1.3 (`pocketAt`). Pocket words come from the view
+  (`pocketWords`, `pocketFrame`): top-down the screen's ("Bottom Left"), in 3D the camera's ("Far Left", "Near Side";
+  corners ranked so no two share a name). `heyball-check` taps every pocket in 3D at 393x852 and 852x393. Settings `calls`
   (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
   `called-check` pins the page side (the label, the menu by real taps, nothing over the table with it closed, every
   game's table rect as at 9cc059b, five sizes with insets), `tests/sim.cjs` NAMES has the engine's exports.

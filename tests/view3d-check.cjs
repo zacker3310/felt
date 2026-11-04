@@ -234,7 +234,10 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   /* judged on the camera's speed between frames (a pose carries its time, [8]): a frame a slow runner drew late is a
      longer step over a longer time, the same speed; a cut is a long step in one frame's time (CI 20aadf4: one late
      frame read as a 20 cm step against a 3.8 cm mean). max and mean are in m/s; maxStep the longest step, in m */
-  const stepStats = P => { const v = []; let dist = 0, time = 0, maxStep = 0; for (let i = 1; i < P.length; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]), dt = Math.max(1, P[i][8] - P[i - 1][8]) / 1000; v.push(d / dt); dist += d; time += dt; maxStep = Math.max(maxStep, d); } return { n: v.length, max: Math.max(0, ...v), mean: dist / Math.max(1e-3, time), maxStep }; };
+  /* speeds over windows of at least 32 ms (two frames at 60 Hz): a runner's late frame followed by a quick one moves the
+     camera its eased amount over each frame's own time, and one frame's timestamp jitter read a 3.3x spike on CI
+     (cce2100); a cut is still a jump inside one window, tens of m/s */
+  const stepStats = P => { const v = []; let dist = 0, time = 0, maxStep = 0, wd = 0, wt = 0; for (let i = 1; i < P.length; i++) { const d = Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]), dt = Math.max(1, P[i][8] - P[i - 1][8]) / 1000; dist += d; time += dt; maxStep = Math.max(maxStep, d); wd += d; wt += dt; if (wt >= 0.032 || i === P.length - 1) { v.push(wd / wt); wd = 0; wt = 0; } } return { n: v.length, max: Math.max(0, ...v), mean: dist / Math.max(1e-3, time), maxStep }; };
   const pull = await t.ev(() => {
     const P = felt.v3Poses(), i0 = P.findIndex(p => p[5] === 'rolling'), roll = P.filter(p => p[5] === 'rolling');
     const out = P.filter(p => p[6] === 'out'), ov = roll.filter(p => p[6] === 'ov'), back = P.filter(p => p[6] === 'back');

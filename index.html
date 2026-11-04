@@ -12094,7 +12094,17 @@ function ballAt(sx, sy) {
   }
   return best;
 }
-function say(t) { if (msg.textContent !== t) msg.textContent = t; }
+/* the status line (#msg, polite): the shot's news. A turn change is spoken once, by #railSay (6b2, "Player 2's turn,
+   solids": the richer words), so when that will speak, the line's own turn words ("Player 2 to shoot.", snooker's
+   ", on the reds.") stay in its text but are aria-hidden: VoiceOver hears the news and then the turn, once */
+function say(t) {
+  if (msg.textContent === t) return;
+  const ph = railWillSay() ? turnOf(game.turn) : '', i = ph ? t.indexOf(ph) : -1;
+  if (i < 0) { msg.textContent = t; return; }
+  const j = i + ph.length + t.slice(i + ph.length).match(/^(, [^.]*\.|[.:])?\s*/)[0].length, s = document.createElement('span');
+  s.setAttribute('aria-hidden', 'true'); s.textContent = t.slice(i, j);
+  msg.replaceChildren(...[t.slice(0, i), s, t.slice(j)].filter(x => x !== ''));
+}
 
 function pause() {
   if (state === 'menu' || (state === 'over' && !(tutOn() && solo.then))) return;   /* a tutorial's result on show (6d) can pause */
@@ -17386,6 +17396,8 @@ const seatSay = (el, t) => { const e = el.children[2]; if (e.textContent !== t) 
    moves (railNextTick lays the seats again, their words are not live): "Your turn, stripes", "Player 2's turn, on the 3" */
 let railSayKey = null, railSayT = 0;
 function railSayOff() { railSayKey = null; clearTimeout(railSayT); if (railSay.textContent) railSay.textContent = ''; }
+/* railSayTurn will speak at the next hud(): a game on, not a solo session, and the shooter (or the game) changed */
+const railWillSay = () => state !== 'menu' && !soloOf() && game.winner === null && !(railSayKey && railSayKey.stats === stats && railSayKey.p === game.turn);
 function railSayTurn() {
   if (turnChip.hidden || state === 'menu') { railSayOff(); return; }
   const p = game.turn;

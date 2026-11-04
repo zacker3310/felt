@@ -344,6 +344,40 @@ async function aimAndVoiceChecks() {
         aiming.nx.length >= 4 && aiming.say.length === 0, JSON.stringify(aiming));
       check(`${size}: VoiceOver: a shooter change is spoken once (${JSON.stringify(turn)}), and back (${JSON.stringify(back)}); a real shot once if the turn passed, else nothing (passed ${shot.passed}: ${JSON.stringify(shot.say)})`,
         turn.length === 1 && turn[0] === "Player 2's turn, solids" && back.length === 1 && back[0] === "Player 1's turn, stripes" && shot.say.length === (shot.passed ? 1 : 0), JSON.stringify({ turn, back, shot }));
+      /* every live region at once, as VoiceOver hears them: a real shot that passes the turn with no foul (the 11 hit
+         and missed, found through simulateShot and judge), each region's words as it changes with aria-hidden parts
+         left out. The turn is heard once, from #railSay with its richer words; #msg keeps "Player 2 to shoot." in
+         its text (the pause menu reads it) but does not speak it again */
+      const heard = await page.evaluate(async () => {
+        Object.assign(game, { breakShot: false, open: false, groups: ['stripes', 'solids'], inHand: null, pushAvail: false, turn: 0 });
+        const keep = { 0: [TL / 2, TW / 2], 8: [TL * 0.85, TW * 0.5], 4: [TL * 0.2, TW * 0.5], 6: [TL * 0.8, TW * 0.85] };
+        const via = (k, f) => [TL / 2 + (POCKET_AIM[k][0] - TL / 2) * f, TW / 2 + (POCKET_AIM[k][1] - TW / 2) * f];
+        keep[11] = via(0, 0.55); keep[14] = via(2, 0.55);
+        for (const b of game.balls) { const q = keep[b.n]; b.on = !!q; if (q) { b.x = q[0]; b.y = q[1]; } }
+        hud();
+        await new Promise(r => setTimeout(r, 100));
+        const c = game.balls.find(b => b.n === 0), o = game.balls.find(b => b.n === 11), a0 = Math.atan2(o.y - c.y, o.x - c.x);
+        let pick = null;
+        for (const p of [0.3, 0.4, 0.5, 0.25]) for (let d = -0.12; d <= 0.12 && !pick; d += 0.01) {
+          const r = simulateShot(game.balls, { angle: a0 + d, power: p }), g = judge(game, r);
+          if (!g.verdict.foul && g.turn === 1 && g.winner === null && !r.potted.length && r.first === 11) pick = [a0 + d, p];
+        }
+        if (!pick) return { pick };
+        const said = window.__said = [];
+        const spoken = el => { let s = ''; const walk = n => { if (n.nodeType === 3) s += n.textContent; else if (n.nodeType === 1 && n.getAttribute('aria-hidden') !== 'true') n.childNodes.forEach(walk); }; el.childNodes.forEach(walk); return s.trim(); };
+        for (const el of document.querySelectorAll('[aria-live]:not([aria-live="off"]), [role="status"], [role="alert"]')) {
+          let last = spoken(el);
+          new MutationObserver(() => { const s = spoken(el); if (s && s !== last) said.push({ id: el.id, s }); last = s; }).observe(el, { childList: true, characterData: true, subtree: true });
+        }
+        felt.speed = 8; felt.shoot(pick[0], pick[1], { x: 0, y: 0 });
+        return { pick };
+      });
+      await page.waitForFunction(() => felt.state === 'aim', null, { timeout: 30000 }).catch(() => { });
+      await frames(page, 4);
+      await page.waitForTimeout(200);
+      const vo = await page.evaluate(() => ({ said: (window.__said || []), turn: game.turn, msg: msg.textContent }));
+      check(`${size}: VoiceOver: a real shot that passes the turn (no foul) speaks the turn once, from #railSay with its group ("Player 2's turn, solids"); #msg's own "Player 2 to shoot." stays in its text, unspoken (heard: ${JSON.stringify(vo.said)})`,
+        !!heard.pick && vo.turn === 1 && vo.said.filter(x => /Player 2|to shoot|turn/.test(x.s)).length === 1 && vo.said.some(x => x.id === 'railSay' && x.s === "Player 2's turn, solids") && /Player 2 to shoot\./.test(vo.msg), JSON.stringify({ heard: heard.pick, vo }));
       check(`${size}: no console errors (the turn spoken)`, t.errors.length === 0, t.errors.slice(0, 3).join(' | '));
       await t.browser.close();
     }

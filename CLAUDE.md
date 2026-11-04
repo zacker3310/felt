@@ -372,7 +372,9 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   score, `seatSay`), its `.pn`, `.nx` and glyphs (`.pb`) aria-hidden; children stay name, `.nx`, `.ps`, `.pb` in that
   order. The seats are not live: the turn is spoken once by `#railSay` (polite `role="status"`, `railSayTurn`: "Player
   2's turn, solids", "Your turn, on the 3"), written only when the shooter changes or a game starts (keyed on `stats`
-  and `game.turn`), never by `railNextTick`'s relayouts while aiming. The 3D row is the same DOM. Each inlay is
+  and `game.turn`), never by `railNextTick`'s relayouts while aiming. The status line `#msg` (polite too, the shot's
+  news) keeps its own turn words ("Player 2 to shoot.") in its text but wraps them `aria-hidden` when `#railSay` will
+  speak the turn (`say()`, `railWillSay`), so a turn change is heard once (railbar-check counts every live region). The 3D row is the same DOM. Each inlay is
   sized to the wood band (`--ph`, `--rf`, `--gl`, `--dot`), never over the cushion, a pocket's hole or jaws (`RAIL_PAD`) or
   a sight (`railSights`, `SIGHT_PAD`), in its own gap. Short of room, in order: chips `.tight` (11 px, the race to the pause menu), the replay's words
   dropped (`.bare`), the badge gives way, the scoreboard set closer and its least parts cut (`data-p`), the switch gives way,

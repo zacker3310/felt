@@ -18731,7 +18731,7 @@ function careerRules(r) {
 const CALL_WORDS = { off: 'no calls', '8ball': 'call the 8', official: 'official calls', all: 'call every shot' };
 const DETAIL_WORDS = { ball: 'the ball', pocket: 'ball and pocket', rails: 'ball, pocket and rails', strict: 'strict' };
 const rulesWords = r => `${(Career.RULESETS[r.ruleset] || {}).label || KINDS[r.game].name}, ${CALL_WORDS[r.call.require] || 'official calls'}` + (r.call.require !== 'off' ? ` (${DETAIL_WORDS[r.call.detail] || 'ball and pocket'})` : '');
-const tableWords = r => r.game === 'heyball' ? 'Chinese 8-ball table, snooker pockets' : r.game === 'snooker' ? (r.table === 'full' ? '12 ft table' : '10 ft table') : r.game === 'carom' ? '10 ft carom table' : r.game === 'bumper' ? 'Octagon bumper table' : `${r.table} ft table, ${r.pockets} pockets`;
+const tableWords = r => r.game === 'heyball' ? '9 ft table, snooker pockets' : r.game === 'snooker' ? (r.table === 'full' ? '12 ft table' : '10 ft table') : r.game === 'carom' ? '10 ft carom table' : r.game === 'bumper' ? 'Octagon bumper table' : `${r.table} ft table, ${r.pockets} pockets`;
 const unitWords = (kind, n) => kind === 'straight' || kind === 'carom' ? `${n} points` : kind === 'snooker' ? `${n} frame${n === 1 ? '' : 's'}` : `${n} rack${n === 1 ? '' : 's'}`;
 const rackWord = kind => kind === 'snooker' ? 'Frame' : kind === 'bumper' ? 'Game' : 'Rack';
 const careerFoe = () => { const o = career.nm.opponent; return { name: o.name, first: o.name.split(' ')[0], card: o }; };
@@ -19141,7 +19141,7 @@ const cvBan = { key: '', img: null };
 function cvBannerArgs(r) {
   const pk = r.pockets === 'generous' ? 'generous' : 'regulation';
   return r.game === 'snooker' ? ['snooker', r.table === 'full' ? 'full' : 'compact', pk]
-    : [r.game === 'bumper' || r.game === 'carom' ? r.game : r.table === '9' ? '9' : '7', 'octagon', pk];
+    : [r.game === 'bumper' || r.game === 'carom' || r.game === 'heyball' ? r.game : r.table === '9' ? '9' : '7', 'octagon', pk];
 }
 function cvBanner(nm) {
   const cv = document.createElement('canvas'), kind = nm.rules.game, args = cvBannerArgs(nm.rules);

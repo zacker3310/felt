@@ -124,6 +124,22 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   const sc = S.trickGame(S.TRICKS[0]);
   check('a trick game: the layout, no ball in hand, any ball first', sc.mode === 'trick' && sc.inHand === null && !sc.breakShot && S.legalTargets(sc).length === sc.balls.length - 1);
   check('stars: 3 on the first try, 2 on the second or third, 1 after that', [1, 2, 3, 4, 9].map(S.trickStars).join() === '3,2,2,1,1');
+  /* the program (T6.3) */
+  const PR = S.TRICK_PROGRAM, slotted = PR.flatMap(d => d.slots).filter(Boolean);
+  check('WPA structure: seven disciplines, without Special Arts, each with five slots for difficulty 6 to 10', PR.length === 7 && PR.every(d => d.slots.length === 5) && !PR.some(d => /special/i.test(d.title + d.id)), PR.map(d => d.title).join());
+  check('every slot names a real shot, and no shot sits in two', slotted.every(id => S.trickById(id)) && new Set(slotted).size === slotted.length, slotted.join());
+  check('WPA scoring: full value on the first attempt, minus 1, minus 2, else 0', [1, 2, 3, 4, 0].map(n => S.trickPts(9, n)).join() === '9,8,7,0,0');
+  const full = Object.fromEntries(slotted.map(id => [id, S.trickVal(id)]));
+  check('a discipline with all five slots is worth 40; a discipline total adds up; full marks are the program\'s maximum', PR.filter(d => d.slots.every(Boolean)).every(d => S.discMax(d) === 40 && S.discTotal(full, d) === 40) && S.programTotal(full) === S.programMax() && S.discTotal({ kick: 6, kick5: 8 }, PR.find(d => d.id === 'bank')) === 14, String(S.programMax()));
+  const mig = S.trickScoreFromStars({ kick5: 3, long: 2, stun: 1, kick: 3, combo: 3, bogus: 3, three: 9 });
+  check('migration from the old stars: 3 is full value, 2 minus 1, 1 minus 2; a shot outside the program, an unknown id and a bad value earn nothing', mig.kick5 === 10 && mig.long === 5 && mig.stun === 5 && mig.kick === 6 && !('combo' in mig) && !('bogus' in mig) && !('three' in mig), JSON.stringify(mig));
+  check('migration never lowers a score', S.trickScoreFromStars({ long: 1 }, { long: 6 }).long === 6 && S.trickScoreFromStars({ long: 3 }, { long: 4 }).long === 6);
+  check('real people\'s names are gone from the shots, the ids kept', !S.TRICKS.some(c => /Massey|Knievel|Evel/.test(c.title + c.goal)) && S.trickById('jboot') && S.trickById('jknievel'));
+  check('the daily shot keeps its pool: the 14 classics', S.TRICKS.filter(c => !c.group).length === 14);
+  {
+    const k = S.trickById('kick3'), b0 = S.trickBalls(k), run = { potted: [0], pocketOf: { 0: 3 }, contacts: [], rails: {}, balls: b0, first: 1, kick: 0 };
+    check('scratchOk: a shot may allow a scratch, but a cue ball off the table still fails; a shot that does not say so still fails on a scratch', k.scratchOk && !/Scratch/.test(S.trickJudge(k, run).why) && /flew off/.test(S.trickJudge(k, Object.assign({}, run, { pocketOf: { 0: -1 } })).why) && /Scratch/.test(S.trickJudge(S.trickById('stun'), run).why));
+  }
   const sz = S.trickById('stun'), b = S.trickBalls(sz), j = S.trickJudge(sz, S.simulateShot(b, { angle: Math.atan2(b[1].y - b[0].y, b[1].x - b[0].x), power: 0.9, spin: { x: 0, y: 1 } }));
   check('trick goals say why they failed (a follow shot misses the stop ring, or scratches)', !j.ok && /ring|Scratch/.test(j.why), j.why);
 }
@@ -262,7 +278,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   const L = await sol('long');
   await shoot(L[0], L[1], { x: L[2], y: L[3] }); await idle();
   const m1 = await page.evaluate(() => ({ t: felt.lastTrick, shown: trickRes.classList.contains('show'), head: trickHead.textContent, stars: trickStarsNow.getAttribute('aria-label'), ls: localStorage.getItem('felt.tricks') }));
-  check('a make on the first try: Made it, 3 stars, saved', m1.t.ok && m1.t.stars === 3 && m1.shown && m1.head === 'Made it' && m1.stars === '3 of 3 stars' && JSON.parse(m1.ls).long === 3, JSON.stringify(m1));
+  check('a make on the first attempt: Made it, full value (Long Pot is difficulty 6), saved; the old key still 3 stars', m1.t.ok && m1.t.stars === 3 && m1.t.got === 6 && m1.shown && m1.head === 'Made it' && m1.stars === '6 of 6 points' && JSON.parse(m1.ls).long === 3, JSON.stringify(m1));
   check('result sheet: targets 44 px, text 4.5:1', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await page.tap('#trickRetry');
   await shoot(L[0] + Math.PI, 0.12, 0); await idle();
@@ -283,7 +299,7 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await page.tap('#trickRetry');
   await page.tap('#menuBtn');
   const tp = await page.evaluate(() => ({ title: soloTitle.textContent, goal: soloGoal.textContent, stats: soloStats.textContent }));
-  check('pause in a challenge: its title, goal and tries', tp.title === 'Stop Shot' && /stop the cue ball/.test(tp.goal) && /Tries3/.test(tp.stats), JSON.stringify(tp));
+  check('pause in a challenge: its title, goal, the run\'s attempt and the program\'s points', tp.title === 'Stop Shot' && /stop the cue ball/.test(tp.goal) && /Attempt\d of 3/.test(tp.stats) && /Best\d of 7/.test(tp.stats) && /Program\d+\/\d+/.test(tp.stats), JSON.stringify(tp));
   await page.tap('#restartBtn');
   check('Restart keeps the challenge and its tries', await page.evaluate(() => felt.state === 'aim' && felt.game.trick === 'stun' && felt.solo.attempts === 3));
 
@@ -302,16 +318,57 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
 
+  /* the run (T6.3): one early miss no longer caps a shot for life; every new shot through commit() on all four tables */
+  const b4 = await open('', { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const rn = await b4.page.evaluate(async () => {
+    const wait = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 5) : r(); w(); });
+    felt.speed = 40; settings.autoAim = false;
+    const miss = async () => { felt.trick('long'); felt.shoot(Math.PI / 2, 0.1, 0); await wait(); return Object.assign({}, felt.lastTrick, { why2: trickWhy.textContent }); };
+    const make = async () => { felt.trick('long'); const s = trickSol(trickById('long')); felt.shoot(s.angle, s.power, s.spin); await wait(); return Object.assign({}, felt.lastTrick, { aria: trickStarsNow.getAttribute('aria-label') }); };
+    const a = await miss(), b = await miss(), stored = JSON.parse(localStorage.getItem('felt.trickScore.v2'));
+    const low = await make(), bestLow = felt.trickScore.pts.long, after = JSON.parse(localStorage.getItem('felt.trickScore.v2'));
+    const fresh = await make(), bestFull = felt.trickScore.pts.long;
+    const m1 = await miss(), m2 = await miss(), m3 = await miss(), next = await make(), kept = felt.trickScore.pts.long;
+    const m4 = await miss(), m5 = await miss(), late = await make(), still = felt.trickScore.pts.long;
+    return { a, b, stored, low, bestLow, after, fresh, bestFull, m1, m2, m3, next, kept, m4, m5, late, still };
+  });
+  check('a run: attempts 1 and 2 count, and are stored so a reopen cannot reset them; the make on attempt 3 scores value minus 2', rn.a.runTry === 1 && rn.b.runTry === 2 && rn.stored.run.long === 2 && rn.low.runTry === 3 && rn.low.got === 4 && rn.bestLow === 4 && !rn.after.run.long, JSON.stringify([rn.stored, rn.low]));
+  check('a new run can beat the old score: after that make, the next first attempt scores full value and the best rises', rn.fresh.runTry === 1 && rn.fresh.got === 6 && rn.bestFull === 6, JSON.stringify(rn.fresh));
+  check('three misses end the run, with no points and words that say so; the next attempt is a new run at full value', rn.m3.runOver && rn.m3.got === 0 && /Run over/.test(rn.m3.why2) && rn.next.runTry === 1 && rn.next.got === 6 && rn.kept === 6, JSON.stringify([rn.m3, rn.next]));
+  check('a lower score never lowers the best', rn.late.got === 4 && rn.still === 6, JSON.stringify(rn.late));
+  const NEW = ['kick3', 'kick5', 'longstop', 'fring', 'cpair', 'sdraw', 'rdraw', 'lmasse'];
+  const shown = await b4.page.evaluate(async NEW => {
+    const wait = () => new Promise(r => { const w = () => ['stroke', 'rolling', 'thinking'].includes(felt.state) ? setTimeout(w, 5) : r(); w(); });
+    const bad = [];
+    for (const [t, p] of [['7', 'regulation'], ['9', 'regulation'], ['7', 'generous'], ['9', 'generous']]) {
+      settings.table = t; settings.pockets = p;
+      for (const id of NEW) { felt.quitToHome(); felt.trick(id); const ok = felt.showMe(); await wait(); if (!ok || !felt.lastTrick.ok || !felt.lastTrick.demo) bad.push([t, p, id, felt.lastTrick.why]); }
+    }
+    settings.table = '7'; settings.pockets = 'regulation'; felt.quitToHome();
+    return bad;
+  }, NEW);
+  check('every new shot: its stored solution makes it through commit() (Show me) on all four table settings, and is no attempt', !shown.length, JSON.stringify(shown));
+  await b4.page.evaluate(() => felt.showTricks());
+  await b4.page.waitForTimeout(250);
+  const lf = { s: await smallTargets(b4.page), l: await lowContrast(b4.page), f: await b4.page.evaluate(() => [tricks.scrollWidth, tricks.clientWidth]) };
+  check('the list at 393x852: targets 44 px, text 4.5:1, fits the width', !lf.s.length && !lf.l.length && lf.f[0] <= lf.f[1] + 1, JSON.stringify(lf));
+  await b4.page.evaluate(() => { localStorage.setItem('felt.trickScore.v2', '{"v":2,"pts":{"long":99,"stun":"x","bogus":3,"kick":5},"run":{"kick":7,"stun":1}}'); });
+  await b4.page.reload(); await b4.page.waitForFunction(() => window.booted === true);
+  const cs = await b4.page.evaluate(() => felt.trickScore);
+  check('a bad score reads as none: over the value, not a number, unknown ids and a run past its attempts dropped', JSON.stringify(cs) === JSON.stringify({ pts: { kick: 5 }, run: { stun: 1 } }), JSON.stringify(cs));
+  check('runs: no console errors', b4.errors.length === 0, b4.errors.join(' | '));
+  await b4.browser.close();
+
   /* progress survives a reload */
   const b2 = await open('', { viewport: { width: 440, height: 956 }, hasTouch: true, isMobile: true });
-  await b2.page.evaluate(() => { localStorage.setItem('felt.tricks', JSON.stringify({ long: 3, stun: 2, bogus: 3, kick: 7 })); });
+  await b2.page.evaluate(() => { localStorage.setItem('felt.tricks', JSON.stringify({ long: 3, stun: 2, bogus: 3, kick: 7 })); localStorage.removeItem('felt.trickScore.v2'); });
   await b2.page.reload();
   await b2.page.waitForFunction(() => window.booted === true);
   const pr = await b2.page.evaluate(() => ({ best: felt.trickBest, sum: trickSum.textContent }));
   await b2.page.tap('#trickBtn');
   const card = await b2.page.evaluate(() => document.querySelector('.tcard[data-id="long"] .stars').getAttribute('aria-label'));
   check('progress persists across a reload (unknown ids and bad values dropped); the menu and the list show it',
-    JSON.stringify(pr.best) === JSON.stringify({ long: 3, stun: 2 }) && pr.sum === `5 of ${S.TRICKS.length * 3}` && card === '3 of 3 stars', JSON.stringify({ pr, card }));
+    JSON.stringify(pr.best) === JSON.stringify({ long: 3, stun: 2 }) && pr.sum === `12 of ${S.programMax()}` && card === '6 of 6 points', JSON.stringify({ pr, card }));
   check('no console errors after the reload', b2.errors.length === 0, b2.errors.join(' | '));
   await b2.browser.close();
 

@@ -28,7 +28,7 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
 /* ---- the sim ---- */
 {
   check(`jump and masse: ${JUMP.length} challenges (8 to 12) after the 14 classics, each with an id, a title, a one-line goal, a level and a whole-degree elevation`,
-    JUMP.length >= 8 && JUMP.length <= 12 && S.TRICKS.slice(0, 14).every(c => !c.group) && S.TRICKS.slice(14).every(c => c.group === 'jump')
+    JUMP.length >= 8 && JUMP.length <= 12 && S.TRICKS.slice(0, 14).every(c => !c.group) && S.TRICKS.slice(14, 14 + JUMP.length).every(c => c.group === 'jump') && S.TRICKS.slice(14 + JUMP.length).every(c => c.group === 'program')
       && JUMP.every(c => c.title && c.goal && !/\n/.test(c.goal) && ['easy', 'medium', 'hard'].includes(c.level) && Number.isInteger(c.elev) && c.elev > 0 && c.elev <= 60 && c.sweep),
     JUMP.map(c => `${c.id}:${c.level}:${c.elev}`).join(' '));
   check('every level is used, and the hint names the elevation in degrees', ['easy', 'medium', 'hard'].every(l => JUMP.some(c => c.level === l)) && JUMP.every(c => S.TRICKS.length && /^Raise the cue to about \d+°\.$/.test(`Raise the cue to about ${c.elev}°.`)));
@@ -68,7 +68,7 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
   /* the boot: the cue ball's own pocket is the goal, any other is a scratch; off the table says so */
   const boot = S.trickById('jboot'), bb = S.trickBalls(boot);
   const fake = (k) => ({ balls: bb, potted: [0], pocketOf: { 0: k }, contacts: [], over: [1, 2], rails: {}, kick: null, first: null });
-  check("Massey's Boot: the cue ball in the marked corner on the fly makes it; in another pocket it is a scratch, off the table it says so",
+  check("Into the Corner: the cue ball in the marked corner on the fly makes it; in another pocket it is a scratch, off the table it says so",
     S.trickJudge(boot, fake(2)).ok && /Scratch/.test(S.trickJudge(boot, fake(5)).why) && /off the table/.test(S.trickJudge(boot, fake(-1)).why) && /Scratch/.test(S.trickJudge(S.trickById('jhop'), fake(2)).why));
   check('a curve round a blocker must not go over it or off a rail first, and says so', /not over/.test(S.trickById('jmingaud').check({ contacts: [], over: [2], kick: 0, potted: [1], pocketOf: { 1: 2 } })) && /No rail first/.test(S.trickById('jswerve').check({ contacts: [], kick: 1, potted: [1], pocketOf: { 1: 2 } })));
   check('the daily shot stays with the classics', S.TRICKS.filter(c => !c.group).length === 14);
@@ -88,9 +88,8 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
   const L = await page.evaluate(() => ({ shown: tricks.classList.contains('show'),
     groups: [...trickGrid.querySelectorAll('.tgroup')].map(g => ({ id: g.dataset.group, head: g.querySelector('.ghead').textContent, n: g.querySelectorAll('.tcard').length,
       lv: [...g.querySelectorAll('.tcard .lvl')].map(x => x.textContent) })) }));
-  check('Trick shots: two groups, Classic Shots then Jump and Massé, each under a group head; the jump cards carry their level',
-    L.shown && L.groups.length === 2 && L.groups[0].head === 'Classic Shots' && L.groups[0].n === 14 && L.groups[1].head === 'Jump and Massé' && L.groups[1].n === S.TRICKS.length - 14
-      && L.groups[1].lv.length === L.groups[1].n && L.groups[1].lv.every(t => ['Easy', 'Medium', 'Hard'].includes(t)) && !L.groups[0].lv.length, JSON.stringify(L));
+  check('Trick shots: seven disciplines (Trick and Fancy to Massé), each under a head with its points, then Extra Shots',
+    L.shown && L.groups.map(g => g.id).join() === 'fancy,drawn,follow,bank,stroke,jump,masse,extra' && /^Jump, 0 of 40$/.test(L.groups[5].head) && L.groups[5].n === 5 && L.groups[7].head === 'Extra Shots' && L.groups.reduce((a, g) => a + g.n, 0) === S.TRICKS.length, JSON.stringify(L));
   check('trick list: targets 44 px, text 4.5:1, titles Title Case', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0 && (await badTitles(page)).length === 0,
     JSON.stringify([await smallTargets(page), await lowContrast(page), await badTitles(page)]));
   const scroll = await page.evaluate(() => { const c = document.querySelector('.tcard[data-id="jboot"]'); c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, h: innerHeight }; });
@@ -124,8 +123,8 @@ const sha = x => crypto.createHash('sha256').update(x).digest('hex');
   const tries0 = await page.evaluate(() => felt.solo.attempts);
   for (let i = 0; i < 2; i++) { await shoot(B[0] + Math.PI, 0.12, 0); await idle(); await page.tap('#trickRetry'); }
   await shoot(B[0], B[1], spin(B)); await idle();
-  const st = await page.evaluate(() => ({ t: felt.lastTrick, best: felt.trickBest.jboot, tries: felt.trickTries.jboot, stars: trickStarsNow.getAttribute('aria-label') }));
-  check("stars by tries: Massey's Boot made on try 3 (two misses before) earns 2 stars, kept", tries0 === 0 && st.t.ok && st.t.attempts === 3 && st.t.stars === 2 && st.best === 2 && st.tries === 3 && st.stars === '2 of 3 stars', JSON.stringify({ tries0, st }));
+  const st = await page.evaluate(() => ({ t: felt.lastTrick, best: felt.trickBest.jboot, tries: felt.trickTries.jboot, stars: trickStarsNow.getAttribute('aria-label'), pts: felt.trickScore.pts.jboot }));
+  check('WPA scoring: Into the Corner (difficulty 7) made on attempt 3 (two misses before) scores 5; the old stars key still earns 2', tries0 === 0 && st.t.ok && st.t.attempts === 3 && st.t.stars === 2 && st.best === 2 && st.tries === 3 && st.t.got === 5 && st.pts === 5 && st.stars === '5 of 7 points', JSON.stringify({ tries0, st }));
   await page.evaluate(() => { felt.speed = 0.5; });
   await page.tap('#trickShow');
   /* mid-jump: the Show me roll, caught with the cue ball in the air */

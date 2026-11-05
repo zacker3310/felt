@@ -103,7 +103,7 @@ if (process.argv[2] === '--print') {
         if (r) all[cfg][id] = r.sol; else delete all[cfg][id];
         const m = all[MARGIN] = all[MARGIN] || {};
         m[cfg] = m[cfg] || {};
-        if (r && r.makes !== undefined && S.trickById(id).sweep) m[cfg][id] = [r.makes, r.robust]; else delete m[cfg][id];
+        if (r && r.makes !== undefined && (S.trickById(id).sweep || S.trickById(id).group === 'program')) m[cfg][id] = [r.makes, r.robust]; else delete m[cfg][id];
         go();
       });
     };

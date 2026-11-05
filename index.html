@@ -5297,7 +5297,7 @@ function suggestBumper(g) {
    built for the current table at call time from table fractions and pocket-relative helpers
    (so it fits 7 ft and 9 ft); balls(T) returns [n, [x, y]] pairs, cue ball first. check(r, P)
    gets the shot's result and P (the layout's points by ball number, plus P.zone) and returns
-   null on success or why it failed, in words. A scratch always fails. zone: a ring on the
+   null on success or why it failed, in words. A scratch fails unless the shot has scratchOk. zone: a ring on the
    cloth the cue ball must stop in ({ at(T, P), r } in metres). pocket: the pocket the goal names
    (the canvas marks it). TRICK_SOLS holds one known solution per challenge and table setting
    ('7r' 7 ft regulation, '9r', '7g', '9g' generous), as [angle, power, side, vertical]; the
@@ -5394,7 +5394,7 @@ const TRICKS = [
     sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
     balls: T => { const b = T.lip(2, 10), c = T.cut(b, 2, 30, 30); return [[0, c], [1, b], [2, T.along(c, b, 0.22, 2.0004)], [3, T.along(c, b, 0.22)], [4, T.along(c, b, 0.22, -2.0004)]]; },
     check: r => wallWhy(r, [2, 3, 4]) || (!jumped(r, 3) && !jumped(r, 2) && !jumped(r, 4) ? 'No jump: fly the cue ball over the wall.' : potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
-  { id: 'jknievel', group: 'jump', level: 'hard', title: 'Evel Knievel', elev: 45, pocket: 2,
+  { id: 'jknievel', group: 'jump', level: 'hard', title: 'Over the Row', elev: 45, pocket: 2,
     goal: 'Clear the row of four in one jump and pot the 1 in the marked corner.',
     sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
     balls: T => { const b = T.lip(2, 8), c = T.cut(b, 2, 15, 44); return [[0, c], [1, b], ...[2, 3, 4, 5].map((n, i) => [n, T.along(c, b, 0.22 + i * 0.075)])]; },
@@ -5424,11 +5424,43 @@ const TRICKS = [
     sweep: { e: [30, 40, 50, 60], tips: [[0.6, 0], [-0.6, 0], [1, 0], [-1, 0], [0.6, 0.3], [-0.6, 0.3], [0.6, -0.3], [-0.6, -0.3]] },
     balls: T => { const c = T.rail(0.25, 0.02); return [[0, c], [1, T.lip(3, 3)], [2, [c[0], c[1] - 2.0004 * BALL_R]]]; },
     check: r => touched(r, 2) ? 'The 2 moved.' : jumped(r, 2) ? 'Massé round the 2, not over it.' : potIn(r, 1, [3]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.' },
-  { id: 'jboot', group: 'jump', level: 'medium', title: 'Massey\'s Boot', elev: 40, pocket: 2, cueIn: true,
-    goal: 'Mike Massey jumped a cue ball into a boot. Fly it over both guards into the marked corner, touching nothing.',
+  { id: 'jboot', group: 'jump', level: 'medium', title: 'Into the Corner', elev: 40, pocket: 2, cueIn: true,
+    goal: 'Fly the cue ball over both guards into the marked corner, touching nothing.',
     sweep: { e: [30, 35, 40, 45, 50, 55, 60], tips: [[0, 0], [0, 0.3], [0, -0.3]] },
     balls: T => [[0, T.lip(2, 30)], [1, T.lip(2, 5.0002)], [2, T.lip(2, 2.9998)]],
     check: r => r.contacts.length ? 'A ball was touched: the cue ball goes in on the fly.' : !jumped(r, 1) && !jumped(r, 2) ? 'No jump: fly the cue ball over the guards.' : potIn(r, 0, [2]) ? null : r.potted.includes(0) ? 'The cue ball went in the wrong pocket.' : 'The cue ball missed the pocket.' },
+  /* the program's own shots (group 'program', T6.3: original setups, or generic classics, in felt's words; never in the daily
+     pool). scratchOk: WPA allows a scratch unless the shot says otherwise. Each kept only if the solver proves it on all four tables. */
+  { id: 'kick3', group: 'program', title: 'Three-Rail Kick', goal: 'Three rails or more first, then the 1 into the marked corner. Leave the 2 alone.', pocket: 2, scratchOk: true,
+    balls: T => [[0, T.at(0.3, 0.3)], [1, T.lip(2, 2)], [2, T.at(0.62, 0.17)]],
+    check: r => touched(r, 2) ? 'The 2 was touched.' : r.first !== 1 ? 'Hit the 1 first.' : (r.kick || 0) < 3 ? `The cue ball found ${r.kick || 0} rails first: it needs three.` : potIn(r, 1, [2]) ? null : 'The 1 stayed up.' },
+  { id: 'kick5', group: 'program', title: 'Five-Rail Kick', goal: 'Five rails or more first, then the 1 into the marked corner. Leave the 2 alone.', pocket: 2, scratchOk: true,
+    balls: T => [[0, T.at(0.3, 0.3)], [1, T.lip(2, 2)], [2, T.at(0.62, 0.17)]],
+    check: r => touched(r, 2) ? 'The 2 was touched.' : r.first !== 1 ? 'Hit the 1 first.' : (r.kick || 0) < 5 ? `The cue ball found ${r.kick || 0} rails first: it needs five.` : potIn(r, 1, [2]) ? null : 'The 1 stayed up.' },
+  { id: 'longstop', group: 'program', title: 'Long Stop', goal: 'A long straight pot: stop the cue ball dead in the ring.',
+    balls: T => { const b = T.at(0.75, 0.2); return [[0, T.line(b, 2, 40)], [1, b]]; },
+    zone: { at: (T, P) => T.line(P[1], 2, 2), r: 0.08 },
+    check: (r, P) => upWhy(r, 1) || (Math.hypot(r.balls[0].x - P.zone[0], r.balls[0].y - P.zone[1]) <= 0.08 ? null : 'The cue ball stopped outside the ring.') },
+  { id: 'fring', group: 'program', title: 'Follow to the Ring', goal: 'Pot the 1 and roll on through its place into the ring.',
+    balls: T => { const b = T.lip(2, 12); return [[0, T.line(b, 2, 16)], [1, b]]; },
+    zone: { at: (T, P) => T.along(P[1], T.lip(2, 0), 0.55), r: 0.07 },
+    check: (r, P) => upWhy(r, 1) || (r.potted.includes(0) ? 'Scratch: the cue ball went down.' : Math.hypot(r.balls[0].x - P.zone[0], r.balls[0].y - P.zone[1]) <= 0.07 ? null : 'The cue ball stopped outside the ring.') },
+  { id: 'cpair', group: 'program', title: 'Corner Pair', goal: 'Both corners at this end: pot the 1 and carry the cue ball on to pot the 2.', scratchOk: true,
+    balls: T => [[0, T.at(0.62, 0.5)], [1, T.lip(2, 1.6)], [2, T.lip(5, 1.6)]],
+    check: r => r.first !== 1 ? 'Hit the 1 first.' : !r.contacts.some(c => c[0] === 0 && c[1] === 2) ? 'The cue ball never reached the 2.' : upWhy(r, 1, 2) },
+  { id: 'sdraw', group: 'program', title: 'Side Draw', goal: 'Pot the 1 in the side, then draw back into the ring, touching no rail.',
+    balls: T => [[0, T.at(0.5, 0.55)], [1, T.at(0.5, 0.25)]],
+    zone: { at: T => T.at(0.5, 0.72), r: 0.1 },
+    check: (r, P) => !potIn(r, 1, [1]) ? 'The 1 goes in the side.' : (r.rails[0] || 0) ? 'No rails: draw straight back.' : Math.hypot(r.balls[0].x - P.zone[0], r.balls[0].y - P.zone[1]) <= 0.1 ? null : 'The cue ball stopped outside the ring.' },
+  { id: 'rdraw', group: 'program', title: 'Ring Draw', goal: 'Pot the 1, then draw straight back into the ring, touching no rail.',
+    balls: T => { const b = T.at(0.75, 0.2); return [[0, T.line(b, 2, 22)], [1, b]]; },
+    zone: { at: (T, P) => T.line(P[1], 2, 14), r: 0.1 },
+    check: (r, P) => upWhy(r, 1) || ((r.rails[0] || 0) ? 'No rails: draw straight back.' : Math.hypot(r.balls[0].x - P.zone[0], r.balls[0].y - P.zone[1]) <= 0.1 ? null : 'The cue ball stopped outside the ring.') },
+  { id: 'lmasse', group: 'program', level: 'hard', title: 'Long Massé', elev: 50, pocket: 2,
+    goal: 'The 2 stands halfway down a long line. Massé round it and pot the 1 in the marked corner.',
+    sweep: { e: [35, 40, 45, 50, 55, 60], tips: [[0.6, -0.8], [-0.6, -0.8], [0.8, -0.6], [-0.8, -0.6], [1, 0], [-1, 0], [0.8, 0], [-0.8, 0]] },
+    balls: T => { const b = T.at(0.82, 0.14), c = T.line(b, 2, 44); return [[0, c], [1, b], [2, T.along(c, b, 0.5)]]; },
+    check: r => curveWhy(r, 2) || (potIn(r, 1, [2]) ? null : r.potted.includes(1) ? 'The 1 went in the wrong pocket.' : 'The 1 stayed up.') },
 ];
 const TRICK_SOLS = {
   long: { '7r': [-0.305433, 0.5, 0.6, 0], '9r': [-0.322886, 0.72, 0, 0], '7g': [-0.322886, 0.32, 0, 0], '9g': [-0.322886, 0.72, 0, 0] },
@@ -5454,6 +5486,14 @@ const TRICK_SOLS = {
   jrail: { '7r': [-0.279253, 0.4, 0.6, 0, 30], '9r': [-0.244346, 0.56, 0.6, 0, 30], '7g': [-0.279253, 0.4, 0.6, 0, 30], '9g': [-0.261799, 0.4, 0.6, 0, 30] },
   jescape: { '7r': [3.036873, 0.28, 0.6, 0, 40], '9r': [3.054326, 0.28, 0.6, 0, 30], '7g': [3.01942, 0.28, 0.6, 0, 40], '9g': [3.054326, 0.24, 0.6, 0, 30] },
   jboot: { '7r': [-0.802851, 0.72, 0, 0, 40], '9r': [-0.802851, 0.72, 0, 0, 40], '7g': [-0.820305, 0.72, 0, 0, 40], '9g': [-0.820305, 0.72, 0, 0, 40] },
+  kick3: { '7r': [-2.591814, 0.5, 0, 0], '9r': [-2.574361, 0.6, 0, 0], '7g': [-2.591814, 0.5, 0, 0], '9g': [-2.565634, 0.6, 0, 0] },
+  kick5: { '7r': [2.80998, 0.85, 0, 0], '9r': [0.497419, 1, 0, -1], '7g': [2.80998, 0.85, 0, 0], '9g': [0.497419, 1, 0, -1] },
+  longstop: { '7r': [-0.349066, 0.6, -0.6, -0.6], '9r': [-0.357792, 0.6, -0.6, -0.6], '7g': [-0.340339, 0.6, -0.6, -0.6], '9g': [-0.322886, 0.6, 0.6, -0.6] },
+  fring: { '7r': [-0.785398, 0.25, 0, 0.6], '9r': [-0.785398, 0.25, 0, 0.6], '7g': [-0.785398, 0.25, 0, 0.6], '9g': [-0.785398, 0.25, 0, 0.6] },
+  cpair: { '7r': [-0.523599, 1, 0, -0.6], '9r': [-0.541052, 1, 0, -0.6], '7g': [-0.523599, 0.85, 0, -0.6], '9g': [-0.541052, 1, 0, -0.6] },
+  sdraw: { '7r': [-1.579523, 0.4, 0, -1], '9r': [-1.570796, 0.5, 0, -0.6], '7g': [-1.579523, 0.4, 0, -1], '9g': [-1.570796, 0.5, 0, -0.6] },
+  rdraw: { '7r': [-0.331613, 0.5, 0, -1], '9r': [-0.340339, 0.5, 0, -1], '7g': [-0.322886, 0.5, 0, -1], '9g': [-0.340339, 0.5, 0, -1] },
+  lmasse: { '7r': [0.10472, 0.6, -0.6, -0.8, 40], '9r': [0.087266, 0.6, -0.6, -0.8, 40], '7g': [-0.610865, 0.56, 0.6, -0.8, 35], '9g': [0.017453, 0.56, -0.6, -0.8, 35] },
 };
 const trickById = id => TRICKS.find(c => c.id === id) || null;
 /* the layout's points for the current table: { n: [x, y] }, and the zone's centre */
@@ -5473,20 +5513,46 @@ function trickGame(c) {
 }
 /* judge one attempt: { ok, why } */
 function trickJudge(c, r) {
-  if (r.potted.includes(0) && !(c.cueIn && r.pocketOf[0] === c.pocket)) return { ok: false, why: r.pocketOf[0] === -1 ? 'The cue ball flew off the table.' : 'Scratch: the cue ball went down.' };
+  if (r.potted.includes(0) && !(c.cueIn && r.pocketOf[0] === c.pocket) && !(c.scratchOk && r.pocketOf[0] !== -1)) return { ok: false, why: r.pocketOf[0] === -1 ? 'The cue ball flew off the table.' : 'Scratch: the cue ball went down.' };
   const why = c.check(r, trickPoints(c));
   return why ? { ok: false, why } : { ok: true, why: '' };
 }
 /* stars by the attempt that succeeded: 3 on the first, 2 within three, 1 after that */
 const trickStars = attempts => attempts <= 1 ? 3 : attempts <= 3 ? 2 : 1;
+/* The program (T6.3, the WPA Artistic Pool 2025 structure, without Special Arts, whose shots need re-hits and moving balls):
+   seven disciplines, each a shot at difficulty 6 to 10 (slots[0] is the 6; null: no shot the solver could prove, left empty).
+   A run is three attempts: full value on the first, minus 1, minus 2, else nothing. A shot keeps its best score, a discipline is
+   worth up to 40, the whole 280 once every slot holds a shot. A shot outside the program (Extra Shots) keeps its stars. */
+const TRICK_PROGRAM = [
+  { id: 'fancy', title: 'Trick and Fancy', slots: ['kiss', 'carom', 'two', 'needle', 'three'] },
+  { id: 'drawn', title: 'Draw', slots: ['draw', 'sdraw', 'rdraw', null, null] },
+  { id: 'follow', title: 'Follow', slots: ['fring', null, null, 'cpair', null] },
+  { id: 'bank', title: 'Bank and Kick', slots: ['kick', 'cross', 'bank2', 'kick3', 'kick5'] },
+  { id: 'stroke', title: 'Stroke', slots: ['long', 'stun', 'longstop', 'world', null] },
+  { id: 'jump', title: 'Jump', slots: ['jhop', 'jboot', 'jwall', 'jbank', 'jknievel'] },
+  { id: 'masse', title: 'Massé', slots: ['jrail', 'jescape', 'jmingaud', 'jswerve', 'lmasse'] },
+];
+const TRICK_RUN = 3;
+const TRICK_VAL = {};
+for (const d of TRICK_PROGRAM) d.slots.forEach((id, i) => { if (id) TRICK_VAL[id] = { disc: d.id, val: 6 + i }; });
+const trickVal = id => TRICK_VAL[id] ? TRICK_VAL[id].val : 0;
+/* what a make on attempt n of a run scores */
+const trickPts = (val, n) => n >= 1 && n <= TRICK_RUN ? val - (n - 1) : 0;
+const discTotal = (pts, d) => d.slots.reduce((a, id) => a + (id && pts[id] || 0), 0);
+const discMax = d => d.slots.reduce((a, id, i) => a + (id ? 6 + i : 0), 0);
+const programTotal = pts => TRICK_PROGRAM.reduce((a, d) => a + discTotal(pts, d), 0);
+const programMax = () => TRICK_PROGRAM.reduce((a, d) => a + discMax(d), 0);
+/* an old save's stars as scores, once: 3 stars is full value, 2 minus 1, 1 minus 2; never lowers a score */
+function trickScoreFromStars(stars, pts = {}) {
+  const out = Object.assign({}, pts);
+  for (const id of Object.keys(TRICK_VAL)) { const k = stars[id]; if ([1, 2, 3].includes(k)) out[id] = Math.max(out[id] || 0, trickPts(TRICK_VAL[id].val, 4 - k)); }
+  return out;
+}
 /* the stored solution for the current table, as a shot, or null */
 function trickSol(c) {
   const s = (TRICK_SOLS[c.id] || {})[TABLE + (POCKETS_STYLE === 'generous' ? 'g' : 'r')];
   return s ? { angle: s[0], power: s[1], spin: s[4] ? { x: s[2], y: s[3], e: s[4] * Math.PI / 180 } : { x: s[2], y: s[3] } } : null;
 }
-/* the trick list's groups, in order: the classics (no group) and the raised cue's shots */
-const TRICK_GROUPS = [{ id: 'classic', title: 'Classic Shots' }, { id: 'jump', title: 'Jump and Massé' }];
-const trickGroupOf = c => c.group || 'classic';
 const TRICK_LEVELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 /* what a challenge asks of the cue: the elevation to set, in a sentence (or '' on a level cue) */
 const trickHint = c => c.elev ? `Raise the cue to about ${c.elev}°.` : '';
@@ -13495,8 +13561,8 @@ document.addEventListener('visibilitychange', onVisibility);
    challenge's count is stored under TRIES_KEY ({ v: 1, n: { id: tries } }) and a reopened
    challenge carries on from it, so three stars on the first try means the first try ever, not
    the first since the list was last opened. */
-const TRICKS_KEY = 'felt.tricks', TRIES_KEY = 'felt.trickTries.v1', UNDO_MAX = 60;
-let solo = null, trickBest = loadTricks(), trickTries = loadTries();
+const TRICKS_KEY = 'felt.tricks', TRIES_KEY = 'felt.trickTries.v1', SCORE_KEY = 'felt.trickScore.v2', UNDO_MAX = 60;
+let solo = null, trickBest = loadTricks(), trickTries = loadTries(), trickScore = loadScore();
 function loadTries() {
   const out = {};
   try {
@@ -13515,6 +13581,27 @@ function loadTricks() {
   return out;
 }
 function saveTricks() { try { localStorage.setItem(TRICKS_KEY, JSON.stringify(trickBest)); } catch (e) { } }
+/* the program's scores (T6.3): { v: 2, pts: { id: best }, run: { id: attempts this run } }. The run survives a reopen, so a miss
+   still counts, but it ends after a make or the third attempt: one early miss never caps a shot for life. Made once from the
+   old stars; the old keys keep being written. */
+function loadScore() {
+  try {
+    const raw = localStorage.getItem(SCORE_KEY);
+    if (raw !== null) {
+      const o = JSON.parse(raw), out = { pts: {}, run: {} };
+      if (o && typeof o === 'object' && o.v === 2) for (const id of Object.keys(TRICK_VAL)) {
+        const p = o.pts && o.pts[id], n = o.run && o.run[id];
+        if (Number.isInteger(p) && p > 0 && p <= TRICK_VAL[id].val) out.pts[id] = p;
+        if (Number.isInteger(n) && n > 0 && n < TRICK_RUN) out.run[id] = n;
+      }
+      return out;
+    }
+  } catch (e) { return { pts: {}, run: {} }; }
+  const out = { pts: trickScoreFromStars(trickBest), run: {} };
+  saveScoreOf(out);
+  return out;
+}
+function saveScoreOf(sc) { try { localStorage.setItem(SCORE_KEY, JSON.stringify({ v: 2, pts: sc.pts, run: sc.run })); } catch (e) { } }
 const starTotal = () => TRICKS.reduce((a, c) => a + (trickBest[c.id] || 0), 0);
 const PRACTICE_NAMES = { 8: '8-Ball Rack', 9: '9-Ball Rack', heyball: 'Chinese 8-Ball Rack', scatter: 'Free Table', empty: 'Empty Table' };
 const freeTable = () => !!solo && solo.kind === 'practice' && (solo.layout === 'scatter' || solo.layout === 'empty');
@@ -13691,10 +13778,20 @@ function settleSolo() {
       solo.stars = trickStars(solo.attempts);
       if (solo.stars > (trickBest[c.id] || 0)) { trickBest[c.id] = solo.stars; saveTricks(); }
     }
+    /* the program's run; the daily shot is its own game */
+    const val = trickVal(c.id);
+    solo.got = 0; solo.runOver = false; solo.runTry = 0;
+    if (val && !solo.daily) {
+      const n = solo.runTry = (trickScore.run[c.id] || 0) + 1;
+      if (j.ok) { solo.got = trickPts(val, n); trickScore.pts[c.id] = Math.max(trickScore.pts[c.id] || 0, solo.got); delete trickScore.run[c.id]; }
+      else if (n >= TRICK_RUN) { solo.runOver = true; delete trickScore.run[c.id]; }
+      else trickScore.run[c.id] = n;
+      saveScoreOf(trickScore);
+    }
     /* the day was scored when the try was struck (shoot); a make on that try is remembered */
     if (solo.daily && solo.daily.live && j.ok && !dailyRec.made) { dailyRec.made = true; saveDaily(); }
   }
-  felt.lastTrick = { id: c.id, ok: j.ok, why: j.why, attempts: solo.attempts, stars: j.ok && !solo.demo ? solo.stars : 0, demo: solo.demo,
+  felt.lastTrick = { id: c.id, ok: j.ok, why: j.why, attempts: solo.attempts, stars: j.ok && !solo.demo ? solo.stars : 0, demo: solo.demo, runTry: solo.runTry || 0, got: solo.got || 0, runOver: !!solo.runOver,
     daily: solo.daily ? { day: solo.daily.day, counted: !!solo.daily.live } : null };
   showTrickRes(c, j);
   sfx(j.ok ? 'win' : 'foul', 1);
@@ -13716,18 +13813,20 @@ function showMe() {
 }
 const starsHtml = (n, of = 3) => '★'.repeat(n) + `<span class="off">${'☆'.repeat(of - n)}</span>`;
 function showTrickRes(c, j) {
-  const i = TRICKS.indexOf(c), demo = solo.demo, a = solo.attempts, d = solo.daily;
+  const i = TRICKS.indexOf(c), demo = solo.demo, a = solo.attempts, d = solo.daily, val = d ? 0 : trickVal(c.id), n = solo.runTry;
   trickRes.dataset.ok = String(j.ok);
   trickKind.textContent = d ? `Daily shot, ${dayWords(d.day)}: ${c.title}` : `Trick shot ${i + 1} of ${TRICKS.length}: ${c.title}`;
   trickHead.textContent = demo ? (j.ok ? 'Like that' : 'Close') : j.ok ? 'Made it' : 'Not quite';
   /* the daily shot says what the try did for the streak: the first counts, the rest are practice */
   const day = !d || demo ? '' : d.live ? ` Day streak: ${dailyRec.streak}${dailyRec.streak === dailyRec.best && dailyRec.best > 1 ? ', your best' : ''}.` : ' Practice: today\'s try is in.';
   trickWhy.textContent = demo ? (j.ok ? 'One way to make it. Your turn.' : j.why)
+    : val ? (j.ok ? `${n === 1 ? 'First attempt' : `Attempt ${n}`} of this run: ${solo.got} point${solo.got === 1 ? '' : 's'}. Best: ${trickScore.pts[c.id]} of ${val}.`
+      : solo.runOver ? `${j.why} Run over, no points. Try again for a new run: full value on the first attempt.` : `${j.why} Attempt ${n} of ${TRICK_RUN}: the next make scores ${trickPts(val, n + 1)}.`)
     : (j.ok ? `${a === 1 ? 'First try' : `On try ${a}`}: ${solo.stars} star${solo.stars === 1 ? '' : 's'}.` + (trickBest[c.id] > solo.stars ? ` Best: ${trickBest[c.id]}.` : '')
       : `${j.why} Tries: ${a}.`) + day;
   const st = j.ok && !demo ? solo.stars : 0;
-  trickStarsNow.innerHTML = st ? starsHtml(st) : '';
-  trickStarsNow.setAttribute('aria-label', st ? `${st} of 3 stars` : '');
+  if (val) { const g = j.ok && !demo ? solo.got : 0; trickStarsNow.textContent = g ? `${g} of ${val}` : ''; trickStarsNow.setAttribute('aria-label', g ? `${g} of ${val} points` : ''); }
+  else { trickStarsNow.innerHTML = st ? starsHtml(st) : ''; trickStarsNow.setAttribute('aria-label', st ? `${st} of 3 stars` : ''); }
   trickShow.hidden = !trickSol(c);
   trickNext.textContent = d ? 'Home' : i === TRICKS.length - 1 ? 'First' : 'Next';
   menu.classList.remove('show'); over.classList.remove('show');
@@ -13744,28 +13843,31 @@ function showTricks() {
   closeSolo(); menu.classList.remove('show'); over.classList.remove('show');
   if (game.mode === 'trick' && !paused) { solo = null; state = 'menu'; game = newGame('8'); hud(); }
   const cards = TRICKS.map((c, i) => {
-    const b = document.createElement('button'), s = trickBest[c.id] || 0, lv = TRICK_LEVELS[c.level];
+    const b = document.createElement('button'), s = trickBest[c.id] || 0, lv = TRICK_LEVELS[c.level], val = trickVal(c.id), got = trickScore.pts[c.id] || 0;
     b.className = 'tcard'; b.dataset.id = c.id;
-    b.innerHTML = `<span class="no">${i + 1}${lv ? `<span class="lvl">${lv}</span>` : ''}</span><b></b><span class="stars" aria-label="${s} of 3 stars">${starsHtml(s)}</span>`;
+    b.innerHTML = val ? `<span class="no">Difficulty ${val}</span><b></b><span class="stars pts" aria-label="${got} of ${val} points">${got} of ${val}</span>`
+      : `<span class="no">${i + 1}${lv ? `<span class="lvl">${lv}</span>` : ''}</span><b></b><span class="stars" aria-label="${s} of 3 stars">${starsHtml(s)}</span>`;
     b.querySelector('b').textContent = c.title;
     b.title = c.goal + (trickHint(c) ? ' ' + trickHint(c) : '');
     b.addEventListener('click', () => { audioOn(); startTrick(c.id); });
     return b;
   });
   /* a group a section: its head (the HIG group header) over its grid of cards */
-  trickGrid.replaceChildren(...TRICK_GROUPS.map(gr => {
+  const secs = [...TRICK_PROGRAM.map(d => ({ id: d.id, title: `${d.title}, ${discTotal(trickScore.pts, d)} of ${discMax(d)}`, ids: d.slots.filter(Boolean) })),
+    { id: 'extra', title: 'Extra Shots', ids: TRICKS.filter(c => !trickVal(c.id)).map(c => c.id) }];
+  trickGrid.replaceChildren(...secs.map(gr => {
     const sec = document.createElement('section'), h = document.createElement('h3'), grid = document.createElement('div');
     sec.className = 'tgroup'; sec.dataset.group = gr.id;
     h.className = 'ghead'; h.textContent = gr.title; h.id = 'tgHead-' + gr.id;
     sec.setAttribute('aria-labelledby', h.id);
     grid.className = 'tgrid';
-    grid.append(...cards.filter((_, i) => trickGroupOf(TRICKS[i]) === gr.id));
+    grid.append(...gr.ids.map(id => cards[TRICKS.indexOf(trickById(id))]));
     sec.append(h, grid);
     return sec;
   }).filter(sec => sec.lastChild.childElementCount));
-  tricksSub.textContent = `${starTotal()} of ${TRICKS.length * 3} stars. Three for a make on the first try, two within three tries, one for any make.`;
+  tricksSub.textContent = `${programTotal(trickScore.pts)} of ${programMax()} points. Three attempts a run: full value on the first, minus 1, minus 2. A shot keeps its best, and a new run can always beat it.`;
   tricks.classList.add('show');
-  if (byKeys) cards[0].focus({ preventScroll: true });
+  if (byKeys) (trickGrid.querySelector('.tcard') || cards[0]).focus({ preventScroll: true });
 }
 /* back to the home screen from a solo session (quitToHome, section 6, does it for any session) */
 const exitSolo = () => quitToHome();
@@ -13836,7 +13938,9 @@ function hudSoloMenu() {
     soloKind.textContent = s.daily ? `Daily shot, ${dayWords(s.daily.day)}` : `Trick shot ${TRICKS.indexOf(c) + 1} of ${TRICKS.length}`;
     soloTitle.textContent = c.title;
     soloGoal.textContent = c.goal + (trickHint(c) ? ' ' + trickHint(c) : '');
-    cells.push(['Tries', s.attempts], ['Best', `${trickBest[c.id] || 0} of 3`], ['All stars', `${starTotal()}/${TRICKS.length * 3}`]);
+    const val = s.daily ? 0 : trickVal(c.id);
+    if (val) cells.push(['Attempt', `${(trickScore.run[c.id] || 0) + 1} of ${TRICK_RUN}`], ['Best', `${trickScore.pts[c.id] || 0} of ${val}`], ['Program', `${programTotal(trickScore.pts)}/${programMax()}`]);
+    else cells.push(['Tries', s.attempts], ['Best', `${trickBest[c.id] || 0} of 3`], ['All stars', `${starTotal()}/${TRICKS.length * 3}`]);
   }
   const key = JSON.stringify(cells);
   if (soloStats.dataset.key !== key) {
@@ -13849,10 +13953,10 @@ function hudSoloMenu() {
    stars won of all there are. The daily shot: today's date on its calendar leaf, the day's shot by
    name, and on the right a flame with the streak, or Done today once it is played. */
 function syncSoloMenu() {
-  const stars = starTotal(), all = TRICKS.length * 3;
+  const pts = programTotal(trickScore.pts), all = programMax();
   trickSub.textContent = `${TRICKS.length} challenges`;
-  trickSum.textContent = `${stars} of ${all}`;
-  trickBtn.setAttribute('aria-label', `Trick Shots: ${TRICKS.length} challenges, ${stars} of ${all} stars`);
+  trickSum.textContent = `${pts} of ${all}`;
+  trickBtn.setAttribute('aria-label', `Trick Shots: ${TRICKS.length} challenges, ${pts} of ${all} points`);
   const day = today(), s = dailyStreak(day), done = dailyDone(day);
   dailyBall.textContent = String(+day.slice(8));
   dailyName.textContent = dailyTrick(day).title;
@@ -13978,6 +14082,7 @@ Object.defineProperties(felt, {
   solo: { get: () => solo },
   trickBest: { get: () => Object.assign({}, trickBest) },
   trickTries: { get: () => Object.assign({}, trickTries) },
+  trickScore: { get: () => JSON.parse(JSON.stringify(trickScore)) },
   elevTip: { get: () => ({ seen: elevTipSeen, shown: !elevTip.hidden, shows: elevTipShows }) },
   dailyRec: { get: () => Object.assign({}, dailyRec, { streakNow: dailyStreak() }) },
 });
@@ -17540,7 +17645,7 @@ function statsGo(page, anim) {
 stBook.addEventListener('click', () => statsGo('book', true));
 stForm.addEventListener('click', () => statsGo('form', true));
 function showStats() {
-  const kp = [['Win streak', rec.streak, 'vs CPU'], ['Best streak', rec.best, 'vs CPU'], ['Trick stars', starTotal(), `of ${TRICKS.length * 3}`], ['Daily streak', dailyStreak(), `best ${dailyRec.best}`]];
+  const kp = [['Win streak', rec.streak, 'vs CPU'], ['Best streak', rec.best, 'vs CPU'], ['Trick points', programTotal(trickScore.pts), `of ${programMax()}`], ['Daily streak', dailyStreak(), `best ${dailyRec.best}`]];
   kpis.replaceChildren(...kp.map(([t, v, s]) => {
     const d = document.createElement('div'), dt = document.createElement('dt'), dd = document.createElement('dd'), sm = document.createElement('small');
     dt.textContent = titleCase(t); dd.textContent = String(v); sm.textContent = s; dd.appendChild(sm); d.append(dt, dd);

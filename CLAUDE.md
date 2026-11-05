@@ -46,11 +46,10 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `.buildloop/spec/T2.3-solo.md`. Practice's racks (`newPractice(layout)`, `PRACTICE_NAMES`, the sheet's `#prac8`,
   `#prac9`, `#pracH`, `#pracScatter`, `#pracEmpty`): 8-ball, 9-ball, Chinese 8-ball (`'heyball'`: `game.kind` heyball,
   on its own table, which `beginSolo` sets before the rack is made), a free table and an empty one; solo-check pins them. Trick solutions come from `tools/trick-solver.cjs` (`tests/trick-solutions.json`).
-  Two groups (`TRICK_GROUPS`, the list's `.tgroup` heads): the 14 classics (no `group`; the daily shot draws only from
-  them, `DAILY_TRICKS`) and Jump and Massé (`group: 'jump'`, contract and research `.buildloop/spec/T5-jump-tricks.md`):
-  each has a `level`, an `elev` in whole degrees for the hint (`trickHint`) and a `sweep` (elevations, tips) the solver
+  The program (`TRICK_PROGRAM`, sim 1h, spec T6.3, the WPA Artistic Pool 2025 structure without Special Arts): seven disciplines, the list's `.tgroup` heads, each with slots for difficulty 6 to 10 (null: no shot the solver could prove, left empty, so the maximum is `programMax()`, not yet 280). `trickPts`: full value on a run's first attempt, minus 1, minus 2, else 0. Scores in `felt.trickScore.v2` (`{ v: 2, pts, run }`, `trickScore`): a shot keeps its best; the run survives a reopen but ends on a make or the third attempt, so one miss never caps a shot for life. Made once from the old stars (`trickScoreFromStars`); `felt.tricks` and `felt.trickTries.v1` keep being written. A shot outside the program (`combo`, `around`) is under Extra Shots with its stars. `scratchOk`: a scratch does not fail that shot. The 14 classics (no `group`; the daily shot draws only from
+  them, `DAILY_TRICKS`, and is not scored in the program); `group: 'program'` the shots made for it, a margin recorded in the solutions file; Jump and Massé (`group: 'jump'`, contract and research `.buildloop/spec/T5-jump-tricks.md`): each has a `level`, an `elev` in whole degrees for the hint (`trickHint`) and a `sweep` (elevations, tips) the solver
   searches; its `TRICK_SOLS` entries carry a fifth field, the elevation in degrees, and the file's `margin` table
-  records each one's makes in the sweep (at least 20 on every table). `cueIn` (Massey's Boot) makes the cue ball's
+  records each one's makes in the sweep (at least 20 on every table). `cueIn` (Into the Corner, id `jboot`) makes the cue ball's
   own pocket the goal. The first jump challenge ever opened shows the elevation tip once (`#elevTip`,
   `felt.elevTip.v1`; `tests/lib.cjs` marks it seen unless `firstRun: true`). Pinned by `jumptricks-check`.
 - Lesson and career: page section 6d (before boot). The lesson is a solo session (`solo.kind === 'lesson'`) that
@@ -241,8 +240,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - How to play (page 6, `TABS`, `HELP_KINDS`, `showHelp(kind)`): sixteen topics, one push page each (rules rows, fine
   print, a pinned action); a new topic is a row in `howList`, a `pan` section and a `TABS` entry, and boot-check's
   list and page loops must name it (fit at 375x667, 44 px, 4.5:1).
-- Trick shots keep their tries per challenge (`trickTries`, `felt.trickTries.v1`, audit F12): stars go by the tries
-  ever taken, so reopening a challenge never resets them. `audit-check` A13.
+- Trick shots keep lifetime tries per challenge (`trickTries`, `felt.trickTries.v1`, audit F12), which the old stars go by; a reopen never resets a run's attempts either. `audit-check` A13.
 - Aim feel (sweep gain capped near the cue ball, gain by finger speed, lift-off restore, tap on a
   ball, wheel rate by speed) is documented in section 5's input comment, tuned in its constants
   (`felt.aimFeel`). `aim-check` pins it with touches carrying CDP `timestamp`s, so finger speed

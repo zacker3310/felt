@@ -70,6 +70,7 @@ const HELPERS = () => {
   const looks = await ev(() => {
     noteLookOwn(Object.entries(LOOKS).flatMap(([slot, set]) => Object.keys(set).map(k => slot + '-' + k)));
     const keep = { cloth: settings.cloth, rail: settings.rail, balls: settings.balls }, out = {};
+    settings.dress = 'mine';   /* the slots are only worn on My Look */
     felt.start('8');
     const hash = () => { draw(performance.now()); const d = table.getContext('2d').getImageData(0, 0, table.width, table.height).data; let h = 0; for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) >>> 0; return h; };
     for (const slot of ['cloth', 'rail', 'balls']) {
@@ -77,6 +78,7 @@ const HELPERS = () => {
       for (const k of Object.keys(LOOKS[slot])) { settings[slot] = k; out[slot][k] = hash(); }
       settings[slot] = keep[slot];
     }
+    settings.dress = 'game';
     hash();
     return out;
   });

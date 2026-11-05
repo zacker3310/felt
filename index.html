@@ -6995,11 +6995,14 @@ const Career = (() => {
     ['balls-classic', 'balls', 'Classic Balls', 0], ['balls-pro', 'balls', 'Pro Set, Measles Cue Ball', 900], ['balls-vintage', 'balls', 'Vintage Ivory Set', 1400], ['balls-tv', 'balls', 'Television Set', 2200],
     ['ring-silver', 'ring', 'Silver Avatar Ring', 400], ['ring-gold', 'ring', 'Gold Avatar Ring', 2000], ['ring-champion', 'ring', 'Champion Frame', 0, 'title'],
     ['ring-centurion', 'ring', 'Centurion Frame', 0, 'wins100'], ['ring-drill', 'ring', 'Drill Gold Frame', 0, 'drillGold'], ['ring-legacy', 'ring', 'Hall of Fame Frame', 0, 'hof'],
+    /* where the money goes: a title on the profile and a room of your own, words on the hub and nothing else */
+    ['prestige-patron', 'prestige', 'Patron of the Game', 25000], ['prestige-benefactor', 'prestige', 'Benefactor of the Game', 75000], ['prestige-founder', 'prestige', 'Founder of the Game', 200000],
+    ['venue-club', 'venue', 'A Club of Your Own', 40000], ['venue-hall', 'venue', 'A Hall of Your Own', 120000], ['venue-arena', 'venue', 'An Arena of Your Own', 350000],
   ].map(([id, slot, name, price, need]) => ({ id, slot, name, price, need: need || null, effect: 'none' }));
   const SHOP_BY = Object.fromEntries(SHOP.map(i => [i.id, i]));
-  const SHOP_SLOTS = ['cue', 'cloth', 'chalk', 'rail', 'balls', 'ring'];
+  const SHOP_SLOTS = ['cue', 'cloth', 'chalk', 'rail', 'balls', 'ring', 'prestige', 'venue'];
   /* what each slot wears with nothing equipped (a save from before rail and balls has neither) */
-  const DEFAULT_EQ = { cue: 'cue-house', cloth: 'cloth-green', chalk: 'chalk-blue', rail: 'rail-walnut', balls: 'balls-classic', ring: null };
+  const DEFAULT_EQ = { cue: 'cue-house', cloth: 'cloth-green', chalk: 'chalk-blue', rail: 'rail-walnut', balls: 'balls-classic', ring: null, prestige: null, venue: null };
   /* the achievements an item can need, and their words. drillGold: gold mastery in any drill (the
      hook a new drill gets for free: it only has to record mastery through practice()) */
   const NEED_WORDS = { hof: 'Hall of Fame only', title: 'Win a title', wins100: 'Win 100 matches', drillGold: 'Gold mastery in a drill' };
@@ -7510,21 +7513,33 @@ const Career = (() => {
     if (s.kind === 'finals') return { min: 1, max: 12, top: 8 };
     return { min: 1, max: 12 };
   }
+  const ONE_OFF = ['Anniversary', 'Centenary', 'Grand', 'Masters'];
   /* one edition of a series in a season: dates, deadline, money, points, rules */
   function instEvent(s, sea, ed) {
     const r = R(S.seed, 'inst', s.id, sea, ed);
+    /* from the second season: a series moves host city (its nation's, its name and venue following), its prestige swings, and now and
+       then an edition is a one-off. Its own stream; the first season, s and every id exactly as they were. */
+    let name = s.name, city = s.city, venue = s.venue, pres0 = s.pres;
+    if (sea > 1) {
+      const h = R(S.seed, 'host', s.id, sea, ed), to = pick(h, NAT_BY[s.nat].cities), one = h();
+      pres0 = Math.round(cl(s.pres + (h() - 0.5) * 24, 30, 100));
+      if (s.tier >= 3 && s.kind !== 'finals' && !s.tgt) { name = name.split(s.city).join(to); venue = venue.split(s.city).join(to); city = to; }
+      if (one < 0.1 && !['qualifier', 'finals', 'league'].includes(s.kind) && !S.ser.some(o => o.tgt === s.id)) { name = `${ONE_OFF[Math.floor(one * 10 * ONE_OFF.length)]} ${name}`; pres0 = Math.min(100, pres0 + 10); }
+      /* a qualifier is named for its main event, wherever that went this season */
+      if (s.tgt) { const tg = S.ser.find(o => o.id === s.tgt); if (tg) name = `${instEvent(tg, sea, 0).name} Qualifier`; }
+    }
     let w = s.wk[ed];
     if (!['finals', 'league', 'qualifier'].includes(s.kind) && !(S.ser.some(o => o.tgt === s.id))) w = cl(w + Math.floor(r() * 3) - 1, 1, 49);
     const start = (sea - 1) * YEAR + (w - 1) * 7 + s.dow;
     const rounds = s.fmt === 'league' ? 2 * (s.size - 1 + s.size % 2) : 0;
     const end = s.fmt === 'league' ? start + 7 * (rounds - 1) : start + Math.max(1, s.len) - 1;
-    const t = s.tier, presF = s.pres / 70, early = t >= 8 || ['major', 'invitational', 'finals'].includes(s.kind);
+    const t = s.tier, presF = pres0 / 70, early = t >= 8 || ['major', 'invitational', 'finals'].includes(s.kind);
     const fee = s.free || s.kind === 'invitational' || s.kind === 'finals' ? 0 : s.kind === 'qualifier' ? Math.round(FEE[t] * 0.6) : FEE[t];
     const purse = s.kind === 'qualifier' ? Math.round(s.size * fee * 0.5) : Math.round((s.size * FEE[t] * 0.9 + POT[t] * s.size / 32) * presF / 5) * 5;
     const race = raceFor(s.disc, t, s.kind);
     const ev = {
-      id: `${sea}.${s.id}.${ed}`, ser: s.id, ed, name: s.name, city: s.city, venue: s.venue, nat: s.nat, kind: s.kind, fmt: s.fmt, tier: t, circ: TIERS[t].circ,
-      disc: s.disc, pres: s.pres, start, end, dl: start - (early ? 7 : 1), fee, trav: Math.round(TRAVEL[t] * (s.nat !== S.profile.nat ? 1.5 : 1)), purse, size: s.size, race,
+      id: `${sea}.${s.id}.${ed}`, ser: s.id, ed, name, city, venue, nat: s.nat, kind: s.kind, fmt: s.fmt, tier: t, circ: TIERS[t].circ,
+      disc: s.disc, pres: pres0, start, end, dl: start - (early ? 7 : 1), fee, trav: Math.round(TRAVEL[t] * (s.nat !== S.profile.nat ? 1.5 : 1)), purse, size: s.size, race,
       rules: rulesFor(s, race), req: reqFor(s), pts: Math.round(BP[t] * presF * (s.kind === 'qualifier' ? 0.5 : 1)),
     };
     for (const k of ['groups', 'slots', 'card']) if (s[k]) ev[k] = s[k];
@@ -7677,9 +7692,51 @@ const Career = (() => {
         if (ev.card) { S.me.card = Math.max(S.me.card, ev.card); news(`Tour card won: ${TIERS[ev.card].name} next season, if your results earn the step up.`); }
       }
     }
+    mlAdd(ev, pl);
     const mine = pl.find(x => x[0] === HUMAN);
     if (mine) { humanFinish(ev, mine[1], n, payouts(ev, pl).get(HUMAN) || 0); bound('event'); }
     else if (ranked(ev) && ev.tier >= 9) news(`${cardOf(pl[0][0]).name} wins the ${ev.name}.`);
+  }
+
+  /* ---------------- the money list and the rating (T6.4) ---------------- */
+  /* S.ml: { season: { player: credits } }, prize money from tier 8 up, two seasons kept. A card is kept by a top CARD_KEEP finish on
+     the rolling two-year list (the model: WPBSA's two-year list, its top 64 keeping their cards; felt's own numbers). */
+  const CARD_KEEP = 64, INVITE_TOP = 16;
+  function mlAdd(ev, pl) {
+    if (ev.tier < 8) return;
+    const sea = seasonOf(ev.start), row = S.ml[sea] || (S.ml[sea] = {});
+    for (const [id, v] of payouts(ev, pl)) row[id] = (row[id] || 0) + v;
+    for (const k of Object.keys(S.ml)) if (+k < sea - 1) delete S.ml[k];
+  }
+  /* the two seasons up to sea, best first: [player, credits] */
+  function moneyList(sea = season()) {
+    const t = new Map();
+    for (const y of [sea - 1, sea]) for (const [id, v] of Object.entries(S.ml[y] || {})) t.set(+id, (t.get(+id) || 0) + v);
+    return [...t].filter(([id]) => id === HUMAN || activeAI(id)).sort((a, b) => b[1] - a[1] || a[0] - b[0]);
+  }
+  const moneyRank = (sea = season()) => { const i = moneyList(sea).findIndex(x => x[0] === HUMAN); return i < 0 ? 0 : i + 1; };
+  /* last season alone: the one-year invitation list */
+  function inviteRank() {
+    const row = S.ml[season() - 1] || {}, mine = row[HUMAN];
+    if (!mine) return 0;
+    return 1 + Object.entries(row).filter(([id, v]) => +id !== HUMAN && activeAI(+id) && v > mine).length;
+  }
+  /* the performance rating, on the common scale where 100 points is 2:1 a rack (playModel's 2:1 is 7.6 rating points, so about 13 to
+     a point). The odds of one rack, of a race */
+  const FR_K = 13, FR_STEP = 4, FR_RACKS = 15;
+  const rackOdds = (a, b) => 1 / (1 + Math.pow(2, (b - a) / 100));
+  function raceOdds(p, race) {
+    let out = 0, c = 1;
+    for (let k = 0; k < race; k++) { out += c * Math.pow(p, race) * Math.pow(1 - p, k); c = c * (race + k) / (k + 1); }
+    return out;
+  }
+  const frOf = id => id === HUMAN ? S.me.fr : Math.round(rate(attrsOf(id), popAt(id).disc, popAt(id).disc) * FR_K);
+  /* a played match moves it, rack by rack; a points game counts as FR_RACKS racks at most */
+  function frBook(opp, my, op) {
+    const n = my + op;
+    if (!n) return;
+    const k = Math.min(1, FR_RACKS / n), e = rackOdds(S.me.fr, frOf(opp));
+    S.me.fr = Math.round(cl(S.me.fr + FR_STEP * k * (my - e * n), 100, 1400));
   }
 
   /* ---------------- the player: money, news, stats ---------------- */
@@ -7711,6 +7768,7 @@ const Career = (() => {
      so every rate's denominator is exactly what was reported. */
   function bookMatch(ev, T, m, opp, my, op, res) {
     const won = my > op, fin = !!T.M[m].fin, forfeit = !!res.forfeit;
+    if (!forfeit) frBook(opp, my, op);
     let racks = Array.isArray(res.racks) && !forfeit ? res.racks.filter(k => k && typeof k === 'object') : null;
     if (racks && ev.disc !== 'straight' && ev.disc !== 'carom' && (racks.length !== my + op || racks.filter(k => k.won).length !== my)) racks = null;
     const sh = res.shots && typeof res.shots === 'object' && !forfeit ? res.shots : null, n = v => Number.isInteger(v) && v >= 0 ? v : 0;
@@ -7809,13 +7867,17 @@ const Career = (() => {
     return {
       event: p.ev.id, eventName: p.ev.name, match: p.m, round: roundName(p.ev, p.T, p.m), final: !!p.T.M[p.m].fin, day: S.day,
       opponent: cardOf(opp), ai, level: ai.level, race: p.ev.race, rules: copy(p.ev.rules), breaker: lag, h2h: (S.h2h[opp] || [0, 0]).slice(0, 2),
+      fr: { me: S.me.fr, opp: frOf(opp), odds: raceOdds(rackOdds(S.me.fr, frOf(opp)), p.ev.race) },
     };
   }
 
   /* ---------------- rivals ---------------- */
-  const rivalScore = h => h[0] + h[1] + 3 * (h[2] + h[3]) + 2 * (h[4] + h[5]) + h[6] + Math.abs(h[7]);
+  /* a rivalry: how much of it there is, times how close it is (a 25-2 is no rivalry); a retired player or one three tiers away has gone */
+  const rivalScore = h => { const n = h[0] + h[1], c = n ? 1 - Math.abs(h[0] - h[1]) / n : 1; return (n + 3 * (h[2] + h[3]) + 2 * (h[4] + h[5]) + h[6] + Math.abs(h[7])) * (0.2 + 0.8 * c); };
+  const RIVAL_GAP = 3, CHALLENGES = 3;
+  const rivalLive = id => activeAI(id) && Math.abs(((S.pop.m[id] || {}).t || 0) - S.me.tier) <= RIVAL_GAP;
   function rivalList(n = 10) {
-    return Object.keys(S.h2h).map(Number).map(id => [id, rivalScore(S.h2h[id])]).filter(x => x[1] >= 3).sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, n).map(x => x[0]);
+    return Object.keys(S.h2h).map(Number).filter(rivalLive).map(id => [id, rivalScore(S.h2h[id])]).filter(x => x[1] >= 3).sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, n).map(x => x[0]);
   }
   /* rivalry objectives: for the top three rivals, one at a time each */
   function rivalObjectives(opp, won, fin) {
@@ -7855,8 +7917,22 @@ const Career = (() => {
       ];
       const obj = [];
       while (obj.length < 2 + (weeks === 52 ? 1 : 0)) { const o = pool.splice(Math.floor(r() * pool.length), 1)[0]; obj.push(o); }
-      S.off.push({ id: 'o' + (++S.nx), type: 'sponsor', brand: `${pick(r, BRANDS)} ${cat}`, cat, weeks, ret: Math.round(3 * Math.pow(t, 1.7) * (1 + Math.min(rep, 300) / 150)), obj, bonus: 25 * t * t, exp: S.day + 28 });
+      S.off.push({ id: 'o' + (++S.nx), type: 'sponsor', brand: `${pick(r, BRANDS)} ${cat}`, cat, weeks, ret: Math.round(3 * Math.pow(t, 1.7) * (1 + Math.min(rep, 300) / 150) * formF(t)), obj, bonus: 25 * t * t, exp: S.day + 28 });
     }
+  }
+  /* what the last 26 weeks are worth to a sponsor: ranking points against a good half-season at this tier, 0.5 (cold) to 1.25 */
+  function formF(t) {
+    const gw = gweek(S.day), pts = S.aw.reduce((a, x) => a + (x[0] === HUMAN && x[4] > gw - 26 ? x[3] : 0), 0);
+    return 0.5 + 0.75 * cl(pts / (BP[t] * 2), 0, 1);
+  }
+  /* a contract with at least half its objectives met is offered again: the same brand, new objectives, more if all were met */
+  function renewal(c, met) {
+    if (met * 2 < c.obj.length || S.off.some(o => o.brand === c.brand) || S.off.filter(o => o.type === 'sponsor').length >= 3) return;
+    const t = Math.min(11, S.me.tier), weeks = Math.round((c.to - c.from) / 7) === 52 ? 52 : 26, r = R(S.seed, 'renew', S.day, S.nx);
+    const pool = [{ k: 'wins', n: Math.round((weeks / 26) * (6 + t)), pay: 15 * t * t }, { k: 'finals', n: weeks === 52 ? 3 : 2, pay: 30 * t * t }, { k: 'events', n: Math.round(weeks / 4), pay: 10 * t * t }, { k: 'titles', n: weeks === 52 ? 2 : 1, pay: 60 * t * t }], obj = [];
+    while (obj.length < 2) obj.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
+    S.off.push({ id: 'o' + (++S.nx), type: 'sponsor', renew: true, brand: c.brand, cat: c.cat, weeks, ret: Math.round(c.ret * (met === c.obj.length ? 1.15 : 1)), obj, bonus: c.bonus, exp: S.day + 28 });
+    news(`${c.brand} offers to renew.`);
   }
   const objText = o => o.k === 'wins' ? `Win ${o.n} matches` : o.k === 'titles' ? `Win ${o.n} title${o.n > 1 ? 's' : ''}` : o.k === 'finals' ? `Reach ${o.n} finals` : o.k === 'rank' ? `Reach the top ${o.n} of the ${CIRC_NAMES[o.c]} rankings` : o.k === 'disc' ? `Win ${o.n} ${SHORT[o.d]} matches` : `Play ${o.n} events`;
   const objNow = o => o.k === 'wins' ? S.st.all.w : o.k === 'titles' ? S.st.all.ti : o.k === 'finals' ? S.st.all.fi : o.k === 'disc' ? statD(o.d).w : o.k === 'events' ? S.st.all.ev : 0;
@@ -7877,6 +7953,7 @@ const Career = (() => {
     news(`${c.brand} contract ended: ${met} of ${c.obj.length} objectives met.`);
     S.sph.push([c.brand, c.from, c.to, met, c.obj.length]);
     if (S.sph.length > 20) S.sph.shift();
+    renewal(c, met);
   }
   /* a rival's challenge or an exhibition: a two-player event of its own, best of `legs` */
   function matchOffer(type, opp, r) {
@@ -7899,7 +7976,7 @@ const Career = (() => {
     }
     const r = R(S.seed, 'week', gweek(S.day));
     const rv = rivalList(1)[0];
-    if (rv !== undefined && activeAI(rv) && rivalScore(S.h2h[rv]) >= 6 && !S.off.some(o => o.type === 'challenge') && r() < 0.25) matchOffer('challenge', rv, r);
+    if (rv !== undefined && activeAI(rv) && rivalScore(S.h2h[rv]) >= 6 && !S.off.some(o => o.type === 'challenge') && (S.ss.ch || 0) < CHALLENGES && r() < 0.25) { const before = S.off.length; matchOffer('challenge', rv, r); if (S.off.length > before) S.ss.ch = (S.ss.ch || 0) + 1; }
     if (S.me.rep >= 60 && !S.off.some(o => o.type === 'exhibition') && r() < 0.12) {
       const star = rankList(Math.min(4, circ + 1)).map(x => x[0]).find(id => id !== HUMAN && activeAI(id));
       if (star !== undefined) matchOffer('exhibition', star, r);
@@ -7940,14 +8017,25 @@ const Career = (() => {
     const better = pool.filter(id => form(id) > mine).length, frac = better / Math.max(1, pool.length);
     const t0 = me.tier;
     let moved = 'stay';
-    if (me.tier < 11 && (S.ss.tt >= me.tier || (frac <= 0.15 && wr >= 0.5 && S.ss.m >= 6))) {
+    /* a title promotes only below tier 7: above it the step up is earned over a season */
+    if (me.tier < 11 && ((me.tier < 7 && S.ss.tt >= me.tier) || (frac <= 0.15 && wr >= 0.5 && S.ss.m >= 6))) {
       const to = me.tier + 1;
       if ((to === 8 || to === 10) && me.card < to) news(`Promotion to ${TIERS[to].name} needs a tour card from the qualifier.`);
-      else { me.tier = to; moved = 'up'; }
+      else { me.tier = to; moved = 'up'; if (to >= 8) me.cardAt = old + 1; }
     } else if (me.tier > 1 && me.tier < 12 && S.ss.tt < me.tier && ((S.ss.m >= 4 && frac >= 0.6 && wr < 0.4) || (S.ss.m === 0 && me.tier >= 4))) { me.tier--; moved = 'down'; }
+    /* the stakes: from tier 8, a card is kept on the two-year money list, after one full season to earn on it */
+    const mlr = moneyRank(old);
+    const hofDue = !me.hof && me.leg >= HOF_LEG && t0 >= 11;
+    if (moved === 'stay' && !hofDue && me.tier >= 8 && me.tier < 12 && old > me.cardAt && (!mlr || mlr > CARD_KEEP)) {
+      me.tier = me.tier >= 10 ? 9 : 7; me.card = 0; moved = 'down';
+      news(`Tour card lost: ${mlr ? `number ${mlr}` : 'not'} on the money list. The qualifier is the way back.`);
+    }
     const circRank = CIRCUITS.map((c, i) => rankOf(HUMAN, i, gweek(S.day) - 1));
     const bestEv = S.me.tl.filter(x => x[0] === old).sort((a, b) => b[2] - a[2])[0];
-    S.arch.push({ s: old, t0, t1: me.tier, moved, m: S.ss.m, w: S.ss.w, l: S.ss.l, ti: S.ss.ti, fi: S.ss.fi, ev: S.ss.ev, prize: S.ss.prize, rk: circRank, best: bestEv ? bestEv[1] : null, age: ageOf(HUMAN, old) });
+    /* the press: a line on the season and one on the top rival */
+    news(S.ss.ti ? `${S.profile.name} took ${S.ss.ti} title${S.ss.ti === 1 ? '' : 's'} in season ${old}, ${S.ss.w}-${S.ss.l} in matches.` : `${S.profile.name} goes ${S.ss.w}-${S.ss.l} in season ${old}${S.ss.m ? ', no title' : ''}.`);
+    { const rv = rivalList(1)[0]; if (rv !== undefined) { const h = S.h2h[rv], nm = cardOf(rv).name; news(h[0] === h[1] ? `The rivalry with ${nm} stands level at ${h[0]}-${h[1]}.` : `${h[0] > h[1] ? `${S.profile.name} leads ${nm}` : `${nm} leads ${S.profile.name}`} ${Math.max(h[0], h[1])}-${Math.min(h[0], h[1])} in their rivalry.`); } }
+    S.arch.push({ s: old, ml: mlr, t0, t1: me.tier, moved, m: S.ss.m, w: S.ss.w, l: S.ss.l, ti: S.ss.ti, fi: S.ss.fi, ev: S.ss.ev, prize: S.ss.prize, rk: circRank, best: bestEv ? bestEv[1] : null, age: ageOf(HUMAN, old) });
     const rb = S.rb;
     if (S.ss.ti > (rb.titlesSeason ? rb.titlesSeason[0] : 0)) rb.titlesSeason = [S.ss.ti, old];
     if (S.ss.prize > (rb.prizeSeason ? rb.prizeSeason[0] : 0)) rb.prizeSeason = [S.ss.prize, old];
@@ -8064,12 +8152,20 @@ const Career = (() => {
     return { ok: true, bytes: w.bytes, seq };
   }
   function autosave(kind) { if (!S || !autosaveOn) return { ok: false, why: 'off' }; const r = save(); r.kind = kind || 'manual'; return r; }
+  /* a save from any older build gains what it lacks (T6.4; all additive). An old save's money list starts at zero with a grace
+     season, so nobody is relegated by an upgrade, and past seasons owe no review. */
+  function upgrade() {
+    if (!S.ml) S.ml = {};
+    if (S.rev === undefined) S.rev = S.arch.length;
+    if (S.me.fr === undefined) S.me.fr = Math.round(rate(humanAttrs(), S.profile.disc, S.profile.disc) * FR_K);
+    if (S.me.cardAt === undefined) S.me.cardAt = season();
+  }
   function load(id) {
     const tries = [['main', kMain(id)], ['tmp', kTmp(id)], ['bak', kBak(id)]];
     for (const [from, k] of tries) {
       const o = unpack(sget(k));
       if (!o) continue;
-      S = o; resetCaches();
+      S = o; resetCaches(); upgrade();
       if (from !== 'main') { sset(kMain(id), sget(k)); news(`Save restored from the ${from === 'bak' ? 'backup' : 'temporary copy'}.`); }
       const idx = readIndex();
       idx.active = id;
@@ -8145,6 +8241,7 @@ const Career = (() => {
     S.cal = genCalendar(1);
     weekly();
     sponsorOffers('season');
+    upgrade();
     news(`${pr.name} starts out as a ${TIERS[S.me.tier].name}.`);
     if (o.save !== false) save();
     return { ok: true, id };
@@ -8201,7 +8298,7 @@ const Career = (() => {
     const q = ev.req.qual && me.qual[ev.id];
     if (!q && me.tier < ev.req.min) why.push(`tier ${ev.req.min} and up`);
     if (me.tier > ev.req.max) why.push(`tier ${ev.req.max} and below`);
-    if (ev.req.top) { const rk = rankOf(HUMAN, ev.circ); if (!rk || rk > ev.req.top) why.push(`top ${ev.req.top} of the ${CIRC_NAMES[ev.circ]} rankings`); }
+    if (ev.req.top) { const rk = rankOf(HUMAN, ev.circ), ml = ev.kind === 'invitational' ? inviteRank() : 0; if ((!rk || rk > ev.req.top) && !(ml && ml <= INVITE_TOP)) why.push(`top ${ev.req.top} of the ${CIRC_NAMES[ev.circ]} rankings`); }
     const clash = S.cal.find(o => o !== ev && S.es[o.id] && S.es[o.id].en && !S.es[o.id].done && overlaps(o, ev));
     if (clash) why.push(`clashes with ${clash.name}`);
     if (me.money < ev.fee + ev.trav) why.push('not enough credits');
@@ -8418,7 +8515,27 @@ const Career = (() => {
     close() { S = null; resetCaches(); },
     profile() { need(); return copy(S.profile); }, editProfile,
     now() { need(); return { day: S.day, season: season(), week: weekOf(S.day), dayOfWeek: S.day % 7, tier: S.me.tier, tierName: TIERS[S.me.tier].name, money: S.me.money, rep: S.me.rep, retired: !!S.me.ret, hof: !!S.me.hof }; },
-    me() { need(); return Object.assign(copy(S.me), { card: cardOf(HUMAN), age: ageOf(HUMAN) }); },
+    me() { need(); return Object.assign(copy(S.me), { card: cardOf(HUMAN), tourCard: S.me.card, age: ageOf(HUMAN) }); },
+    moneyList(top = 100) { need(); return moneyList().slice(0, top).map(([id, v], i) => ({ rank: i + 1, id, human: id === HUMAN, name: cardOf(id).name, credits: v })); },
+    moneyRank() { need(); return moneyRank(); },
+    rackOdds, raceOdds, CARD_KEEP, FR_K,
+    reviewDue() { need(); return S.rev < S.arch.length; },
+    reviewSeen() { need(); S.rev = S.arch.length; },
+    /* the season just ended, for the review page: its row, the verdict, the card, next season's targets */
+    review() {
+      need();
+      const a = S.arch[S.arch.length - 1];
+      if (!a) return null;
+      const t = S.me.tier, targets = [];
+      if (t >= 8 && t < 12) targets.push(`Finish in the top ${CARD_KEEP} of the two-year money list to keep your card`);
+      if (t < 11) {
+        const to = t + 1;
+        targets.push((to === 8 || to === 10) && S.me.card < to ? `Win the qualifier for a tour card, then finish in the top 15% of tier ${t}` : `Finish in the top 15% of tier ${t} and win half your matches${t < 7 ? `, or win a title at tier ${t} or above` : ''}`);
+      }
+      const rv = rivalList(1)[0];
+      if (rv !== undefined) targets.push(`Settle it with ${cardOf(rv).name}`);
+      return { season: a.s, t0: a.t0, t1: a.t1, moved: a.moved, m: a.m, w: a.w, l: a.l, ti: a.ti, fi: a.fi, ev: a.ev, prize: a.prize, rk: a.rk, tier: TIERS[t].name, moneyRank: a.ml || 0, fr: S.me.fr, targets };
+    },
     calendar() { need(); return { season: season(), week: weekOf(S.day), day: S.day, events: S.cal.map(evView), offSeason: [51, 52], practiceToday: S.me.pdDay === S.day ? S.me.pd : 0 }; },
     availableEvents() { need(); return S.cal.filter(ev => S.day <= ev.dl && !(S.es[ev.id] && S.es[ev.id].en) && ev.opp === undefined).map(ev => Object.assign(evView(ev), { eligibility: eligibility(ev), cost: ev.fee + ev.trav })); },
     event(id) { need(); const ev = evById(id); return ev ? evView(ev) : null; },
@@ -9583,7 +9700,7 @@ function look() {
 }
 /* what the painted table image depends on (draw() repaints when it changes) */
 let lookKey = '';
-const lookSig = () => { const L = look(); return [L.cloth, L.rail, L.balls].join(); };
+const lookSig = () => { const L = look(); return [L.cloth, L.rail, L.balls, roomId()].join(); };
 const railLook = () => RAILS[look().rail] || RAILS.walnut;
 const cueLook = () => { const L = look(); return [CUES[L.cue] || CUES.house, (CHALKS[L.chalk] || CHALKS.blue).tip]; };
 /* pool's paint (4b's PAINT) for the ball set in use */
@@ -13586,17 +13703,17 @@ function saveTricks() { try { localStorage.setItem(TRICKS_KEY, JSON.stringify(tr
    old stars; the old keys keep being written. */
 function loadScore() {
   try {
-    const raw = localStorage.getItem(SCORE_KEY);
-    if (raw !== null) {
-      const o = JSON.parse(raw), out = { pts: {}, run: {} };
-      if (o && typeof o === 'object' && o.v === 2) for (const id of Object.keys(TRICK_VAL)) {
+    const raw = localStorage.getItem(SCORE_KEY), o = raw === null ? null : JSON.parse(raw);
+    if (o && typeof o === 'object' && o.v === 2) {
+      const out = { pts: {}, run: {} };
+      for (const id of Object.keys(TRICK_VAL)) {
         const p = o.pts && o.pts[id], n = o.run && o.run[id];
         if (Number.isInteger(p) && p > 0 && p <= TRICK_VAL[id].val) out.pts[id] = p;
         if (Number.isInteger(n) && n > 0 && n < TRICK_RUN) out.run[id] = n;
       }
       return out;
     }
-  } catch (e) { return { pts: {}, run: {} }; }
+  } catch (e) { /* unreadable: made again from the stars, below */ }
   const out = { pts: trickScoreFromStars(trickBest), run: {} };
   saveScoreOf(out);
   return out;
@@ -19546,6 +19663,7 @@ function showCareer(page, args) {
   if (!Career.loaded) { const idx = Career.index(), a = idx.slots.find(x => x.id === idx.active); if (a) cvLoad(a.id, true); }
   cv.stack = [{ p: Career.loaded ? 'hub' : 'slots' }];
   if (page && page !== cv.stack[0].p) cv.stack.push(Object.assign({ p: page }, args || {}));
+  else if (Career.loaded && Career.reviewDue()) cv.stack.push({ p: 'review' });   /* a season ended and the page closed before its review */
   openSheet(careerSheet, careerBack);
   cvRender();
 }
@@ -19653,6 +19771,8 @@ function cvAdvance(to) {
   const r = Career.advance(to);
   cvSave();   /* the engine saves at boundaries; a week with none is saved here */
   if (!r.ok) { cv.msg = r.why === 'retired' ? 'This career is over.' : 'Time could not move.'; cvRender(); return r; }
+  /* a season ended: its review, once */
+  if (Career.reviewDue()) { cv.stack.push({ p: 'review' }); cvRender('push'); return r; }
   const fresh = Career.news().filter(n => n[0] > r.from).map(n => n[1]).slice(-3);
   const said = r.stopped === 'match' && r.match ? `Match day: ${r.match.round} of ${r.match.eventName}, against ${r.match.opponent.name}.` : `Season ${r.season}, week ${r.week}.`;
   cv.msg = [said, ...fresh].join(' ');
@@ -19710,6 +19830,22 @@ function cvBannerPaint(cv, kind, args) {
   finally { lookCareer = keepLook; lookFor = keepFor; useCloth(); }
 }
 
+/* the season's review, once per rollover (T6.4) */
+PAGES.review = () => {
+  const a = Career.review(), out = [];
+  if (!a) return out;
+  Career.reviewSeen(); cvSave();
+  setHead(`Season ${a.season}`, 'Season Review');
+  const verdict = a.moved === 'up' ? `Promoted to tier ${a.t1}: ${a.tier}.` : a.moved === 'down' ? `Down to tier ${a.t1}: ${a.tier}.` : `Stays at tier ${a.t1}: ${a.tier}.`;
+  out.push(cvNoteEl(verdict));
+  const card = cvEl('div', 'cvCard');
+  card.id = 'cvReview';
+  card.append(cvFactsEl([['Won', `${a.w} of ${a.m}`], ['Titles', a.ti], ['Prize', crWords(a.prize)]]), cvLinesEl([['Finals', a.fi], ['Events', a.ev],
+    ...Career.CIRCUITS.map((c, i) => [c, a.rk[i] ? `Number ${a.rk[i]}` : null]).filter(x => x[1]), ['Money list', a.moneyRank ? `Number ${a.moneyRank}, two years` : null], ['Performance rating', a.fr]]));
+  out.push(card, cvHeadEl('Next Season'), cvGroup(...a.targets.map(t => cvRow({ title: t }))));
+  out.push(cvActs(cvButton('On to the Season', () => { cv.stack = [{ p: 'hub' }]; cvRender('pop'); }, '', 'cvReviewGo')));
+  return out;
+};
 /* the hub */
 PAGES.hub = () => {
   const now = Career.now(), pr = Career.profile(), me = Career.me(), st = Career.stats(), out = [];
@@ -19721,7 +19857,8 @@ PAGES.hub = () => {
   const bar = cvEl('div', 'cvBar'), fill = cvEl('i');
   fill.style.width = (100 * Math.min(52, now.week) / 52) + '%';
   bar.appendChild(fill); bar.setAttribute('aria-hidden', 'true');
-  card.append(who, cvFactsEl([['Credits', crWords(now.money)], ['Reputation', now.rep], ['Titles', st.all.titles]]), bar);
+  card.append(who, cvFactsEl([['Credits', crWords(now.money)], ['Rating', me.fr], ['Titles', st.all.titles]]), bar);
+  { const eq = Career.equipped(), it = Career.shop(), nm = id => (it.find(i => i.id === id) || {}).name, words = [eq.prestige && nm(eq.prestige), eq.venue && nm(eq.venue)].filter(Boolean).join(', '); if (words) card.insertBefore(cvEl('p', 'sub', words), bar); }
   out.push(card);
   if (now.retired) {
     out.push(cvHeadEl('Retired'), cvGroup(cvRow({ title: 'Career Recap', sub: now.hof ? 'Hall of Fame' : 'Your career in numbers', onClick: () => cvGo('recap') }),
@@ -19741,7 +19878,7 @@ PAGES.hub = () => {
     if (live && KINDS[nm.rules.game]) m.append(cvBanner(nm));
     m.append(vs, w, cvLinesEl([['Game', `${Career.GAMES[nm.rules.game].name}, ${tableWords(nm.rules)}`], ['Rules', rulesWords(nm.rules)], ['Race', `First to ${unitWords(nm.rules.game, nm.race)}`],
       ['Break', nm.rules.game === 'bumper' || nm.rules.game === 'carom' ? 'You open' : nm.breaker === 0 ? 'You break first' : `${o.name.split(' ')[0]} breaks first`],
-      ['Opponent', `Tier ${o.tier}, plays as the ${nm.level} CPU`], ['Head to head', `${nm.h2h[0]}-${nm.h2h[1]}`], ['Format', nm.rules.custom || null]]));
+      ['Opponent', `Tier ${o.tier}, plays as the ${nm.level} CPU`], ['Head to head', `${nm.h2h[0]}-${nm.h2h[1]}`], ['Odds', `${Math.round(100 * nm.fr.odds)}% by performance rating, ${nm.fr.me} to ${nm.fr.opp}`], ['Format', nm.rules.custom || null]]));
     m.append(cvActs(live ? cvButton('Play Match', () => { audioOn(); careerPlay(); }, '', 'cvPlay') : cvButton('Simulate Match', cvSim, '', 'cvSim')));
     if (!live) m.append(cvNoteEl(`${Career.GAMES[nm.rules.game].name} cannot be played on this table yet: the match is settled by the match model from both players' skills, and shown as simulated.`));
     m.append(cvActs(cvButton('Forfeit This Match', () => cvGo('confirm', { kick: 'Forfeit', title: 'Forfeit the match?', text: `${o.name} goes through and the match counts as a loss.`, yes: 'Forfeit',
@@ -19758,7 +19895,8 @@ PAGES.hub = () => {
   out.push(cvHeadEl('Season'), cvGroup(
     cvRow({ id: 'cvCal', title: 'Calendar', sub: `${open} event${open === 1 ? '' : 's'} open to you, ${sched.length} entered`, onClick: () => cvGo('calendar') }),
     cvRow({ id: 'cvBracket', title: 'Bracket and Standings', sub: cur ? cur.name : 'No event entered', onClick: () => cvGo('bracket', cur ? { id: cur.id } : {}) }),
-    cvRow({ id: 'cvRank', title: 'Rankings', sub: rk ? `${Career.CIRC_NAMES[Career.TIERS[now.tier].circ]}: number ${rk.rank}, ${rk.pts} points` : 'Unranked so far', onClick: () => cvGo('rankings') })));
+    cvRow({ id: 'cvRank', title: 'Rankings', sub: rk ? `${Career.CIRC_NAMES[Career.TIERS[now.tier].circ]}: number ${rk.rank}, ${rk.pts} points` : 'Unranked so far', onClick: () => cvGo('rankings') }),
+    cvRow({ id: 'cvTourCard', title: 'Tour Card', sub: now.tier >= 8 && now.tier < 12 ? (Career.moneyRank() ? `Money list: number ${Career.moneyRank()}. The top ${Career.CARD_KEEP} keep their cards` : `Earn on the money list: the top ${Career.CARD_KEEP} keep their cards`) : me.tourCard ? `Tier ${me.tourCard} card won` : now.tier === 7 || now.tier === 9 ? `The step up needs a card: win the qualifier` : 'Not needed yet' })));
   out.push(cvHeadEl('You'), cvGroup(
     cvRow({ id: 'cvStats', title: 'Stats and Records', sub: `${st.all.won} won of ${st.all.matches}`, onClick: () => cvGo('stats') }),
     cvRow({ id: 'cvRivals', title: 'Rivals', sub: 'Head to head', onClick: () => cvGo('rivals') }),
@@ -19985,7 +20123,7 @@ PAGES.shop = () => {
   const items = Career.shop(), money = Career.now().money, out = [];
   setHead(`${crWords(money)} to spend`, 'Shop');
   out.push(cvNoteEl('Cosmetic only: nothing here changes a shot, a table or the odds. What you equip is what your career matches show: the cloth, the rails and the balls on the table, the cue and its chalk as you aim, and the frame round your picture on this page. Everything you own here can also be worn in any game from Settings, Graphics. Items cost career credits at a fixed price; the ones marked with an achievement are free once you reach it. There is no real money and nothing random.'));
-  for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['balls', 'Ball Sets'], ['ring', 'Profile Frames']]) {
+  for (const [slot, name] of [['cue', 'Cues'], ['cloth', 'Cloths'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['balls', 'Ball Sets'], ['ring', 'Profile Frames'], ['prestige', 'Prestige'], ['venue', 'Venues']]) {
     out.push(cvHeadEl(name), cvGroup(items.filter(i => i.slot === slot).map(i => cvRow({ id: 'shop-' + i.id, title: i.name, lead: shopSwatch(i),
       sub: i.equipped ? 'Equipped' : i.owned ? 'Owned' : i.locked ? i.needWords : i.need ? `Unlocked: ${i.price ? crWords(i.price) : 'free'}` : i.price ? crWords(i.price) : 'Free',
       end: i.equipped ? null : i.owned ? cvMiniBtn('Equip', () => { Career.equip(i.id); cvSave(); cvRender(); }, '', `Equip ${i.name}`)

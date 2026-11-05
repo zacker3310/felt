@@ -321,14 +321,18 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     const st2 = C.lib.state();
     st2.me.tier = 7; st2.ss.tt = 7; st2.me.card = 0;
     C.advance('season');
-    check('promotion to tier 8 needs the tour card: a title alone keeps you at 7', C.now().tier === 7 && C.news().some(n => /tour card/.test(n[1])));
+    check('a title alone keeps you at 7 (T6.4: above it the step up is earned over a season), and the review names the qualifier', C.now().tier === 7 && C.review().targets.some(t => /qualifier/.test(t)), JSON.stringify(C.review().targets));
     const st3 = C.lib.state();
     st3.ss.tt = 7; st3.me.card = 8;
     C.advance('season');
-    check('with the tour card, the title promotes to 8 (and the card is used up)', C.now().tier === 8 && C.lib.state().me.card === 0);
+    check('T6.4: with the tour card, a title still does not promote above tier 7', C.now().tier === 7 && C.lib.state().me.card === 8, String(C.now().tier));
+    const st3b = C.lib.state(), wk = Math.floor(st3b.day / 7);
+    st3b.aw.push([-1, C.TIERS[7].circ, 0, 500000, wk + 40, C.now().season]); st3b.awc++; st3b.ss.m = 10; st3b.ss.w = 8; st3b.ss.l = 2;
+    C.advance('season');
+    check('with the tour card, a season at the top of tier 7 promotes to 8 (and the card is used up)', C.now().tier === 8 && C.lib.state().me.card === 0, JSON.stringify([C.now().tier, C.lib.state().me.card]));
     C.lib.state().me.tier = 5;
     C.advance('season');
-    check('a season without a match at tier 4 and up relegates one tier (5 to 4): setbacks happen', C.now().tier === 4 && C.records().seasons[3].moved === 'down');
+    check('a season without a match at tier 4 and up relegates one tier (5 to 4): setbacks happen', C.now().tier === 4 && C.records().seasons.slice(-1)[0].moved === 'down');
     const tiersBefore = new Map(C.population().map(p => [p.id, p.tier]));
     C.advance('season');
     const moved = C.population().filter(p => tiersBefore.has(p.id) && tiersBefore.get(p.id) !== p.tier);
@@ -483,6 +487,130 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
     check('ten seasons: champions recorded per event series every season (defending is possible)', C.records().champions.filter(c => c.winners.length >= 9).length > 20);
     const pt = C.lib.unpack(store.getItem('felt.career.v2.' + C.id));
     check('the save is the state: unpacked and validated, identical', !!pt && JSON.stringify(pt) === C.snapshot());
+    /* T6.4's acceptance, on the same ten seasons */
+    const { C: C1 } = fresh();
+    C1.create({ name: 'Long Haul', nat: 'PH', disc: '9', start: 'amateur' }, { seed: 2026 });
+    const names1 = new Map(C1.calendar().events.map(e => [e.id.split('.').slice(1).join('.'), e.name])), namesN = C.calendar().events;
+    const differ = namesN.filter(e => names1.get(e.id.split('.').slice(1).join('.')) !== e.name).length;
+    check(`ten seasons: the calendar differs by season (${differ} of ${namesN.length} events renamed against season 1, the same ids)`, differ >= namesN.length * 0.3 && namesN.every(e => names1.has(e.id.split('.').slice(1).join('.'))), String(differ));
+    check(`ten seasons: the save stays under 260 KB (${Math.round(maxBytes / 1024)} KB)`, maxBytes < 260 * 1024, String(maxBytes));
+    const rv = C.rivals()[0];
+    check('ten seasons: the top rival is a rivalry, under 3:1', !rv || Math.max(rv.won, rv.lost) <= 3 * Math.max(1, Math.min(rv.won, rv.lost)), JSON.stringify(rv));
+    check('ten seasons: the money list is two seasons, no more', Object.keys(C.lib.state().ml).length <= 2, JSON.stringify(Object.keys(C.lib.state().ml)));
+  }
+
+  /* ---------- T6.4: a save from before it, and each change ---------- */
+  /* on to the next season: advance stops at a match due, so play those */
+  const toNext = C => { const s0 = C.now().season; for (let i = 0; i < 400 && C.now().season === s0; i++) { while (C.nextMatch()) C.simMatch(); C.advance('season'); } };
+  {
+    const fx = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'career-pre-t6.json'), 'utf8'));
+    const { C, store } = fresh();
+    for (const [k, v] of Object.entries(fx)) store.setItem(k, v);
+    const l = C.load('c1'), me0 = C.me();
+    check('a pre-T6 save (written by build 8922a63, three seasons in) loads, keeping its season, tier and money', l.ok && !l.recovered && C.now().season === 4 && C.now().tier === 6 && C.now().money === 71085, JSON.stringify([l, C.now()]));
+    check('...and gains the new fields: no review owed for old seasons, an empty money list, a rating, its validation passing', !C.reviewDue() && Object.keys(C.lib.state().ml).length === 0 && me0.fr > 100 && C.lib.validate(C.lib.state()), JSON.stringify(me0.fr));
+    const ser0 = JSON.stringify(C.lib.state().ser);
+    const pl = auto(C, 60);
+    check('...and plays on: matches played across a season\'s end, a save and a load, its series untouched', pl.matches > 0 && C.save().ok && C.load('c1').ok && JSON.stringify(C.lib.state().ser) === ser0 && C.now().season >= 5, JSON.stringify(pl));
+    const st = C.lib.state();
+    st.me.tier = 9; st.me.card = 0; st.me.cardAt = C.now().season;
+    toNext(C);
+    check('a grace season: nobody loses a card in the season they reached it, or the one an upgrade began', C.now().tier === 9, String(C.now().tier));
+    { const q = C.lib.state(); q.me.tier = 9; q.me.leg = 0; q.ss.m = 10; q.ss.w = 5; q.ss.l = 5; }   /* a middling season: form alone would not move them */
+    toNext(C);
+    check('a cold tier 9 player, no money on the list, loses the card and drops to tier 7', C.now().tier === 7 && C.news().some(n => /Tour card lost/.test(n[1])) && C.records().seasons.slice(-1)[0].moved === 'down', JSON.stringify(C.records().seasons.slice(-1)[0]));
+    const st2 = C.lib.state(), sea = C.now().season;
+    st2.me.tier = 11; st2.me.cardAt = sea - 5; st2.ml = { [sea]: { '-1': 900000 } };
+    toNext(C);
+    check('a player high on the two-year list keeps the card (a poor season may still cost a tier, never the card)', C.now().tier >= 10 && C.moneyRank() === 1 && !C.news().slice(-6).some(n => /Tour card lost/.test(n[1])), JSON.stringify([C.now().tier, C.moneyRank()]));
+  }
+  {
+    /* relegation never compounds: form and the card take one step between them */
+    const { C } = fresh();
+    C.create({ name: 'One Step', start: 'pro' }, { seed: 63 });
+    const q = C.lib.state();
+    q.me.tier = 10; q.me.cardAt = 0; q.ss.m = 0;
+    toNext(C);
+    check('relegation never compounds: an idle tier 10 season, off the money list, costs one tier, not three', C.now().tier === 9, String(C.now().tier));
+    const h = fresh().C;
+    h.create({ name: 'Inductee', start: 'pro' }, { seed: 64 });
+    const hs = h.lib.state();
+    hs.me.tier = 11; hs.me.cardAt = 0; hs.me.leg = 1e9; hs.ss.m = 10; hs.ss.w = 5; hs.ss.l = 5;
+    toNext(h);
+    check('the Hall of Fame: an inductee off the money list is inducted, with no card lost in the same breath', h.now().tier === 12 && !h.news().some(n => /Tour card lost/.test(n[1])), JSON.stringify(h.now().tier));
+    /* a qualifier's name follows its main event */
+    const qc = fresh().C;
+    qc.create({ name: 'Names', start: 'pro' }, { seed: 3 });
+    for (let i = 0; i < 3; i++) toNext(qc);
+    const evs = qc.calendar().events, stale = evs.filter(e => e.kind === 'qualifier' && e.tgt).filter(e => { const t = evs.find(x => x.id === e.tgt); return !t || e.name !== `${t.name} Qualifier`; });
+    check('from season 2 a qualifier is named for where its main event went', evs.some(e => e.kind === 'qualifier' && e.tgt) && !stale.length, JSON.stringify(stale.map(e => e.name)));
+  }
+  {
+    const { C } = fresh();
+    C.create({ name: 'Review Check', start: 'skilled' }, { seed: 61 });
+    check('the review: nothing owed before a season ends', !C.reviewDue() && C.review() === null);
+    C.advance('season');
+    const a = C.review();
+    check('the review: due once a season ends, with the row, the verdict and next season\'s targets', C.reviewDue() && a.season === 1 && ['up', 'stay', 'down'].includes(a.moved) && a.targets.length >= 1, JSON.stringify(a));
+    C.reviewSeen(); C.save(); C.load(C.id);
+    check('the review: once per rollover, and still seen after a reload', !C.reviewDue());
+    const st = C.lib.state();
+    st.me.card = 8;
+    check('the tour card: me() exposes tourCard, as card stays the player\'s card', C.me().tourCard === 8 && typeof C.me().card === 'object');
+    /* rivals */
+    const ids = C.population().filter(p => Math.abs(p.tier - C.now().tier) <= 1).slice(0, 3).map(p => p.id);
+    st.h2h = { [ids[0]]: [25, 2, 0, 0, 0, 0, 0, 0, 0], [ids[1]]: [6, 5, 0, 0, 0, 0, 0, 0, 0], [ids[2]]: [9, 9, 0, 0, 0, 0, 0, 0, 0] };
+    const top = C.rivals().map(r => r.id);
+    check('rivals: ranked by closeness: a 25-2 opponent is not the top rival, a level 9-9 is', top[0] === ids[2] && top[1] !== ids[0], JSON.stringify(C.rivals()));
+    st.pop.m[ids[2]].x = 1;
+    check('rivals: a retired one is gone', !C.rivals().some(r => r.id === ids[2]));
+    delete st.pop.m[ids[2]].x;
+    st.pop.m[ids[2]].t = C.now().tier + 5;
+    check('rivals: one five tiers away is gone', !C.rivals().some(r => r.id === ids[2]));
+    st.pop.m[ids[2]].t = C.now().tier;
+    st.h2h[ids[2]] = [20, 20, 0, 0, 0, 0, 0, 0, 0];
+    st.ss.ch = 3; st.off = [];
+    let offered = 0;
+    for (let i = 0; i < 30; i++) { C.advance('week'); if (C.offers().some(o => o.type === 'challenge')) offered++; }
+    check('rivals: challenges are capped per season: none past three', offered === 0, String(offered));
+  }
+  {
+    const ret = hot => {
+      const { C } = fresh();
+      C.create({ name: 'Sponsor Check', start: 'skilled' }, { seed: 88 });
+      const st = C.lib.state();
+      st.me.tier = 5; st.me.rep = 50; st.off = [];
+      const wk = Math.floor(st.day / 7);
+      if (hot) { st.aw.push([-1, 0, 0, 99999, wk + 51, 1]); st.awc++; }
+      C.advance('season');
+      return C.offers().filter(o => o.type === 'sponsor').map(o => o.ret);
+    };
+    const c = ret(false), h = ret(true);
+    check('sponsors: the same tier on cold form is offered less', c.length && h.length && Math.max(...c) < Math.max(...h), JSON.stringify([c, h]));
+    const { C } = fresh();
+    C.create({ name: 'Renew Check', start: 'pro' }, { seed: 89 });
+    const st = C.lib.state();
+    st.off = []; st.spons = [{ brand: 'Test Chalk', cat: 'Chalk', ret: 100, bonus: 10, from: st.day - 182, to: st.day + 1, obj: [{ k: 'events', n: 1, pay: 1, base: 0, done: 1 }, { k: 'wins', n: 1, pay: 1, base: 0, done: 1 }] }];
+    C.advance('week'); C.advance('week');
+    const o = C.offers().find(x => x.renew);
+    check('sponsors: a contract with its objectives met is offered again, the same brand, for more', o && o.brand === 'Test Chalk' && o.ret === 115, JSON.stringify(o));
+  }
+  {
+    const { C } = fresh();
+    check('performance rating: 100 points is 2:1 a rack, an even match is even', Math.abs(C.rackOdds(700, 600) - 2 / 3) < 1e-9 && C.rackOdds(600, 600) === 0.5 && Math.abs(C.raceOdds(0.5, 7) - 0.5) < 1e-9 && C.raceOdds(2 / 3, 7) > 2 / 3);
+    C.create({ name: 'Rating Check', start: 'pro' }, { seed: 90 });
+    const fr0 = C.me().fr;
+    let nm = null, g = 0;
+    while (!(nm = C.nextMatch()) && g++ < 60) { const e = C.availableEvents().filter(x => x.eligibility.ok)[0]; if (e) C.enter(e.id); C.advance('week'); }
+    check('performance rating: the match card has odds from both players', nm && nm.fr.me === fr0 && nm.fr.opp > 0 && nm.fr.odds > 0 && nm.fr.odds < 1, JSON.stringify(nm && nm.fr));
+    const r = C.simMatch();
+    check('performance rating: a played match moves it', r.ok && C.me().fr !== fr0, JSON.stringify([fr0, C.me().fr]));
+    const st = C.lib.state();
+    st.me.money = 1000000;
+    const m0 = C.now().money, a = C.buy('prestige-founder'), b = C.buy('venue-arena'), item = C.shop().find(i => i.id === 'venue-arena');
+    check('the money sink: prestige and a venue go through the ledger at their prices, cosmetic', a.ok && b.ok && C.now().money === m0 - 550000 && item.effect === 'none' && item.owned, JSON.stringify([a, b]));
+    check('the shop can now take a ten-season fortune: over 500,000 credits', C.shop().reduce((s, i) => s + i.price, 0) > 500000);
+    check('the press: a season produces a rival headline', (() => { st.h2h = { [C.population()[0].id]: [6, 5, 0, 0, 0, 0, 0, 0, 0] }; st.pop.m[C.population()[0].id].t = C.now().tier; toNext(C); return C.news().some(n => /rivalry/.test(n[1])); })());
   }
 
   /* ---------- migration from felt.career.v1 ---------- */

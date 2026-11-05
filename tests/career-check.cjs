@@ -487,5 +487,29 @@ async function pullBar(T, frac) {
     fits.every(f => f.rows.every(r => r >= 44) && f.bottom <= f.lim + 0.5 && f.sw <= 0), JSON.stringify(fits));
   check('home: targets 44 px, text 4.5:1', (await smallTargets(H.page)).length === 0 && (await lowContrast(H.page)).length === 0, JSON.stringify([await smallTargets(H.page), await lowContrast(H.page)]));
   await H.browser.close();
+  /* ---------- T6.4: the season's review and the hub's new rows, on the page ---------- */
+  {
+    const t = await phone({ width: 393, height: 852 });
+    const r = await t.page.evaluate(async () => {
+      Career.create({ name: 'Review Page', start: 'pro' }, { seed: 71 });
+      felt.showCareer();
+      const noneYet = !document.getElementById('cvReview');
+      const rows = { card: !!document.getElementById('cvTourCard') };
+      felt.careerAdvance('season');
+      await new Promise(r => setTimeout(r, 500));
+      const shown = !!document.getElementById('cvReview'), words = cvBody.textContent;
+      const seen = !Career.reviewDue();
+      return { noneYet, rows, shown, words, seen };
+    });
+    check('the review: the rollover shows it, with the season, the verdict and next season', r.noneYet && r.shown && r.seen && r.rows.card && /Next Season/.test(r.words) && /tier/.test(r.words), JSON.stringify(r).slice(0, 500));
+    const a = { s: await smallTargets(t.page), l: await lowContrast(t.page), f: await t.page.evaluate(() => [cvSheet.scrollWidth, cvSheet.clientWidth]) };
+    check('the review: targets 44 px, text 4.5:1, fits the width at 393', !a.s.length && !a.l.length && a.f[0] <= a.f[1] + 1, JSON.stringify(a));
+    await t.page.tap('#cvReviewGo');
+    await t.page.waitForTimeout(400);
+    const hub = await t.page.evaluate(() => { felt.showCareer(); return { rev: !!document.getElementById('cvReview'), me: !!document.getElementById('cvMe') }; });
+    check('the review: On to the Season goes to the hub, and it does not come back', !hub.rev && hub.me, JSON.stringify(hub));
+    check('the review: no console errors', t.errors.length === 0, t.errors.join(' | '));
+    await t.browser.close();
+  }
   done();
 })().catch(e => { console.error(e); process.exit(1); });

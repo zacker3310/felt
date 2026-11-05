@@ -136,6 +136,23 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   check('migration never lowers a score', S.trickScoreFromStars({ long: 1 }, { long: 6 }).long === 6 && S.trickScoreFromStars({ long: 3 }, { long: 4 }).long === 6);
   check('real people\'s names are gone from the shots, the ids kept', !S.TRICKS.some(c => /Massey|Knievel|Evel/.test(c.title + c.goal)) && S.trickById('jboot') && S.trickById('jknievel'));
   check('the daily shot keeps its pool: the 14 classics', S.TRICKS.filter(c => !c.group).length === 14);
+  /* the program's own shots: no fragile solution. A sweep shot's makes are pinned; a straight pot's makes on the 0.5 degree grid say little,
+     so every one is pinned here by re-simulating its neighbours (0.05 degree, 0.02 power), on all four tables, on this machine's floats */
+  {
+    const FILE = require('./trick-solutions.json'), weak = [], D = Math.PI / 180;
+    for (const [cfg, tb, pk] of [['7r', '7', 'regulation'], ['9r', '9', 'regulation'], ['7g', '7', 'generous'], ['9g', '9', 'generous']]) {
+      S.setTable(tb); S.setPockets(pk);
+      for (const c of S.TRICKS.filter(x => x.group === 'program' && !x.sweep)) {
+        const [a, p, x, y] = FILE[cfg][c.id], b = S.trickBalls(c), ok = (aa, pp) => S.trickJudge(c, S.simulateShot(b, { angle: aa, power: pp, spin: { x, y } })).ok;
+        let n = 0;
+        for (let k = -6; k <= 6; k++) if (ok(a + k * 0.05 * D, p)) n++;
+        for (const dp of [-0.04, -0.02, 0.02, 0.04]) if (ok(a, Math.min(1, p + dp))) n++;
+        if (n < 7 || !ok(a, p)) weak.push(`${cfg}:${c.id}:${n}`);
+      }
+    }
+    S.setTable('7'); S.setPockets('regulation');
+    check('the program\'s shots: each stored solution makes it, with at least 7 of 17 neighbours, on all four tables', !weak.length, weak.join(' '));
+  }
   {
     const k = S.trickById('kick3'), b0 = S.trickBalls(k), run = { potted: [0], pocketOf: { 0: 3 }, contacts: [], rails: {}, balls: b0, first: 1, kick: 0 };
     check('scratchOk: a shot may allow a scratch, but a cue ball off the table still fails; a shot that does not say so still fails on a scratch', k.scratchOk && !/Scratch/.test(S.trickJudge(k, run).why) && /flew off/.test(S.trickJudge(k, Object.assign({}, run, { pocketOf: { 0: -1 } })).why) && /Scratch/.test(S.trickJudge(S.trickById('stun'), run).why));
@@ -356,6 +373,10 @@ const KNOWN = require('./trick-solutions.json')['7r'];
   await b4.page.reload(); await b4.page.waitForFunction(() => window.booted === true);
   const cs = await b4.page.evaluate(() => felt.trickScore);
   check('a bad score reads as none: over the value, not a number, unknown ids and a run past its attempts dropped', JSON.stringify(cs) === JSON.stringify({ pts: { kick: 5 }, run: { stun: 1 } }), JSON.stringify(cs));
+  await b4.page.evaluate(() => { localStorage.setItem('felt.trickScore.v2', '{unreadable'); localStorage.setItem('felt.tricks', JSON.stringify({ long: 3 })); });
+  await b4.page.reload(); await b4.page.waitForFunction(() => window.booted === true);
+  const cs2 = await b4.page.evaluate(() => felt.trickScore);
+  check('an unreadable score file is made again from the stars', cs2.pts.long === 6, JSON.stringify(cs2));
   check('runs: no console errors', b4.errors.length === 0, b4.errors.join(' | '));
   await b4.browser.close();
 

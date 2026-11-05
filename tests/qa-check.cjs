@@ -423,6 +423,9 @@ const homeFit = page => page.evaluate(() => {
     ['career player', () => { showCareer(); felt.careerGo('player', { id: 5 }); }],
     ['pause', () => { backToMenu(); start('8'); pause(); }],
     ['a rules choice', () => { resume(); game = Object.assign({}, game, { option: { kind: 'badBreak', who: 0, choices: ['take', 'rebreak', 'break'] } }); showOption(); }],
+    /* T6: every rules choice the sim offers, its words from OPT_WORDS: a head, a line, and each button, Title Case */
+    ...[['breakFoul', ['take', 'rebreak', 'break']], ['breakFoul', ['take', 'break']], ['breakMiss', ['rebreak', 'break']], ['breakOff', ['take', 'kitchen']], ['kitchenSpot', ['spot', 'play']], ['threeBall', ['take', 'pass']], ['push', ['take', 'pass']], ['uncalled', ['take', 'pass']], ['eightBreak', ['spot', 'rerack']], ['snkBlack', ['play', 'pass']], ['respot', ['play', 'respot']]]
+      .map(([k, ch]) => ['the ' + k + ' choice', `game = Object.assign({}, game, { option: ${JSON.stringify({ kind: k, who: 0, choices: ch })} }); showOption(); if (!optHead.textContent || !optSub.textContent || [...optBtns.children].some(b => !b.textContent || /undefined/.test(b.textContent))) throw new Error('the ${k} choice has no words')`]),
     ['tournament won', async () => { optBox.hidden = true; game = Object.assign({}, game, { option: null }); backToMenu(); felt.tourneyCreate({ kind: '9', size: 4, fmt: 'single', race: 1, field: 'hard', seed: 3 }); for (let i = 0; i < 3 && felt.tourneyPlay(); i++) { felt.forceWin(0); await new Promise(r => setTimeout(r, 30)); } }],
     ['career recap', () => { Career.retire(); showCareer(); felt.careerGo('recap'); }],
   ];

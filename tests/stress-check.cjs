@@ -111,7 +111,7 @@ function rackPlay(kind, level, set, seed0, opts) {
   for (; k < CAP && g.winner === null; k++) {
     /* snooker's choice after a foul (free ball, put back): the CPU's answer, as the page plays it */
     /* and Chinese 8-ball's (an illegal break, the 8 on the break): the same, and the 8's call */
-    if (g.option) { g = S.chooseOption(g, S.cpuOption(g, level)); log.push('o' + g.verdict.chose); continue; }
+    if (g.option) { const n = S.chooseOption(g, S.cpuOption(g, level)); if (!n) return { k, stuck: 'no legal answer to ' + g.option.kind }; g = n; log.push('o' + g.verdict.chose); continue; }
     const s = S.cpuShot(g, seed++, level);
     let g1 = s.place ? S.placeCue(g, s.place[0], s.place[1]) : g;
     if (s.call) g1 = S.withCall(g1, s.call);
@@ -130,6 +130,10 @@ const RACKS = [
   ['carom', 'easy', 3, () => S.setTable('carom'), { race: 5, cushions: 1 }],
   ['snooker', 'easy', 1, () => S.setTable('snooker', 'compact')],
   ['heyball', 'easy', 6, () => S.setTable('heyball')],
+  /* every WPA set and the points games, with each of their choices answered by cpuOption (T6): one with no legal answer would hang the game */
+  ['8', 'easy', 4, () => S.setTable('7'), { rules: { ruleset: '8-wpa' } }], ['9', 'easy', 6, () => S.setTable('7'), { rules: { ruleset: '9-wpa' } }],
+  ['10', 'easy', 4, () => S.setTable('7'), { rules: { ruleset: '10-wpa' } }], ['straight', 'easy', 2, () => S.setTable('7'), { rules: { ruleset: 'straight-wpa', race: 8 } }],
+  ['rotation', 'easy', 2, () => S.setTable('7'), { rules: { ruleset: 'rotation' } }],
 ];
 function cpuPart() {
   const { rec, check } = part(), t0 = Date.now();
@@ -143,7 +147,7 @@ function cpuPart() {
       if (i === 0) sigs[kind + level] = { o, set, kind, level, opts };
     }
   }
-  check(`CPU against CPU: ${racks} racks (8, 9, bumper, carom, snooker; easy and medium) all end, none stuck (longest ${maxShots} shots, cap ${CAP})`, !stuck.length, stuck.slice(0, 5).join(', '));
+  check(`CPU against CPU: ${racks} racks (8, 9, 10, 14.1, rotation, heyball, bumper, carom, snooker; easy and medium; house and WPA) all end, every choice answered, none stuck (longest ${maxShots} shots, cap ${CAP})`, !stuck.length, stuck.slice(0, 5).join(', '));
   const redo = Object.values(sigs).filter(s => rackPlay(s.kind, s.level, s.set, 1, s.opts).sig !== s.o.sig);
   check('CPU against CPU: each game replayed from its seeds is identical', !redo.length, redo.map(s => s.kind + s.level).join(', '));
   return { rec, time: secs(t0) };

@@ -83,9 +83,9 @@ function nodeChecks() {
   check('snooker: a red (1), the black (7, re-spotted, on a red again), a red from the D after an in-off, then the yellow in order (it stays down)',
     e('snooker/0').n.verdict.pts === 1 && e('snooker/1').n.verdict.pts === 7 && e('snooker/1').n.verdict.back.includes(62) && e('snooker/1').n.on === 'red'
     && e('snooker/2').n.verdict.pts >= 1 && e('snooker/3').n.verdict.potted.includes(57));
-  check('Chinese 8-ball (World Chinese 8-Ball Masters rules): step 1 is a legal break that leaves the table open whatever drops, step 2 the first pot after it takes a group, step 4 the 8 in its named pocket wins (in another pocket it loses)',
+  check('Chinese 8-ball (WPA Heyball): step 1 is a legal break that leaves the table open whatever drops, step 2 the first pot after it takes a group, step 4 the 8 wins, no pocket named',
     e('heyball/0').n.open && !e('heyball/0').n.groups[0] && !e('heyball/0').n.verdict.foul && !e('heyball/0').n.verdict.illegalBreak && !!e('heyball/1').n.groups[0] && e('heyball/1').n.verdict.grouped
-    && e('heyball/3').n.winner === 0 && e('heyball/3').r.pocketOf[8] === 2 && (() => { const t = S.tutById('heyball'); S.setTable('heyball'); const g = S.tutGame(t, 3, { group: 'solids' }); g.call = { ball: 8, pocket: 5 }; return S.judge(g, e('heyball/3').r).winner === 1; })());
+    && e('heyball/3').n.winner === 0 && S.callNeed((() => { const t = S.tutById('heyball'); S.setTable('heyball'); return S.tutGame(t, 3, { group: 'solids' }); })()) === null);
   check('the sim region has no clocks and no Math.random', !/Math\.random|Date\.now|performance\.now|new Date/.test(regionSource()));
 }
 

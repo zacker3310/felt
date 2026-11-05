@@ -188,9 +188,9 @@ async function desk(vp) {
   check(`${tag}: ball in hand: the mouse still grabs and moves the cue ball near it, and the move lets the held aim go`,
     h0.held && grab === 'grab' && Math.abs(h1.x - (cs.x - 0.15)) < 0.004 && Math.abs(h1.y - (cs.y + 0.1)) < 0.004 && !h1.held && h1.s === 'aim', JSON.stringify({ h0, grab, h1, cs }));
 
-  /* calls (house 10-ball, the 1 lined up on the foot corner): held, a click on the 1 calls it and a
+  /* calls (10-ball, the 1 lined up on the foot corner): held, a click on the 1 calls it and a
      click on the pocket calls that, and neither moves the held aim; the bar shoots the call along it */
-  await page.evaluate(() => { setSetting('rules10', '10-house'); settings.autoAim = false; felt.speed = 40; felt.start('10'); });
+  await page.evaluate(() => { setSetting('rules10', '10-wpa'); settings.autoAim = false; felt.speed = 40; felt.start('10'); });
   const C = await page.evaluate(() => {
     const g = felt.game, Q = POCKET_AIM[5], d = [Q[0] - TL / 2, Q[1] - TW / 2], l = Math.hypot(d[0], d[1]), u = [d[0] / l, d[1] / l];
     const b1 = [Q[0] - u[0] * 0.4, Q[1] - u[1] * 0.4], c = [b1[0] - u[0] * 0.55, b1[1] - u[1] * 0.55];

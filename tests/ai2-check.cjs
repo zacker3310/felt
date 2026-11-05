@@ -161,7 +161,7 @@ const mean = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : 0;
 (async () => {
   const t0 = Date.now();
   /* the threads first: the sweeps and the games */
-  const NPOS = 60, jobs = ARCHS.filter(a => a !== 'clutch').map(arch => ({ sweep: true, arch, level: 'medium', count: NPOS }));
+  const NPOS = 120, jobs = ARCHS.filter(a => a !== 'clutch').map(arch => ({ sweep: true, arch, level: 'medium', count: NPOS }));
   for (const kind of ['8', '9']) for (let i = 0; i < 8; i++) {
     const archH = ARCHS[i % ARCHS.length], archE = ARCHS[(i + 3) % ARCHS.length], h = { level: 'hard', arch: archH }, e = { level: 'easy', arch: archE };
     jobs.push({ kind, seed: 300 + i, profs: i % 2 ? [e, h] : [h, e], hard: i % 2, first: (i >> 1) % 2, tag: 'he' });

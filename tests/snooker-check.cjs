@@ -22,7 +22,7 @@ const ball = (g, n) => g.balls.find(b => b.n === n);
 const res = (g, o = {}) => {
   const pot = o.potted || [];
   return { balls: g.balls.map(b => Object.assign({}, b, { on: b.on && !pot.includes(b.n) })), cue: 0, first: o.first === undefined ? null : o.first, potted: pot.slice(),
-    pocketOf: Object.fromEntries(pot.map(n => [n, 0])), crossed: true };
+    pocketOf: Object.fromEntries(pot.map(n => [n, 0])), crossed: true, ...(o.seq ? { seq: o.seq } : null), ...(o.over ? { over: o.over } : null) };
 };
 /* a real tap on the centre of the element sel, if it is shown */
 const tapEl = async (page, sel) => {
@@ -183,11 +183,32 @@ S.setTable('snooker', 'compact');
   check('one frame: the last black down ends it; the higher score wins the match', w0.winner === 0 && w0.verdict.frameOver.score.join() === '47,30' && /frame/.test(w0.verdict.why));
   const f0 = S.judge(Object.assign(S.copyGame(blk), { score: [40, 38] }), res(blk, { first: 62, potted: [0] }));
   check('with only the black left a foul ends the frame too: 7 to the opponent', f0.winner === 1 && f0.verdict.frameOver.score.join() === '40,45');
+  /* Section 3 Rule 4(b)(ii): "the players draw lots for choice of playing next" */
   const tie = S.judge(Object.assign(S.copyGame(blk), { score: [33, 40] }), res(blk, { first: 62, potted: [62] }));
-  check('level after the black: it is re-spotted and the other player plays it from the D, no winner yet', tie.winner === null && tie.verdict.reblack && ball(tie, 62).on && ball(tie, 62).x === S.SPOTS[62][0]
-    && tie.turn === 1 && tie.inHand === 'D' && tie.on === 62);
-  const tie2 = S.judge(tie, res(S.placeCue(tie, S.HEAD_X - 0.1, S.TW / 2), { first: 62, potted: [62] }));
+  check('S3 R4(b)(ii) level after the black: it is re-spotted, in hand in the D, no winner yet, and the draw\'s winner chooses who plays it', tie.winner === null && tie.verdict.reblack && ball(tie, 62).on && ball(tie, 62).x === S.SPOTS[62][0]
+    && tie.inHand === 'D' && tie.on === 62 && tie.option && tie.option.kind === 'snkBlack' && tie.option.who === tie.turn && tie.option.choices.join() === 'play,pass' && tie.verdict.option === 'snkBlack', JSON.stringify(tie.option));
+  const tieW = tie.option.who, playIt = S.chooseOption(tie, 'play'), passIt = S.chooseOption(tie, 'pass');
+  check('S3 R4(b)(ii) ...play: the winner of the draw shoots; pass: the other player does; the CPU answers it', playIt.turn === tieW && passIt.turn === 1 - tieW && !playIt.option && !passIt.option && S.cpuOption(tie, 'hard') === 'play');
+  const draws = [];
+  for (let shots = 0; shots < 40; shots++) {
+    const end = p => S.judge(Object.assign(S.copyGame(blk), { shots, turn: p, score: p ? [40, 33] : [33, 40] }), res(blk, { first: 62, potted: [62] })).option.who;
+    draws.push([end(0), end(1)]);
+  }
+  check('S3 R4(b)(ii) ...a seeded draw: the same whoever ended the frame, and over forty frames it falls to both players', draws.every(d => d[0] === d[1]) && draws.some(d => d[0] === 0) && draws.some(d => d[0] === 1), JSON.stringify(draws.map(d => d[0])));
+  const tie2 = S.judge(S.chooseOption(tie, tieW === 1 ? 'play' : 'pass'), res(S.placeCue(tie, S.HEAD_X - 0.1, S.TW / 2), { first: 62, potted: [62] }));
   check('the re-spotted black: the next pot wins', tie2.winner === 1 && tie2.score.join() === '40,47');
+  /* Section 3 Rule 11(d)(iii): seven points for playing at reds in successive strokes */
+  check('S3 R11(d)(iii) on a colour, a red hit first (a red after a red) costs 7, not 4', pen(a, { first: 45 }) === 7, String(pen(a, { first: 45 })));
+  /* Section 3 Rule 11(a)(x): a jump shot is the value of the ball on */
+  check('S3 R11(a)(x) a jump shot over the black while on a red costs the value of the ball on, 4, not the black\'s 7', pen(g0, { first: 41, over: [62] }) === 4, String(pen(g0, { first: 41, over: [62] })));
+  /* Section 3 Rule 7(f): only balls whose own spots are occupied give way to the highest: a colour with its spot free goes on it */
+  const prec = Object.assign(S.copyGame(g0), { on: 'red' });
+  Object.assign(ball(prec, 41), { x: S.SPOTS[61][0] + 0.01, y: S.SPOTS[61][1] });
+  Object.assign(ball(prec, 42), { x: S.SPOTS[62][0] + 0.01, y: S.SPOTS[62][1] });
+  ball(prec, 62).x -= 0.2; ball(prec, 62).y += 0.2;
+  const pr = S.judge(prec, res(prec, { first: 43, potted: [60, 61] }));
+  check('S3 R7(f) pink and blue down on a foul, the pink\'s spot taken: the blue on its own spot, the pink on the highest spot left to it', ball(pr, 60).x === S.SPOTS[60][0] && ball(pr, 60).y === S.SPOTS[60][1] && ball(pr, 61).on && ball(pr, 61).x !== S.SPOTS[60][0],
+    JSON.stringify([ball(pr, 60).x, ball(pr, 61).x]));
   /* best of three: the frame goes to the next rack with the breaker alternating */
   const m = Object.assign(S.copyGame(blk), { frames: 3 });
   const m1 = S.judge(m, res(m, { first: 62, potted: [62] }));
@@ -230,7 +251,19 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   check('in hand in the D: snookered only if every position in the D is', !S.snkSnookered(hand) && S.snkFrom(hand).length > 20);
   /* a corner of cushion in the way: the cue ball tight in the middle pocket's jaws, the red behind the jaw point */
   const ang = at(at(lone(), 0, S.TL / 2 - 0.07, S.BALL_R + 0.002), 41, S.TL / 2 + 0.3, 0.02 + S.BALL_R);
-  check('angled (a cushion\'s corner in the way) counts as snookered', S.snkSnookered(ang), JSON.stringify(ball(ang, 0)));
+  /* Section 2 Rule 17(e): "The cue-ball cannot be snookered by a cushion." */
+  const angF = S.judge(ang, res(ang, {}));
+  check('S2 R17(e) a cushion\'s corner in the way is not snookered, and a foul there offers no free ball', !S.snkSnookered(ang) && angF.option.kind !== 'snkFree' && !angF.option.free, JSON.stringify([ball(ang, 0), angF.option]));
+  /* Section 3 Rule 14(c): "a clear path in a straight line from the cue-ball to any part of any ball that is or could be on" */
+  const peek = at(at(at(lone(), 41, 2.5, 0.9), 62, 1.5, 0.9 + 1.5 * S.BALL_R), 0, 0.5, 0.9), peekF = S.judge(peek, res(peek, {}));
+  check('S3 R14(c) one edge of the red in view, the full-ball line blocked: snookered, yet failing to hit it is a miss, not counted toward the three', S.snkSnookered(peek) && !S.snkFullBall(peek) && peekF.verdict.miss && peekF.verdict.misses === 0,
+    JSON.stringify([S.snkSnookered(peek), S.snkFullBall(peek), peekF.verdict.miss, peekF.verdict.misses]));
+  /* Section 3 Rule 8(b): "must play the cue-ball away from that ball without moving it or it is a push stroke"; Rule 11(b)(v): its value */
+  const touch = n => at(lone(), n, 1.0 + 2 * S.BALL_R, 0.5);
+  const tR = S.judge(touch(41), res(touch(41), { first: 41, seq: [41] })), tB = S.judge(touch(62), res(touch(62), { first: 41, seq: [62, 41] }));
+  const tA = S.judge(touch(41), res(touch(41), { first: 41, seq: [-1, 41] })), tN = S.judge(lone(), res(lone(), { first: 41, seq: [41] }));
+  check('S3 R8(b), R11(b)(v) a cue ball touching a red, played into it: a foul of 4; touching the black: 7; played away, first a cushion: legal; not touching: legal',
+    /push stroke/.test(tR.verdict.foul) && tR.verdict.pen === 4 && /push stroke/.test(tB.verdict.foul) && tB.verdict.pen === 7 && !tA.verdict.foul && !tN.verdict.foul, JSON.stringify([tR.verdict.foul, tR.verdict.pen, tB.verdict.pen, tA.verdict.foul, tN.verdict.foul]));
 
   /* the free ball */
   const w = wall(), wf = S.judge(w, res(w, {})), o = wf.option;
@@ -241,14 +274,14 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
     cf.option.kind === 'snkMiss' && cf.option.choices.join() === 'play,replace,again' && !cf.option.free && cf.verdict.miss && cf.verdict.misses === 1 && !!cf.prev, JSON.stringify(cf.option));
   check('free balls: every colour on the table while reds remain, never a red', JSON.stringify(S.snkFreeBalls(wf)) === JSON.stringify(S.S_COLS) && S.chooseOption(wf, 'free:41') === null && S.chooseOption(wf, 'free') === null && S.chooseOption(cf, 'free:60') === null);
   const f = S.chooseOption(wf, 'free:62');
-  check('nominating the black as a free ball: player 2 to shoot, on a red or the black', f.free === 62 && f.turn === 1 && f.option === null && JSON.stringify(S.legalTargets(f)) === '[41,62]' && wf.option && wf.free === null);
+  check('S3 R12(b)(i) nominating the black as a free ball: player 2 to shoot, and the black is the ball to hit first', f.free === 62 && f.turn === 1 && f.option === null && JSON.stringify(S.legalTargets(f)) === '[62]' && wf.option && wf.free === null);
   const fp = S.judge(f, res(f, { first: 62, potted: [62] }));
   check('the free ball potted scores as a red (1), comes back to its spot, and the player is on a colour', !fp.verdict.foul && fp.score.join() === '0,5' && fp.on === 'colour' && ball(fp, 62).on && ball(fp, 62).x === S.SPOTS[62][0]
     && fp.verdict.back.join() === '62' && fp.turn === 1 && fp.free === null && fp.verdict.freeBall === 62);
   const fr = S.judge(f, res(f, { first: 62, potted: [62, 41] }));
   check('a free ball and a red potted together score a point each', !fr.verdict.foul && fr.score[1] === 4 + 2 && !ball(fr, 41).on && ball(fr, 62).on);
   const fh = S.judge(f, res(f, { first: 41 }));
-  check('with a free ball the red may still be hit first (no foul)', !fh.verdict.foul);
+  check('S3 R12(b)(i) with a free ball nominated, a red hit first is a foul of 4', !!fh.verdict.foul && fh.verdict.pen === 4, JSON.stringify(fh.verdict.foul));
   const fo = S.judge(f, res(f, { first: 60 }));
   check('hitting another colour first is a foul, worth that colour or more', fo.verdict.foul && fo.verdict.pen === 5);
   /* in the colours: on the yellow, the pink nominated */
@@ -275,7 +308,8 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   const pbr = res(pb, { first: 62 });
   Object.assign(pbr.balls.find(b => b.n === 0), { x: 1.3, y: 0.5 });
   check('...except when only the pink and black remain', !S.judge(pb, pbr).verdict.foul);
-  check('again: the offender plays again from there, and being snookered may take the free ball', (a => a.turn === 0 && a.option && a.option.kind === 'snkFree' && a.option.who === 0 && a.option.choices.join() === 'play,free')(S.chooseOption(wf, 'again')));
+  /* Section 3 Rule 12(f): "If the offender is asked to play again ... the free ball option becomes void." */
+  check('S3 R12(f) again: the offender plays again from there, with no free ball', (a => a.turn === 0 && a.option === null && a.free === null)(S.chooseOption(wf, 'again')));
   check('play it: the player fouled plays on from where the balls lie, no free ball', (p => p.turn === 1 && !p.option && p.free === null && JSON.stringify(p.balls) === JSON.stringify(wf.balls))(S.chooseOption(wf, 'play')));
 
   /* foul and a miss, the put-back */
@@ -289,6 +323,10 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   const m2 = S.judge(back, S.simulateShot(back.balls, { angle: -Math.PI / 2, power: 0.12, spin: { x: 0, y: 0 } }));
   check('the second miss from the put-back position: the referee\'s warning', m2.verdict.misses === 2 && m2.verdict.warn && m2.winner === null && m2.option);
   const m3 = S.judge(S.chooseOption(m2, 'replace'), shot);
+  /* Section 3 Rule 14(d)(i): "shall be called as a FOUL AND A MISS regardless of the difference in scores" */
+  const near = Object.assign(clearPos(0), { score: [0, S.snookerLeft(clearPos(0)) - 7] }), s1 = S.judge(near, res(near, {})), sb = S.chooseOption(s1, 'replace'), s2 = S.judge(sb, res(sb, {}));
+  check('S3 R14(d)(i) the second failure from the put-back is a miss though the penalty now leaves snookers needed: the count goes on, the warning given',
+    s1.verdict.miss && s2.verdict.miss && s2.verdict.misses === 2 && s2.verdict.warn && s2.option.kind === 'snkMiss', JSON.stringify([s1.verdict.misses, s2.verdict.misses, s2.verdict.warn]));
   check('the third miss with a full ball in view loses the frame (Section 3 Rule 14)', m3.winner === 1 && m3.verdict.misses === 3 && m3.verdict.why === 'three misses' && m3.verdict.frameOver.forfeit === 'three misses' && !m3.verdict.frameOver.conceded);
   const played = Object.assign(S.chooseOption(m2, 'play'), { turn: 0, balls: S.copyGame(g0.balls) }), reset = S.judge(played, res(played, {}));
   check('the count starts again once the balls are not put back', reset.verdict.misses === 1 && !played.replaced && played.missRun === null);
@@ -311,7 +349,7 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
   const easy = S.copyGame(cf);
   at(easy, 41, S.TL - 0.15, S.TW - 0.15); at(easy, 0, S.TL - 0.45, S.TW - 0.45);
   check('CPU: after a miss leaving it an easy pot, it plays on', S.cpuOption(easy, 'medium') === 'play');
-  check('CPU: every answer it gives is a choice on offer', [wf, cf, easy, S.chooseOption(wf, 'again')].every(x => S.chooseOption(x, S.cpuOption(x, 'hard')) !== null));
+  check('CPU: every answer it gives is a choice on offer', [wf, cf, easy].every(x => S.chooseOption(x, S.cpuOption(x, 'hard')) !== null));
 }
 
 /* 5. the CPU: over seeded positions with reds scattered, hard pots more than easy, and the break is legal */
@@ -467,8 +505,8 @@ const clearPos = (turn = 0) => at(lone(turn), 60, 1.5, 0.62);   /* the blue well
     if (target) await page.touchscreen.tap(target.s[0], target.s[1]);
     await page.waitForTimeout(200);
     const nm = await page.evaluate(() => ({ s: felt.state, free: felt.game.free, turn: felt.game.turn, shots: felt.game.shots, bar: snkBar.textContent, box: optBox.hidden, targets: legalTargets(felt.game) }));
-    check(T + 'Back returns to the choices; a tap on a colour on the table nominates it: player 2 to shoot on a red or that colour, FREE BALL on the scoreboard, nothing shot',
-      backOk && target && nm.s === 'aim' && nm.free === target.n && nm.turn === 1 && nm.shots === ch.shots && nm.box && /FREE BALL/.test(nm.bar) && nm.targets.includes(target.n) && nm.targets.includes(41), JSON.stringify({ target, nm }));
+    check(T + 'Back returns to the choices; a tap on a colour on the table nominates it: player 2 to shoot on that colour alone (S3 R12(b)(i)), FREE BALL on the scoreboard, nothing shot',
+      backOk && target && nm.s === 'aim' && nm.free === target.n && nm.turn === 1 && nm.shots === ch.shots && nm.box && /FREE BALL/.test(nm.bar) && nm.targets.join() === String(target.n), JSON.stringify({ target, nm }));
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/free-on-${vw}x${vh}.png` });
     /* foul and a miss, put back */
     const before = await setPos(true);

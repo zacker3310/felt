@@ -101,25 +101,36 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `setTable('snooker', 'compact' | 'full')` (10 ft default on a phone, 12 ft), 52.5 mm balls on pool's cloth.
   Rounded jaws are `JAW_ARCS` (empty on pool). Ball numbers: reds 41-55, colours 57-62 (value n - 55).
   After a foul the player fouled chooses through `game.option` (`snkFoul`/`snkMiss`/`snkFree`, `chooseSnooker`,
-  `cpuSnookerOption`): play it, play again, a free ball (`game.free`; snookered is pure geometry, `snkSnookered`), or
-  after a miss the put-back from `game.prev`; three misses lose the frame (`game.missRun`). Cite WPBSA rule numbers.
+  `cpuSnookerOption`): play it, play again (no free ball, S3 R12(f)), a free ball (`game.free`, the one ball to hit first,
+  S3 R12(b)(i); snookered is pure geometry, balls only, `snkSnookered`, S2 R17(e)), or after a miss the put-back from
+  `game.prev`; a miss needs any part of a ball on in clear view (`snkAnyPart`, S3 R14(c)), and from a put-back ignores the
+  scores (R14(d)(i)); three misses lose the frame (`game.missRun`). A tied frame re-spots the black and a seeded draw's
+  winner chooses who plays it (`snkBlack`, S3 R4(b)(ii)). A push stroke into a touching ball (`r.seq[0]`, S3 R8(b)) is a
+  foul. Left as read: who may need penalty points, the put-back of a free ball, the forfeit's reds. Cite WPBSA rule numbers.
   `tests/snooker-check.cjs` pins it.
 - Chinese 8-ball (heyball): `game.kind === 'heyball'`, sim 1o, on its own table `setTable('heyball')` (`HEYBALL_SIZE`
-  2540 x 1270 mm, pool's 57.15 mm ball and cloth, `POOL_PHYS`; the head string at 635 mm) with `POCKET_STYLES.heyball`:
-  snooker's mouths (jaw points 90 and 104 mm) round pool's balls, rounded jaws (`JAW_ARCS`, `roundJaws`), the throat
-  between the facings 85 and 90 mm (Joy's listed openings); `setPockets` does not change it, and the setup offers no
+  2540 x 1260 mm, pool's 57.15 mm ball and cloth, `POOL_PHYS`; the head string at 635 mm) with `POCKET_STYLES.heyball`:
+  snooker's mouths (jaw points 90 and 104 mm) round pool's balls, rounded jaws (`JAW_ARCS`, `roundJaws`), the throat between the facings 85 and 90 mm (felt's tuned values, from retail listings: no rulebook checked gives pocket figures, so never cite these to one); `setPockets` does not change it, and the setup offers no
   table or pockets. Judged by 8-ball's own `judge8` (`RULE_MODULES.heyball`; `is8(kind)` wherever 8-ball's groups, game
-  ball, rail seats, pot windows or CPU group scoring are read, never a copy) under the ruleset `heyball`, the World
-  Chinese 8-Ball Masters rules (Rev. 2017, cited in sim 1e above `RULESETS`): four to the cushions or a pot on the break,
+  ball, rail seats, pot windows or CPU group scoring are read, never a copy) under the ruleset `heyball`, the WPA Rules of Heyball effective 2025-08-16 (cited in sim 1e above `RULESETS`; WPA says they are under review): four to the cushions or a pot on the break,
   balls potted on the break never choose the groups (the first legal pot after it does), the 8 never first on an open
-  table, ball in hand anywhere (behind the head string after a break scratch), the 8 on the break spotted or re-broken
-  (`eightBreak`), the 8 to a called pocket (`calls: 'game'`, obvious calls from the aim), no three-foul rule; felt's
-  choices where the sources differ: an illegal break is WPA 8-ball's take, re-break or break (`badBreak: 'rerack'`),
-  balls off the table stay off. Its home card is the ninth (`#playH`, `.tile.wide`) with its own art (`heyArt`: a
+  table, ball in hand anywhere, the 8 on a legal break spotted or re-broken
+  (`eightBreak`), no shot called, not even the 8 (`calls: 'none'`, s11; only the custom All mode calls it, `callScope`), no
+  three-foul rule. A foul on the break gives the incoming player `breakFoul` (`take`, ball in hand behind the string;
+  `rebreak`; `break`: s6(e), and s6(f) with the 8 spotted), no contact only `breakMiss` (s6(g)), the 8 off the table on the
+  break loses (s20(c), `eightOffBreak`); the group goes by the first ball hit, and only the other group down leaves the
+  table open and passes the turn (s12.1, `groupBy: 'first'`). Not modelled: s10.4 (a known gap, in the ruleset's comment),
+  s6(a), s18 and stalemates. felt's choices where the sources differ: an illegal break is WPA 8-ball's take, re-break or
+  break (`badBreak: 'rerack'`), balls off the table stay off. Its home card is the ninth (`#playH`, `.tile.wide`) with its own art (`heyArt`: a
   corner pocket close up, the 8 in the jaws). Sounds exactly as 8-ball (sound-check). `heyball-check` pins it.
 - Three-cushion carom: `setTable('carom')` (sim 1k), 61.5 mm balls on its own cloth and rubber. No pockets:
   `POCKETS`, `POCKET_AIM`, `MOUTHS` are empty, so never assume six. Balls 70 (white), 71 (yellow), 72 (red);
-  `game.striker` is the shooter's cue ball. Points are counted from `resultOf(tab).seq`; `carom-check` covers it.
+  `game.striker` is the shooter's cue ball. Points are counted from `resultOf(tab).seq`; `carom-check` covers it. The break's
+  first contact is the red, no cushion before it (Art 23.3). A cue ball touching a ball played into it is a foul, and the
+  shooter so placed chooses play or `respot` through `game.option` (`chooseCarom`, Art 27); balls come back by `caromSpot`
+  (Art 27.3b, 28.1b: the next shooter's the head spot, the other's the centre, a spot taken: its occupier's). Known gap: a
+  frozen cue ball driven into its own cushion (Art 27.2) is no foul, as that needs the stroke's direction. Sources: UMB 1989
+  with CEB 2021, the best available.
 - `frame()` steps `dtMs / 1000 / SIM_DT` physics steps per frame, the fraction carried to the next (`simSteps`), and
   never stops asking for frames when one throws; never assume one step per millisecond.
 - `.buildloop/audit/T4-audit.md` is the audit: every finding, its owner stream and status. `audit-check` holds one
@@ -151,7 +162,17 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   above it). A game carries `game.rules` (`makeRules(kind, { ruleset, call, options, race, locked })`); `judge` hands
   each shot to its game's module in `RULE_MODULES` (`judge8`, `judgeLowest` for 9 and 10, `judgeStraight` for 14.1,
   `judgeRotation`, Chinese 8-ball on `judge8` too, then bumper, snooker, carom), and the pocket games share `poolFoul`, `callResult`, `breakLegal`
-  and `poolEnd`: add a rule there or as an option, never a copy in one module. A ball off the table (a jump, pocketOf
+  and `poolEnd`: add a rule there or as an option, never a copy in one module. The rule numbers are the WPA Rules of Play
+  2026-10-21 and Regulations; rotation and bumper are felt's house rules (no primary text obtained, so unverified, and
+  rotation's source says "after the BCA game"). Rule options added for T6: `breakFoul`, `eightOffBreak`, `groupBy`, `kitchenSpot`
+  (WPA 1.6: every legal ball behind the string with the hand there: `game.option` kind `kitchenSpot`, spot the nearest
+  or play; house rules keep the old guard), `tempClaim` (WPA 4.4), `threeBall` (9-wpa, Regulation 16: pots plus balls at rest past
+  the string under three: `threeBall`, take with no push-out or hand it back with one, the 9 spotted), `safetyCall: false`
+  (10-ball has no safety, 6.5). `10-house` is gone (WPA 1.7 made it `10-wpa`; a stored one falls to the default). WPA 8-ball's
+  breaks: 4.3(d) a total miss is an illegal break; 4.3(f) `breakFoul`; 4.3(g) `breakOff`. 14.1: 7.3(b), 7.10, 2.7, 3.13 and
+  Table 1's re-racks (`rackFourteen`, `rackFifteen`). Frozen balls (WPA 2.7, Heyball 15.2): `tab.frozen` (`frozenOf`, `thaw`) keeps a
+  ball pressed into the cushion it started touching out of `railAfter`, `rails`, `railSeq` and `railAt`; bookkeeping only, carom's
+  `seq` still counts it. A new option kind needs `OPT_WORDS` and an answer in `cpuOption`, or the game hangs. A ball off the table (a jump, pocketOf
   -1) is a foul everywhere: `poolBase` takes it out of the pots and `poolFoul` names it (the cue ball off is a
   scratch); option `offSpot` ('spot' house, 14.1, rotation; 'stay' WPA 8, 9, 10, which spot only the game ball;
   the 8 off a shot that is not the break loses); snooker spots a colour and leaves a red off, and a cue ball that
@@ -161,7 +182,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
 - Called shots: `game.call` (`{ ball, pocket, safety, push, bank, kick, combo, auto }`) is a pure input judge reads;
   `callNeed(g)` says what a shot must name, `callResult` judges the call apart from the foul. Choices the rules give
   (`game.option`: push-out, uncalled ball, illegal break, 8 on the break) are answered by `chooseOption(g, c)`
-  (`cpuOption` for the CPU). The CPU's shot carries `call`. Page 5c builds the human call (taps, the bar's label, the
+  (`cpuOption` for the CPU). The CPU's shot carries `call` (at 10-ball, which has no safety, a safety shot still names a ball). Page 5c builds the human call (taps, the bar's label, the
   Safety and Push Out options, `obviousCall`), and the bar does not arm without a needed call: a pull it refuses
   opens the call's menu on the let-go (the pockets first), so it never just does nothing. The table is never
   smaller for calls and nothing of the call sits on it while idle: the call's state is the power bar's own label
@@ -176,7 +197,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   the 3D camera's screen or at its edge is as callable as the rest; it scrolls (`max-height`) on a short screen. A tap
   on a hole reaches 26 px round it or its projected radius x 1.3 (`pocketAt`). Pocket words come from the view
   (`pocketWords`, `pocketFrame`): top-down the screen's ("Bottom Left"), in 3D the camera's ("Far Left", "Near Side";
-  corners ranked so no two share a name). `heyball-check` taps every pocket in 3D at 393x852 and 852x393. Settings `calls`
+  corners ranked so no two share a name). `heyball-check` taps every pocket in 3D at 393x852 and 852x393 (on WPA 8-ball, which calls: Chinese 8-ball does not). Settings `calls`
   (sv 2, migrated); an event passes `rules` to `start(kind, o)` and they are locked (Settings shows Locked by event).
   `called-check` pins the page side (the label, the menu by real taps, nothing over the table with it closed, every
   game's table rect as at 9cc059b, five sizes with insets), `tests/sim.cjs` NAMES has the engine's exports.
@@ -187,8 +208,7 @@ Run these, do not guess them. Healthy output is shown so a wrong result is obvio
   `felt.career.v2.<id>` (atomic: `.tmp`, `.bak`, checksum); `Career.migrate` turns `felt.career.v1` into a slot and
   never touches it. Events carry `rules { game, ruleset, call, race, table, pockets }`; every discipline is
   `live` (played on the table). Chinese 8-ball is the ninth discipline (`DISCS` is append-only: `S.aw` stores a
-  discipline's index): ruleset `heyball-masters` (the page's `heyball`), its own table (`table: 'heyball'`), official
-  calls (the 8 to a called pocket), from tier 3 up (`discW`), its tour events mostly in China (`HEY_NAT`). The AI
+  discipline's index): ruleset `heyball-masters` (the page's `heyball`), its own table (`table: 'heyball'`), no shot called, from tier 3 up (`discW`), its tour events mostly in China (`HEY_NAT`). The AI
   population is a pure function of the seed and was left exactly as it was (no AI player's leaning changed; career2-check
   pins seed 99's fingerprint); a career started before it keeps its saved calendar (`S.ser`), so only new careers hold its
   events. A player may name it their best game. No drill or shop item is per game, so neither changed. The engine saves at boundaries; the screens save their own changes (`cvSave`). Contract `.buildloop/spec/T4-career.md`; pinned by `career2-check` (Node, one page check).

@@ -108,6 +108,31 @@ const play = (o = {}) => { const g = S.newGame('carom', o); g.breakShot = false;
   const bf = shot(b, [Y, C, C, C, R]);
   check('the break: yellow first is a foul, no point, the turn passes', bf.verdict.foul && !bf.verdict.point && bf.turn === 1 && !bf.breakShot);
   check('the break: red first and three cushions is a point', shot(b, [R, C, C, C, Y]).verdict.point);
+  /* UMB Art 23.3 (CEB 2003.3): "The starting cannon must be played by direct attack on the red ball." */
+  const bc = shot(b, [C, R, C, C, Y]);
+  check('Art 23.3 the break: a cushion first is a foul, no point, the turn passes', !!bc.verdict.foul && !bc.verdict.point && bc.turn === 1, JSON.stringify(bc.verdict.foul));
+  /* UMB Art 27.1, 41.8: the cue ball touching a ball may not be played into it; Art 27.1(a), 27.3b: it may have the balls spotted */
+  const touching = (o = {}) => { const t = play(o), w = t.balls.find(q => q.n === W), y = t.balls.find(q => q.n === Y); Object.assign(y, { x: w.x + 2 * S.BALL_R, y: w.y }); return t; };
+  const tInto = shot(touching(), [Y, C, C, C, R]), tOther = shot(touching(), [R, C, C, C, Y]), tCush = shot(touching(), [C, C, C, R, Y]);
+  check('Art 27.1, 41.8 a cue ball touching a ball, played into it: a foul, no point; the other ball or a cushion first: legal, and the point counts',
+    /touching/.test(tInto.verdict.foul || '') && !tInto.verdict.point && tInto.turn === 1 && !tOther.verdict.foul && tOther.verdict.point && !tCush.verdict.foul && tCush.verdict.point, JSON.stringify([tInto.verdict.foul, tOther.verdict.foul, tCush.verdict.foul]));
+  const handed = play(), hw = handed.balls.find(q => q.n === W), hy = handed.balls.find(q => q.n === Y), hr = handed.balls.find(q => q.n === R);
+  Object.assign(hr, { x: hy.x + 2 * S.BALL_R, y: hy.y });
+  const sp = shot(handed, [C]);
+  check('Art 27.1(a) the turn passes with the next cue ball touching a ball: that player chooses, play it or have them spotted', sp.turn === 1 && sp.striker === Y && sp.option && sp.option.kind === 'respot' && sp.option.who === 1 && sp.option.choices.join() === 'play,respot', JSON.stringify(sp.option));
+  const sr = S.chooseOption(sp, 'respot'), sq = S.chooseOption(sp, 'play'), at2 = (g, n) => { const q = g.balls.find(o => o.n === n); return [q.x, q.y]; };
+  check('Art 27.3b ...spotted: only the touching balls move: yellow to the head spot, the red to the foot spot, the white where it lay; the same shooter, no choice left',
+    at2(sr, Y).join() === [S.HEAD_X, S.TW / 2].join() && at2(sr, R).join() === S.FOOT.join() && at2(sr, W).join() === [hw.x, hw.y].join() && sr.turn === 1 && !sr.option && sr.striker === Y, JSON.stringify(sr.balls.map(q => [q.n, q.x, q.y])));
+  check('Art 27.1 ...play: nothing moves; the CPU has them spotted; a stale choice does not outlive the next shot', at2(sq, R).join() === at2(sp, R).join() && !sq.option && S.cpuOption(sp, 'hard') === 'respot' && !S.judge(sp, { balls: sp.balls, potted: [], pocketOf: {}, cue: Y, seq: [] }).option,
+    JSON.stringify(sq.option));
+  /* UMB Art 27.3b, 28.1b: red the top spot, the player to shoot's ball the head spot, the opponent's the middle; a spot taken: the spot of the ball on it */
+  const spotted = (n, move) => { const t = play(); for (const m of Object.keys(move)) Object.assign(t.balls.find(o => o.n === +m), { x: move[m][0], y: move[m][1] }); return S.judge(t, { balls: t.balls.map(o => Object.assign({}, o, o.n === n ? { on: false } : {})), potted: [n], pocketOf: { [n]: -1 }, cue: W, seq: [] }); };
+  const wOut = spotted(W, { [Y]: [0.5, 0.3], [R]: [2, 1] }).balls.find(o => o.n === W);
+  check('Art 28.1b the shooter\'s white off the table, yellow to shoot next: the white goes on the middle spot', Math.abs(wOut.x - S.TL / 2) < 1e-9 && Math.abs(wOut.y - S.TW / 2) < 1e-9, JSON.stringify([wOut.x, wOut.y]));
+  const yOut = spotted(Y, { [W]: [0.5, 0.3], [R]: [2, 1] }).balls.find(o => o.n === Y);
+  check('Art 28.1b yellow off the table on white\'s shot, yellow to shoot next: yellow goes on the head spot', Math.abs(yOut.x - S.HEAD_X) < 1e-9 && Math.abs(yOut.y - S.TW / 2) < 1e-9, JSON.stringify([yOut.x, yOut.y]));
+  const rOcc = spotted(R, { [Y]: S.FOOT.slice(), [W]: [0.5, 0.3] }).balls.find(o => o.n === R);
+  check('Art 28.1b the red off the table with yellow on the foot spot: the red goes on yellow\'s spot, the head spot', Math.abs(rOcc.x - S.HEAD_X) < 1e-9 && Math.abs(rOcc.y - S.TW / 2) < 1e-9, JSON.stringify([rOcc.x, rOcc.y]));
   /* a ball off the table: a foul, and it comes back to its spot */
   const og = play(), offB = og.balls.map(o => Object.assign({}, o, o.n === R ? { on: false } : {}));
   const oj = S.judge(og, { balls: offB, potted: [R], pocketOf: { [R]: -1 }, cue: W, seq: [Y, C, C, C, R] });

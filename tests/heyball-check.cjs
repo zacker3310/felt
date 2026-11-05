@@ -1,8 +1,8 @@
 /* heyball-check: Chinese 8-ball (heyball; sim 1e and 1o, the page's ninth game). Node: the
-   ruleset and its module (judge8, shared with 8-ball: no rule copied), the table (the 2540 x 1270
+   ruleset and its module (judge8, shared with 8-ball: no rule copied), the table (the 2540 x 1260
    mm bed, pool's 57.15 mm ball and cloth, the head string at 635 mm, snooker's mouths with rounded
    jaws and an 85 / 90 mm throat), the pockets against pool's and snooker's (tighter than both for
-   the ball), the rack, each rule of the World Chinese 8-Ball Masters rules (Rev. 2017) the engine
+   the ball), the rack, each rule of the WPA Rules of Heyball (effective 2025-08-16) the engine
    plays, a fuzz, and the CPU playing whole racks at each level. Page: the home's ninth card by a
    real tap (on the first screen), its setup and rules popover, Break, the live roll equal to
    simulateShot byte for byte, the potted-ball windows and the rail's seats, the 3D view, the tutorial
@@ -34,24 +34,24 @@ const rails4 = { 1: 1, 2: 1, 3: 1, 4: 1, 0: 1 }, rails3 = { 1: 1, 2: 1, 3: 1, 0:
 /* ---------- 1. the ruleset and the module ---------- */
 {
   const R = S.RULESETS.heyball;
-  check('the ruleset: registered as Chinese 8-ball with its source (World Chinese 8-Ball Masters rules, Rev. 2017), the default for the kind, a pocket game',
-    !!R && R.game === 'heyball' && /World Chinese 8-Ball Masters/.test(R.source) && /2017/.test(R.source) && S.DEFAULT_RULESET.heyball === 'heyball' && S.POCKET_KINDS.includes('heyball')
+  check('the ruleset: registered as Chinese 8-ball with its source (WPA Rules of Heyball, effective 2025-08-16), the default for the kind, a pocket game',
+    !!R && R.game === 'heyball' && /WPA Rules of Heyball/.test(R.source) && /2025-08-16/.test(R.source) && S.DEFAULT_RULESET.heyball === 'heyball' && S.POCKET_KINDS.includes('heyball')
     && S.rulesetsFor('heyball').map(r => r.id).join() === 'heyball' && !S.ringRulesets().some(r => r.game === 'heyball'), JSON.stringify(R));
   check('one 8-ball module: Chinese 8-ball is judged by 8-ball\'s own judge (RULE_MODULES), the 8 its game ball, the same groups',
     S.RULE_MODULES.heyball.judge === S.RULE_MODULES[8].judge && S.gameBallOf({ kind: 'heyball' }) === 8 && S.is8('heyball') && S.is8('8') && !S.is8('9'));
-  check('its options as the Masters rules read: four balls to the cushions or a pot on the break, the 8 on the break spotted or re-broken, ball in hand anywhere (behind the head string after a break scratch), the 8 called, no three-foul rule',
-    R.breakRails === 4 && R.gameBallBreak === 'option' && R.foulHand === 'table' && R.breakScratch === 'kitchen' && R.calls === 'game' && R.threeFoul === false && R.breakAny === true && R.badBreak === 'rerack' && R.offSpot === 'stay');
+  check('its options as WPA Heyball reads: four balls to the cushions or a pot on the break, the 8 on the break spotted or re-broken, ball in hand anywhere (behind the head string after a break scratch), no shot called, not even the 8 (s11), no three-foul rule',
+    R.breakRails === 4 && R.gameBallBreak === 'option' && R.foulHand === 'table' && R.breakScratch === 'kitchen' && R.calls === 'none' && R.threeFoul === false && R.breakAny === true && R.badBreak === 'rerack' && R.offSpot === 'stay');
 }
 
 /* ---------- 2. the table ---------- */
 S.setTable('heyball');
 {
-  check('the table: 2540 x 1270 mm between the noses, 57.15 mm balls on pool\'s cloth (POOL_PHYS), the head string 635 mm from the head cushion, the foot spot a quarter from the foot',
-    S.TABLE === 'heyball' && S.TL === 2.54 && S.TW === 1.27 && S.BALL_R === 0.028575 && S.physOf('heyball') === S.POOL_PHYS && Math.abs(S.HEAD_X - 0.635) < 1e-12 && Math.abs(S.FOOT[0] - 1.905) < 1e-12,
+  check('the table: 2540 x 1260 mm between the noses (WPA Heyball: 1260 +/-9), 57.15 mm balls on pool\'s cloth (POOL_PHYS), the head string 635 mm from the head cushion, the foot spot a quarter from the foot',
+    S.TABLE === 'heyball' && S.TL === 2.54 && S.TW === 1.26 && S.BALL_R === 0.028575 && S.physOf('heyball') === S.POOL_PHYS && Math.abs(S.HEAD_X - 0.635) < 1e-12 && Math.abs(S.FOOT[0] - 1.905) < 1e-12,
     JSON.stringify([S.TL, S.TW, S.BALL_R, S.HEAD_X, S.FOOT]));
   const mm = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) * 1000;
   const jawPts = S.MOUTHS.map(m => mm(m[0].p, m[1].p)), throat = S.MOUTHS.map(m => mm(m[0].e, m[1].e));
-  check('the pockets: snooker\'s mouths, 90 mm (corners) and 104 mm (middles) between the jaw points; the throat where the facings meet the rail 85 and 90 mm (Joy\'s listed openings), every one of the six',
+  check('the pockets: snooker\'s mouths, 90 mm (corners) and 104 mm (middles) between the jaw points; the throat where the facings meet the rail 85 and 90 mm (felt\'s tuned values, no rulebook gives them), every one of the six',
     [0, 2, 3, 5].every(k => Math.abs(jawPts[k] - 90) < 0.01 && Math.abs(throat[k] - 85) < 0.5) && [1, 4].every(k => Math.abs(jawPts[k] - 104) < 0.01 && Math.abs(throat[k] - 90) < 0.5),
     JSON.stringify({ jawPts: jawPts.map(v => +v.toFixed(1)), throat: throat.map(v => +v.toFixed(1)) }));
   check('rounded jaws as snooker\'s: twelve, 30 mm at the corners and 22 mm at the middles; the noses and facings end where they meet',
@@ -96,7 +96,7 @@ S.setTable('heyball');
   check('a pool game afterwards goes back to the pool table and its square jaws', S.newGame('8') && S.TABLE === '7' && S.JAW_ARCS.length === 0 && S.newGame('heyball') && S.TABLE === 'heyball' && S.JAW_ARCS.length === 12);
 }
 
-/* ---------- 3. the rules (World Chinese 8-Ball Masters Rules of Chinese 8-ball, Rev. 2017) ---------- */
+/* ---------- 3. the rules (WPA Rules of Heyball, effective 2025-08-16) ---------- */
 S.setTable('heyball');
 {
   const g0 = S.newGame('heyball');
@@ -143,20 +143,60 @@ S.setTable('heyball');
   check('...spotted: the 8 back on the foot spot (or behind it), the breaker to shoot; re-racked: the breaker breaks again', ball(e8s, 8).on && ball(e8s, 8).y === S.FOOT[1] && ball(e8s, 8).x >= S.FOOT[0] && e8s.turn === 0 && e8r.breakShot && e8r.turn === 0);
   const e8f = S.judge(g0, res(g0, { first: 1, potted: [8, 0] }));
   check('the 8 and the cue ball down on the break: the 8 spotted, the incoming player in hand behind the head string, no loss', e8f.winner === null && ball(e8f, 8).on && e8f.turn === 1 && e8f.inHand === 'kitchen');
-  /* the 8, called */
+  /* a foul on the break (s6(e), s6(f), s6(g)): the incoming player's choice, never ball in hand anywhere */
+  const racked = q => q.breakShot && q.inHand === 'kitchen' && q.balls.filter(b => b.on).length === 16;
+  check('WPA Heyball s6(e): a scratch on the break offers the incoming player ball in hand behind the string, a re-rack the offender breaks, or a re-rack they break',
+    scr.option && scr.option.kind === 'breakFoul' && scr.option.who === 1 && scr.option.choices.join() === 'take,rebreak,break', JSON.stringify(scr.option));
+  const scrT = S.chooseOption(scr, 'take'), scrR = S.chooseOption(scr, 'rebreak'), scrB = S.chooseOption(scr, 'break');
+  check('...take: the incoming player, in hand behind the string, the break over; rebreak: the offender breaks a fresh rack; break: the incoming player does',
+    scrT.turn === 1 && scrT.inHand === 'kitchen' && !scrT.breakShot && racked(scrR) && scrR.turn === 0 && racked(scrB) && scrB.turn === 1, JSON.stringify([scrT.turn, scrT.inHand, scrR.turn, scrB.turn]));
+  const off5 = S.judge(g0, Object.assign(res(g0, { first: 1, rails: rails4, potted: [5] }), { pocketOf: { 5: -1 } }));
+  check('WPA Heyball s6(e): a ball off the table on the break is the same choice, not ball in hand anywhere (s9 excepts the break)',
+    !!off5.verdict.foul && off5.option && off5.option.kind === 'breakFoul' && off5.option.who === 1 && off5.inHand !== 'table', JSON.stringify([off5.verdict.foul, off5.option, off5.inHand]));
+  check('WPA Heyball s6(f): the 8 down on a foul on the break: the 8 spotted and the same choice',
+    ball(e8f, 8).on && e8f.option && e8f.option.kind === 'breakFoul' && e8f.option.who === 1 && e8f.option.choices.join() === 'take,rebreak,break', JSON.stringify(e8f.option));
+  const none = S.judge(g0, res(g0, { first: null, rail: false }));
+  check('WPA Heyball s6(g): no ball hit on the break: only a re-rack, broken by whichever the incoming player names; no ball in hand',
+    none.option && none.option.kind === 'breakMiss' && none.option.who === 1 && none.option.choices.join() === 'rebreak,break'
+    && racked(S.chooseOption(none, 'break')) && S.chooseOption(none, 'break').turn === 1 && S.chooseOption(none, 'rebreak').turn === 0, JSON.stringify(none.option));
+  const off8b = S.judge(g0, Object.assign(res(g0, { first: 1, rails: rails4, potted: [8] }), { pocketOf: { 8: -1 } }));
+  check('WPA Heyball s20(c): the 8 off the table on the break loses the rack', off8b.winner === 1 && /left the table/.test(off8b.verdict.why), JSON.stringify(off8b.verdict));
+  /* the groups go by the first ball hit (s12.1) */
+  const both = S.judge(one, res(one, { first: 1, potted: [9, 1] })), bothR = S.judge(one, res(one, { first: 1, potted: [1, 9] }));
+  check('WPA Heyball s12.1: first the 1, both groups down, a stripe dropping first: the shooter is solids, whichever fell first, and plays on',
+    !both.open && both.groups.join() === 'solids,stripes' && both.turn === 0 && bothR.groups.join() === 'solids,stripes', JSON.stringify([both.groups, bothR.groups]));
+  const other = S.judge(one, res(one, { first: 1, potted: [9] }));
+  check('WPA Heyball s12.1: first the 1, only the 9 down: no foul, the table stays open, the 9 stays down, the turn passes',
+    !other.verdict.foul && other.open && other.groups[0] === null && !ball(other, 9).on && other.turn === 1 && !other.inHand, JSON.stringify([other.verdict.foul, other.open, other.turn, other.inHand]));
+  /* every legal ball behind the string (s8) */
+  const allBehind = S.copyGame(g0);
+  let bx = S.HEAD_X - 0.08;
+  for (const b of allBehind.balls) if (b.n > 0 && b.n !== 8) { b.x = bx; b.y = 0.1 + (b.n % 7) * 0.13; bx -= 0.025; }
+  const nearest = allBehind.balls.filter(b => b.n > 0 && b.n !== 8).reduce((a, b) => b.x > a.x ? b : a);
+  const sc8 = S.chooseOption(S.judge(allBehind, res(allBehind, { first: nearest.n, rails: rails4, potted: [0] })), 'take');
+  check('WPA Heyball s8: in hand behind the string with every legal ball behind it: the choice to have one spotted or play it from there',
+    sc8.option && sc8.option.kind === 'kitchenSpot' && sc8.option.who === 1 && sc8.option.choices.join() === 'spot,play', JSON.stringify(sc8.option));
+  const spotted = S.chooseOption(sc8, 'spot'), played = S.chooseOption(sc8, 'play');
+  check('...spot: the one nearest the string goes to the foot spot, the rest stay, the hand kept; play: nothing moves',
+    Math.abs(ball(spotted, nearest.n).x - S.FOOT[0]) < 2 * S.BALL_R + 1e-9 && spotted.balls.filter(b => b.n > 0 && b.n !== 8 && b.n !== nearest.n).every(b => b.x === ball(allBehind, b.n).x)
+    && spotted.inHand === 'kitchen' && !spotted.option && ball(played, nearest.n).x === nearest.x && played.inHand === 'kitchen' && !played.option, JSON.stringify(ball(spotted, nearest.n)));
+  const direct = S.judge(played, res(played, { first: nearest.n, crossed: false })), banked = S.judge(played, res(played, { first: nearest.n, crossed: true }));
+  check('...played from there: hitting it without the cue ball crossing the string first is a foul; banked back over the string it is good',
+    /behind the head string/.test(direct.verdict.foul || '') && !banked.verdict.foul, JSON.stringify([direct.verdict.foul, banked.verdict.foul]));
+  const asked = [scr, off5, e8f, none, sc8], cpuAns = asked.map(o => S.cpuOption(o, 'medium'));
+  check('the CPU answers every one of these choices with a choice it was offered', asked.every((o, i) => o.option.choices.includes(cpuAns[i])), JSON.stringify(cpuAns));
+  /* the 8, uncalled (WPA Heyball s11: "no need to call your shot / designate a pocket, even for the 8-ball or the shootout. Flukes are allowed.") */
   const on8 = midGame([9, 10, 8], { open: false, groups: ['solids', 'stripes'] });
-  const need = S.callNeed(on8);
-  check('the 8 goes to a nominated pocket: a shot at it needs a pocket called (obvious shots are called from the aim); a shot at a group ball needs none',
-    !!need && need.pocket && need.auto && S.callNeed(mid) === null, JSON.stringify(need));
-  const win = S.judge(S.withCall(on8, { ball: 8, pocket: 2 }), res(on8, { first: 8, potted: [8], pocketOf: { 8: 2 } }));
-  check('the 8 in its called pocket with the group clear wins the rack', win.winner === 0 && /legally/.test(win.verdict.why));
-  const other = S.judge(S.withCall(on8, { ball: 8, pocket: 2 }), res(on8, { first: 8, potted: [8], pocketOf: { 8: 5 } }));
-  check('the 8 in another pocket than the one called loses the rack', other.winner === 1 && /uncalled pocket/.test(other.verdict.why));
-  const early = S.judge(S.withCall(mid, { ball: 1, pocket: 0 }), res(mid, { first: 1, potted: [1, 8] }));
+  check('no shot is called, not the 8 either: a shot at the 8 needs no call', S.callNeed(on8) === null && S.callNeed(mid) === null);
+  const anyPocket = [0, 1, 2, 3, 4, 5].map(k => S.judge(on8, res(on8, { first: 8, potted: [8], pocketOf: { 8: k } })));
+  check('the 8 in any of the six pockets with the group clear wins the rack', anyPocket.every(w => w.winner === 0 && /legally/.test(w.verdict.why)), JSON.stringify(anyPocket.map(w => w.winner)));
+  const stale = S.judge(S.withCall(on8, { ball: 8, pocket: 2 }), res(on8, { first: 8, potted: [8], pocketOf: { 8: 5 } }));
+  check('a call left on the game changes nothing: the 8 elsewhere than named still wins', stale.winner === 0);
+  const early = S.judge(mid, res(mid, { first: 1, potted: [1, 8] }));
   check('the 8 potted before the group is clear loses the rack', early.winner === 1 && /before the group/.test(early.verdict.why));
-  const scr8 = S.judge(S.withCall(on8, { ball: 8, pocket: 2 }), res(on8, { first: 8, potted: [8, 0], pocketOf: { 8: 2 } }));
+  const scr8 = S.judge(on8, res(on8, { first: 8, potted: [8, 0], pocketOf: { 8: 2 } }));
   check('the 8 potted on a foul (a scratch) loses the rack', scr8.winner === 1 && /foul/.test(scr8.verdict.why));
-  const off8 = S.judge(S.withCall(on8, { ball: 8, pocket: 2 }), Object.assign(res(on8, { first: 8, potted: [8] }), { pocketOf: { 8: -1 } }));
+  const off8 = S.judge(on8, Object.assign(res(on8, { first: 8, potted: [8] }), { pocketOf: { 8: -1 } }));
   check('the 8 driven off the table loses the rack', off8.winner === 1 && /left the table/.test(off8.verdict.why));
   /* 8-ball's house rules untouched */
   S.setTable('7');
@@ -183,7 +223,7 @@ S.setTable('heyball');
   check('fuzz, 250 random shots: no NaN, no ball off the bed or still rolling, no overlap', !bad && !out && !overl, JSON.stringify({ bad, out, overl }));
   const brk = () => JSON.stringify(S.simulateShot(S.newGame('heyball').balls, { angle: 0.02, power: 1, spin: { x: 0.2, y: -0.2 } }));
   check('deterministic: the same break, the same result', brk() === brk());
-  /* whole racks, CPU against CPU at each level: the options answered as the page answers them, the CPU's call with its shot */
+  /* whole racks, CPU against CPU at each level: the options answered as the page answers them, the CPU's shot uncalled */
   const rack = (lv, seed) => {
     let g = S.newGame('heyball'), shots = 0, pots = 0, fouls = 0, bad = 0;
     while (g.winner === null && shots < 300) {
@@ -204,14 +244,14 @@ S.setTable('heyball');
 }
 S.setTable('7');
 
-/* calling a pocket by touch in the 3D view (5c): with the 8 by a far corner, some pockets are off the screen or at its
+/* calling a pocket by touch in the 3D view (5c), on WPA 8-ball, whose 8 is called (Chinese 8-ball calls nothing): with the 8 by a far corner, some pockets are off the screen or at its
    edge from the player's camera. Every pocket is still callable by real touch: from the call's menu (a tap on the bar,
    then the pocket in its picture of the table as seen), and by a tap on its hole wherever the hole is on the table;
    each pocket's words come from the camera ("Far Left"), never two alike; the obvious call from the aim works in 3D */
 async function call3d(page, size) {
   const ev = (f, a) => page.evaluate(f, a), out = { size, pockets: [] };
   const lay = await ev(async () => {
-    setSetting('view', '3d'); settings.autoAim = false; felt.start('heyball', { cpu: false });
+    setSetting('view', '3d'); settings.autoAim = false; felt.start('8', { cpu: false, rules: { ruleset: '8-wpa', call: { mode: 'official', detail: 'pocket', obvious: true } } });
     await new Promise(r => setTimeout(r, 500));
     const g = felt.game;
     Object.assign(g, { breakShot: false, open: false, groups: ['solids', 'stripes'], inHand: null, option: null, turn: 0, winner: null });
@@ -292,8 +332,8 @@ async function call3d(page, size) {
   check('a real tap on the card opens its setup: "Chinese 8-Ball", no table or pocket choice (its own table), the tutorial row, the form whole', su.open && su.kind === 'heyball' && su.title === 'Chinese 8-Ball' && su.pool && su.tut === 'Learn Chinese 8-Ball' && su.fit, JSON.stringify(su));
   await tap('#rulesInfo');
   const pop = await ev(() => ({ open: !rulesPop.hidden, title: rulesPopTitle.textContent, src: rulesPopSrc.textContent, body: rulesPopBody.textContent }));
-  check('the rules popover: "Chinese 8-Ball Rules", the World Chinese 8-Ball Masters rules, the open table after the break and the 8 to a named pocket',
-    pop.open && pop.title === 'Chinese 8-Ball Rules' && pop.src === 'World Chinese 8-Ball Masters rules' && /table open/.test(pop.body) && /pocket you name/.test(pop.body) && /another pocket/.test(pop.body), JSON.stringify(pop));
+  check('the rules popover: "Chinese 8-Ball Rules", WPA Heyball, the open table after the break, the 8 to any pocket',
+    pop.open && pop.title === 'Chinese 8-Ball Rules' && pop.src === 'WPA Rules of Heyball, 2025' && /table open/.test(pop.body) && /any pocket/.test(pop.body) && !/another pocket|pocket you name/.test(pop.body), JSON.stringify(pop));
   check('setup and popover: 44 px targets, 4.5:1 text', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await tap('#rulesPopDone');
   await tap('#vs2p');
@@ -330,8 +370,7 @@ async function call3d(page, size) {
   });
   check('the potted balls sit in their windows as at 8-ball (solids up the left, stripes up the right), and each seat shows its group',
     pw.on && pw.left.join() === '1,2' && pw.right.join() === '9' && /Potted/.test(pw.words) && /solids/.test(pw.say[0]) && /stripes/.test(pw.say[1]), JSON.stringify(pw));
-  /* the 8 to a named pocket by a real tap: with the group clear the 8 is the one legal ball, so a tap on a pocket's
-     hole is the whole call (even with no aim or auto aim to name the ball) */
+  /* on the 8 nothing is called: the bar is ready and no call stands, whatever a tap on a pocket does */
   const hole = await ev(async () => {
     const g = felt.game;
     for (const b of g.balls) if (b.n > 0 && b.n < 8) b.on = false;
@@ -341,8 +380,8 @@ async function call3d(page, size) {
   });
   await page.touchscreen.tap(hole[0], hole[1]);
   await page.waitForTimeout(250);
-  const cs = await ev(() => { const c = felt.callState; return { call: c.call && { ball: c.call.ball, pocket: c.call.pocket }, ready: c.ready, lab: c.lab }; });
-  check('on the 8: a real tap on a pocket\'s hole calls the 8 in that pocket, and the bar is ready', cs.call && cs.call.ball === 8 && cs.call.pocket === 2 && cs.ready, JSON.stringify(cs));
+  const cs = await ev(() => { const c = felt.callState; return { call: c.call && c.call.pocket, need: callNeed(felt.game), ready: c.ready, lab: c.lab }; });
+  check('on the 8: no call needed, none made by a tap on a pocket, and the bar is ready', cs.need === null && cs.call == null && cs.ready && !/Call/.test(cs.lab || ''), JSON.stringify(cs));
   /* the 3D view */
   const v3 = await ev(async () => { setSetting('view', '3d'); felt.start('heyball'); await new Promise(r => setTimeout(r, 600)); return { live: !!felt.view3 && felt.view3.live, drawn: felt.view3 && felt.view3.drawn.length, on: felt.game.balls.filter(b => b.on).length, table: TABLE }; });
   check('the 3D view draws the Chinese 8-ball table and every ball', v3.table === 'heyball' && (!v3.live || v3.drawn >= 1), JSON.stringify(v3));
@@ -373,7 +412,7 @@ async function call3d(page, size) {
   await ev(() => felt.quitToHome && felt.quitToHome());
   /* How to play */
   const help = await ev(() => { showHelp('heyball'); const p = panHey; return { shown: !p.hidden, title: helpTitle.textContent, rows: [...p.querySelectorAll('.rules li b')].map(b => b.textContent), go: tutGoH.textContent.trim() }; });
-  check('How to play: a Chinese 8-Ball page (the table, the break, the open table, the 8 to a named pocket) ending with its tutorial',
+  check('How to play: a Chinese 8-Ball page (the table, the break, the open table, the 8 to any pocket) ending with its tutorial',
     help.shown && help.title === 'Chinese 8-Ball' && help.rows.join() === 'The Table,Break,Open Table,Your Shot,Fouls,Win,Lose' && /Chinese 8-Ball Tutorial/.test(help.go), JSON.stringify(help));
   check('How to play page: 44 px targets, 4.5:1 text', (await smallTargets(page)).length === 0 && (await lowContrast(page)).length === 0, JSON.stringify([await smallTargets(page), await lowContrast(page)]));
   await ev(() => backToMenu());

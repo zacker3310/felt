@@ -191,7 +191,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   check('ball in hand: a tap away from the cue ball never moves it', JSON.stringify((await st()).c) === JSON.stringify(c0));
   /* the call: 10-ball, the 1 in line with the foot corner, tap the 1 then the pocket */
   await t.ev(() => {
-    setSetting('rules10', '10-house'); felt.start('10');
+    setSetting('rules10', '10-wpa'); felt.start('10');
     const g = felt.game, A = POCKET_AIM[5], d = [A[0] - TL / 2, A[1] - TW / 2], l = Math.hypot(d[0], d[1]), u = [d[0] / l, d[1] / l];
     const b1 = [A[0] - u[0] * 0.4, A[1] - u[1] * 0.4], c = [b1[0] - u[0] * 0.55, b1[1] - u[1] * 0.55];
     for (const x of g.balls) x.on = x.n === 0 || x.n === 1 || x.n === 10;
@@ -260,7 +260,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   if (SHOTS) await page.screenshot({ path: path.join(SHOTS, 'v3-after-pull.png') });
   /* the same shot again under each other choice */
   const again = (after, rm = false) => t.ev(([pre, after, rm]) => {
-    setSetting('viewAfter', after); setSetting('reduceMotion', rm); setSetting('rules10', '10-house'); felt.start('10');
+    setSetting('viewAfter', after); setSetting('reduceMotion', rm); setSetting('rules10', '10-wpa'); felt.start('10');
     const g = felt.game;
     g.balls = pre.balls.map(x => ({ ...x })); Object.assign(g, { breakShot: false, inHand: null, pushAvail: false });
     return 1;
@@ -306,7 +306,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
   await t.ev(() => { setSetting('reduceMotion', false); setSetting('viewAfter', 'pull'); felt.speed = 4; });
   /* the same shot top-down */
   const flat = await t.ev(pre => {
-    setSetting('view', 'top'); setSetting('rules10', '10-house'); felt.start('10');
+    setSetting('view', 'top'); setSetting('rules10', '10-wpa'); felt.start('10');
     const g = felt.game;
     g.balls = pre.balls.map(x => ({ ...x })); Object.assign(g, { breakShot: false, inHand: null, pushAvail: false });
     return 1;
@@ -366,7 +366,7 @@ const frames = (page, n = 2) => page.evaluate(n => new Promise(r => { let k = 0;
      run straight up the middle of the view; each cloth, read off the GL canvas right after a draw */
   const lineShot = (cloth, pitch, dist, calls = true) => t.ev(([cloth, pitch, dist, calls]) => {
     setSetting('cloth', cloth); setSetting('viewPitch', pitch); setSetting('viewDist', dist); settings.calls.highlight = calls;
-    setSetting('rules10', '10-house'); felt.start('10');
+    setSetting('rules10', '10-wpa'); felt.start('10');
     const g = felt.game, A = POCKET_AIM[5], u = [A[0] - TL * 0.3, A[1] - TW * 0.5], l = Math.hypot(u[0], u[1]);
     u[0] /= l; u[1] /= l;
     const b1 = [A[0] - u[0] * 0.8, A[1] - u[1] * 0.8], c = [b1[0] - u[0] * 0.5, b1[1] - u[1] * 0.5];

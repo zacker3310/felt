@@ -31,8 +31,10 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   {
     const t = await open('', { viewport: { width: 440, height: 956 }, init: `try { if (!sessionStorage.getItem('mig')) { localStorage.setItem('felt.settings', ${JSON.stringify(JSON.stringify(V2))}); localStorage.removeItem('felt.settings.bak'); sessionStorage.setItem('mig', '1'); } } catch (e) { }` });
     const s = await t.page.evaluate(() => felt.settings);
-    const kept = Object.keys(V2).filter(k => k !== 'sv' && k !== 'future').filter(k => JSON.stringify(s[k]) !== JSON.stringify(V2[k]));
+    /* rules10: '10-house' is gone (WPA 6.5, 1.7: the same rules as 10-wpa), and validation takes it to the default */
+    const kept = Object.keys(V2).filter(k => k !== 'sv' && k !== 'future' && k !== 'rules10').filter(k => JSON.stringify(s[k]) !== JSON.stringify(V2[k]));
     check('migration: an sv 2 save keeps every value it had (none at its default), and is now sv 3', kept.length === 0 && s.sv === 3, JSON.stringify({ kept, s }));
+    check('migration: a stored rules10 of 10-house, a ruleset no longer there, falls to the default', s.rules10 === '10-wpa', String(s.rules10));
     check('migration: the sv 3 settings take their defaults', s.hand === 'right' && s.bar === 'mid' && s.replays === true && s.reduceMotion === false && s.vol === 100 && s.volFx === 100
       && s.marks === false && s.text === 100 && s.hcAim === false && s.keyShoot === false, JSON.stringify(s));
     const bak = await t.page.evaluate(() => localStorage.getItem('felt.settings.bak'));
@@ -40,7 +42,7 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
     await t.page.evaluate(() => setSetting('marks', true));
     const st = await t.page.evaluate(() => JSON.parse(localStorage.getItem('felt.settings')));
     check('migration: the first write stores sv 3 with every old value, the new one, and the unknown key it found', st.sv === 3 && st.marks === true && st.future && st.future.kept === 1
-      && Object.keys(V2).filter(k => k !== 'sv').every(k => JSON.stringify(st[k]) === JSON.stringify(V2[k])), JSON.stringify(st));
+      && Object.keys(V2).filter(k => k !== 'sv' && k !== 'rules10').every(k => JSON.stringify(st[k]) === JSON.stringify(V2[k])), JSON.stringify(st));
     await t.page.evaluate(() => { localStorage.setItem('felt.settings', JSON.stringify({ guide: 'off', cloth: 'red', sound: false })); localStorage.setItem('felt.settings.bak', 'older'); });
     await t.page.reload();
     await t.page.waitForFunction(() => window.booted === true);
@@ -140,14 +142,13 @@ const V2 = { guide: 'short', cpu: true, level: 'hard', sound: false, haptics: fa
   await p.click('#prefsBtn');
   await p.click('#prGame');
   const rows = await p.evaluate(() => [...rulesRows.querySelectorAll('.prow .plab')].map(l => l.textContent));
-  check('Gameplay: a default-rules row for each game with a choice of rulesets (8, 9 and 10-ball), then the stalemate re-rack', rows.join('|') === '8-Ball|9-Ball|10-Ball|House Re-Rack on a Stalemate (8 and 9-Ball)', JSON.stringify(rows));
+  check('Gameplay: a default-rules row for each game with a choice of rulesets (8 and 9-ball: WPA 6.5 and 1.7 leave 10-ball one), then the stalemate re-rack', rows.join('|') === '8-Ball|9-Ball|House Re-Rack on a Stalemate (8 and 9-Ball)', JSON.stringify(rows));
   await choose(p, '#prs8-wpa');
-  await choose(p, '#prs10-house');
   await choose(p, '#prc25');
   await choose(p, '#pcr5');
   const g = await p.evaluate(() => { felt.start('8'); const a = felt.game.rules.id; felt.start('10'); const b = felt.game.rules.id; felt.start('straight'); const c = felt.game.rules.race || felt.game.race; felt.start('carom'); const d = felt.game.race; felt.quitToHome(); return { a, b, c, d, pressed: document.getElementById('prs8-wpa').getAttribute('aria-pressed'), setup: rs8Wpa.getAttribute('aria-pressed') }; });
-  check('Gameplay: the default rules and races chosen here start the next games on them (8-ball WPA, 10-ball obvious free, 14.1 to 25, carom to 5), the setup agreeing',
-    g.a === '8-wpa' && g.b === '10-house' && g.c === 25 && g.d === 5 && g.pressed === 'true' && g.setup === 'true', JSON.stringify(g));
+  check('Gameplay: the default rules and races chosen here start the next games on them (8-ball WPA, 14.1 to 25, carom to 5), the setup agreeing; 10-ball on WPA',
+    g.a === '8-wpa' && g.b === '10-wpa' && g.c === 25 && g.d === 5 && g.pressed === 'true' && g.setup === 'true', JSON.stringify(g));
   await p.evaluate(() => { setSetting('rules8', '8-house'); setSetting('rules10', '10-wpa'); setSetting('race141', 50); setSetting('caromRace', 10); });
   await p.evaluate(() => { felt.start('8', { level: 'easy', table: '7', pockets: 'regulation', rules: { ruleset: '8-wpa', call: { mode: 'all' } } }); felt.pause(); });
   await p.click('#pPrefsBtn');

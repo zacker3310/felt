@@ -53,7 +53,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     return { opened: xy[2], closed: await p.evaluate(() => !callBar.classList.contains('open')) };
   };
   /* a set-up 10-ball table: the 1 straight in line with the foot corner (5), the 10 away from it */
-  await p.evaluate(() => { felt.speed = 40; setSetting('rules10', '10-house'); settings.autoAim = false; felt.start('10'); });
+  await p.evaluate(() => { felt.speed = 40; settings.autoAim = false; felt.start('10', { rules: { ruleset: '10-wpa', options: { safetyCall: true } } }); cpuMode = false; });   /* two players: a start with options plays the CPU */
   await p.evaluate(() => {
     const g = felt.game, A = POCKET_AIM[5], d = [A[0] - TL / 2, A[1] - TW / 2], l = Math.hypot(d[0], d[1]), u = [d[0] / l, d[1] / l];
     const b1 = [A[0] - u[0] * 0.4, A[1] - u[1] * 0.4], c = [b1[0] - u[0] * 0.55, b1[1] - u[1] * 0.55];
@@ -67,7 +67,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
   });
   await p.waitForTimeout(150);
   let s = await state();
-  check('touch: an obvious shot is called from the aim (house 10-ball): "Calling: 1 in top right corner, tap to change"', s.open && s.bar && s.call && s.call.ball === 1 && s.call.pocket === 5 && s.call.auto && s.ready && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text) && /tap to change/.test(s.sub), JSON.stringify(s));
+  check('touch: an obvious shot is called from the aim (10-ball, WPA 1.7; Safety kept on by an option, for the menu checks below): "Calling: 1 in top right corner, tap to change"', s.open && s.bar && s.call && s.call.ball === 1 && s.call.pocket === 5 && s.call.auto && s.ready && /Calling: 1 in (top|bottom) (left|right) corner/.test(s.text) && /tap to change/.test(s.sub), JSON.stringify(s));
   check('touch: the power bar\'s label reads the call ("1 \u00b7 Top Right"), and offers its menu (the chevron)', /^1 \u00b7 (Top|Bottom) (Left|Right)$/.test(s.lab) && s.bar && (await p.evaluate(() => powerBar.classList.contains('calls') && getComputedStyle(callGlyph).display !== 'none')), JSON.stringify(s));
   check('touch: nothing on screen under 44 px', (await smallTargets(p)).length === 0, JSON.stringify(await smallTargets(p)));
   await barTap();
@@ -194,7 +194,7 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
 
   /* ---- 5. the CPU calls its shots and answers options (10-ball, the CPU breaking) ---- */
   await p.evaluate(() => { setSetting('rules10', '10-wpa'); felt.speed = 60; felt.start('10', { level: 'easy', table: '7', pockets: 'regulation', breaker: 1, rules: { ruleset: '10-wpa' } }); });
-  /* the player hands the table straight back (a declared safety, softly at the ball on) until the CPU has called a few */
+  /* the player hands the table straight back (softly at the ball on) until the CPU has called a few */
   let cpu = null;
   for (let i = 0; i < 12; i++) {
     await p.waitForFunction(() => felt.game.winner !== null || (felt.game.turn === 0 && ['aim', 'choose'].includes(felt.state)), null, { timeout: 120000 });
@@ -203,14 +203,24 @@ const OLD = { guide: 'short', cloth: 'red', table: '9', last: '9', camV: 2, came
     await p.evaluate(() => {
       if (felt.state === 'choose') { felt.choose(felt.game.option.choices[0]); return; }
       const g = felt.game, c = g.balls[0], t = g.balls.find(b => b.n === legalTargets(g)[0]);
-      felt.setCall({ safety: true });
+      felt.setCall({ ball: t.n, pocket: 0 });   /* WPA 6.5: no safety at 10-ball, a called miss */
       felt.shoot(Math.atan2(t.y - c.y, t.x - c.x), 0.12, 0);
     });
     await settled(p);
   }
   check('CPU: it calls every shot it plays (ball and pocket, or a safety or push), and plays on', cpu.calls.length >= 3 && cpu.calls.every(c => c.safety || c.push || (c.ball != null && c.pocket != null)) || (cpu.w !== null && cpu.calls.every(c => c.safety || c.push || c.ball != null)), JSON.stringify(cpu));
-  const opt = await p.evaluate(() => felt.game.calls.filter(c => c.p === 0).every(c => c.safety));
-  check('CPU: the player\'s declared safeties are on the record too', opt);
+  const opt = await p.evaluate(() => felt.game.calls.filter(c => c.p === 0).every(c => c.ball != null));
+  check('CPU: the player\'s calls are on the record too', opt);
+  /* WPA 6.5: no safety at 10-ball, in the real ruleset: not in the menu, and the CPU declares none */
+  const noSafe = await p.evaluate(async () => {
+    felt.start('10', { level: 'easy', table: '7', pockets: 'regulation', rules: { ruleset: '10-wpa' } });
+    await new Promise(r => setTimeout(r, 300));
+    const g = felt.game;
+    Object.assign(g, { breakShot: false, inHand: null, pushAvail: false, turn: 0, option: null });
+    state = 'aim'; hud(); hudCall();
+    return { hidden: safetyBtn.hidden, cpuSafe: g.calls.filter(c => c.safety).length };
+  });
+  check('WPA 6.5 10-ball: no Safety in the call\'s menu', noSafe.hidden, JSON.stringify(noSafe));
 
   /* ---- 6. the three newer games: their cards on home, their setups, and their rules notes ---- */
   await p.evaluate(() => felt.quitToHome());

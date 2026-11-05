@@ -20,7 +20,7 @@
 const { check, done, open, choose, openPop, smallTargets, lowContrast } = require('./lib.cjs');
 const RAMP = [34, 28, 22, 20, 17, 16, 15, 13, 12, 11];
 const KINDS = ['8', '9', '10', 'straight', 'rotation', 'snooker', 'carom', 'bumper', 'heyball'];
-const RULESETS_10 = { wpa: 'Lowest ball first, and call every shot, obvious or not.', house: 'an obvious shot is called for you from your aim' };
+const RULESETS_9 = { wpa: 'Push out on the shot after the break', house: 'A legal 9 wins, early or on the break' };
 
 /* the screens the components appear on, each opened by the page's own functions */
 const SCREENS = [
@@ -182,23 +182,23 @@ const ROOTS = '#setupSheet, #prefsSheet, #helpSheet, #statsSheet, #modesSheet, #
     check('setup: no fine print on any game\'s form; the (i) at the end of the Large Title (44 px, a 22 px info.circle centred on the title\'s line) opens by a real tap a popover by it on the menu material: "<Game> Rules" (Headline), the ruleset (Footnote), its description (Subheadline); Esc closes it, the sheet stays, focus back on the button',
       !badRows.length, JSON.stringify(badRows.slice(0, 3)));
     /* it follows a change of rules while open, and a real pick after it closes */
-    await pe(() => { backToMenu(); setSetting('cpu', false); setSetting('rules10', '10-wpa'); showSetup('10'); });
+    await pe(() => { backToMenu(); setSetting('cpu', false); setSetting('rules9', '9-wpa'); showSetup('9'); });
     await pg.waitForTimeout(300);
     await tapEl('#rulesInfo');
     const u1 = await pe(() => ({ t: rulesPopBody.textContent, id: rulesPop.dataset.ruleset }));
-    await pe(() => setSetting('rules10', '10-house'));
+    await pe(() => setSetting('rules9', '9-house'));
     const u2 = await pe(() => ({ t: rulesPopBody.textContent, id: rulesPop.dataset.ruleset, open: !rulesPop.hidden, src: rulesPopSrc.textContent }));
-    check('the popover follows the rules while open (WPA to Obvious Shots Free: the text changes in place)', u1.id === '10-wpa' && u1.t.includes(RULESETS_10.wpa) && u2.id === '10-house' && u2.t.includes(RULESETS_10.house) && u2.open, JSON.stringify([u1, u2]));
+    check('the popover follows the rules while open (WPA to House Rules: the text changes in place)', u1.id === '9-wpa' && u1.t.includes(RULESETS_9.wpa) && u2.id === '9-house' && u2.t.includes(RULESETS_9.house) && u2.open, JSON.stringify([u1, u2]));
     /* a tap outside (on Break, of all places) closes it and does nothing else */
     await tapEl('#breakBtn');
     const o = await pe(() => ({ open: !rulesPop.hidden, sheet: setupSheet.classList.contains('show'), state: felt.state, menu: menu.classList.contains('show') || setupSheet.classList.contains('show') }));
     check('a tap outside the popover (on Break) closes it and does nothing else: the sheet stays, no game starts', !o.open && o.sheet && o.menu, JSON.stringify(o));
-    await choose(pg, '#rs10Wpa', { touch: true });
+    await choose(pg, '#rs9Wpa', { touch: true });
     await tapEl('#rulesInfo');
-    const u3 = await pe(() => ({ id: rulesPop.dataset.ruleset, s: felt.settings.rules10, open: !rulesPop.hidden }));
+    const u3 = await pe(() => ({ id: rulesPop.dataset.ruleset, s: felt.settings.rules9, open: !rulesPop.hidden }));
     await tapEl('#rulesPopDone');
     const u4 = await pe(() => ({ open: !rulesPop.hidden, focus: document.activeElement === rulesInfo }));
-    check('a real pick of WPA in Rules, then the (i): the popover shows WPA; Done closes it, focus back on the button', u3.id === '10-wpa' && u3.s === '10-wpa' && u3.open && !u4.open && u4.focus, JSON.stringify([u3, u4]));
+    check('a real pick of WPA in Rules, then the (i): the popover shows WPA; Done closes it, focus back on the button', u3.id === '9-wpa' && u3.s === '9-wpa' && u3.open && !u4.open && u4.focus, JSON.stringify([u3, u4]));
     check('6: no page errors', !P.errors.length, P.errors.join(' | '));
     await P.browser.close();
   }

@@ -1834,8 +1834,6 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <div class="seg pop" role="group" aria-labelledby="r8Lab"><button id="rs8House" aria-pressed="true">House Rules</button><button id="rs8Wpa" aria-pressed="false">WPA</button></div></div>
       <div class="field r9" hidden><span class="label" id="r9Lab">Rules</span>
         <div class="seg pop" role="group" aria-labelledby="r9Lab"><button id="rs9House" aria-pressed="true">House Rules</button><button id="rs9Wpa" aria-pressed="false">WPA, Push Out</button></div></div>
-      <div class="field r10" hidden><span class="label" id="r10Lab">Rules</span>
-        <div class="seg pop" role="group" aria-labelledby="r10Lab"><button id="rs10Wpa" aria-pressed="true">WPA</button><button id="rs10House" aria-pressed="false">Obvious Shots Free</button></div></div>
       <div class="field str" hidden><span class="label" id="raceLab">Race To</span>
         <div class="seg pop" role="group" aria-labelledby="raceLab"><button id="rc25" aria-pressed="false">25</button><button id="rc50" aria-pressed="true">50</button><button id="rc100" aria-pressed="false">100</button><button id="rc150" aria-pressed="false">150</button></div></div>
       <div class="field stm" hidden><span class="label" id="smLab">Stalemate</span>
@@ -2129,6 +2127,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <ul class="fine">
         <li>Once your group is gone, the 8 is the ball to hit first.</li>
         <li>An 8 potted on the break is spotted and the breaker carries on.</li>
+        <li>Under WPA rules: a total miss on the break is an illegal break; a ball off the table on it gives your opponent the table as it lies or ball in hand behind the head string; on an open table with a group gone, the 8 may be played; a called ball must be your own.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGo8" data-tut="8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 8-Ball Tutorial</span></button></div>
     </section>
@@ -2144,6 +2143,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
         <li>The warning after two fouls shows on the chip and in the pause menu.</li>
+        <li>Under WPA rules: three balls must drop or lie past the head string after a break, or your opponent may hand it back and any 9 is spotted. No push out after a foul on the break.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGo9" data-tut="9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the 9-Ball Tutorial</span></button></div>
     </section>
@@ -2175,15 +2175,16 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><div><b>Score a Point</b><p>Your cue ball hits both other balls, and three cushions before the second one.</p></div></li>
         <li><div><b>Counting Cushions</b><p>Any order. The same cushion twice counts twice, and cushions before the first ball count too.</p></div></li>
         <li><div><b>Go Again</b><p>Score and you shoot again. Otherwise the turn passes.</p></div></li>
-        <li><div><b>Break</b><p>Hit the red first.</p></div></li>
-        <li><div><b>Fouls</b><p>A ball off the table, or not the red first on the break. No point, and the turn passes.</p></div></li>
+        <li><div><b>Break</b><p>Hit the red first, directly: no cushion before it.</p></div></li>
+        <li><div><b>Fouls</b><p>A ball off the table, not the red first on the break, or your cue ball played straight into a ball it touches. No point, and the turn passes.</p></div></li>
         <li><div><b>Win</b><p>The first to the race: 5, 10 or 15 points, chosen when you start.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
         <li>In the one-cushion game, one cushion is enough.</li>
         <li>The break: the red on the foot spot, your opponent's ball on the head spot, yours beside it on the head string.</li>
-        <li>A ball off the table goes back on its spot.</li>
+        <li>A ball off the table goes back on its spot: the red the foot spot, the next shooter's ball the head spot, the other the centre spot. A spot taken: the spot of the ball on it.</li>
+        <li>With your cue ball touching a ball you may play on, the other ball or a cushion first, or have the touching balls spotted.</li>
         <li>The full aim guide traces your cue ball through its first three cushions, a dot on each.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoC" data-tut="carom"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the Three-Cushion Tutorial</span></button></div>
@@ -2197,44 +2198,45 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
           <span class="cols" aria-hidden="true"><span><i style="background:#f4c430"></i>2</span><span><i style="background:#1f9a55"></i>3</span><span><i style="background:#8a5530"></i>4</span><span><i style="background:#2f6fd0"></i>5</span><span><i style="background:#f08cb4"></i>6</span><span><i class="k"></i>7</span></span>
           <span class="sr">Yellow 2, green 3, brown 4, blue 5, pink 6, black 7.</span></div></li>
         <li><div><b>Break</b><p>Place the cue ball anywhere in the D, the half circle on the baulk line. Hit a red first.</p></div></li>
-        <li><div><b>Fouls</b><p>Missing every ball, hitting or potting a ball you are not on, or going in-off. Your opponent scores 4 to 7.</p></div></li>
-        <li><div><b>After a Foul</b><p>The other player chooses: play from where the balls lie (from the D after an in-off), or make the offender play again from there.</p></div></li>
-        <li><div><b>Free Ball</b><p>Snookered after a foul? Nominate any colour as the ball on. It counts as a red, or as the colour you are on, and it comes back on its spot.</p></div></li>
+        <li><div><b>Fouls</b><p>Missing every ball, hitting or potting a ball you are not on, going in-off, or playing into a ball your cue ball touches. Your opponent scores 4 to 7.</p></div></li>
+        <li><div><b>After a Foul</b><p>The other player chooses: play from where the balls lie (from the D after an in-off), or make the offender play again from there, with no free ball.</p></div></li>
+        <li><div><b>Free Ball</b><p>Snookered by a ball after a foul? Nominate any colour as the ball on: hit it first. It counts as a red, or as the colour you are on, and it comes back on its spot.</p></div></li>
         <li><div><b>Foul and a Miss</b><p>Miss the ball on when you could have hit it, and they may have the balls put back for you to play again. Three such misses with a ball on in full view lose the frame.</p></div></li>
         <li><div><b>Win the Frame</b><p>Most points wins. You can concede from the pause menu.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
-        <li>A foul is worth the ball on or the highest ball involved, whichever is more, from 4 up to 7.</li>
-        <li>With only the black left, the first score or foul ends the frame. If that leaves it level, the black is re-spotted and the other player plays it from the D.</li>
+        <li>A foul is worth the ball on or the highest ball involved, whichever is more, from 4 up to 7. A red played on straight after a red costs 7.</li>
+        <li>With only the black left, the first score or foul ends the frame. If that leaves it level, the black is re-spotted, lots are drawn, and the winner chooses who plays it from the D.</li>
         <li>The usual break clips the end red of the back row and brings the cue ball back to baulk.</li>
         <li>The bar on the top rail shows the break, the ball on and the points left, and says when snookers are needed.</li>
         <li>Choose one frame or best of three, and the 10 ft or 12 ft table, when you start.</li>
-        <li>The referee in felt is a fixed rule: a miss is called when the ball on could be struck on both edges, or hit full ball, unless only the black is left or the striker needs snookers. The second miss in a row brings a warning.</li>
+        <li>The referee in felt is a fixed rule: a miss is called when any part of the ball on could be struck on a clear line, unless only the black is left or the striker needs snookers; from a put-back it is called whatever the scores. The second miss in a row brings a warning.</li>
         <li>A free ball may not be used to snooker the opponent on every ball on, unless only the pink and black remain.</li>
-        <li>Balls never leave the table's plane in felt, so the jump shot foul cannot happen.</li>
+        <li>A cue ball that jumps over a ball before hitting one is a foul, at the value of the ball on. A cushion's corner in the way is not a snooker.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoS" data-tut="snooker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the Snooker Tutorial</span></button></div>
     </section>
     <section class="pan" id="panHey" aria-labelledby="helpTitle" hidden>
       <ul class="group rules">
-        <li><div><b>The Table</b><p>A 9 ft table with snooker pockets round pool balls: rounded jaws, the corners about 85 mm across. A ball has to be dead on line to drop.</p></div></li>
+        <li><div><b>The Table</b><p>A 9 ft table with snooker pockets round pool balls: rounded jaws, far tighter than a pool table's. A ball has to be dead on line to drop.</p></div></li>
         <li><div><b>Break</b><p>Ball in hand behind the head string. Pot a ball or drive four object balls to the cushions.</p></div></li>
-        <li><div><b>Open Table</b><p>Balls potted on the break do not choose the groups. The first legal pot after the break does: solids (1 to 7) or stripes (9 to 15).</p></div></li>
+        <li><div><b>Open Table</b><p>Balls potted on the break do not choose the groups. The first legal pot after the break does: the group of the ball you hit first, solids (1 to 7) or stripes (9 to 15). Only the other group down: the table stays open and the turn passes.</p></div></li>
         <li><div><b>Your Shot</b><p>Hit one of yours first. Then pot a ball or send any ball to a rail.</p></div></li>
         <li><div><b>Fouls</b><p>The wrong ball first, no rail, or the cue ball down. Your opponent gets ball in hand anywhere.</p></div></li>
-        <li><div><b>Win</b><p>Clear your group, then pot the 8 in the pocket you name.</p></div></li>
-        <li><div><b>Lose</b><p>Pot the 8 before your group is clear, on a foul, in another pocket, or knock it off the table.</p></div></li>
+        <li><div><b>Win</b><p>Clear your group, then pot the 8 in any pocket. Nothing is called, and flukes count.</p></div></li>
+        <li><div><b>Lose</b><p>Pot the 8 before your group is clear, on a foul, or knock it off the table, on the break too.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
-        <li>A scratch on the break gives ball in hand behind the head string; the first ball hit must lie past it, unless the cue ball crosses it first.</li>
+        <li>A foul on the break (a scratch, a ball off the table): your opponent takes ball in hand behind the head string, or has the balls racked again and breaks, or has you break. In hand there, the first ball hit must lie past the string, unless the cue ball crosses it first.</li>
+        <li>With every legal ball behind the string, you may have the nearest spotted on the foot spot.</li>
+        <li>No ball hit on the break: only the re-rack.</li>
         <li>An illegal break: your opponent plays the table as it lies, or has it racked again.</li>
-        <li>An 8 on the break is not a foul: the breaker has it spotted and plays on, or breaks again.</li>
+        <li>An 8 on the break is not a foul: the breaker has it spotted and plays on, or breaks again. On a foul it is spotted and your opponent has the foul's choice.</li>
         <li>On an open table the 8 may not be the first ball hit.</li>
-        <li>The 8 is called for you from your aim; tap the power bar to choose another pocket.</li>
         <li>A ball knocked off the table is a foul and stays off. There is no three-foul rule.</li>
-        <li>The rules are the World Chinese 8-Ball Masters rules (Rev. 2017), played at the Joy World Heyball Masters, whose final is a race to 21.</li>
+        <li>The rules are the WPA Rules of Heyball, effective 16 August 2025.</li>
       </ul>
       <div class="howAct"><button class="lessonGo tutGo" id="tutGoH" data-tut="heyball"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 2.5 9 12 13.5 21.5 9z"/><path d="M6.5 11v4.2c1.4 1.3 3.3 2 5.5 2s4.1-.7 5.5-2V11M21.5 9v5"/></svg><span>Play the Chinese 8-Ball Tutorial</span></button></div>
     </section>
@@ -2243,18 +2245,16 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><div><b>Rack</b><p>Ten balls in a triangle: the 1 in front, the 10 in the middle. Break from behind the head string.</p></div></li>
         <li><div><b>Legal Break</b><p>Hit the 1 first, then pot a ball or drive four to the cushions.</p></div></li>
         <li><div><b>Lowest First</b><p>Always hit the lowest ball first. Then pot a ball or hit a rail.</p></div></li>
-        <li><div><b>Call It</b><p>Every shot: tap the ball, then the pocket. Obvious shots too.</p></div></li>
-        <li><div><b>Push Out</b><p>The shot after the break may be a push out. Your opponent shoots it or hands it back.</p></div></li>
-        <li><div><b>Win</b><p>Pot the 10 as a called shot.</p></div></li>
+        <li><div><b>Call It</b><p>Every shot: tap the ball, then the pocket. An obvious shot is called for you from your aim. There is no safety.</p></div></li>
+        <li><div><b>Push Out</b><p>After a break with no foul, the next shot may be a push out. Your opponent shoots it or hands it back.</p></div></li>
+        <li><div><b>Win</b><p>Pot the 10 as a called shot, when it is the only ball left.</p></div></li>
       </ul>
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
         <li>A 10 on the break, or one that drops early or uncalled, is spotted. No win.</li>
-        <li>A called ball that misses ends your turn. If an uncalled ball dropped, your opponent shoots or hands it back.</li>
-        <li>Declare a safety with the Safety chip: what drops stays down and your turn ends.</li>
-        <li>An illegal break: your opponent takes the table or has you break again.</li>
+        <li>A called ball that misses ends your turn. If any ball dropped, the 10 too, your opponent shoots or hands it back.</li>
+        <li>An illegal break is a foul: ball in hand anywhere for your opponent, and it counts toward the three.</li>
         <li>Three fouls in a row lose. You are warned after two.</li>
-        <li>The house rule "obvious shots free" calls an obvious shot for you from your aim.</li>
       </ul>
     </section>
     <section class="pan" id="panStr" aria-labelledby="helpTitle" hidden>
@@ -2268,10 +2268,12 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       </ul>
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
-        <li>Three fouls in a row cost 15 more, and the fouler breaks a full rack.</li>
-        <li>A breaking foul costs two; your opponent takes the table or has you break again.</li>
+        <li>Three fouls in a row cost 15 more, and the fouler breaks a full rack. You are warned after two.</li>
+        <li>A breaking foul costs two and does not count toward the three; your opponent takes the table or has you break again. A foul on the same shot is part of it.</li>
+        <li>A ball pocketed on the break counts as driven to a rail. The cue ball's rail must come after it hits the rack.</li>
         <li>A miss, or a safety, scores nothing: balls that dropped come back on the foot spot.</li>
-        <li>On a re-rack the last ball and the cue ball stay put unless they are in the rack. Then the ball goes to the head spot, the cue ball to your hand behind the line.</li>
+        <li>On a re-rack the last ball and the cue ball stay put unless they are in the rack. The ball alone in it: to the head spot. The cue ball alone in it: to your hand behind the line if the last ball lies below it, else to the head spot. Both in it, or the 15th down: all fifteen are racked.</li>
+        <li>In hand behind the line with every ball behind it, you may have the nearest spotted.</li>
         <li>The pause menu shows each player's best run.</li>
       </ul>
     </section>
@@ -2287,6 +2289,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
       <h3 class="fineHead">Fine Print</h3>
       <ul class="fine">
         <li>60 all with the table clear: the player who potted the last ball wins (a felt house rule).</li>
+        <li>These are felt's house rules after the BCA game; no rule book was checked.</li>
       </ul>
     </section>
     <section class="pan" id="panCall" aria-labelledby="helpTitle" hidden>
@@ -2294,7 +2297,7 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
         <li><div><b>When</b><p>Settings, Gameplay: off, 8-ball only, each game's official rules, or every shot. A career event sets its own.</p></div></li>
         <li><div><b>Call</b><p>Tap the ball, then the pocket. The table marks both until the shot.</p></div></li>
         <li><div><b>Obvious Shots</b><p>Where the rules allow, your aim calls it for you: "Calling: 6 in corner". Tap the pill to change it.</p></div></li>
-        <li><div><b>Safety</b><p>Tap Safety to play one. Your turn ends whatever drops.</p></div></li>
+        <li><div><b>Safety</b><p>Tap Safety to play one. Your turn ends whatever drops. 10-ball has none.</p></div></li>
         <li><div><b>Shoot</b><p>The power bar shoots as always. With a call missing it says Call your shot and waits.</p></div></li>
         <li><div><b>Missed Call</b><p>Not a foul: your turn ends. 14.1 spots what dropped; 10-ball lets your opponent choose.</p></div></li>
       </ul>
@@ -2701,12 +2704,12 @@ const OCTA_F = 1.016, OCTA_CUP_IN = 0.12, OCTA_POSTS = [0.17, 0.16];
    m/s of impact (pool 0.88 and 0.03) and a grippier nose (0.24, pool 0.2), so english takes more
    off a rail. physics-check and carom-check measure what those give. */
 const CAROM_SIZE = [2.84, 1.42];
-/* Chinese 8-ball (setTable('heyball'), 1o): the 9 ft bed, 2540 x 1270 mm between the cushion
-   noses (World Chinese 8-Ball Masters Rules of Chinese 8-ball, Rev. 2017, equipment: 2540 x
-   1260-1270 mm; Joy's tables list 100 x 50 in), pool's 57.15 mm balls and cloth (POOL_PHYS), and
-   its own pockets, POCKET_STYLES.heyball. The head string ("break line") a quarter of the length
-   from the head cushion, 635 mm, as the Masters rules and Joy have it. */
-const HEYBALL_SIZE = [2.54, 1.27];
+/* Chinese 8-ball (setTable('heyball'), 1o): the 9 ft bed, 2540 x 1260 mm between the cushion
+   noses (WPA Rules of Heyball, effective 2025-08-16: "2,540mm x 1,260mm (+/-9mm)"; a retailer's
+   100 x 50 in, 1270, is nominal and past the tolerance), pool's 57.15 mm balls and cloth
+   (POOL_PHYS), and its own pockets, POCKET_STYLES.heyball. The head string a quarter of the
+   length from the head cushion, 635 mm, as WPA has it. */
+const HEYBALL_SIZE = [2.54, 1.26];
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 /* the spin argument: a number is follow (+) or draw (-); {x, y} adds side, x + = right of centre;
@@ -2844,7 +2847,7 @@ function setPockets(style) {
 }
 setTable('7');
 function newBall(n, x, y) { return { n, x, y, vx: 0, vy: 0, on: true, wx: 0, wy: 0, wz: 0 }; }
-/* 8-ball (and 14.1, and Chinese 8-ball: the Masters rules rack the 15 in a triangle, its apex on
+/* 8-ball (and 14.1, and Chinese 8-ball: WPA Heyball racks the 15 in a triangle, its apex on
    the foot spot and the 8 in the middle of the third row): a triangle with the 8 in the middle, a
    solid and a stripe in the back corners.
    9-ball: a diamond, the 1 on the foot spot and the 9 in the middle. 10-ball: a four-row triangle,
@@ -3017,7 +3020,38 @@ function hitAir(tab, a, b) {
 /* cue: the ball the cue strikes (the cue ball; in bumper pool one of the shooter's own) */
 function newTable(balls, cue = 0) {
   return { balls: balls.map(b => Object.assign({}, b, { wx: 0, wy: 0, wz: 0 })), cue, t: 0, steps: 0, first: null, railAfter: false, crossed: false, potted: [], pocketOf: {}, hits: [], end: null, escaped: 0,
-    rails: {}, kick: null, contacts: [], met: {}, railAt: {}, seq: [], railSeq: [] };
+    rails: {}, kick: null, contacts: [], met: {}, railAt: {}, seq: [], railSeq: [], frozen: frozenOf(balls) };
+}
+/* WPA 2.7, WPA Heyball 15.2: "A ball touching a rail at the start of a shot ... is not considered
+   driven to that rail unless it leaves the rail and returns." tab.frozen: ball number to a bit mask
+   of the CUSH segments it touches at the start (FROZEN_ON of a surface), or null when none does
+   (nearly always: a null test is all a step pays). stepTable leaves those contacts out of the rules'
+   books (railAfter, rails, railSeq, railAt) and thaw() clears a bit once the ball is FROZEN_OFF clear
+   of that segment. Bookkeeping only: the impulse is the same, and carom's seq counts every contact.
+   Not on a bumper table. */
+const FROZEN_ON = 2e-4, FROZEN_OFF = 1e-3;
+function frozenOf(balls) {
+  if (BUMPERS.length) return null;
+  let out = null;
+  for (const b of balls) {
+    if (!b.on) continue;
+    /* every cushion surface lies on or outside the bed (stepTable), so a centre well inside it is clear */
+    const m = BALL_R + 2 * FROZEN_ON;
+    if (b.x > m && b.x < TL - m && b.y > m && b.y < TW - m) continue;
+    let mask = 0;
+    for (let k = 0; k < CUSH.length; k++) { const c = CUSH[k]; if (segGap(c[0], c[1], c[2], c[3], b.x, b.y) <= BALL_R + FROZEN_ON) mask |= 1 << k; }
+    if (mask) { out = out || {}; out[b.n] = mask; }
+  }
+  return out;
+}
+function thaw(tab, b) {
+  let mask = tab.frozen[b.n];
+  for (let k = 0; k < CUSH.length; k++) {
+    if (!(mask >> k & 1)) continue;
+    const c = CUSH[k];
+    if (segGap(c[0], c[1], c[2], c[3], b.x, b.y) > BALL_R + FROZEN_OFF) mask &= ~(1 << k);
+  }
+  tab.frozen[b.n] = mask;
 }
 /* The tip hits TIP_MAX * spin radii off centre. The ball leaves along the cue less fast the
    further off centre (cue and ball as two masses, the ball's inertia at the offset; a stroke
@@ -3169,6 +3203,7 @@ function stepTable(tab) {
     if (!b.on) continue;
     /* bumper pool: the posts and the cups in the open bed (1g) */
     if (BUMPERS.length && !still(b) && bumperStep(tab, b)) continue;
+    if (tab.frozen !== null && tab.frozen[b.n] && !still(b)) thaw(tab, b);
     /* every cushion surface lies on or outside the bed, so a centre a radius inside it is clear */
     if (BED_LINES ? !bedIn(b.x, b.y, lo) : b.x < lo || b.x > TL - lo || b.y < edge || b.y > TW - edge) {
       /* a flying ball (1a) clears the cushions once its bottom is over the nose, never drops while
@@ -3177,9 +3212,12 @@ function stepTable(tab) {
       for (let k = 0; !over && k < CUSH.length; k++) {
         const c = CUSH[k], v = hitSeg(b, c[0], c[1], c[2], c[3]);
         if (v) {
-          if (tab.first !== null) tab.railAfter = true;
-          if (k < JAW_FROM) { tab.rails[b.n] = (tab.rails[b.n] || 0) + 1; tab.railSeq.push([b.n, k]); }
-          if ((k < JAW_FROM || BUMPERS.length) && !tab.railAt[b.n]) tab.railAt[b.n] = [b.x, b.y];   /* a bumper table's cushions are all rail */
+          /* a ball pressed into the cushion it was frozen to has not been driven to it (frozenOf) */
+          if (tab.frozen === null || !(tab.frozen[b.n] >> k & 1)) {
+            if (tab.first !== null) tab.railAfter = true;
+            if (k < JAW_FROM) { tab.rails[b.n] = (tab.rails[b.n] || 0) + 1; tab.railSeq.push([b.n, k]); }
+            if ((k < JAW_FROM || BUMPERS.length) && !tab.railAt[b.n]) tab.railAt[b.n] = [b.x, b.y];   /* a bumper table's cushions are all rail */
+          }
           if (k < JAW_FROM && b.n === tab.cue) tab.seq.push(-1);
           tab.hits.push([k >= JAW_FROM ? 'jaw' : 'rail', v]);
         }
@@ -3264,6 +3302,21 @@ function simulateShot(balls, shot) {
                  table or has the breaker break again) or 'rerack' (take, re-rack and the breaker
                  breaks, or re-rack and break yourself)
      breakScratch  where the ball in hand goes after a scratch on the break: 'kitchen' or 'table'
+     breakFoul   a foul on the break: null (ball in hand, as breakScratch and foulHand say), 'rerack'
+                 (WPA Heyball s6(e), (f), (g): the incoming player takes ball in hand behind the
+                 string or has the balls racked; no contact at all, only the rack) or 'choice' (WPA
+                 8-ball 4.3(f), (g): the 8 down on a foul, or a ball off the table, gives a choice)
+     eightOffBreak the 8 driven off the table on the break: 'spot', or 'loss' (WPA Heyball s20(c))
+     groupBy     what an open table's pot groups by: 'pot' (the first ball down, or the call), or
+                 'first' (WPA Heyball s12.1: the first ball hit's group, if one of that group dropped)
+     kitchenSpot with the hand behind the string and every legal ball behind it, the player may have
+                 the nearest spotted (WPA 1.6, WPA Heyball s8: game.option 'kitchenSpot'), and then a
+                 direct hit behind the string is always a foul. Off (house rules): no spot request,
+                 so any legal hit counts then.
+     tempClaim   WPA 4.4: on an open table with a group gone the shooter may play the 8
+     threeBall   WPA Regulation 16: balls that must drop or lie past the head string after a break, or
+                 the incoming player may hand it back (game.option 'threeBall'); 0: no test
+     safetyCall  false: no safety may be declared (WPA 6.5, 10-ball)
      gameBallBreak the game ball down on the break: 'win', 'spot' or 'option' (the breaker spots it
                  and carries on, or has the balls re-racked and breaks again)
      earlyGameBall the game ball down on a legal shot before it is the ball on: 'win' or 'spot'
@@ -3297,52 +3350,57 @@ const POCKET_KINDS = ['8', '9', '10', 'straight', 'rotation', 'heyball'];
 /* the 8-ball games: 8-ball and Chinese 8-ball (heyball, 1o), one module (judge8), the same groups,
    the same 8 last; only the table and the ruleset differ */
 const is8 = k => k === '8' || k === 'heyball';
-const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', gameBallBreak: 'spot', earlyGameBall: 'win',
+const RULE_BASE = { calls: 'none', obvious: true, breakAny: false, breakRails: 0, badBreak: null, breakScratch: 'kitchen', breakFoul: null, eightOffBreak: 'spot', groupBy: 'pot', kitchenSpot: false, tempClaim: false, threeBall: 0, safetyCall: true, gameBallBreak: 'spot', earlyGameBall: 'win',
   pushOut: false, threeFoul: false, stalemate: 0, missed: 'end', safetyPots: 'stay', foulHand: 'table', score: null, race: 0, players: 2, offSpot: 'spot' };
 const RULESETS = {
   '8-house': { game: '8', name: '8-ball, house rules', source: 'felt house rule', breakAny: true,
     description: 'Hit one of your group first, pot it to carry on. No calls unless your settings ask for them. An 8 on the break is spotted and the breaker carries on.' },
-  '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option', offSpot: 'stay',
-    description: 'Call every shot that is not obvious, and the 8 always with its pocket. A legal break pots a ball or drives four to the cushions. An 8 on the break: spot it or re-rack.' },
+  /* WPA Rules of Play 2026-10-21. Not modelled, in any WPA set, as they need a referee: stalemates
+     (4.11, 5.9, 6.11, 7.12) and intentional fouls. */
+  '8-wpa': { game: '8', name: '8-ball, WPA', source: 'WPA world standardized rules', breakAny: true, calls: 'all', breakRails: 4, badBreak: 'rerack', breakFoul: 'choice', kitchenSpot: true, tempClaim: true, gameBallBreak: 'option', offSpot: 'stay',
+    description: 'Call every shot that is not obvious, and the 8 always with its pocket. A legal break pots a ball or drives four to the cushions. An 8 on the break: spot it or re-rack. A ball off the table on the break: the table as it lies, or ball in hand behind the head string.' },
   '9-house': { game: '9', name: '9-ball, house rules', source: 'felt house rule', gameBallBreak: 'win', threeFoul: 'loss',
     description: 'Lowest ball first. A legal 9 wins, early or on the break. Three fouls in a row lose.' },
-  '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', missed: 'option', offSpot: 'stay',
-    description: 'Lowest ball first, any legal 9 wins. Push out on the shot after the break; your opponent may hand it back. A legal break pots a ball or drives four to the cushions. Three fouls lose.' },
-  '10-wpa': { game: '10', name: '10-ball, WPA', source: 'WPA world standardized rules', calls: 'all', obvious: false, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
+  '9-wpa': { game: '9', name: '9-ball, WPA', source: 'WPA world standardized rules', gameBallBreak: 'win', threeFoul: 'loss', pushOut: true, breakRails: 4, badBreak: 'foul', breakScratch: 'table', threeBall: 3, kitchenSpot: true, missed: 'option', offSpot: 'stay',
+    description: 'Lowest ball first, any legal 9 wins. Push out on the shot after the break; your opponent may hand it back. A legal break pots a ball or drives four to the cushions, and three must drop or lie past the head string, or your opponent may hand it back and any 9 is spotted. Three fouls lose.' },
+  /* WPA 6.5: called as in 1.7 (an obvious shot needs no call), no safety; 6.3(b): an illegal break is a foul */
+  '10-wpa': { game: '10', name: '10-ball, WPA', source: 'WPA world standardized rules', calls: 'all', obvious: true, safetyCall: false, breakRails: 4, badBreak: 'foul', breakScratch: 'table', kitchenSpot: true, gameBallBreak: 'spot',
     earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option', offSpot: 'stay',
-    description: 'Lowest ball first, and call every shot, obvious or not. The 10 wins only when called; on the break or early it is spotted. Push out after the break. Three fouls lose.' },
-  '10-house': { game: '10', name: '10-ball, obvious shots free', source: 'felt house rule', calls: 'all', obvious: true, breakRails: 4, badBreak: 'option', breakScratch: 'table', gameBallBreak: 'spot',
-    earlyGameBall: 'spot', pushOut: true, threeFoul: 'loss', missed: 'option', offSpot: 'stay',
-    description: 'WPA 10-ball, except that an obvious shot is called for you from your aim.' },
-  'straight-wpa': { game: 'straight', name: 'Straight pool (14.1), WPA', source: 'WPA world standardized rules', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option',
+    description: 'Lowest ball first, and call your shots; an obvious one is called from your aim, and there is no safety. The 10 wins only when called as the last ball; on the break or early it is spotted. Push out after the break. Three fouls lose.' },
+  'straight-wpa': { game: 'straight', name: 'Straight pool (14.1), WPA', source: 'WPA world standardized rules', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option', kitchenSpot: true,
     threeFoul: 'minus15', missed: 'spot', safetyPots: 'spot', foulHand: 'position', score: 'count', race: 50,
     description: 'Any ball, called with its pocket: a point each. With one ball left the other 14 are racked again. A foul costs a point, three in a row 15 more and a new break.' },
-  rotation: { game: 'rotation', name: 'Rotation (61)', source: 'American rotation, felt house rule', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
+  rotation: { game: 'rotation', name: 'Rotation (61)', source: 'felt house rule, after the BCA game', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
     description: 'Lowest ball first; every ball potted on a legal shot scores its number. 61 wins. Balls potted on a foul are spotted.' },
   bumper: { game: 'bumper', name: 'Bumper pool', source: 'felt house rule', description: 'Five balls each round the posts to the far cup; the marked ball first.' },
   carom: { game: 'carom', name: 'Three-cushion', source: 'UMB rules, simplified', description: 'Your cue ball meets both others, with three cushions before the second. A point each.' },
   snooker: { game: 'snooker', name: 'Snooker', source: 'WPBSA rules, simplified', description: 'A red, then a colour, until the reds are gone; then the colours in order.' },
-  /* Chinese 8-ball (heyball, 1o), the game of the Joy World Heyball Masters, on judge8 like
-     8-ball. The World Chinese 8-Ball Masters Rules of Chinese 8-ball (Rev. 2017; the WCBS and
-     Joy's "Rules of Chinese Pool", Rev. 2017, updated 2019), as they are published and quoted:
-     the cue ball in hand behind the head string for the break; a legal break pots a ball or drives
-     four or more object balls to the cushions (breakRails 4); balls potted on the break do not
-     choose the groups: the table stays open after the break, and the first ball legally potted
-     after it does (judge8 never groups on the break); on an open table the 8 may not be hit
-     first (legalTargets); an 8 potted on a legal break is not a foul: the breaker has it spotted
-     and plays on, or re-breaks (gameBallBreak 'option'); a scratch on the break gives the
-     incoming player the cue ball in hand behind the head string (breakScratch 'kitchen', with the
-     WPA's first-contact rule in poolFoul), any other foul ball in hand anywhere (foulHand
-     'table'); the 8 is played to a nominated pocket (calls 'game'), and the game is lost by
-     potting it before the group is clear, on a foul, in another pocket, or by driving it off the
-     table. No three-foul rule. felt's choices where the sources differ or are silent: an illegal
-     break hands the incoming player the table as it lies or a re-rack, as WPA 8-ball does
-     (badBreak 'rerack'); balls driven off the table stay off (offSpot 'stay', as WPA 8-ball). */
-  heyball: { game: 'heyball', name: 'Chinese 8-ball', source: 'World Chinese 8-Ball Masters rules (Rev. 2017)', breakAny: true, calls: 'game', breakRails: 4, badBreak: 'rerack', gameBallBreak: 'option', offSpot: 'stay',
-    description: 'Balls potted on the break leave the table open: the first legal pot after it chooses your group. A legal break pots a ball or drives four to the cushions. Ball in hand anywhere after a foul, and the 8 last, to the pocket you name.' },
+  /* Chinese 8-ball (heyball, 1o), on judge8 like 8-ball. The WPA Rules of Heyball, effective
+     2025-08-16 (under review: WPA Rules of Play 2026-10-21, chapter 9), which the Masters' August
+     2017 text and IHPA Rev. 2024 agree with on what follows: the cue ball in hand behind the head
+     string for the break; a legal break pots a ball or drives four or more object balls to the
+     cushions (s6, breakRails 4); "The ownership of the ball group is not determined by the break
+     shot" (s10.3): the first ball legally potted after it chooses (judge8 never groups on the
+     break); on an open table the 8 may not be hit first (s10.1, legalTargets); an 8 on a legal
+     break is not a foul: the breaker has it spotted and plays on, or re-breaks (s6f, gameBallBreak
+     'option'); a scratch on the break gives the incoming player the cue ball in hand behind the
+     head string (breakScratch 'kitchen'), any other foul ball in hand anywhere (foulHand 'table').
+     "There is no need to call your shot / designate a pocket, even for the 8-ball or the shootout.
+     Flukes are allowed." (s11, calls 'none'). The rack is lost by potting the 8 before the group
+     is clear, on a foul, or by driving it off the table (s20; the break too, s20(c) has no exemption:
+     eightOffBreak). A foul on the break gives the incoming player the choice of s6(e), and with the 8
+     down of s6(f); no contact, only the rack, s6(g) (breakFoul 'rerack'). The first ball hit groups
+     (s12.1 read over s10.3, groupBy 'first'): first the 1, only the 9 down: the table stays open,
+     the ball stays down, the turn passes. All legal balls behind the string: s8, kitchenSpot. No
+     three-foul rule. felt's choice: balls driven off the table stay off (offSpot 'stay', as WPA 8-ball).
+     Known gaps. s10.4 (two groups hit at once, both down): a tie inside one 1/1200 s step, not
+     modelled, the first ball recorded decides. Not modelled, as they need a referee's judgement: the
+     soft break's escalation (s6(a)), intentional fouls (s18), stalemates (s21). */
+  heyball: { game: 'heyball', name: 'Chinese 8-ball', source: 'WPA Rules of Heyball, effective 2025-08-16', breakAny: true, calls: 'none', breakRails: 4, badBreak: 'rerack', breakFoul: 'rerack', eightOffBreak: 'loss', groupBy: 'first', kitchenSpot: true, gameBallBreak: 'option', offSpot: 'stay',
+    description: 'Balls potted on the break leave the table open: the first legal pot after it chooses your group, the group of the ball you hit first. A legal break pots a ball or drives four to the cushions. A foul on the break: ball in hand behind the head string, or a re-rack. Any other foul: ball in hand anywhere. The 8 last, in any pocket: nothing is called.' },
   '9-ring': { game: '9', ring: true, name: '9-ball ring', source: 'ring game, felt house rule', gameBallBreak: 'win',
     description: 'Two to four players in turn. Lowest ball first; a foul gives the next player ball in hand. Whoever pots the 9 legally wins the rack.' },
-  'rotation-ring': { game: 'rotation', ring: true, name: 'Rotation ring', source: 'American rotation, ring game, felt house rule', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
+  'rotation-ring': { game: 'rotation', ring: true, name: 'Rotation ring', source: 'ring game, felt house rule, after the BCA game', score: 'numbers', race: 61, missed: 'spot', safetyPots: 'spot',
     description: 'Two to four players in turn. Lowest ball first; balls potted on a legal shot score their numbers. The race wins, or the most points when the table is clear.' },
   'straight-ring': { game: 'straight', ring: true, name: 'Around the table', source: 'straight pool, ring game, felt house rule', calls: 'all', obvious: true, breakAny: true, breakRails: 2, badBreak: 'option',
     threeFoul: 'minus15', missed: 'spot', safetyPots: 'spot', foulHand: 'position', score: 'count', race: 25,
@@ -3395,6 +3453,8 @@ function callScope(g) {
   const R = rulesOf(g);
   if (!POCKET_KINDS.includes(g.kind) || g.mode) return 'none';
   const m = R.call.mode;
+  /* Chinese 8-ball calls nothing, not the 8 (WPA Heyball s11): only the custom All mode makes it call */
+  if (g.kind === 'heyball') return m === 'all' ? 'all' : 'none';
   let s = m === 'off' ? 'none' : m === 'eight' ? (is8(g.kind) ? R.calls === 'none' ? 'all' : R.calls : 'none') : m === 'all' ? 'all' : R.calls;
   if (s === 'none' && R.call.eight && is8(g.kind)) s = 'game';
   return s;
@@ -3421,8 +3481,9 @@ function callResult(g, r, need) {
   const c = g.call || {}, pot = r.potted.filter(x => x !== 0), base = { ball: c.ball == null ? null : c.ball, pocket: c.pocket == null ? null : c.pocket, auto: !!c.auto };
   if (c.push && g.pushAvail) return Object.assign(base, { need: false, made: false, safety: false, push: true, extra: pot, why: '' });
   if (!need) return Object.assign(base, { need: false, made: null, safety: !!c.safety, push: false, extra: pot, why: '' });
-  const missing = !c.safety && c.ball == null;
-  if (c.safety || (missing && !need.safety)) return Object.assign(base, { need: true, made: false, safety: true, push: false, missing, extra: pot, why: '' });
+  /* WPA 6.5: no safety call at 10-ball: a safety is no call at all */
+  const noSafe = rulesOf(g).safetyCall === false, safe = !!c.safety && !noSafe, missing = !safe && c.ball == null;
+  if (safe || (missing && !need.safety && !noSafe)) return Object.assign(base, { need: true, made: false, safety: true, push: false, missing, extra: pot, why: '' });
   if (missing) return Object.assign(base, { need: true, made: false, safety: false, push: false, missing: true, extra: pot, why: 'no call' });
   const down = pot.includes(c.ball), at = (r.pocketOf || {})[c.ball], extra = pot.filter(x => x !== c.ball);
   let made = down && (!need.pocket || at === c.pocket), why = !down ? `the ${c.ball} did not drop` : made ? '' : `the ${c.ball} missed the called pocket`;
@@ -3464,6 +3525,7 @@ function newGame(kind, opts) {
   if (R.score) Object.assign(g, { score: zeros(), race: R.race, high: zeros(), run: 0 });
   return g;
 }
+const aGroupGone = on => !on.some(n => groupOf(n) === 'solids') || !on.some(n => groupOf(n) === 'stripes');
 /* which balls the cue ball may touch first */
 function legalTargets(g) {
   if (g.kind === 'bumper') return onTable(g);   /* any ball may be touched first */
@@ -3472,7 +3534,12 @@ function legalTargets(g) {
   const on = onTable(g);
   if (g.mode || g.kind === 'straight') return on;   /* practice, trick shots and 14.1: any ball first */
   if (!is8(g.kind)) return on.slice(0, 1);       /* 9-ball, 10-ball, rotation: the lowest */
-  if (g.open) { const t = on.filter(n => n !== 8); return t.length ? t : [8]; }
+  if (g.open) {
+    const t = on.filter(n => n !== 8);
+    /* WPA 4.4: with a group gone the shooter may temporarily claim it, and shoot the 8 */
+    if (t.length && on.includes(8) && !g.breakShot && rulesOf(g).tempClaim && aGroupGone(on)) t.push(8);
+    return t.length ? t : [8];
+  }
   const mine = on.filter(n => groupOf(n) === g.groups[g.turn]);
   return mine.length ? mine : [8];
 }
@@ -3520,8 +3587,8 @@ const withCall = (g, call) => Object.assign({}, g, { call: call || null });
    string (after a break scratch) the shot is legal when the first ball hit lies past the head
    string or the cue ball crossed the string before that contact (r.crossed: a bank off the foot
    rail onto a ball in the kitchen is fine), as in the WPA and BCA rules. Those rules let a player
-   whose legal balls are all behind the string have the nearest one spotted; felt has no spot
-   request, so then any legal hit counts. A result without `crossed` is judged on the first ball's
+   whose legal balls are all behind the string have the nearest one spotted (WPA 1.6, option
+   kitchenSpot); under house rules there is no spot request, so then any legal hit counts. A result without `crossed` is judged on the first ball's
    position alone. The game also counts `dry`, shots in a row with no object ball down, which the
    CPU reads to break safety loops and the stalemate rule reads. */
 function judge(g, r) {
@@ -3543,7 +3610,7 @@ function poolFoul(g, r, R, targets, push, off = []) {
   if (r.first === null) return 'no ball hit';
   const firstBall = g.balls.find(b => b.n === r.first);
   if (!(g.breakShot && R.breakAny) && !targets.includes(r.first)) return `hit the ${r.first} first`;
-  if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && r.crossed !== true && targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X)) return `hit the ${r.first} behind the head string`;
+  if (g.inHand === 'kitchen' && !g.breakShot && firstBall.x < HEAD_X && r.crossed !== true && (R.kitchenSpot || targets.some(t => g.balls.find(b => b.n === t).x >= HEAD_X))) return `hit the ${r.first} behind the head string`;
   if (!g.breakShot && !pot.length && !r.railAfter) return 'no rail after contact';
   return null;
 }
@@ -3573,6 +3640,13 @@ function rerack(g, breaker) {
   f.turn = breaker; f.breaker = breaker;
   return f;
 }
+/* WPA 1.6, WPA Heyball s8: the hand behind the string and every legal ball behind it too: the
+   player may have the nearest to the string spotted, or play it from there (bank back over the string) */
+function kitchenOption(n, R) {
+  if (!R.kitchenSpot || n.inHand !== 'kitchen' || n.winner !== null || n.breakShot) return null;
+  const t = legalTargets(n);
+  return t.length && t.every(x => n.balls.find(b => b.n === x).x < HEAD_X) ? { kind: 'kitchenSpot', who: n.turn, choices: ['spot', 'play'] } : null;
+}
 /* the end every pocket game's judge shares: the turn, the ball in hand, the push-out, the verdict,
    the call history and the stalemate. o: { foul, keep, win, why, option, inHand, scored, grouped,
    rerack, game (a replacement game, a re-rack), twoFouls } */
@@ -3587,7 +3661,8 @@ function poolEnd(g, b, o) {
   }
   if (g.breakShot) n.breaker = me;
   n.breakShot = false;
-  n.pushAvail = !!(g.breakShot && R.pushOut && n.winner === null && !n.option);
+  n.pushAvail = !!(g.breakShot && R.pushOut && n.winner === null && !n.option && !foul);   /* WPA 5.4, 6.4: "If no foul is committed on the break shot" */
+  if (!n.option) n.option = kitchenOption(n, R);
   n.call = null;
   n.dry = b.pot.length ? 0 : (g.dry || 0) + 1;
   const potted = o.potted || b.pot.filter(x => !n.balls.find(q => q.n === x).on), c = b.call;
@@ -3599,7 +3674,7 @@ function poolEnd(g, b, o) {
     again = 'stalemate';
   }
   n.verdict = { foul, keep: !!o.keep && !o.option, win: o.win == null ? null : o.win, why: o.why || '', potted, scratch: b.scratch, grouped: !!o.grouped,
-    twoFouls: o.win == null && !!R.threeFoul && R.threeFoul !== 'minus15' && n.fouls && n.fouls[n.turn] >= 2, call: c, push: b.push, option: n.option ? n.option.kind : null,
+    twoFouls: o.win == null && !!R.threeFoul && n.fouls && n.fouls[n.turn] >= 2, call: c, push: b.push, option: n.option ? n.option.kind : null,
     scored: o.scored || 0, rerack: again, threeFouls: !!o.threeFouls, illegalBreak: !!o.illegalBreak };
   if (b.off.length) n.verdict.off = b.off.slice();
   return n;
@@ -3607,28 +3682,47 @@ function poolEnd(g, b, o) {
 /* ---- 8-ball ---- */
 function judge8(g, r) {
   const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b;
-  const mine = g.groups[me], cleared = !!mine && !onTable(g).some(x => groupOf(x) === mine);
-  let foul = b.foul, win = null, why = '', keep = false, option = null, illegalBreak = false, grouped = false;
+  /* WPA 4.4: on an open table with a group gone the shooter may be on the 8 */
+  const mine = g.groups[me], cleared = mine ? !onTable(g).some(x => groupOf(x) === mine) : !!(g.open && !g.breakShot && R.tempClaim && aGroupGone(onTable(g)));
+  let foul = b.foul, win = null, why = '', keep = false, option = null, inHand, illegalBreak = false, grouped = false;
   if (g.breakShot && !foul && !breakLegal(R, r, pot)) {
     foul = 'illegal break'; illegalBreak = true;
     if (R.badBreak === 'rerack') option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak', 'break'] };
   }
+  /* WPA 4.3(d): a total miss drives no four balls to the rails */
+  if (g.breakShot && R.breakFoul === 'choice' && foul === 'no ball hit') { foul = 'illegal break'; illegalBreak = true; option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak', 'break'] }; }
   /* the 8 off the table: spotted on the break (poolBase spots it), the game lost on any other shot (WPA 8-ball) */
-  if (b.off.includes(8) && !g.breakShot) { win = op; why = 'the 8 left the table'; }
+  if (b.off.includes(8) && (!g.breakShot || R.eightOffBreak === 'loss')) { win = op; why = 'the 8 left the table'; }
   else if (pot.includes(8)) {
     if (g.breakShot) { if (R.gameBallBreak === 'option' && !foul) option = { kind: 'eightBreak', who: me, choices: ['spot', 'rerack'] }; else spot(n.balls, 8); }
     else if (!foul && cleared && (!need || (call.made && call.ball === 8))) { win = me; why = 'the 8, legally'; }
     else { win = op; why = foul ? 'the 8 went down on a foul' : !cleared ? 'the 8 went down before the group was clear' : call.safety ? 'the 8 went down on a safety' : 'the 8 went down in an uncalled pocket'; }
   }
-  if (win === null) {
-    const objs = pot.filter(x => x !== 8), ok = !foul && (!need || call.made) && !call.safety;
-    if (ok && g.open && !g.breakShot && objs.length) {
-      const by = need && groupOf(call.ball) ? call.ball : objs[0];
-      n.groups[me] = groupOf(by); n.groups[op] = otherGroup(n.groups[me]); n.open = false; grouped = true;
-    }
-    keep = ok && (objs.some(x => g.open || groupOf(x) === mine) || (g.breakShot && pot.includes(8)));
+  /* a foul on the break (not an illegal one) under WPA Heyball: s6(e) and (f), ball in hand behind the
+     string or a re-rack (the 8, if it dropped, is already spotted); s6(g), no contact: only the re-rack */
+  if (win === null && g.breakShot && foul && !illegalBreak && R.breakFoul === 'rerack') {
+    if (r.first === null) option = { kind: 'breakMiss', who: op, choices: ['rebreak', 'break'] };
+    else { inHand = 'kitchen'; option = { kind: 'breakFoul', who: op, choices: ['take', 'rebreak', 'break'] }; }
   }
-  return poolEnd(g, b, { foul, keep, win, why, option, grouped, illegalBreak });
+  /* WPA 8-ball: 4.3(f) the 8 down on a foul (spotted above): ball in hand behind the string, or the
+     opponent re-breaks (T6's reading); 4.3(g) a ball off the table: the table as it lies, or the hand */
+  if (win === null && g.breakShot && foul && !illegalBreak && R.breakFoul === 'choice') {
+    if (pot.includes(8)) { inHand = 'kitchen'; option = { kind: 'breakFoul', who: op, choices: ['take', 'break'] }; }
+    else if (b.off.length && !b.scratch) option = { kind: 'breakOff', who: op, choices: ['take', 'kitchen'] };
+  }
+  if (win === null) {
+    /* WPA 4.6: "Each called ball must be from the athlete's group": a made call of another ball ends the turn */
+    const own = !need || g.open || call.ball == null || groupOf(call.ball) === mine;
+    const objs = pot.filter(x => x !== 8), ok = !foul && (!need || call.made) && !call.safety && own;
+    if (ok && g.open && !g.breakShot && objs.length) {
+      /* WPA Heyball s12.1: the first ball hit's group, if a ball of it dropped; if not, no group */
+      const by = need && groupOf(call.ball) ? call.ball : R.groupBy !== 'first' ? objs[0] : objs.some(x => groupOf(x) === groupOf(r.first)) ? r.first : null;
+      if (by !== null) { n.groups[me] = groupOf(by); n.groups[op] = otherGroup(n.groups[me]); n.open = false; grouped = true; }
+    }
+    const openKeep = g.open && (R.groupBy !== 'first' || g.breakShot || grouped);
+    keep = ok && (objs.some(x => openKeep || groupOf(x) === mine) || (g.breakShot && pot.includes(8)));
+  }
+  return poolEnd(g, b, { foul, keep, win, why, option, inHand, grouped, illegalBreak });
 }
 /* ---- 9-ball and 10-ball: the lowest ball first, the game ball wins ---- */
 function judgeLowest(g, r) {
@@ -3638,21 +3732,29 @@ function judgeLowest(g, r) {
     foul = 'illegal break'; illegalBreak = true;
     if (R.badBreak === 'option') option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak'] };
   }
+  /* WPA Regulation 16 (9-ball), the three-ball rule: on an otherwise legal break, balls down plus
+     balls at rest past the head string (its "center (or resting point)": felt reads rest, from the
+     result) under three, and the incoming player may hand it back, and the 9 is spotted. It stands
+     over 5.3(c), which counts no pots. */
+  const short = g.breakShot && !foul && R.threeBall > 0 && pot.length + r.balls.filter(q => q.on && q.n > 0 && q.x < HEAD_X).length < R.threeBall;
   const ok = !foul && !push && (!need || call.made) && !call.safety;
   if (pot.includes(gb)) {
-    const wins = !foul && !push && (g.breakShot ? R.gameBallBreak === 'win' : need ? call.made && call.ball === gb : R.earlyGameBall === 'win' || on === gb);
+    /* WPA 6.7: the 10 wins "when it is the only object-ball on the table"; R.earlyGameBall says which games wait */
+    const wins = !foul && !push && !short && (g.breakShot ? R.gameBallBreak === 'win' : need ? call.made && call.ball === gb && (R.earlyGameBall === 'win' || on === gb) : R.earlyGameBall === 'win' || on === gb);
     if (wins) { win = me; why = `the ${gb}`; } else spot(n.balls, gb);
   }
   /* an illegal break the incoming player decides on is not one of the three fouls */
   n.fouls[me] = foul && !option ? n.fouls[me] + 1 : foul ? n.fouls[me] : 0;
   if (win === null && R.threeFoul === 'loss' && n.fouls[me] >= 3) { win = op; why = 'three fouls in a row'; }
   if (win === null && !foul && !option) {
-    if (push) option = { kind: 'push', who: op, choices: ['take', 'pass'] };
+    if (short) option = { kind: 'threeBall', who: op, choices: ['take', 'pass'] };
+    else if (push) option = { kind: 'push', who: op, choices: ['take', 'pass'] };
     else if (need && !call.made) {
       const extra = pot.filter(x => x !== gb && !n.balls.find(q => q.n === x).on);
       const rule = call.safety ? R.safetyPots : R.missed;
       if (rule === 'spot') spotAll(n.balls, extra);
-      else if (rule === 'option' && extra.length && !call.safety) option = { kind: 'uncalled', who: op, choices: ['take', 'pass'] };
+      /* WPA 6.6: any object ball down, the 10 too */
+      else if (rule === 'option' && pot.length && !call.safety) option = { kind: 'uncalled', who: op, choices: ['take', 'pass'] };
     }
   }
   return poolEnd(g, b, { foul, keep: ok && pot.length > 0, win, why, option, illegalBreak });
@@ -3676,24 +3778,42 @@ function judgeRotation(g, r) {
 /* the rack's 15 spots, apex on the foot spot */
 function rackSpots() { return rack('straight').filter(b => b.n > 0).map(b => [b.x, b.y]); }
 const inRackArea = (b, spots) => b.on && spots.some(p => Math.hypot(p[0] - b.x, p[1] - b.y) < 2 * BALL_R);
-/* 14 down: the 14 are racked with the apex left empty. The break ball (the 15th) and the cue ball
-   stay where they are unless they lie in the rack's area: the break ball then goes to the head spot
-   (the centre spot if the cue ball is on the head spot), the cue ball to the hand behind the head
-   string. Returns the hand ('kitchen' or null). */
+/* All fifteen racked (WPA 7.8(a), (b)): the cue ball in position, or in hand behind the string if
+   it lay in the rack. Returns the hand. */
+function rackFifteen(n) {
+  const cue = n.balls.find(q => q.n === 0), cIn = !cue.on || inRackArea(cue, rackSpots()), { x, y } = cue;
+  n.balls = rack('straight');
+  if (cIn) return 'kitchen';
+  Object.assign(n.balls.find(q => q.n === 0), { x, y });
+  return null;
+}
+/* 14 down (WPA 7.8, Table 1). The 14 are racked with the apex left empty. The 15th and the cue ball
+   stay where they are unless they lie in the rack's area. Both in it: all fifteen are racked. Only
+   the 15th: it goes to the head spot, or the centre spot if the cue ball blocks that. Only the cue
+   ball: with the 15th below or on the head string, in hand behind the string; with it above, on
+   the head spot, or the centre spot if the 15th blocks that. Returns the hand ('kitchen' or null) and whether all fifteen went up. */
 function rackFourteen(n) {
   const spots = rackSpots(), ball = n.balls.find(q => q.n > 0 && q.on), cue = n.balls.find(q => q.n === 0);
   const head = [HEAD_X, TW / 2], centre = [TL / 2, TW / 2], near = (q, p) => Math.hypot(q.x - p[0], q.y - p[1]) < 2 * BALL_R;
   const bIn = inRackArea(ball, spots), cIn = !cue.on || inRackArea(cue, spots);
-  let hand = cIn ? 'kitchen' : null;
+  if (bIn && cIn) return { hand: rackFifteen(n), all: true };
+  let hand = null;
   if (bIn) {
-    const p = cIn ? head : cue.on && near(cue, head) ? centre : head;
+    const p = near(cue, head) ? centre : head;
     Object.assign(ball, { x: p[0], y: p[1] });
-  } else if (cIn && near(ball, head)) Object.assign(ball, { x: centre[0], y: centre[1] });
-  /* the cue ball in hand behind the string: off the balls, on its way in */
-  if (hand) Object.assign(cue, { on: true, x: HEAD_X - 0.12, y: TW / 2 + (near({ x: HEAD_X - 0.12, y: TW / 2 }, [ball.x, ball.y]) ? 0.2 : 0) });
+  } else if (cIn) {
+    if (ball.x >= HEAD_X) {
+      /* the cue ball in hand behind the string: off the balls, on its way in */
+      hand = 'kitchen';
+      Object.assign(cue, { on: true, x: HEAD_X - 0.12, y: TW / 2 + (near({ x: HEAD_X - 0.12, y: TW / 2 }, [ball.x, ball.y]) ? 0.2 : 0) });
+    } else {
+      const p = near(ball, head) ? centre : head;
+      Object.assign(cue, { on: true, x: p[0], y: p[1] });
+    }
+  }
   let k = 1;
   for (const q of n.balls) if (q.n > 0 && q !== ball) { const p = spots[k++]; Object.assign(q, { on: true, x: p[0], y: p[1], vx: 0, vy: 0 }); }
-  return hand;
+  return { hand, all: false };
 }
 function judgeStraight(g, r) {
   const b = poolBase(g, r), { R, n, me, op, pot, need, call } = b;
@@ -3701,14 +3821,23 @@ function judgeStraight(g, r) {
   if (g.breakShot) {
     const c = g.call || {}, detail = R.call.detail;
     const called = c.ball != null && pot.includes(c.ball) && (detail === 'ball' || (r.pocketOf || {})[c.ball] === c.pocket);
-    if (!foul && !called && !(railBalls(r) >= R.breakRails && (!r.rails || r.rails[0] > 0))) {
+    /* WPA 7.3(b): the cue ball and two object balls driven to a rail after the cue ball contacts the
+       rack; 2.7: a pocketed ball counts as driven to a rail. 7.10: a standard foul on the same shot
+       is a breaking foul. */
+    const driven = r.rails ? new Set(Object.keys(r.rails).filter(k => +k > 0 && r.rails[k] > 0).map(Number).concat(pot)).size : Infinity;
+    const cueRail = !r.rails || r.rails[0] > (r.kick || 0) || b.scratch;
+    if (!called && (r.first === null || !(driven >= R.breakRails && cueRail))) {
       foul = 'breaking foul'; illegalBreak = true; pen = 2;
       option = { kind: 'badBreak', who: op, choices: ['take', 'rebreak'] };
+      if (b.scratch) inHand = 'kitchen';
     } else if (!foul && called) { scored = pot.length; keep = true; }
     if (!keep) spotAll(n.balls, pot);
     if (foul && !illegalBreak) pen = 1;
-  } else if (foul) { pen = 1; spotAll(n.balls, pot); }
-  else if (!need || call.made) { scored = pot.length; keep = pot.length > 0; }
+  } else if (foul) {
+    pen = 1; spotAll(n.balls, pot);
+    /* WPA 7.9, 3.11 second paragraph: from the kitchen, neither over the string nor a ball hit */
+    if (g.inHand === 'kitchen' && !b.scratch && r.crossed !== true && r.first === null) inHand = 'kitchen';
+  } else if (!need || call.made) { scored = pot.length; keep = pot.length > 0; }
   else spotAll(n.balls, pot);   /* a safety or a missed call: no score, the balls back on the spot */
   if (foul && !illegalBreak) n.fouls[me] = g.fouls[me] + 1; else if (!foul) n.fouls[me] = 0;
   if (n.fouls[me] >= 3 && R.threeFoul === 'minus15') { pen += 15; threeFouls = true; n.fouls[me] = 0; }
@@ -3721,8 +3850,8 @@ function judgeStraight(g, r) {
   else if (threeFouls) { game = rerack(n, me); game.fouls = n.fouls; again = 'fouls'; }
   else if (keep) {
     const left = onTable(n).length;
-    if (left === 1) { inHand = rackFourteen(n); again = 'fourteen'; }
-    else if (left === 0) { n.balls = rack('straight'); inHand = 'kitchen'; again = 'fifteen'; }
+    if (left === 1) { const q = rackFourteen(n); inHand = q.hand; again = q.all ? 'fifteen' : 'fourteen'; }
+    else if (left === 0) { inHand = rackFifteen(n); again = 'fifteen'; }
   }
   return poolEnd(g, b, { foul, keep, win, why, option, inHand, scored: scored - pen, rerack: again, game, threeFouls, illegalBreak, potted: down });
 }
@@ -3735,9 +3864,15 @@ const RULE_MODULES = {
    when the choice is not on offer. 'push' and 'uncalled' (a ball down on a missed call): take
    the table, or pass it back. 'badBreak': take the table as it lies, have the breaker break again
    ('rebreak') or, in 8-ball, re-rack and break yourself ('break'). 'eightBreak': the breaker spots
-   the 8 and carries on, or re-racks and breaks again. */
+   the 8 and carries on, or re-racks and breaks again. 'breakFoul': ball in hand behind the string
+   ('take', the hand already set) or a re-rack; 'breakMiss': only the re-rack. 'kitchenSpot': the
+   legal ball nearest the string on the foot spot ('spot'), or play it from there ('play').
+   'breakOff' (WPA 4.3(g)): the table in position, or ball in hand behind the string ('kitchen').
+   'threeBall' (WPA Regulation 16): take the table, no push-out, or hand it back, and the breaker
+   may push out. */
 function chooseOption(g, choice) {
   if (g.kind === 'snooker') return chooseSnooker(g, choice);
+  if (g.kind === 'carom') return chooseCarom(g, choice);
   const o = g.option;
   if (!o || !o.choices.includes(choice)) return null;
   let n = copyGame(g);
@@ -3746,8 +3881,14 @@ function chooseOption(g, choice) {
   if (choice === 'take' || choice === 'pass') {
     n.turn = choice === 'take' ? who : other;
     if (o.kind === 'badBreak') n.pushAvail = !!rulesOf(g).pushOut;
+    if (o.kind === 'threeBall') n.pushAvail = choice === 'pass' && !!rulesOf(g).pushOut;
+  } else if (choice === 'kitchen') { n.turn = who; n.inHand = 'kitchen'; }
+  else if (o.kind === 'kitchenSpot') {
+    n.turn = who;
+    if (choice === 'spot') spot(n.balls, legalTargets(n).reduce((a, x) => n.balls.find(b => b.n === x).x > n.balls.find(b => b.n === a).x ? x : a));
   } else if (choice === 'spot') { spot(n.balls, 8); n.turn = who; n.pushAvail = !!rulesOf(g).pushOut; }
   else n = rerack(n, choice === 'rebreak' ? other : who);
+  if (o.kind !== 'kitchenSpot') n.option = kitchenOption(n, rulesOf(n));
   n.verdict = Object.assign({}, g.verdict || {}, { chose: choice, chooser: who });
   return n;
 }
@@ -4451,7 +4592,7 @@ function cpuValue(g, j, L) {
   const me = g.turn, R = rulesOf(g);
   if (j.winner !== null) return j.winner === me ? 1000 : -1000;
   let v;
-  if (j.verdict.foul && !j.option) v = -400 - (R.threeFoul && j.fouls[me] >= 2 ? 150 : 0);
+  if (j.verdict.foul && (!j.option || j.option.kind === 'kitchenSpot')) v = -400 - (R.threeFoul && j.fouls[me] >= 2 ? 150 : 0);
   /* a choice for the opponent (a push-out, a ball down on a missed call): they take the better side */
   else if (j.option && j.option.who !== me) {
     const t = Object.assign({}, j, { option: null });
@@ -4584,7 +4725,8 @@ function* cpuSearch(g, seed, level = 'medium') {
     return out;
   };
   if (g.breakShot && g.kind !== 'snooker') return play(cpuBreak(g, rnd, L), { type: 'break', q: 1 });
-  const need = callNeed(g), safeCall = need ? { safety: true } : null;
+  /* a shot meant as a safety carries the safety call; at 10-ball, which has none (WPA 6.5), the ball on and its nearest pocket */
+  const need = callNeed(g), safeCall = !need ? null : rulesOf(g).safetyCall !== false ? { safety: true } : (t => ({ ball: t.n, pocket: POCKET_AIM.reduce((a, p, k) => Math.hypot(p[0] - t.x, p[1] - t.y) < Math.hypot(POCKET_AIM[a][0] - t.x, POCKET_AIM[a][1] - t.y) ? k : a, 0) }))(g.balls.find(b => b.n === legalTargets(g)[0]));
   const potCall = (base, l) => callNeed(base) ? Object.assign({ ball: cpuPotBall(l), pocket: l.k }, l.bank ? { bank: true } : l.combo ? { combo: true } : l.kick ? { kick: true } : null) : null;
   /* the cue angle for line l sending the object ball along psi: the ghost's, a kick's mirror, a swerve's offset */
   const aimOf = (l, psi, pl) => (l.aim ? l.aim(psi) + l.kOff : cpuAim(l, psi)) + (pl && pl.off ? pl.off : 0);
@@ -4764,16 +4906,19 @@ function cpuIntent(r) {
   if (l) return { type: l.bank ? 'bank' : l.combo ? 'combo' : l.kick ? 'kickpot' : l.jump ? 'jump' : l.swerve ? 'swerve' : 'pot', q: l.q };
   return { type: s.call && s.call.push ? 'push' : s.kick ? 'kick' : 'safety', q: 0 };
 }
-/* the CPU's answer to a choice pending for it (game.option): the 8 on the break is spotted;
-   otherwise it takes the table when its best shot from there is a fair chance, else hands it back
-   (or has the breaker break again) */
+/* the CPU's answer to a choice pending for it (game.option): the 8 on the break is spotted, and
+   with every legal ball behind the string the nearest; no contact on the break, it breaks itself;
+   otherwise it takes the table when its best shot from there is a fair chance, else the choice's
+   other side (hands it back, or has the breaker break again) */
 function cpuOption(g, level = 'medium') {
   const o = g.option;
   if (!o) return null;
   if (g.kind === 'snooker') return cpuSnookerOption(g, level);
-  if (o.kind === 'eightBreak') return 'spot';
+  if (g.kind === 'carom') return 'respot';
+  if (o.kind === 'eightBreak' || o.kind === 'kitchenSpot') return 'spot';
+  if (o.kind === 'breakMiss') return 'break';
   const L = cpuProfile(level), q = cpuChance(Object.assign({}, g, { option: null, turn: o.who }), o.who, L);
-  return q >= L.take ? 'take' : o.kind === 'badBreak' ? 'rebreak' : 'pass';
+  return q >= L.take ? 'take' : o.kind === 'badBreak' ? 'rebreak' : o.kind === 'breakFoul' ? o.choices[1] : o.kind === 'breakOff' ? 'kitchen' : 'pass';
 }
 function cpuShot(g, seed, level) {
   const it = cpuSearch(g, seed, level);
@@ -5494,12 +5639,12 @@ function snookerGame(frames = 1, first = 0, won = [0, 0], high = [0, 0]) {
     option: null, free: null, prev: null, missRun: null, replaced: false };
 }
 /* the balls on: the reds; after a red any colour; then the colours in order. A free ball
-   (g.free, the colour nominated: WPBSA Section 3 Rule 12) is on too: with the reds as a red, in
-   the colours instead of the colour on (it must be hit first; the colour on may still be potted
-   after it) */
+   (g.free, the colour nominated: WPBSA Section 3 Rule 12) must be hit first (R12(b)(i): "fail to
+   hit the nominated free ball first"): with the reds in place of a red, in the colours in place of
+   the colour on; the ball on may still be potted after it */
 function snookerOn(g) {
   const on = onTable(g), f = g.free && on.includes(g.free) ? g.free : null;
-  if (g.on === 'red') return on.filter(n => isRed(n) || n === f);
+  if (g.on === 'red') return f ? [f] : on.filter(isRed);
   if (g.on === 'colour') return on.filter(n => snkValue(n) > 1);
   if (f) return [f];
   return on.includes(g.on) ? [g.on] : [];
@@ -5532,13 +5677,14 @@ const snookersNeeded = (g, p) => g.score[1 - p] - g.score[p] > snookerLeft(g);
    to every ball on is wholly or partially obstructed by a ball or balls not on; if one or more
    balls on can be struck at both extreme edges free of obstruction by any ball not on, it is not
    snookered. In hand, it is snookered only when that holds from every position in the D.
-   "Angled" (the same section): the corner of a cushion (here any cushion nose or rounded jaw) is
-   in the way; the rules treat it as snookered after a foul, and so does snkClear. Balls on never
-   obstruct: a red in front of another red is itself a red to hit. ---- */
+   Section 2 Rule 17(e): "The cue-ball cannot be snookered by a cushion", so only balls obstruct
+   there (snkEdges passes noCush). The full-ball and any-part tests of Rule 14 ask for a clear path,
+   which a cushion or jaw does block. Balls on never obstruct: a red in front of another red is
+   itself a red to hit. ---- */
 /* the cue ball's centre can travel from a to b in a straight line touching no ball outside
-   `pass` (the balls on), no cushion and no jaw. A ball within two radii of the line's end (the
-   contact) obstructs too: the cue ball would meet it at the same moment. */
-function snkClear(balls, ax, ay, bx, by, pass) {
+   `pass` (the balls on), and unless noCush no cushion and no jaw. A ball within two radii of the
+   line's end (the contact) obstructs too: the cue ball would meet it at the same moment. */
+function snkClear(balls, ax, ay, bx, by, pass, noCush) {
   const ex = bx - ax, ey = by - ay, L = Math.hypot(ex, ey), ux = ex / (L || 1), uy = ey / (L || 1), R2 = 2 * BALL_R - 1e-9;
   for (const o of balls) {
     if (!o.on || o.n === 0 || pass.has(o.n)) continue;
@@ -5547,6 +5693,7 @@ function snkClear(balls, ax, ay, bx, by, pass) {
     const t = Math.min(s, L);
     if (Math.hypot(o.x - ax - ux * t, o.y - ay - uy * t) < R2) return false;
   }
+  if (noCush) return true;
   const rim = BALL_R - 5e-4;   /* a cue ball frozen to a cushion may still run along it */
   for (const c of CUSH) if (segSeg(ax, ay, bx, by, c[0], c[1], c[2], c[3]) < rim) return false;
   for (const q of JAW_ARCS) if (segGap(ax, ay, bx, by, q[0], q[1]) < q[2] + rim) return false;
@@ -5565,7 +5712,24 @@ function snkEdges(balls, x, y, t, pass) {
   const d = Math.hypot(t.x - x, t.y - y), R2 = 2 * BALL_R;
   if (d <= R2 + 1e-6) return true;
   const a = Math.atan2(t.y - y, t.x - x), w = Math.asin(R2 / d), L = Math.sqrt(d * d - R2 * R2);
-  return [-1, 1].every(s => snkClear(balls, x, y, x + L * Math.cos(a + s * w), y + L * Math.sin(a + s * w), pass));
+  return [-1, 1].every(s => snkClear(balls, x, y, x + L * Math.cos(a + s * w), y + L * Math.sin(a + s * w), pass, true));
+}
+/* from (x, y), some part of ball t can be struck on a clear straight line (Section 3 Rule 14(c)):
+   lines across its contact arc, edge to edge */
+function snkPart(balls, x, y, t, pass) {
+  const d = Math.hypot(t.x - x, t.y - y), R2 = 2 * BALL_R;
+  if (d <= R2 + 1e-6) return true;
+  const a = Math.atan2(t.y - y, t.x - x);
+  for (let i = -8; i <= 8; i++) {
+    const w = Math.asin(i / 8 * R2 / d), L = d * Math.cos(w) - Math.sqrt(Math.max(0, R2 * R2 - d * d * Math.sin(w) ** 2));
+    if (snkClear(balls, x, y, x + L * Math.cos(a + w), y + L * Math.sin(a + w), pass)) return true;
+  }
+  return false;
+}
+/* the player to shoot in g has a clear path to any part of a ball on (Section 3 Rule 14(c)) */
+function snkAnyPart(g) {
+  const on = snookerOn(g), pass = new Set(on), ts = on.map(n => g.balls.find(b => b.n === n));
+  return snkFrom(g).some(([x, y]) => ts.some(t => snkPart(g.balls, x, y, t, pass)));
 }
 /* from (x, y), ball t can be hit full ball: the straight line to the contact, centre on centre, clear */
 function snkFull(balls, x, y, t, pass) {
@@ -5588,7 +5752,7 @@ function snkFrom(g) {
   const h = Object.assign({}, g, { inHand: 'D' });
   return out.filter(p => canPlace(h, p[0], p[1]));
 }
-/* the player to shoot in g is snookered (or angled) on every ball on (Section 2, above) */
+/* the player to shoot in g is snookered on every ball on (Section 2, above) */
 function snkSnookered(g) {
   const on = snookerOn(g), pass = new Set(on), ts = on.map(n => g.balls.find(b => b.n === n));
   if (!ts.length) return false;
@@ -5622,33 +5786,36 @@ function snkFreeBalls(g) {
       plays from where the cue ball lies, or in hand in the D after an in-off.
    5. After any foul the next player chooses (game.option, kind 'snkFoul', 'snkMiss' or
       'snkFree', for the player fouled; chooseSnooker): 'play' from where the balls lie, or 'again',
-      the offender plays again from there (Section 3 Rule 13, Play Again; the offender, snookered,
-      may then take the free ball). Snookered (or angled) on every ball on after a foul (snkSnookered),
+      the offender plays again from there (Section 3 Rule 13, Play Again; the free ball option
+      becomes void, Rule 12(f)). Snookered on every ball on after a foul (snkSnookered),
       also 'free': a free ball (Section 3 Rule 12): any colour not on is nominated as the ball on
-      (game.free). It counts as a red with the reds on the table, else as the colour on, which it
-      replaces as the ball to hit first; potted, it scores the value of the ball on and is re-spotted.
+      (game.free). It counts as a red with the reds on the table, else as the colour on, and it
+      replaces either as the ball to hit first (Rule 12(b)(i)); potted, it scores the value of the ball on and is re-spotted.
       With reds on, a free ball and reds potted together all score (a point each); in the colours,
       a free ball and the colour on potted together score the colour on once, and that one stays
       down. A foul with it is judged at the value of the ball on. It is a foul to leave the
       opponent snookered on every ball on by the free ball, unless only the pink and black remain.
    6. Foul and a miss (Section 3 Rule 14): the striker must endeavour to hit the ball on. felt's
       referee is a fixed rule, not a judgement: failing to hit a ball on first (nothing hit, or a
-      ball not on) is a miss when the striker was not snookered (or could still hit a ball on full
-      ball), unless only the black was left or the striker needed snookers before the stroke or
-      does after its penalty. A miss adds 'replace' to the choices: the balls go back exactly as
+      ball not on) is a miss when any part of a ball on could be struck on a clear line (Rule 14(c),
+      snkAnyPart), unless only the black was left or the striker needed snookers before the stroke or
+      does after its penalty; a failure after a put-back in a run of misses is a miss whatever the
+      scores (Rule 14(d)(i)). A miss adds 'replace' to the choices: the balls go back exactly as
       they were before the stroke (game.prev, kept in the game so judge stays pure) and the
       offender plays again from there. Three misses in a row from the put-back position, each with
       a clear path to hit a ball on full ball (snkFullBall), lose the frame (game.missRun counts
       them; the second carries the referee's warning, verdict.warn). A choice other than the
       put-back ends the run.
    7. The frame ends with the last ball down, or with the first score or foul when only the black
-      is left. Level then: the black is re-spotted and the player who did not end it plays it
-      from the D; the next score or foul wins. A frame can be conceded (concedeSnooker).
+      is left. Level then: the black is re-spotted, in hand in the D, the players draw lots
+      (Section 3 Rule 4(b)(ii): seeded, from the shots and the score) and the winner chooses who
+      plays it (game.option, kind 'snkBlack'); the next score or foul wins. A frame can be conceded (concedeSnooker).
    8. A match is one frame or the best of three; the players take turns to break.
    Jumped balls: felt's jump is an elevated cue driving the cue ball off the slate (1a, strike);
    in snooker a cue ball that passes over any ball before it first hits one is a jump shot, a foul
-   (Section 2, Jump Shot; Section 3 Rule 10), at the value of the ball jumped or the ball on
-   (resultOf's over). The CPU never jumps at snooker (cpuRecord). A ball forced off the table (a jump over a cushion, or the
+   (Section 2, Jump Shot; Section 3 Rule 10), at the value of the ball on (Rule 11(a)(x); resultOf's over).
+   A cue ball touching a ball and played into it is a push stroke (Rule 8(b)), at the value of
+   the ball on or that ball (Rule 11(b)(v)). A red played on straight after a red costs seven (Rule 11(d)(iii)). The CPU never jumps at snooker (cpuRecord). A ball forced off the table (a jump over a cushion, or the
    escape fail-safe in stepTable) is a foul at its value (Section 3 Rule 12): a colour comes back
    on its spot, a red stays off, and the cue ball off the table is in hand in the D.
    The verdict: foul, pen (its points), pts (scored), keep, nom (the colour nominated), win,
@@ -5675,13 +5842,18 @@ function judgeSnooker(g, r) {
   const hitOn = first !== null && targets.includes(first);
   if (first === null) blame('missed every ball');
   else if (!hitOn) blame(`hit the ${snkName(first)} first`, first);
+  /* Section 3 Rule 11(d)(iii): reds played at in successive strokes cost seven */
+  if (g.on === 'colour' && first !== null && isRed(first)) worth = 7;
+  /* Section 3 Rule 8(b), Rule 11(b)(v): touching a ball, played into it: a push stroke */
+  const s0 = (r.seq || [])[0], cb = g.balls.find(b => b.n === 0), tb = s0 > 0 && !g.inHand ? g.balls.find(b => b.n === s0 && b.on) : null;
+  if (tb && Math.hypot(tb.x - cb.x, tb.y - cb.y) <= 2 * BALL_R + 1e-6) blame('a push stroke into a touching ball', s0);
   for (const x of pot) {
     if (!(pk[x] >= 0)) blame(`the ${snkName(x)} left the table`, x);
     else if (!fair(x)) blame(`potted the ${snkName(x)}`, x);
   }
   if (scratch) blame(pk[0] === -1 ? 'the cue ball left the table' : 'in-off');
   /* Section 2 (Jump Shot), Section 3 Rule 10: the cue ball jumped over a ball before it hit one */
-  if (r.over && r.over.length) blame('a jump shot', r.over[0]);
+  if (r.over && r.over.length) blame('a jump shot');
   /* Section 3 Rule 12: the free ball may not be left snookering the opponent on every ball on
      (unless only the pink and black remain). Nothing potted, so the next player is on what g was. */
   const pinkBlack = !redsBefore && colsBefore.join() === '61,62';
@@ -5694,10 +5866,11 @@ function judgeSnooker(g, r) {
      the colour on together, the value of the ball on once */
   const pen = foul ? clamp(worth, 4, 7) : 0, pts = foul ? 0 : g.on === 'red' ? pot.length : pot.length ? onVal : 0;
   if (foul) n.score[op] += pen; else n.score[me] += pts;
-  /* the colours that come back, the highest first (it has the first claim on a spot); a free
-     ball always comes back */
+  /* the colours that come back; a free ball always does. Those with their own spot free go on it,
+     then the rest, the highest first (Section 3 Rule 7(f)) */
   const back = pot.filter(x => !isRed(x) && (foul || g.on === 'colour' || x === F)).sort((a, b) => b - a);
-  for (const x of back) snookerSpot(n.balls, x);
+  const ownFree = x => n.balls.every(o => o.n === x || !o.on || Math.hypot(o.x - SPOTS[x][0], o.y - SPOTS[x][1]) >= 2 * BALL_R);
+  for (const x of back.filter(ownFree).concat(back.filter(x => !ownFree(x)))) snookerSpot(n.balls, x);
   const up = x => n.balls.some(b => b.n === x && b.on), reds = n.balls.some(b => b.on && isRed(b.n)), cols = S_COLS.filter(up);
   const keep = !foul && pts > 0;
   n.on = keep && g.on === 'red' ? 'colour' : reds ? 'red' : cols.length ? cols[0] : null;
@@ -5710,8 +5883,9 @@ function judgeSnooker(g, r) {
   n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
   /* Section 3 Rule 14: a miss, and its count toward the three that lose the frame */
   const blackOnly = !redsBefore && colsBefore.length === 1 && colsBefore[0] === S_BLACK;
-  const missable = !!foul && !hitOn && !blackOnly && !snookersNeeded(g, me) && !snookersNeeded(n, me);
-  const full = missable && snkFullBall(g), miss = missable && (full || !snkSnookered(g));
+  const inRun = !!(g.replaced && g.missRun && g.missRun.p === me);   /* Rule 14(d)(i): "regardless of the difference in scores" */
+  const missable = !!foul && !hitOn && !blackOnly && (inRun || (!snookersNeeded(g, me) && !snookersNeeded(n, me)));
+  const full = missable && snkFullBall(g), miss = missable && (full || snkAnyPart(g));
   const misses = miss && full ? (g.replaced && g.missRun && g.missRun.p === me ? g.missRun.n : 0) + 1 : 0;
   n.missRun = misses ? { p: me, n: misses } : null;
   const v = n.verdict = { foul, pen, pts, keep, nom, win: null, why: '', potted: pot.filter(x => !up(x)), back, scratch, grouped: false, twoFouls: false,
@@ -5734,8 +5908,10 @@ function snookerEnd(n, v, ender, winner, how) {
   if (winner === null && n.score[0] === n.score[1]) {
     n.balls.find(o => o.n === 0).on = false;
     snookerSpot(n.balls, S_BLACK);
-    Object.assign(n, { on: S_BLACK, turn: 1 - ender, inHand: 'D', reblack: true, brk: 0 });
-    Object.assign(v, { reblack: true, keep: false });
+    /* Section 3 Rule 4(b)(ii): "the players draw lots for choice of playing next" */
+    const lot = rng(n.shots * 2654435761 + n.score[0] * 40503)() < 0.5 ? 0 : 1;
+    Object.assign(n, { on: S_BLACK, turn: lot, inHand: 'D', reblack: true, brk: 0, option: { kind: 'snkBlack', who: lot, choices: ['play', 'pass'] } });
+    Object.assign(v, { reblack: true, keep: false, option: 'snkBlack' });
     return n;
   }
   const w = winner !== null ? winner : n.score[0] > n.score[1] ? 0 : 1;
@@ -5751,10 +5927,11 @@ function snookerEnd(n, v, ender, winner, how) {
   return nx;
 }
 /* a choice after a snooker foul made (chooseOption hands it here): a new game, g untouched, or
-   null when the choice is not on offer. 'play': the player fouled plays from where the balls lie;
+   null when the choice is not on offer. 'play': the player fouled plays from where the balls lie
+   (or the winner of the re-spotted black's draw plays it);
    'free:N': the same with colour N nominated as the free ball (snkFreeBalls); 'again': the
-   offender plays again from there, with a free ball of their own when snookered (an option for
-   them, 'snkFree'); 'replace': the balls exactly as they were before the miss (game.prev, the
+   offender plays again from there, no free ball (Section 3 Rule 12(f)); 'pass': the draw's winner
+   has the other player play the black; 'replace': the balls exactly as they were before the miss (game.prev, the
    ball on and any free ball with them) and the offender plays again. */
 function chooseSnooker(g, choice) {
   const o = g.option, [c, arg] = String(choice).split(':');
@@ -5767,10 +5944,8 @@ function chooseSnooker(g, choice) {
   if (c !== 'replace') n.missRun = null;
   if (c === 'play') n.turn = who;
   else if (c === 'free') { n.turn = who; n.free = +arg; }
-  else if (c === 'again') {
-    n.turn = off;
-    if (o.free && snkSnookered(n)) n.option = { kind: 'snkFree', who: off, choices: ['play', 'free'], free: true, miss: false };
-  } else {
+  else if (c === 'again' || c === 'pass') n.turn = off;
+  else {
     const p = g.prev;
     Object.assign(n, { balls: copyGame(p.balls), on: p.on, free: p.free, inHand: p.inHand, turn: off, brk: 0, replaced: true });
   }
@@ -5894,7 +6069,7 @@ function caromGame(o = {}) {
   const side = o.side < 0 ? -1 : 1, race = CAROM_RACES.includes(+o.race) || (o.event && Number.isInteger(o.race) && o.race > 0 && o.race <= 60) ? +o.race : 10, need = +o.cushions === 1 ? 1 : 3;
   const balls = [newBall(C_CUE[0], HEAD_X, TW / 2 + side * 0.1524), newBall(C_CUE[1], HEAD_X, TW / 2), newBall(C_RED, FOOT[0], FOOT[1])];
   return { kind: 'carom', balls, turn: 0, groups: [null, null], open: false, breakShot: true, inHand: null, fouls: [0, 0], winner: null,
-    shots: 0, dry: 0, verdict: null, striker: C_CUE[0], race, need, score: [0, 0], innings: [1, 0], run: 0, high: [0, 0] };
+    shots: 0, dry: 0, verdict: null, striker: C_CUE[0], race, need, score: [0, 0], innings: [1, 0], run: 0, high: [0, 0], option: null };
 }
 /* the object balls; on the break the red alone (it must be hit first) */
 const caromTargets = g => g.breakShot ? [C_RED] : g.balls.filter(b => b.on && b.n !== g.striker).map(b => b.n);
@@ -5903,11 +6078,17 @@ function caromFree(balls, x, y, skip) {
   if (!(x >= BALL_R && x <= TL - BALL_R && y >= BALL_R && y <= TW - BALL_R)) return false;
   return balls.every(b => b.n === skip || !b.on || Math.hypot(b.x - x, b.y - y) >= 2 * BALL_R + RACK_GAP);
 }
-/* a ball that left the table comes back: the red to the foot spot, a cue ball to the head spot;
-   that spot taken, the centre spot, then the other one, then the nearest free point to its own */
-function caromSpot(balls, n) {
-  const b = balls.find(o => o.n === n), own = n === C_RED ? FOOT : [HEAD_X, TW / 2], other = n === C_RED ? [HEAD_X, TW / 2] : FOOT;
-  let at = [own, [TL / 2, TW / 2], other].find(p => caromFree(balls, p[0], p[1], n));
+/* A ball back on the table (UMB Art 27.3b, 28.1b; CEB 2008): the red on the foot spot, the cue ball
+   of the player to shoot next on the head spot, the other cue ball on the centre spot. A spot taken:
+   the spot of the ball standing on it; failing those, the nearest free point to its own. */
+function caromSpot(balls, n, next) {
+  const b = balls.find(o => o.n === n), spotOf = m => m === C_RED ? FOOT : m === next ? [HEAD_X, TW / 2] : [TL / 2, TW / 2], own = spotOf(n);
+  let at = null, p = own;
+  for (let i = 0; !at && i < 3; i++) {
+    if (caromFree(balls, p[0], p[1], n)) { at = p; break; }
+    const on = balls.find(o => o.n !== n && o.on && Math.hypot(o.x - p[0], o.y - p[1]) < 2 * BALL_R + RACK_GAP);
+    p = spotOf(on.n);
+  }
   for (let r = 0.01; !at && r < 0.6; r += 0.01) {
     for (let i = 0, m = Math.ceil(2 * Math.PI * r / 0.01); i < m; i++) {
       const x = own[0] + r * Math.cos(i * 2 * Math.PI / m), y = own[1] + r * Math.sin(i * 2 * Math.PI / m);
@@ -5917,6 +6098,8 @@ function caromSpot(balls, n) {
   if (at) Object.assign(b, { x: at[0], y: at[1], vx: 0, vy: 0, wx: 0, wy: 0, wz: 0, on: true });
   return balls;
 }
+/* the balls touching cue ball n at rest (UMB Art 27) */
+const caromTouch = (balls, n) => { const c = balls.find(b => b.n === n); return balls.filter(b => b !== c && b.on && Math.hypot(b.x - c.x, b.y - c.y) <= 2 * BALL_R + 1e-6).map(b => b.n); };
 /* the count, from the struck ball's own contacts in order (resultOf's seq: -1 a cushion, else a
    ball): the object balls in the order first met, the cushions before the second of them (all of
    them when it never came), and whether that makes a point: both balls, and at least `need`
@@ -5938,20 +6121,27 @@ function caromCount(seq, need = 3) {
       the cushions three times (once in the one-cushion game); the same cushion counts again.
    2. A point and you shoot again; anything else and the turn passes.
    3. Fouls (no point, the turn passes): the wrong cue ball; a ball off the table (it comes back
-      to its spot); on the break, the red not hit first.
+      to its spot, caromSpot); on the break, the red not hit first, directly (Art 23.3: a cushion
+      first is one too); a cue ball touching a ball played into it (Art 27.1, 41.8).
    4. The first to the race (5, 10 or 15 points) wins.
+   5. The player to shoot with their cue ball touching a ball chooses (game.option, kind 'respot';
+      chooseCarom, Art 27.1(a), 27.3b): play on, or have the touching balls spotted.
+   Sources: the UMB World Rules of Carom Billiard (1989) with the CEB General Playing Regulations
+   (2021), the best available: no current UMB text is published. Known gap: driving a cue ball into
+   the cushion it is frozen to (Art 27.2, 41.8) is no foul here, as it needs the stroke's direction.
    The verdict: foul, keep, win, why, point, count (caromCount's), back (balls returned), and the
    pool fields at rest (potted [], scratch, grouped, twoFouls false). */
 function judgeCarom(g, r) {
   const n = copyGame(g), me = g.turn, op = 1 - me, need = g.need || 3;
   n.balls = r.balls.map(b => Object.assign({}, b, { vx: 0, vy: 0, wx: 0, wy: 0, wz: 0 }));
   n.shots++;
-  const struck = r.cue === undefined ? g.striker : r.cue, count = caromCount(r.seq || [], need), back = r.potted.slice();
+  const struck = r.cue === undefined ? g.striker : r.cue, count = caromCount(r.seq || [], need), back = r.potted.slice(), s0 = (r.seq || [])[0];
   let foul = null;
   if (struck !== C_CUE[me]) foul = 'struck the wrong cue ball';
   else if (back.length) foul = back.includes(struck) ? 'the cue ball left the table' : 'a ball left the table';
-  else if (g.breakShot && count.first !== null && count.first !== C_RED) foul = 'the red first on the break';
-  for (const x of back) caromSpot(n.balls, x);
+  else if (g.breakShot && ((count.first !== null && count.first !== C_RED) || s0 < 0)) foul = 'the red first on the break';
+  else if (s0 >= 0 && caromTouch(g.balls, struck).includes(s0)) foul = 'played into a touching ball';
+  for (const x of back) caromSpot(n.balls, x, C_CUE[op]);
   const point = !foul && count.point;
   let win = null;
   if (point) {
@@ -5964,8 +6154,24 @@ function judgeCarom(g, r) {
   n.striker = C_CUE[n.turn];
   n.fouls[me] = foul ? n.fouls[me] + 1 : 0;
   n.dry = point ? 0 : (g.dry || 0) + 1;
+  n.option = win === null && caromTouch(n.balls, n.striker).length ? { kind: 'respot', who: n.turn, choices: ['play', 'respot'] } : null;
   n.verdict = { foul, keep: point && win === null, win, why: win !== null ? `${g.race} points` : '', point, count, back,
-    potted: [], scratch: false, grouped: false, twoFouls: false };
+    potted: [], scratch: false, grouped: false, twoFouls: false, option: n.option ? n.option.kind : null };
+  return n;
+}
+/* a choice at carom made (chooseOption hands it here): a new game, g untouched, or null when it is
+   not on offer. 'play': as they lie; 'respot': the shooter's cue ball and what it touches spotted */
+function chooseCarom(g, choice) {
+  const o = g.option;
+  if (!o || !o.choices.includes(choice)) return null;
+  const n = copyGame(g);
+  n.option = null;
+  if (choice === 'respot') {
+    const move = [n.striker].concat(caromTouch(n.balls, n.striker));
+    for (const x of move) n.balls.find(b => b.n === x).on = false;
+    for (const x of move) caromSpot(n.balls, x, n.striker);
+  }
+  n.verdict = Object.assign({}, g.verdict || {}, { chose: choice, chooser: o.who, option: null });
   return n;
 }
 /* The CPU at carom: simulate and score, as at pool and bumper pool. Geometry proposes, from the
@@ -6016,7 +6222,7 @@ function cRun(g, shot, full) {
 /* the score of a run for the player who shot from g */
 function cValue(g, o, L) {
   const need = g.need || 3, r = o.r, me = g.striker;
-  if (r.potted.length || (g.breakShot && o.hit.length && o.hit[0] !== C_RED)) return -2000;
+  if (r.potted.length || (g.breakShot && ((o.hit.length && o.hit[0] !== C_RED) || r.seq[0] < 0))) return -2000;
   if (o.hit.length === 2 && !o.early) {
     if (!L.leave) return 1000;
     /* the leave: the cue ball free to play (off the cushion, clear of both balls), the two object
@@ -6234,9 +6440,7 @@ const TUTORIALS = [
 ];
 /* Chinese 8-ball (heyball): its own table and its rules' differences from 8-ball, on 8-ball's
    own layouts where they are the same lesson (the open table, ball in hand anywhere). A legal
-   break leaves the table open whatever drops (World Chinese 8-Ball Masters rules); and the 8
-   goes to a nominated pocket: the step names it for the player (g.call, the page's call is not
-   taken in a tutorial), as the referee would hear it. */
+   break leaves the table open whatever drops; and the 8 needs no call (WPA Heyball s10.3, s11). */
 {
   const E = TUTORIALS[0].steps;
   TUTORIALS.push({ id: 'heyball', kind: 'heyball', name: 'Chinese 8-ball', table: ['heyball'], pockets: 'regulation', ctx: () => ({ group: 'solids' }), steps: [
@@ -6247,9 +6451,8 @@ const TUTORIALS = [
       done: () => ['Legal break', 'and the table is still open'] },
     Object.assign({}, E[0], { text: () => 'After the break the table is open: pot any ball but the 8, and its group is yours.' }),
     E[2],
-    Object.assign({}, E[3], { head: 'The 8, named', text: c => `Your ${c.group} are down. The 8 goes to the pocket you name: here, the marked one.`,
-      setup: (g, c) => { E[3].setup(g, c); g.call = { ball: 8, pocket: 2, auto: true }; }, ring: () => ({ pocket: 2 }),
-      goal: (g, r, n) => n.winner === 0 ? null : n.winner === 1 ? (n.verdict.foul ? 'The 8 went down on a foul: that loses the rack.' : 'The 8 went in another pocket: that loses the rack.') : TUT_FOUL(n.verdict) || 'The 8 stayed up.' }),
+    Object.assign({}, E[3], { head: 'The 8, any pocket', text: c => `Your ${c.group} are down. Pot the 8 in any pocket: nothing is called, and a fluke counts.`,
+      goal: (g, r, n) => n.winner === 0 ? null : n.winner === 1 ? 'The 8 went down on a foul: that loses the rack.' : TUT_FOUL(n.verdict) || 'The 8 stayed up.' }),
   ] });
 }
 /* carom's "why no point", in words (the page's banner says the same) */
@@ -6287,7 +6490,7 @@ const TUT_SOLS = {
   'bumper': [[1.492257, 0.55, -0.5, 0, 21], [0.506145, 0.22, 0, 0, 22], [1.937315, 0.15, 0, 0, 23], [-1.902409, 0.15, 0, 0, 23]],
   'carom': [[-0.829031, 0.38, 0, 0], [-1.37881, 1, 0, 0], [-2.975786, 0.65, 0.5, 0]],
   'snooker': [[0.445059, 0.38, 0, 0], [-0.872665, 0.22, 0, 0], [2.356194, 0.65, 0, 0, 0.570105, 0.911562], [2.443461, 0.22, 0, 0]],
-  'heyball': [[-0.02618, 0.75, 0, 0], [0.445059, 0.38, 0, 0], [0.794125, 0.22, 0, 0, 2.184891, 0.914891], [-0.383972, 0.3, 0, 0]],
+  'heyball': [[-0.008727, 0.65, 0, 0], [0.436332, 0.3, 0, 0], [0.776672, 0.22, 0, 0, 2.184891, 0.904891], [-0.383972, 0.3, 0, 0]],
 };
 /* the stored solution of a step as a shot: { angle, power, spin, place ([x, y] or null), ball } */
 function tutSol(id, i) {
@@ -6529,12 +6732,12 @@ const HERO_SHOTS = {
   'rotation|7|generous': { c: [0.21, 0.58], a: -0.087066, p: 0.94, s: [0, 0] },
   'rotation|9|regulation': { c: [0.25, 0.58], a: -0.090302, p: 1, s: [0, 0.2] },
   'rotation|9|generous': { c: [0.25, 0.66], a: -0.163891, p: 1, s: [0, -0.25] },
-  'heyball': { c: [0.25, 0.34], a: 0.145565, p: 1, s: [0, 0.2] },
+  'heyball': { c: [0.21, 0.34], a: 0.135465, p: 1, s: [0, 0] },
   'snooker|compact': { c: [0.196414, 0.570208], a: -0.001708, p: 0.85, s: [0.4, 0] },
   'snooker|full': { c: [0.198095, 0.570208], a: -0.007422, p: 1, s: [0, -0.3] },
   'bumper|octagon': { a: -2.805617, p: 0.7, s: [0, 0] },
   'bumper|rect': { a: -2.207842, p: 0.55, s: [0, 0] },
-  'carom': { a: -2.801253, p: 0.9, s: [0.5, 0.2] },
+  'carom': { a: -0.061087, p: 0.6, s: [0.8, 0] },
 };
 const heroKey = kind => kind === 'heyball' ? 'heyball' : POCKET_KINDS.includes(kind) ? `${kind}|${TABLE}|${POCKETS_STYLE}` : kind === 'snooker' ? 'snooker|' + SNOOKER_SIZE : kind === 'bumper' ? 'bumper|' + BUMPER_SHAPE : 'carom';
 /* the struck ball: the cue ball, carom's white, bumper pool's marked red */
@@ -6609,7 +6812,7 @@ const Career = (() => {
     'snooker-wpbsa': { game: 'snooker', label: 'Official snooker' },
     '3c-umb': { game: 'carom', label: 'Three-cushion' },
     'bumper-house': { game: 'bumper', label: 'Bumper pool' },
-    'heyball-masters': { game: 'heyball', label: 'Chinese 8-ball', note: 'World Chinese 8-Ball Masters rules, the 8 to a called pocket' },
+    'heyball-masters': { game: 'heyball', label: 'Chinese 8-ball', note: 'WPA Rules of Heyball, no shot called' },
   };
   const CIRCUITS = ['local', 'regional', 'national', 'pro', 'intl'];
   const CIRC_NAMES = ['Local', 'Regional', 'National', 'Pro Tour', 'International'];
@@ -7210,7 +7413,7 @@ const Career = (() => {
      elite invitationals a labelled custom format */
   function callFor(d, t, kind, custom) {
     if (custom) return { require: 'all', detail: 'strict' };
-    if (d === 'heyball') return { require: 'official', detail: 'pocket' };   /* its own rules: the 8 to a called pocket */
+    if (d === 'heyball') return { require: 'off', detail: 'ball' };   /* its own rules: no shot called (WPA Heyball s11) */
     if (!isPool(d)) return { require: 'off', detail: 'ball' };
     if (d === 'straight') return { require: 'all', detail: t >= 8 ? 'rails' : 'pocket' };
     if (t <= 2) return d === '8' ? { require: '8ball', detail: 'pocket' } : { require: 'off', detail: 'ball' };
@@ -10723,11 +10926,11 @@ function guideLines(c, ang) {
   if (P) {
     first = P.first === null ? null : game.balls.find(b => b.n === P.first);
     const wrong = first && !(is8(game.kind) && game.breakShot) && !legalTargets(game).includes(first.n);
-    /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or no legal ball is past it */
+    /* judge's kitchen rule: a ball behind the line is on only if the cue ball crossed first, or (house rules) no legal ball is past it */
     const kitchen = first && game.inHand === 'kitchen' && !game.breakShot && !P.crossed && first.x < HEAD_X
-      && legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X);
-    /* bumper pool: any contact, or none, is legal; carom: cushions first is fine, but on the break the red first */
-    legal = guideLegal = game.kind === 'bumper' || (game.kind === 'carom' ? !wrong : first ? !wrong && !kitchen : false);
+      && (rulesOf(game).kitchenSpot || legalTargets(game).some(t => game.balls.find(b => b.n === t).x >= HEAD_X));
+    /* bumper pool: any contact, or none, is legal; carom: cushions first is fine, but on the break the red first, directly (Art 23.3) */
+    legal = guideLegal = game.kind === 'bumper' || (game.kind === 'carom' ? !wrong && !(game.breakShot && h.kind !== 'ball') : first ? !wrong && !kitchen : false);
     /* a preview a frame or two behind a moving aim that still meets the same ball or cushion:
        its cue ball path moves with the ghost ball, so the two never come apart */
     const same = P.hb === (h.ball ? h.ball.n : -1) && P.hk === h.kind && (h.kind === 'ball' || h.kind === 'rail') && P.cuePot < 0 && Math.abs(P.ang - ang) < 0.03;
@@ -11550,8 +11753,9 @@ function handWords(p, kitchen) {
   const where = kitchen ? ' behind the head string' : '';
   return cpuMode ? `Ball in hand for ${p === 0 ? 'you' : 'the CPU'}${where}` : `${nameOf(p)}: ball in hand${where}`;
 }
-/* 9-ball and 10-ball: a player on two fouls in a row loses with a third */
-const onTwo = (g, p) => (g.kind === '9' || g.kind === '10') && rulesOf(g).threeFoul === 'loss' && g.winner === null && g.fouls[p] >= 2;
+/* 9-ball and 10-ball: a player on two fouls in a row loses with a third. 14.1: the warning is mandatory too (WPA 3.13, 7.11), a third costs 15 more */
+const onTwo = (g, p) => (g.kind === '9' || g.kind === '10' || g.kind === 'straight') && !!rulesOf(g).threeFoul && g.winner === null && g.fouls[p] >= 2;
+const thirdWords = g => g.kind === 'straight' ? 'a third costs 15 more' : 'a third loses';
 function settle() {
   if (game.mode || tutOn()) { settleSolo(); return; }   /* practice, trick shots (5s) and the tutorials (6d) */
   const r = resultOf(tab);
@@ -11575,10 +11779,15 @@ function settle() {
   const kitchen = game.inHand === 'kitchen';
   const group = v.grouped ? `${isOf(shooter)} ${game.groups[shooter]}.` : '';
   const ballOn = ['9', '10', 'rotation'].includes(game.kind) && legalTargets(game).length ? ` Ball on: the ${legalTargets(game)[0]}.` : '';
-  const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: a third loses.` : '';
+  const warn = p => onTwo(game, p) ? `${isOf(p)} on two fouls: ${thirdWords(game)}.` : '';
   if (game.kind === 'bumper') { bumperWords(v, shooter, who); hud(); return; }
   if (game.kind === 'snooker') { snookerWords(v, shooter, game.turn, chose); hud(); return; }
-  if (game.kind === 'carom') { caromWords(v, shooter, who); hud(); return; }
+  if (game.kind === 'carom') {
+    caromWords(v, shooter, who);
+    if (state === 'choose') say(optionSay());
+    else if (chose) say(`${nameOf(chose.o.who)}: ${optLabel(chose.o, chose.c).toLowerCase()}. ${turnOf(game.turn)}.`);
+    hud(); return;
+  }
   /* the call, the points, a re-rack and a choice made or pending: their own banner first */
   const extra = callWords(v, shooter, chose);
   if (state === 'choose') { say(extra || optionSay()); sfx(v.foul ? 'foul' : 'turn', 1); hud(); return; }
@@ -11845,7 +12054,7 @@ function hudCall() {
     b.setAttribute('aria-checked', String(!!c && c.pocket === k));
   });
   for (const [b, f] of [[flagBank, 'bank'], [flagKick, 'kick'], [flagCombo, 'combo']]) { b.hidden = !flags; b.setAttribute('aria-pressed', String(!!(c && c[f]))); }
-  safetyBtn.hidden = !open; safetyBtn.setAttribute('aria-pressed', String(callSafe));
+  safetyBtn.hidden = !open || rulesOf(game).safetyCall === false; safetyBtn.setAttribute('aria-pressed', String(callSafe));
   pushBtn.hidden = !push; pushBtn.setAttribute('aria-pressed', String(callPushOn && push));
   callSep.hidden = !pk.length;
   if (popOpen === callBar) callMenuPlace();
@@ -11912,11 +12121,18 @@ const OPT_WORDS = {
   uncalled: { head: 'A ball dropped on a missed call', sub: 'Shoot from here, or hand it back.', take: 'Shoot it', pass: 'Hand it back' },
   badBreak: { head: 'Illegal break', sub: 'Take the table as it lies, or have the balls racked again.', take: 'Take the table', rebreak: 'They break again', break: 'Re-rack, I break' },
   eightBreak: { head: 'The 8 on the break', sub: 'Spot it and carry on, or re-rack and break again.', spot: 'Spot the 8', rerack: 'Re-rack' },
+  breakFoul: { head: 'Foul on the break', sub: 'Take ball in hand behind the head string, or have the balls racked again.', take: 'Ball in hand', rebreak: 'They break again', break: 'Re-rack, I break' },
+  breakOff: { head: 'Ball off the table on the break', sub: 'Take the table as it lies, or ball in hand behind the head string.', take: 'Take the table', kitchen: 'Ball in hand' },
+  threeBall: { head: 'Three-ball rule', sub: 'Fewer than three balls dropped or stopped past the head string. Shoot from here, or hand it back.', take: 'Shoot it', pass: 'Hand it back' },
+  breakMiss: { head: 'No ball hit on the break', sub: 'The balls are racked again: break yourself, or they break again.', rebreak: 'They break again', break: 'I break' },
+  kitchenSpot: { head: 'Your balls are behind the head string', sub: 'Have the nearest spotted on the foot spot, or play it from here.', spot: 'Spot the nearest', play: 'Play it' },
   /* snooker's choices after a foul (sim 1j, chooseSnooker; WPBSA Section 3 Rules 12 to 14) */
   snkFoul: { head: 'Foul', sub: 'Play from where the balls lie, or make them play again.', play: 'Play it', again: 'Make them play again from here' },
   snkMiss: { head: 'Foul and a miss', sub: 'Play from here, or have the balls put back for them to play again.', play: 'Play it', replace: 'Put it back and they play again',
     again: 'Make them play again from here', free: 'Free ball: nominate' },
   snkFree: { head: 'Free ball', sub: 'Snookered after a foul: nominate any colour as the ball on, or play on.', play: 'Play it', again: 'Make them play again from here', free: 'Free ball: nominate' },
+  respot: { head: 'Balls touching', sub: 'Your cue ball touches a ball. Play on, but not straight into it, or have the touching balls spotted.', play: 'Play it', respot: 'Spot them' },
+  snkBlack: { head: 'Re-spotted black', sub: 'Level on points. You won the draw: play the black from the D, or have them play it.', play: 'Play it', pass: 'They play it' },
 };
 /* the words for a choice: snooker's miss with a free ball says both */
 const optWords = o => o.kind === 'snkMiss' && o.free ? Object.assign({}, OPT_WORDS.snkMiss, { head: 'Foul and a miss: free ball', sub: 'You are snookered: nominate a free ball, play on, or have the balls put back.' }) : OPT_WORDS[o.kind];
@@ -11983,7 +12199,7 @@ function callWords(v, shooter, chose) {
   if (v.illegalBreak && !v.foul) parts.push('Illegal break');
   if (v.scored && (game.kind === 'straight' || game.kind === 'rotation')) parts.push(`${v.scored > 0 ? '+' : ''}${v.scored} for ${nameOf(shooter)}`);
   if (v.threeFouls) parts.push('Three fouls: 15 more off');
-  if (v.rerack) parts.push({ stalemate: 'Stalemate: the balls are racked again', fourteen: 'Fourteen down: re-rack', fifteen: 'All fifteen down: re-rack', fouls: 'Break a new rack' }[v.rerack]);
+  if (v.rerack) parts.push({ stalemate: 'Stalemate: the balls are racked again', fourteen: 'Fourteen down: re-rack', fifteen: 'All fifteen racked', fouls: 'Break a new rack' }[v.rerack]);
   if (chose) parts.push(`${nameOf(chose.o.who)}: ${optLabel(chose.o, chose.c).toLowerCase()}`);
   return parts.join('. ');
 }
@@ -12018,7 +12234,7 @@ function bumperWords(v, shooter, who) {
   } else say(`${nameOf(who)} ${cpuMode && who === 0 ? 'go' : 'goes'} again: ${left(who)} left.`);
 }
 /* ---- 5k. snooker's words, frames and concession ---- */
-const onWords = g => g.free ? `the free ${snkName(g.free)}${g.on === 'red' ? ' or a red' : ''}` : g.on === 'red' ? 'a red' : g.on === 'colour' ? 'a colour' : g.on ? `the ${snkName(g.on)}` : 'nothing';
+const onWords = g => g.free ? `the free ${snkName(g.free)}` : g.on === 'red' ? 'a red' : g.on === 'colour' ? 'a colour' : g.on ? `the ${snkName(g.on)}` : 'nothing';
 const ptsWord = n => `${n} point${n === 1 ? '' : 's'}`;
 const dWords = p => cpuMode ? `Ball in hand in the D for ${p === 0 ? 'you' : 'the CPU'}` : `${nameOf(p)}: ball in hand in the D`;
 /* a frame's winner in a banner: "You win the frame", "Player 2 wins the frame" */
@@ -12033,8 +12249,11 @@ function snookerWords(v, shooter, who, chose) {
     say(`${frameHead(fo.winner)}, ${line}. Frames ${fo.won[0]}-${fo.won[1]}. ${brk} frame ${game.frame}.`);
     sfx('turn', 1);
   } else if (v.reblack) {
-    flash('turn', 'Re-spotted black', `Level at ${game.score[0]}\n${dWords(who)}`, 2200);
-    say(`Level at ${game.score[0]}: the black is re-spotted. ${dWords(who)}.`);
+    if (state === 'choose') say(`Level at ${game.score[0]}: the black is re-spotted. ${optionSay()}`);
+    else {
+      flash('turn', 'Re-spotted black', `Level at ${game.score[0]}\n${dWords(who)}`, 2200);
+      say(`Level at ${game.score[0]}: the black is re-spotted. ${dWords(who)}.`);
+    }
     sfx('turn', 1);
   } else if (v.foul) {
     /* a choice pending for a player: the option box says it all (showOption), the line too */
@@ -14012,7 +14231,6 @@ const SEGS = [
   ['camera', [[camAuto, 'auto'], [camOff, 'off']]],
   ['rules8', [[rs8House, '8-house'], [rs8Wpa, '8-wpa']]],
   ['rules9', [[rs9House, '9-house'], [rs9Wpa, '9-wpa']]],
-  ['rules10', [[rs10Wpa, '10-wpa'], [rs10House, '10-house']]],
   ['race141', RACES_141.map(n => [document.getElementById('rc' + n), n])],
   ['stalemate', [[smOff, false], [smOn, true]]],
   ['calls.mode', [[cmOff, 'off'], [cmEight, 'eight'], [cmOfficial, 'official'], [cmAll, 'all'], [cmCareer, 'career']]],
@@ -14282,10 +14500,10 @@ const KINDS = {
   bumper: { name: 'Bumper pool', ball: 'bb', num: '', sub: 'Red against white, five each, round the posts to the far cup.' },
   carom: { name: 'Three-cushion', ball: 'bc', num: '', sub: 'No pockets. Your cue ball meets both others, three cushions before the second.' },
   snooker: { name: 'Snooker', ball: 'bsnk', num: '', sub: 'A red, then a colour, and again. Most points wins the frame.' },
-  10: { name: '10-ball', ball: 'b10', num: '10', sub: 'Lowest ball first, and call every shot. A called 10 wins.' },
+  10: { name: '10-ball', ball: 'b10', num: '10', sub: 'Lowest ball first, and call your shots. The 10 wins, called, when it is the last ball.' },
   straight: { name: 'Straight pool', ball: 'b14', num: '14', sub: '14.1 continuous: any ball, called, a point each. Fourteen down, rack again.' },
   rotation: { name: 'Rotation', ball: 'b15', num: '15', sub: 'Lowest ball first; every ball scores its number. 61 wins.' },
-  heyball: { name: 'Chinese 8-ball', ball: 'b8', num: '8', sub: 'Snooker pockets, pool balls. Clear your group, then the 8 to a named pocket.' },
+  heyball: { name: 'Chinese 8-ball', ball: 'b8', num: '8', sub: 'Snooker pockets, pool balls. Clear your group, then the 8 in any pocket.' },
 };
 /* the CPU opponents, one per level of cpuSearch */
 const FOES = { easy: 'Rookie', medium: 'Regular', hard: 'Hustler' };
@@ -14321,14 +14539,14 @@ function setupWords(kind, short) {
     : kind === 'snooker' ? (settings.snookerTable === 'full' ? 'full 12 ft' : 'compact 10 ft') + (settings.snookerFrames === 3 ? ', best of 3' : '')
     : kind === 'heyball' ? '9 ft'
     : `${settings.table} ft` + (settings.pockets === 'generous' ? ', generous' : '') + (kind === 'straight' ? `, to ${settings.race141}` : '')
-      + ({ '8-wpa': ', WPA', '9-wpa': ', WPA', '10-house': ', obvious free' }[kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : kind === '10' ? settings.rules10 : ''] || '');
+      + ({ '8-wpa': ', WPA', '9-wpa': ', WPA' }[kind === '8' ? settings.rules8 : kind === '9' ? settings.rules9 : ''] || '');
   const w = KINDS[kind].name + who + ', ' + tb;
   return short ? w.replace(/(\d) (ft|points)/g, '$1\u00a0$2') : w;
 }
 /* the setup's rules: which choices this game has, and the ruleset's description and source */
 function syncSetupRules() {
   const kind = setupKind;
-  for (const [cls, on] of [['.r8', kind === '8'], ['.r9', kind === '9'], ['.r10', kind === '10'], ['.str', kind === 'straight'], ['.stm', kind === '8' || kind === '9']])
+  for (const [cls, on] of [['.r8', kind === '8'], ['.r9', kind === '9'], ['.str', kind === 'straight'], ['.stm', kind === '8' || kind === '9']])
     for (const el of setupSheet.querySelectorAll(cls)) el.hidden = !on;
   rulesInfoSync();
 }
@@ -14339,14 +14557,14 @@ function syncSetupRules() {
    does nothing else, as Esc, Done, the button again, a resize or the sheet closing do; focus goes
    back to the button. ---- */
 const RULES_SRC = { '8-house': 'House rules', '8-wpa': 'WPA world standardized rules', '9-house': 'House rules', '9-wpa': 'WPA world standardized rules, with the push out',
-  '10-wpa': 'WPA world standardized rules', '10-house': 'WPA rules, obvious shots called for you', 'straight-wpa': '14.1 continuous, WPA world standardized rules',
-  rotation: 'American rotation, house rules', bumper: 'House rules', carom: 'UMB rules, simplified', snooker: 'WPBSA rules, simplified',
-  heyball: 'World Chinese 8-Ball Masters rules' };
+  '10-wpa': 'WPA world standardized rules', 'straight-wpa': '14.1 continuous, WPA world standardized rules',
+  rotation: 'House rules, after the BCA game', bumper: 'House rules', carom: 'UMB rules, simplified', snooker: 'WPBSA rules, simplified',
+  heyball: 'WPA Rules of Heyball, 2025' };
 function rulesInfoOf(kind) {
   const R = POCKET_KINDS.includes(kind) ? rulesFor(kind) : RULESETS[DEFAULT_RULESET[kind]], ps = [R.description];
   if (kind === '8' || kind === '9') ps.push(settings.stalemate ? `Stalemate: after ${STALEMATE_INNINGS} innings with no ball potted, the balls are racked again.` : 'Stalemate: play on. A rack with no ball potted is played out.');
   if (kind === 'straight') ps.push(`First to ${settings.race141} points wins.`);
-  if (kind === 'heyball') ps.push('The 8 loses the rack if it drops before your group is clear, on a foul, in another pocket, or off the table. An 8 on the break is spotted, or the breaker breaks again.');
+  if (kind === 'heyball') ps.push('The 8 loses the rack if it drops before your group is clear, on a foul, or off the table. An 8 on the break is spotted, or the breaker breaks again.');
   if (kind === 'carom') ps.push(`First to ${settings.caromRace} points wins.` + (settings.caromCush === 1 ? ' The easier game: one cushion before the second ball is enough.' : ''));
   if (kind === 'snooker') ps.push(settings.snookerFrames === 3 ? 'Best of three frames.' : 'One frame.', 'After a foul the player fouled chooses: play on, have it played again, or take a free ball when snookered.');
   return { id: R.id, title: titleCase(KINDS[kind].name) + ' Rules', src: RULES_SRC[R.id] || R.source, ps };
@@ -17518,7 +17736,7 @@ function hudSnooker() {
   if (!show) return;
   const p = game.turn, need = snookersNeeded(game, p), dots = onDots(game);
   const cap = n => snkName(n)[0].toUpperCase() + snkName(n).slice(1);
-  const on = game.free ? (game.on === 'red' ? 'Red or ' : '') + cap(game.free) : game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? cap(game.on) : '';
+  const on = game.free ? cap(game.free) : game.on === 'red' ? 'Red' : game.on === 'colour' ? 'Colour' : game.on ? cap(game.on) : '';
   const parts = [['Break', String(game.brk)], ['On', on, dots], [snookerLeft(game) + ' left', '']];
   if (game.frames > 1) parts.unshift(['Frame ' + game.frame, `${game.won[0]}-${game.won[1]}`]);
   /* a free ball nominated, or offered in the choice after a foul (WPBSA Section 3 Rule 12) */
@@ -18426,7 +18644,7 @@ const TUT_RECAP = {
   bumper: 'Your marked ball first, round the posts to the far cup, and never your own cup. The full rules are in How to play.',
   carom: 'Both balls, with three cushions before the second, and the cushions can come first. The full rules are in How to play.',
   snooker: 'A red, then a colour, and again; ball in hand in the D after an in-off; then the colours in order. The full rules are in How to play.',
-  heyball: 'A legal break, an open table until the first pot after it, ball in hand anywhere after a foul, and the 8 last to a named pocket. The full rules are in How to play.',
+  heyball: 'A legal break, an open table until the first pot after it, ball in hand anywhere after a foul, and the 8 last, in any pocket. The full rules are in How to play.',
 };
 let tutRec = loadTut();
 function freshTut() { return { v: 1, done: {}, skipped: {}, never: false }; }

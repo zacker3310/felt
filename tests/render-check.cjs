@@ -333,7 +333,7 @@ async function tableChecks(page, tag) {
   /* portrait phone: the same table, turned */
   const p = await open('', { viewport: { width: 390, height: 844 }, hasTouch: true });
   await p.page.evaluate(HELPERS);
-  await p.page.evaluate(() => { felt.start('9'); });
+  await p.page.evaluate(() => { settings.dress = 'mine'; felt.start('9'); });
   await p.page.waitForTimeout(150);
   check('portrait: the table is turned', await p.page.evaluate(() => view.portrait));
   await tableChecks(p.page, 'portrait');
@@ -355,7 +355,7 @@ async function tableChecks(page, tag) {
   for (const pockets of ['regulation', 'generous']) for (const [size, cloth] of [['7', 'green'], ['7', 'red'], ['9', 'green'], ['9', 'red']]) {
   const pk = await q.page.evaluate(([size, cloth, pockets]) => {
     /* start() sets the table and pockets from settings, so those choose them */
-    settings.table = size; settings.pockets = pockets; felt.start('8'); settings.cloth = cloth; layout();
+    settings.table = size; settings.pockets = pockets; felt.start('8'); settings.dress = 'mine'; settings.cloth = cloth; layout();
     if (TABLE !== size || POCKETS_STYLE !== pockets) return []; for (const b of game.balls) b.on = false; state = 'over';
     const co = cushionDepth(), px1 = 1 / view.k, res = [], ch = cloth === 'red' ? 0 : 1;
     const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
@@ -459,7 +459,7 @@ async function tableChecks(page, tag) {
   const dif = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
   check('generous pockets at RAIL_MIN: each side hole and its ring (4 mm or more) inside the rail, SIDE_WOOD from its edge, the nickel painted',
     caps.sides.every(s => s.wood >= caps.wood - 0.01 && s.ringW >= 4 && dif(s.ring, s.hole) > 60 && s.ring[0] + s.ring[1] + s.ring[2] > 240), JSON.stringify(caps));
-  await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = 'green'; felt.start('8'); layout(); });
+  await q.page.evaluate(() => { settings.table = '7'; settings.pockets = 'regulation'; settings.dress = 'mine'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the game ball's halo: the 8 in 8-ball, the 9 (and not the 8) in 9-ball, at 3:1 on the cloth */
   const halo = await q.page.evaluate(() => {
@@ -489,7 +489,7 @@ async function tableChecks(page, tag) {
   await q.page.emulateMedia({ reducedMotion: 'reduce' });
   for (const cloth of ['green', 'red']) {
     const hn = await q.page.evaluate(cloth => {
-      settings.table = '7'; settings.pockets = 'regulation'; settings.cloth = cloth; felt.start('8'); layout();
+      settings.table = '7'; settings.pockets = 'regulation'; settings.dress = 'mine'; settings.cloth = cloth; felt.start('8'); layout();
       game.breakShot = false; game.inHand = null; cpuMode = false; pull = null; stroke = null; settings.guide = 'off';
       for (const b of game.balls) b.on = b.n === 0 || b.n === 3;
       Object.assign(game.balls.find(b => b.n === 3), { x: TL * 0.6, y: TW * 0.45 }); Object.assign(game.balls[0], { x: TL * 0.3, y: TW * 0.6 });
@@ -518,7 +518,7 @@ async function tableChecks(page, tag) {
     check(`hint, ${cloth} cloth: ring and chevron keep 3:1 on the brightest cloth`, hn.ringCr >= 3 && hn.markCr >= 3, JSON.stringify({ ring: hn.ringCr, mark: hn.markCr }));
   }
   await q.page.emulateMedia({ reducedMotion: null });
-  await q.page.evaluate(() => { settings.cloth = 'green'; felt.start('8'); layout(); });
+  await q.page.evaluate(() => { settings.dress = 'mine'; settings.cloth = 'green'; felt.start('8'); layout(); });
 
   /* the loupe: shown while fineAim is set and not otherwise, clear of the contact */
   const clockL = await frameClock(q.page);
@@ -569,7 +569,7 @@ async function tableChecks(page, tag) {
     await b.page.evaluate(HELPERS);
     for (const [cloth, shape] of [['green', 'rect'], ['red', 'rect'], ['green', 'octagon'], ['red', 'octagon']]) {
       const r = await b.page.evaluate(([cloth, shape]) => {
-        settings.cloth = cloth; settings.bumperTable = shape; felt.start('bumper'); layout();
+        settings.dress = 'mine'; settings.cloth = cloth; settings.bumperTable = shape; felt.start('bumper'); layout();
         const ch = cloth === 'red' ? 0 : 1, W = table.width, px1 = 1 / view.k;
         const green = c => c[ch] - Math.max(...c.slice(0, 3).filter((_, i) => i !== ch));
         const img = tableImg.getContext('2d').getImageData(0, 0, W, table.height).data;

@@ -285,7 +285,7 @@ S.setTable('7');
   const ov = [];
   for (const [kind, cloth] of [['carom', 'green'], ['carom', 'red'], ['carom', 'blue'], ['8', 'blue']]) {
     ov.push(await page.evaluate(([kind, cloth]) => {
-      settings.cloth = cloth; felt.start(kind); layout();
+      settings.dress = 'mine'; settings.cloth = cloth; felt.start(kind); layout();
       for (const b of game.balls) b.on = false;
       state = 'over'; draw(performance.now());
       const c = table.getContext('2d'), lum = v => { const f = x => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(v[0]) + 0.7152 * f(v[1]) + 0.0722 * f(v[2]); };
@@ -300,7 +300,7 @@ S.setTable('7');
     ov.every(o => o.white >= 3 && o.illegal >= 3 && o.halo >= 3 && o.loupe >= 3), JSON.stringify(ov));
   const bl = ov.find(o => o.cloth === 'blue' && o.kind === 'carom').bed;
   check('the blue cloth is blue', bl[2] > bl[1] + 20 && bl[2] > bl[0] + 40, JSON.stringify(bl));
-  await page.evaluate(() => { settings.cloth = 'green'; });
+  await page.evaluate(() => { settings.cloth = 'green'; settings.dress = 'game'; });
   check('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();
   done();

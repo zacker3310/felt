@@ -279,7 +279,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
       for (const type of ['touchStart', 'touchEnd']) { t3 += 0.016; await c3.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }], timestamp: t3 }); }
     };
     await pg.waitForFunction(() => felt.motion.warm > 0, null, { timeout: 20000 }).catch(() => {});
-    const warm = await pg.evaluate(() => HERO_WARM_KINDS.map(k => !!heroTexOf(heroTexKey(heroArgs(k)))));
+    const warm = await pg.evaluate(() => HERO_WARM_KINDS.map(k => !!heroTexOf(heroTexKey(heroArgs(k), k))));
     /* the table image the game shows against a fresh, whole one (the fitted view), byte for byte */
     const same = () => pg.evaluate(() => {
       const keep = view; view = viewBase;
@@ -322,7 +322,7 @@ const PHONE = { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile:
     }
     errors.push(...o.errors);
     await o.browser.close();
-    check('the home warms the hero\'s table art for all five tables a card opens on (pool, snooker, three-cushion, bumper pool, Chinese 8-ball)', warm.every(Boolean), JSON.stringify(warm));
+    check('the home warms the hero\'s table art for every table and dressing a card opens on (the nine games)', warm.every(Boolean), JSON.stringify(warm));
     const goodBreak = b => b.dueAtLanding && !b.dueAtBreak && b.hi && b.state !== 'menu' && b.table === b.setupTable && b.off === 0;
     check('a setup that changes the table leaves its image for later (deferred at the landing) and Break opens the game on drawTableImage()\'s own picture for that table, byte for byte, the camera\'s image made for it (Snooker, Three-Cushion, Bumper Pool, Chinese 8-Ball; green, red, blue, teal cloth; walnut, oak, ebony rails)', BREAKS.length === 16 && BREAKS.every(goodBreak),
       'off: ' + JSON.stringify(BREAKS.filter(b => !goodBreak(b))));

@@ -33,7 +33,7 @@ const HELPERS = () => {
   /* ---- the lamp's pool and the vignette: the bed is brightest under the lamp ---- */
   for (const cloth of ['green', 'red', 'blue']) {
     const r = await ev(cl => {
-      settings.cloth = cl; __only([]); draw(performance.now());
+      settings.dress = 'mine'; settings.cloth = cl; __only([]); draw(performance.now());
       const at = (x, y) => { const s = toScreen(x, y); return __area(tableImg, s[0], s[1], 3); }, d = 3 * BALL_R;
       return { mid: at(TL / 2, TW / 2), rails: [at(d, TW / 2), at(TL - d, TW / 2), at(TL / 4, d), at(TL * 0.75, TW - d)], corner: at(TL - 2 * d, TW - 2 * d), half: at(TL * 0.3, TW * 0.3) };
     }, cloth);
@@ -41,7 +41,7 @@ const HELPERS = () => {
       r.rails.every(v => v < r.mid * 0.9) && r.half < r.mid && r.corner < Math.min(...r.rails), JSON.stringify(r));
   }
   const vg = await ev(() => {
-    settings.cloth = 'green'; __only([]); draw(performance.now());
+    settings.cloth = 'green'; settings.dress = 'game'; __only([]); draw(performance.now());
     const plain = paintTable(table.width, table.height), a = toScreen(-RAIL * 0.5, TW / 2), b = toScreen(TL / 2, TW / 2);
     return { railWith: __area(tableImg, a[0], a[1]), railPlain: __area(plain, a[0], a[1]), midWith: __area(tableImg, b[0], b[1]), midPlain: __area(plain, b[0], b[1]) };
   });

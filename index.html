@@ -1930,9 +1930,10 @@ html:has(#menu.show[data-paused]) #banner { visibility: hidden; }
     <section class="pan" id="ppGfx" aria-labelledby="prefsTitle" hidden>
       <h3 class="ghead" id="clHead">Table</h3>
       <div class="group" role="group" aria-labelledby="clHead">
+        <div class="prow"><span class="plab" id="drLab">Table Dressing</span><div class="seg" role="group" aria-labelledby="drLab" aria-describedby="drNote"><button id="drGame" aria-pressed="true">By Game</button><button id="drMine" aria-pressed="false">My Look</button></div></div>
         <div class="prow"><span class="plab" id="clLab"><span class="swatch" id="clothSwatch" aria-hidden="true"></span>Cloth</span><div class="seg pop" role="group" aria-labelledby="clLab" id="clothSeg"><button id="clGreen" aria-pressed="true"><i class="chip-g" aria-hidden="true"></i>Green</button><button id="clRed" aria-pressed="false"><i class="chip-r" aria-hidden="true"></i>Red</button><button id="clBlue" aria-pressed="false"><i class="chip-b" aria-hidden="true"></i>Blue</button></div></div>
       </div>
-      <p class="gfoot">The cloth applies to every game (blue is carom's classic).</p>
+      <p class="gfoot" id="drNote">By Game dresses each game as itself: its cloth, rails, balls, cue and room. My Look wears your choices below on every game. Picking one switches to My Look. A career match wears what its player equipped.</p>
       <!-- the look (4l): a row per slot, built from LOOKS, showing what is unlocked -->
       <h3 class="ghead" id="lookLab">Look</h3>
       <div class="group" role="group" aria-labelledby="lookLab" id="lookRows"></div>
@@ -9353,6 +9354,16 @@ const CLOTHS = {
   teal: { base: '#0e5a60', cushion: '#11646a', illegal: '#ffa597', ovMin: 0.64, bounce: '110,200,200', lamp: '240,255,250', call: '#ffe27a' },
   midnight: { base: '#162039', cushion: '#1a2643', illegal: '#ffa597', ovMin: 0.5, bounce: '110,130,190', lamp: '225,232,255', call: '#ffe27a', rim: true },
   plum: { base: '#4a1f4f', cushion: '#53245a', illegal: '#ffe27a', ovMin: 0.62, bounce: '190,120,200', lamp: '255,225,245', call: '#9ff0ff', rim: true },
+  /* each game's own (GAME_LOOK, dress: only By Game wears them, never listed in Settings or the shop). Named after what they
+     imitate, in felt's own words; every hex is judgment, matched to a colourway's name; cosmetics-check measures the 3:1. worsted:
+     a nap-free cloth, no streaks. lowRim: a ball close to this cloth's colour takes the light rim */
+  tourney: { base: '#1f5fa8', cushion: '#2367b3', illegal: '#ffe27a', ovMin: 0.72, bounce: '120,165,235', lamp: '235,240,255', call: '#9ff0ff', dress: true, worsted: true, lowRim: true },
+  electric: { base: '#1566b8', cushion: '#186fc4', illegal: '#ffe27a', ovMin: 0.78, bounce: '110,170,240', lamp: '235,242,255', call: '#9ff0ff', dress: true, worsted: true, lowRim: true },
+  spruce: { base: '#134a44', cushion: '#16524b', illegal: '#ffa597', ovMin: 0.6, bounce: '110,190,175', lamp: '245,250,235', call: '#ffe27a', dress: true, lowRim: true },
+  wine: { base: '#8c1f25', cushion: '#94242b', illegal: '#ffe27a', ovMin: 0.66, bounce: '236,122,118', lamp: '255,196,160', call: '#9ff0ff', dress: true, lowRim: true },
+  baize: { base: '#1f6b3a', cushion: '#22733f', illegal: '#ffe27a', ovMin: 0.66, bounce: '120,205,150', lamp: '255,248,220', call: '#9ff0ff', dress: true, lowRim: true },
+  joy: { base: '#1e6340', cushion: '#206a45', illegal: '#ffe27a', ovMin: 0.64, bounce: '120,200,150', lamp: '255,250,230', call: '#9ff0ff', dress: true, lowRim: true },
+  olive: { base: '#4f6030', cushion: '#586a35', illegal: '#ffe27a', ovMin: 0.76, bounce: '170,190,110', lamp: '255,244,210', call: '#9ff0ff', dress: true, lowRim: true },
 };
 const CLOTH_NAMES = { green: 'Green', red: 'Red', blue: 'Blue', grey: 'Grey', teal: 'Teal', midnight: 'Midnight', plum: 'Plum' };
 let CL = CLOTHS.green, CLOTH = CL.base, CUSHION = CL.cushion, ILLEGAL = CL.illegal;
@@ -9370,6 +9381,14 @@ const RAILS = {
   cherry: { name: 'Cherry', base: '#6b2213', dark: [60, 14, 8], lite: [178, 70, 42] },
   oak: { name: 'Light Oak', base: '#8f6232', dark: [98, 62, 28], lite: [212, 166, 108] },
   ebony: { name: 'Ebony', base: '#1d1613', dark: [9, 7, 6], lite: [78, 62, 52] },
+  /* each game's own. mat: 'lacquer', a long sheen and hardly any grain. metal: the pocket hardware (CAP_METAL, default nickel).
+     sight: 'dot' for a round inlay (default the pearl diamond) */
+  lacquer: { name: 'Black Lacquer', base: '#100f11', dark: [6, 6, 7], lite: [34, 33, 36], mat: 'lacquer', metal: 'chrome', sight: 'dot', dress: true },
+  mahogany: { name: 'Mahogany', base: '#44190f', dark: [34, 10, 6], lite: [122, 54, 32], dress: true },
+  baulk: { name: 'Snooker Oak', base: '#7c5228', dark: [86, 52, 22], lite: [190, 142, 86], metal: 'brass', dress: true },
+  arena: { name: 'Stage Wood', base: '#2a1a12', dark: [16, 9, 6], lite: [92, 62, 42], metal: 'leather', dress: true },
+  carom: { name: 'Dark Hall Wood', base: '#33201a', dark: [20, 11, 8], lite: [104, 70, 54], sight: 'dot', dress: true },
+  veneer: { name: 'Walnut Veneer', base: '#5c3a1e', dark: [58, 34, 16], lite: [148, 104, 62], dress: true },
 };
 /* the cues: shaft (a gradient), metal (the joint's collars and the rings), joint, forearm and its
    inlaid points (null: none), the wrap and its pattern (linen, leather, diamond, stack, weave),
@@ -9383,6 +9402,11 @@ const CUES = {
   legacy: { name: 'Hall of Fame', shaft: ['#f3e2b8', '#dcb983'], metal: '#d4af37', joint: '#120a06', fore: '#5b0f1a', pts: '#f1ece0', wrap: '#101010', pat: 'diamond', sleeve: '#5b0f1a', ring: '#d4af37', cap: '#0c0c0c' },
   champion: { name: 'Champion', shaft: ['#f0dcae', '#d7b07a'], metal: '#c9ccd2', joint: '#0b1430', fore: '#1d3a78', pts: '#e8eef8', wrap: '#0f1c3a', pat: 'stack', sleeve: '#1d3a78', ring: '#e8eef8', cap: '#0c0c0c' },
   centurion: { name: 'Centurion', shaft: ['#f0dcae', '#d7b07a'], metal: '#d4af37', joint: '#06180f', fore: '#0f4a32', pts: '#d4af37', wrap: '#0b2a1d', pat: 'linen', sleeve: '#0f4a32', ring: '#d4af37', cap: '#0c0c0c' },
+  /* the disciplines' own (shape: CUE_GEO, by the game, whatever the cue) */
+  ash: { name: 'Ash and Ebony', shaft: ['#ead9b2', '#cfb384'], metal: '#c7a24a', joint: '#17100a', fore: '#16100c', pts: '#16100c', wrap: '#16100c', pat: 'linen', sleeve: '#16100c', ring: '#c7a24a', cap: '#0c0a08', dress: true },
+  hall: { name: 'Hall Carom', shaft: ['#f1e0b8', '#dabb88'], metal: '#c9ccd2', joint: '#20140c', fore: '#3a1d10', pts: null, wrap: '#3a1d10', pat: 'linen', sleeve: '#2b150b', ring: '#c9ccd2', cap: '#151515', dress: true },
+  rosewood: { name: 'Ash and Rosewood', shaft: ['#ead9b2', '#cfb384'], metal: '#b8bcc2', joint: '#1a0e0a', fore: '#3f1711', pts: '#3f1711', wrap: '#3f1711', pat: 'linen', sleeve: '#3f1711', ring: '#d9c9a3', cap: '#0c0a08', dress: true },
+  plain: { name: 'Plain Hardwood', shaft: ['#e0bf8a', '#c79c62'], metal: '#c79c62', joint: '#c79c62', fore: '#b98d55', pts: null, wrap: '#b98d55', pat: 'linen', sleeve: '#a97d48', ring: '#a97d48', cap: '#1c1c1c', dress: true },
 };
 /* the chalk on the tip */
 const CHALKS = { blue: { name: 'Blue', tip: '#4f84bd' }, green: { name: 'Green', tip: '#3f9a5c' }, red: { name: 'Red', tip: '#c0443c' } };
@@ -9396,9 +9420,18 @@ const BALLSETS = {
   pro: { name: 'Pro', col: null, ivory: '#f7f4ea', circle: 0.866, cue: [0, 1, 2].map(i => [i, 0.982, '#c4342c']) },
   vintage: { name: 'Vintage', col: { 1: [222, 170, 62], 2: [44, 70, 140], 3: [172, 52, 40], 4: [92, 58, 116], 5: [212, 116, 52], 6: [40, 102, 70], 7: [116, 44, 34], 8: [30, 26, 24] },
     ivory: '#ece2c6', circle: 0.866, cue: [] },
-  tv: { name: 'Television', col: { 1: [255, 204, 0], 2: [20, 84, 222], 3: [232, 36, 30], 4: [118, 52, 186], 5: [255, 120, 10], 6: [10, 150, 72], 7: [150, 24, 30], 8: [16, 16, 18] },
+  /* television sets wear a pink 4 and a tan 7 where a purple and a maroon would read as the blue and the red on screen */
+  tv: { name: 'Television', col: { 1: [255, 204, 0], 2: [20, 84, 222], 3: [232, 36, 30], 4: [240, 92, 150], 5: [255, 120, 10], 6: [10, 150, 72], 7: [164, 104, 62], 8: [16, 16, 18] },
     ivory: '#fbfaf4', circle: 0.8, cue: [0, 1, 2].map(i => [i, 0.986, '#1d4fb8']) },
+  /* each game's own: the television colours with a red measles cue ball; felt's own pink and blue set for Chinese 8-ball
+     (solids pink, stripes blue: an original design, no maker's set: stripe is the stripes' one colour) */
+  measles: { name: 'Television Measles', col: { 1: [255, 204, 0], 2: [20, 84, 222], 3: [232, 36, 30], 4: [240, 92, 150], 5: [255, 120, 10], 6: [10, 150, 72], 7: [164, 104, 62], 8: [16, 16, 18] },
+    ivory: '#fbfaf4', circle: 0.8, cue: [0, 1, 2].map(i => [i, 0.986, '#c4342c']), dress: true },
+  pinkblue: { name: 'Pink and Blue', col: { 1: [238, 88, 150], 2: [238, 88, 150], 3: [238, 88, 150], 4: [238, 88, 150], 5: [238, 88, 150], 6: [238, 88, 150], 7: [238, 88, 150], 8: [16, 16, 18] }, stripe: [40, 120, 232],
+    ivory: '#fbfaf4', circle: 0.8, cue: [0, 1, 2].map(i => [i, 0.986, '#c4342c']), dress: true },
 };
+/* a pool ball's colour in a set (null: the game's own colour) */
+const setCol = (B, n) => n > 8 && B.stripe ? B.stripe : B.col && B.col[n > 8 ? n - 8 : n];
 /* the profile frames (the career's ring slot): a ring round the avatar on the hub's card, and a
    small star for the ones an achievement unlocked. Each is 3:1 or more on the card. */
 const RINGS = {
@@ -9436,12 +9469,48 @@ function noteLookOwn(ids) {
 const lookOwned = (slot, key) => lookOwn.has(slot + '-' + key);
 /* the career's look while one of its matches is on (6d sets it), else null */
 let lookCareer = () => null;
-/* the look now: the career's in a career match, else the settings', each slot falling back to the
+/* each game dressed as itself (Settings > Graphics > Table Dressing: By Game; 8-ball is the defaults exactly). `room`: ROOMS.
+   Every colour is judgment; only the cloth names and cue shapes rest on sources (.buildloop/spec/T6-research-looks.md) */
+const GAME_LOOK = {
+  8: { cloth: 'green', cue: 'house', chalk: 'blue', rail: 'walnut', balls: 'classic', room: 'hall' },
+  9: { cloth: 'tourney', cue: 'ebony', chalk: 'blue', rail: 'lacquer', balls: 'tv', room: 'arena' },
+  10: { cloth: 'electric', cue: 'carbon', chalk: 'blue', rail: 'ebony', balls: 'measles', room: 'arena' },
+  straight: { cloth: 'spruce', cue: 'maple', chalk: 'blue', rail: 'mahogany', balls: 'vintage', room: 'hall' },
+  rotation: { cloth: 'wine', cue: 'gold', chalk: 'blue', rail: 'cherry', balls: 'classic', room: 'hall' },
+  heyball: { cloth: 'joy', cue: 'rosewood', chalk: 'blue', rail: 'arena', balls: 'pinkblue', room: 'joy' },
+  bumper: { cloth: 'olive', cue: 'plain', chalk: 'blue', rail: 'veneer', balls: 'classic', room: 'rec' },
+  carom: { cloth: 'blue', cue: 'hall', chalk: 'blue', rail: 'carom', balls: 'classic', room: 'carom' },
+  snooker: { cloth: 'baize', cue: 'ash', chalk: 'green', rail: 'baulk', balls: 'classic', room: 'crucible' },
+};
+/* where each game is played (the 3D room, and a tint round the 2D table). glow: the light round the table. wall: [height, colour]
+   stops, high to low. near: neighbouring tables. seats: [z0, z1, gap, colours], rig: overhead lights, backdrop, strips, pine,
+   floor: { base, carpet } or { base, board, plank }. hall is the old room exactly. All judgment; no real venue copied. */
+const ROOMS = {
+  hall: { near: true, glow: '255,240,215', glowA: 0.07 },
+  arena: { near: false, glow: '205,222,255', glowA: 0.06, wall: [[5.5, '#010102'], [2.8, '#040507'], [0.3, '#06070a'], [-0.76, '#020203']], seats: [0.35, 3.1, 0, ['120,140,175', '90,100,120', '160,165,180', '70,80,100']], rig: 26, rigCol: '205,225,255', blur: 2, floor: { base: '#0b0c10', carpet: true } },
+  crucible: { near: false, glow: '255,226,180', glowA: 0.05, wall: [[5.5, '#000000'], [3.2, '#030202'], [0.2, '#070504'], [-0.76, '#020101']], seats: [0.22, 2.7, 34, ['150,120,92', '110,90,74', '170,150,128', '84,70,62']], blur: 2, floor: { base: '#100a08', carpet: true } },
+  joy: { near: false, glow: '255,232,200', glowA: 0.07, wall: [[5.5, '#030303'], [3.0, '#0a0908'], [0.3, '#100d0b'], [-0.76, '#040303']], seats: [0.3, 2.4, 42, ['170,150,130', '120,105,95', '190,170,150']], backdrop: [-40, 40, 3.0, '120,92,70'], rig: 18, rigCol: '255,226,190', blur: 2, floor: { base: '#14110f', carpet: true } },
+  carom: { near: true, glow: '245,245,235', glowA: 0.09, wall: [[5.5, '#3a3730'], [3.2, '#6f685a'], [1.2, '#857d6c'], [0.3, '#4a4438'], [-0.76, '#1a1712']], strips: true, blur: 2, floor: { base: '#2a2823', board: [108, 102, 88], plank: 0.3 } },
+  rec: { near: false, glow: '255,210,150', glowA: 0.1, wall: [[5.5, '#030201'], [2.4, '#0a0603'], [-0.76, '#0c0704']], pine: true, blur: 1, floor: { base: '#231b12', board: [104, 76, 46], plank: 0.09 } },
+};
+const roomId = () => lookMine() ? 'hall' : (GAME_LOOK[lookGame()] || GAME_LOOK[8]).room;
+/* the game whose look is wanted: the one a hero, a card or a warm-up is working for (lookIn), else the game on the table */
+let lookFor = null;
+const lookGame = () => lookFor || (game && game.kind) || '8';
+const lookMine = () => !!settings && settings.dress === 'mine' && !lookCareer();
+/* f run with kind's look on; CL and the balls' paint put back after */
+function lookIn(kind, f) { const k = lookFor; lookFor = kind; useCloth(); try { return f(); } finally { lookFor = k; useCloth(); } }
+const lookSigOf = kind => { const k = lookFor; lookFor = kind; try { return lookSig(); } finally { lookFor = k; } };
+/* the look now: the career's in a career match; By Game, the game's; My Look, the settings', each slot falling back to the
    default when it names nothing known or nothing unlocked */
 function look() {
   const c = lookCareer();
   if (c) return c;
-  const s = settings || LOOK_DEFAULT, out = {};
+  if (!settings || settings.dress !== 'mine') {
+    const G = GAME_LOOK[lookGame()] || GAME_LOOK[8];
+    return { cloth: G.cloth, cue: G.cue, chalk: G.chalk, rail: G.rail, balls: G.balls, ring: null };
+  }
+  const s = settings, out = {};
   for (const slot of ['cloth', 'cue', 'chalk', 'rail', 'balls']) out[slot] = Object.hasOwn(LOOKS[slot], s[slot]) && lookOwned(slot, s[slot]) ? s[slot] : LOOK_DEFAULT[slot];
   out.ring = null;
   return out;
@@ -9457,11 +9526,28 @@ function useBalls() {
   const id = look().balls;
   if (id === ballsNow) return;
   ballsNow = id;
-  const B = BALLSETS[id] || BALLSETS.classic, iv = B.ivory, col = n => rgb(B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n));
+  const B = BALLSETS[id] || BALLSETS.classic, iv = B.ivory, col = n => rgb(setCol(B, n) || colorOf(n));
   for (let n = 0; n <= 15; n++) {
     PAINT[n] = n === 0 ? { base: iv, caps: B.cue.slice() }
       : { base: col(n), caps: n > 8 ? [[0, 0.5, iv], [2, B.circle, iv]] : [[2, B.circle, iv]] };
   }
+}
+/* a ball that would melt into a dressed cloth (under LOW_RIM against it) */
+const LOW_RIM = 1.45;
+let lowMemo = { key: '', m: {} };
+function lowBall(n) {
+  if (!CL.lowRim) return false;
+  const key = CL.base + ballsNow;
+  if (lowMemo.key !== key) lowMemo = { key, m: {} };
+  const m = lowMemo.m;
+  if (m[n] === undefined) {
+    const B = BALLSETS[ballsNow] || BALLSETS.classic, c = n >= 1 && n <= 15 && setCol(B, n) || colorOf(n), b = [1, 3, 5].map(i => parseInt(CL.base.slice(i, i + 2), 16));
+    /* no colour of its own (the 3D guide's ghost): no rim */
+    if (!c) return (m[n] = false);
+    const a = lumOf(c), l = lumOf(b);
+    m[n] = (Math.max(a, l) + 0.05) / (Math.min(a, l) + 0.05) < LOW_RIM;
+  }
+  return m[n];
 }
 const wa = a => `rgba(255,255,255,${Math.max(a, CL.ovMin)})`;
 const IVORY = '#f7f4ea';
@@ -9531,7 +9617,7 @@ function* paintTableJob(w, h) {
   g.fillStyle = pageColor(); g.fillRect(0, 0, c.width, c.height);
   const m = toScreen(TL / 2, TW / 2);
   let gr = g.createRadialGradient(m[0] * dpr, m[1] * dpr, 0, m[0] * dpr, m[1] * dpr, Math.hypot(c.width, c.height) / 2);
-  gr.addColorStop(0, 'rgba(255,240,215,0.07)'); gr.addColorStop(1, 'rgba(255,240,215,0)');
+  { const R = ROOMS[roomId()]; gr.addColorStop(0, `rgba(${R.glow},${R.glowA})`); gr.addColorStop(1, `rgba(${R.glow},0)`); }
   g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
   tableXform(g);
   /* the table's own shadow on the floor, away from the lamp */
@@ -9619,6 +9705,12 @@ function* paintRails(g, co, L, px, rnd) {   /* a step a board, a step an edge (p
     gr.addColorStop(0, 'rgba(0,0,0,0.18)'); gr.addColorStop(0.1, 'rgba(255,225,190,0.03)');
     gr.addColorStop(0.55, `rgba(255,225,190,${0.04 + 0.08 * f})`); gr.addColorStop(1, `rgba(255,225,190,${0.04 + 0.08 * f})`);
     g.fillStyle = gr; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
+    /* lacquer: the lamp's long reflection down the board's middle */
+    if (RW.mat === 'lacquer') {
+      const sh = g.createLinearGradient(ix, iy, ox, oy);
+      sh.addColorStop(0.2, 'rgba(255,255,255,0)'); sh.addColorStop(0.52, `rgba(235,240,255,${0.1 + 0.14 * f})`); sh.addColorStop(0.82, 'rgba(255,255,255,0)');
+      g.fillStyle = sh; g.fillRect(-E, -E, TL + 2 * E, TW + 2 * E);
+    }
     g.restore();
     yield g;
   }
@@ -9728,7 +9820,10 @@ function holeClip(g, k, co) {
   circle(g, C[0], C[1], rb); g.clip();
   circle(g, P[0], P[1], r); g.clip();
 }
+/* the pocket hardware: the lit side, the middle and the far side of the ring */
+const CAP_METAL = { nickel: ['#e2dfd8', '#a4a19b', '#5d5a55'], brass: ['#f3dc96', '#b8923e', '#67501f'], chrome: ['#f6f8fb', '#b6bac2', '#585c64'], leather: ['#46403b', '#221f1c', '#0f0e0d'] };
 function paintPocketCaps(g, co, L, px) {
+  const CM = CAP_METAL[railLook().metal] || CAP_METAL.nickel;
   g.save();
   /* everywhere but the bed and the mouths' shelves: the cushions are painted over it */
   const noses = CUSHION_POLYS.flatMap(q => [q[1], q[2]]).sort((u, v) => Math.atan2(u[1] - TW / 2, u[0] - TL / 2) - Math.atan2(v[1] - TW / 2, v[0] - TL / 2));
@@ -9749,7 +9844,7 @@ function paintPocketCaps(g, co, L, px) {
     circle(g, P[0], P[1], r + lip / 2); g.stroke();
     /* nickel round the edge, lit from the lamp's side, and a dark groove inside it */
     const metal = g.createLinearGradient(C[0] + L[0] * rc, C[1] + L[1] * rc, C[0] - L[0] * rc, C[1] - L[1] * rc);
-    metal.addColorStop(0, '#e2dfd8'); metal.addColorStop(0.5, '#a4a19b'); metal.addColorStop(1, '#5d5a55');
+    metal.addColorStop(0, CM[0]); metal.addColorStop(0.5, CM[1]); metal.addColorStop(1, CM[2]);
     g.strokeStyle = metal; g.lineWidth = lw;
     circle(g, C[0], C[1], rc - lw / 2); g.stroke();
     g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = Math.max(px, lw * 0.35);
@@ -9778,8 +9873,15 @@ function railSights() {
   return at.map(([x, y, v]) => [x, y, v ? hw : hl, v ? hl : hw]);
 }
 function paintSights(g, co, L, px) {
-  const { at, hw, hl } = sightsAt(co);
+  const { at, hw, hl } = sightsAt(co), dot = railLook().sight === 'dot';
   for (const [x, y, v] of at) {
+    if (dot) {
+      const pe = g.createRadialGradient(x + L[0] * hw * 0.3, y + L[1] * hw * 0.3, 0, x, y, hw);
+      pe.addColorStop(0, '#fffdf8'); pe.addColorStop(0.7, '#e4dfd4'); pe.addColorStop(1, '#a9a49a');
+      g.fillStyle = pe; circle(g, x, y, hw * 0.92); g.fill();
+      g.strokeStyle = 'rgba(25,10,4,0.6)'; g.lineWidth = 1.2 * px; g.stroke();
+      continue;
+    }
     const ax = v ? 0 : hl, ay = v ? hl : 0, bx = v ? hw : 0, by = v ? 0 : hw;
     g.beginPath(); g.moveTo(x - ax, y - ay); g.lineTo(x + bx, y + by); g.lineTo(x + ax, y + ay); g.lineTo(x - bx, y - by); g.closePath();
     const pe = g.createRadialGradient(x + L[0] * hw * 0.5, y + L[1] * hw * 0.5, 0, x, y, hl);
@@ -9889,8 +9991,7 @@ function paintClothLight(g, co, rnd) {
   /* nap: fine speckle with streaks along the table's length, laid in device pixels */
   const W = g.canvas.width, H = g.canvas.height;
   if (view.portrait) g.setTransform(0, -1, 1, 0, 0, H); else g.setTransform(1, 0, 0, 1, 0, 0);
-  g.fillStyle = g.createPattern(napTile(rnd), 'repeat');
-  g.fillRect(0, 0, view.portrait ? H : W, view.portrait ? W : H);
+  if (!CL.worsted) { g.fillStyle = g.createPattern(napTile(rnd), 'repeat'); g.fillRect(0, 0, view.portrait ? H : W, view.portrait ? W : H); }
   /* a lamp over the middle of the table: brighter centre, ends and corners falling off */
   tableXform(g);
   g.translate(TL / 2, TW / 2); g.scale(TL / 2, TW / 2);
@@ -10421,7 +10522,7 @@ function drawBall(n, X, Y, r, ax, alpha = 1, dark = 0, rim = false) {
   /* the 8 is near black: over the dark tray, a drop or the floor a light rim keeps its outline
      (#c4c4c4: about 7:1 on the tray; render-check measures it). On the cloth it needs none: it
      is dark on a mid green, and in 8-ball the game ball's halo rings it. */
-  if ((n === 8 || (n === 62 && CL.rim)) && (rim || CL.rim)) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
+  if (((n === 8 || (n === 62 && CL.rim)) && (rim || CL.rim)) || lowBall(n)) { g.strokeStyle = '#c4c4c4'; g.lineWidth = Math.max(dpr, r * 0.08); g.beginPath(); g.arc(X, Y, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke(); }
   if (settings.marks) drawMark(g, n, X, Y, r);
   if (dark > 0) { g.fillStyle = `rgba(0,0,0,${dark})`; g.beginPath(); g.arc(X, Y, r + 0.5, 0, Math.PI * 2); g.fill(); }
   g.globalAlpha = 1;
@@ -11028,13 +11129,41 @@ function drawJumpArc(air, full) {
 /* maple shaft with an ivory ferrule and a chalked tip, a collared joint, an ebony forearm with
    inlaid points, a linen wrap and a butt sleeve. Lengths in metres from the tip back. */
 const CUE_LEN = 1.47;
-const cueR = x => 0.0064 + 0.0082 * x / CUE_LEN;
+/* each discipline's cue, whatever its colours (metres from the tip; sources in T6-research-looks.md): len, the tip's radius r0
+   and the taper dr to the butt; ferrule's end and colour; joint (null: one piece); pts, the inlaid points' range; wrap, its range
+   (null: none); paint, the rings' places. Pool is the old cue exactly. */
+const CUE_GEO = {
+  pool: { id: 'pool', len: CUE_LEN, r0: 0.0064, dr: 0.0082, ferrule: 0.027, ferCol: '#f1ece0', joint: 0.74, pts: [0.83, 1.0], wrap: [1.008, 1.26] },
+  /* 3/4 jointed, a slim brass-ferruled ash shaft spliced into ebony, no wrap: the joint 42 in from the tip */
+  snooker: { id: 'snooker', len: 1.473, r0: 0.00485, dr: 0.01015, ferrule: 0.02, ferCol: '#c7a24a', joint: 1.067, pts: [0.72, 1.06], wrap: null, sleeve: [1.077, 1.452], ring: [1.3, 1.306] },
+  /* short and thick, a short ferrule, a collar and a rubber bumper, no wrap */
+  carom: { id: 'carom', len: 1.425, r0: 0.006, dr: 0.01, ferrule: 0.006, ferCol: '#f1ece0', joint: 0.705, pts: null, wrap: null, fore: [0.715, 1.0], collar: [1.0, 1.022], sleeve: [1.022, 1.405], ring: [1.2, 1.206] },
+  /* 3/4 jointed like snooker's, ash with a rosewood splice, on a carbon ferrule */
+  heyball: { id: 'heyball', len: 1.473, r0: 0.00575, dr: 0.00925, ferrule: 0.02, ferCol: '#26282c', joint: 1.067, pts: [0.76, 1.06], wrap: null, sleeve: [1.077, 1.452], ring: [1.26, 1.266] },
+  /* a short one-piece hardwood stick */
+  bumper: { id: 'bumper', len: 1.219, r0: 0.006, dr: 0.008, ferrule: 0.015, ferCol: '#f1ece0', joint: null, pts: null, wrap: null, fore: [0.6, 1.2], sleeve: [0.6, 1.2] },
+};
+const CUE_DISC = { snooker: CUE_GEO.snooker, carom: CUE_GEO.carom, heyball: CUE_GEO.heyball, bumper: CUE_GEO.bumper };
+const cueGeo = () => CUE_DISC[lookGame()] || CUE_GEO.pool;
+const cueR = (x, G = cueGeo()) => G.r0 + G.dr * x / G.len;
 /* the parts of a cue (CUES, 4l) from the tip back, the tip in its chalk */
-const cueParts = (C, tip) => [[0, 0.005, tip], [0.005, 0.027, '#f1ece0'], [0.74, 0.744, C.metal], [0.744, 0.752, C.joint], [0.752, 0.756, C.metal],
-  [0.756, 1.0, C.fore], [1.0, 1.006, C.metal], [1.006, 1.262, C.wrap], [1.262, 1.268, C.metal], [1.268, 1.45, C.sleeve], [1.33, 1.338, C.ring], [1.45, CUE_LEN, C.cap]];
-/* the wrap's pattern, between 1.006 and 1.262 m, in the cue's local frame (y across, +-cueR) */
-function cueWrap(pat) {
-  const a = 1.008, b = 1.26, R = cueR(1.26);
+const cueParts = (C, tip, G = cueGeo()) => {
+  if (G === CUE_GEO.pool) return [[0, 0.005, tip], [0.005, 0.027, G.ferCol], [0.74, 0.744, C.metal], [0.744, 0.752, C.joint], [0.752, 0.756, C.metal],
+    [0.756, 1.0, C.fore], [1.0, 1.006, C.metal], [1.006, 1.262, C.wrap], [1.262, 1.268, C.metal], [1.268, 1.45, C.sleeve], [1.33, 1.338, C.ring], [1.45, CUE_LEN, C.cap]];
+  const out = [[0, 0.005, tip], [0.005, G.ferrule, G.ferCol]], j = G.joint;
+  if (j) out.push([j - 0.004, j, C.metal], [j, j + 0.006, C.joint], [j + 0.006, j + 0.01, C.metal]);
+  if (G.fore) out.push([G.fore[0], G.fore[1], C.fore]);
+  if (G.collar) out.push([G.collar[0], G.collar[1], C.metal]);
+  const sl = G.sleeve;
+  out.push([sl[0], sl[1], C.sleeve]);
+  if (G.ring) out.push([G.ring[0], G.ring[1], C.ring]);
+  out.push([sl[1], G.len, C.cap]);
+  return out;
+};
+/* the wrap's pattern over G.wrap, in the cue's local frame (y across, +-cueR) */
+function cueWrap(pat, G) {
+  if (!G.wrap) return;
+  const a = G.wrap[0], b = G.wrap[1], R = cueR(b, G);
   if (pat === 'linen') { ctx.fillStyle = 'rgba(255,255,255,0.07)'; for (let x = a; x < b; x += 0.0045) ctx.fillRect(x, -0.02, 0.0016, 0.04); return; }
   if (pat === 'leather') { ctx.fillStyle = 'rgba(255,255,255,0.05)'; for (let x = a; x < b; x += 0.021) ctx.fillRect(x, -0.02, 0.009, 0.04); return; }
   if (pat === 'stack') { for (let x = a, i = 0; x < b; x += 0.011, i++) { ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.25)'; ctx.fillRect(x, -0.02, 0.011, 0.04); } return; }
@@ -11048,7 +11177,7 @@ function cueWrap(pat) {
   }
 }
 function drawCue(c, ang, gap, alpha = 1) {
-  const dx = Math.cos(ang), dy = Math.sin(ang), tx = c.x - dx * gap, ty = c.y - dy * gap, bx = tx - dx * CUE_LEN, by = ty - dy * CUE_LEN;
+  const G = cueGeo(), LEN = G.len, dx = Math.cos(ang), dy = Math.sin(ang), tx = c.x - dx * gap, ty = c.y - dy * gap, bx = tx - dx * LEN, by = ty - dy * LEN;
   potCue = [tx, ty, bx, by];   /* the rails' windows give way where it lies over them (6b3) */
   const nx = -dy, ny = dx, sd = tdir(-LIGHT[0], -LIGHT[1]);
   ctx.globalAlpha = alpha;
@@ -11056,7 +11185,7 @@ function drawCue(c, ang, gap, alpha = 1) {
   /* its shadow on the cloth: the butt is held higher, so its shadow lands further off */
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   for (let i = 0; i < 3; i++) {
-    const w = 0.0015 + i * 0.004, a0 = 0.01, a1 = 0.08, r0 = cueR(0) + w, r1 = cueR(CUE_LEN) + 2 * w;
+    const w = 0.0015 + i * 0.004, a0 = 0.01, a1 = 0.08, r0 = cueR(0, G) + w, r1 = cueR(LEN, G) + 2 * w;
     const sx = tx + sd[0] * a0, sy = ty + sd[1] * a0, ex = bx + sd[0] * a1, ey = by + sd[1] * a1;
     ctx.beginPath();
     ctx.moveTo(sx + nx * r0, sy + ny * r0); ctx.lineTo(ex + nx * r1, ey + ny * r1); ctx.lineTo(ex - nx * r1, ey - ny * r1); ctx.lineTo(sx - nx * r0, sy - ny * r0);
@@ -11064,27 +11193,28 @@ function drawCue(c, ang, gap, alpha = 1) {
   }
   /* local frame: x runs from the tip back to the butt */
   ctx.translate(tx, ty); ctx.rotate(ang + Math.PI);
-  const r0 = cueR(0), r1 = cueR(CUE_LEN), band = (f0, f1, a = 0, b = CUE_LEN) => {
+  const r0 = cueR(0, G), r1 = cueR(LEN, G), band = (f0, f1, a = 0, b = LEN) => {
     ctx.beginPath();
-    ctx.moveTo(a, f0 * cueR(a)); ctx.lineTo(b, f0 * cueR(b)); ctx.lineTo(b, f1 * cueR(b)); ctx.lineTo(a, f1 * cueR(a)); ctx.closePath(); ctx.fill();
+    ctx.moveTo(a, f0 * cueR(a, G)); ctx.lineTo(b, f0 * cueR(b, G)); ctx.lineTo(b, f1 * cueR(b, G)); ctx.lineTo(a, f1 * cueR(a, G)); ctx.closePath(); ctx.fill();
   };
   ctx.save();
   ctx.beginPath();
-  ctx.moveTo(0, -r0); ctx.lineTo(CUE_LEN - 0.004, -r1); ctx.quadraticCurveTo(CUE_LEN, -r1, CUE_LEN, 0); ctx.quadraticCurveTo(CUE_LEN, r1, CUE_LEN - 0.004, r1);
+  ctx.moveTo(0, -r0); ctx.lineTo(LEN - 0.004, -r1); ctx.quadraticCurveTo(LEN, -r1, LEN, 0); ctx.quadraticCurveTo(LEN, r1, LEN - 0.004, r1);
   ctx.lineTo(0, r0); ctx.quadraticCurveTo(-0.0012, 0, 0, -r0); ctx.closePath();
   ctx.clip();
-  const [CU, tip] = cueLook(), maple = ctx.createLinearGradient(0.027, 0, 0.74, 0);
+  const [CU, tip] = cueLook(), SH = G.joint || (G.sleeve ? G.sleeve[0] : 0.74), maple = ctx.createLinearGradient(G === CUE_GEO.pool ? 0.027 : G.ferrule, 0, SH, 0);
   maple.addColorStop(0, CU.shaft[0]); maple.addColorStop(1, CU.shaft[1]);
-  ctx.fillStyle = maple; ctx.fillRect(0.02, -0.02, 0.73, 0.04);
-  for (const [a, b, col] of cueParts(CU, tip)) { ctx.fillStyle = col; ctx.fillRect(a, -0.02, b - a, 0.04); }
+  ctx.fillStyle = maple; ctx.fillRect(0.02, -0.02, G === CUE_GEO.pool ? 0.73 : SH - 0.01, 0.04);
+  for (const [a, b, col] of cueParts(CU, tip, G)) { ctx.fillStyle = col; ctx.fillRect(a, -0.02, b - a, 0.04); }
   /* forearm points, and the wrap's pattern */
-  if (CU.pts) {
+  if (CU.pts && G.pts) {
+    const [pa, pb] = G.pts;
     ctx.fillStyle = CU.pts;
     for (const s of [-1, 1]) {
-      ctx.beginPath(); ctx.moveTo(0.83, s * 0.45 * cueR(0.83)); ctx.lineTo(1.0, s * 0.1 * cueR(1)); ctx.lineTo(1.0, s * 0.95 * cueR(1)); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(pa, s * 0.45 * cueR(pa, G)); ctx.lineTo(pb, s * 0.1 * cueR(pb, G)); ctx.lineTo(pb, s * 0.95 * cueR(pb, G)); ctx.closePath(); ctx.fill();
     }
   }
-  cueWrap(CU.pat);
+  cueWrap(CU.pat, G);
   /* round: lit along the side toward the lamp, shaded on the other */
   const ly = sdir(Math.sin(ang), -Math.cos(ang)), s = ly[0] * LIGHT[0] + ly[1] * LIGHT[1] > 0 ? 1 : -1;
   ctx.fillStyle = 'rgba(255,255,255,0.16)'; band(s * 0.1, s * 0.75);
@@ -11421,7 +11551,7 @@ const SETTINGS_KEY = 'felt.settings';
 /* the settings' version (loadSettings), 14.1's races, and the page's own call options (5c) */
 const SETTINGS_V = 3, RACES_141 = [25, 50, 100, 150], CALL_UI = { highlight: true, confirm: true, sound: true, warn: true, history: true };
 const SETTINGS_BAK = 'felt.settings.bak', TEXT_SIZES = [100, 115, 130];
-const SETTINGS_KEYS = ['guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
+const SETTINGS_KEYS = ['dress', 'guide', 'cpu', 'level', 'sound', 'haptics', 'table', 'pockets', 'autoAim', 'cloth', 'bumperTable', 'caromRace', 'caromCush', 'camera', 'camV', 'names', 'last',
   'snookerTable', 'snookerFrames', 'sv', 'rules8', 'rules9', 'rules10', 'race141', 'stalemate', 'calls',
   'hand', 'bar', 'replays', 'reduceMotion', 'vol', 'volFx', 'marks', 'text', 'hcAim', 'keyShoot', 'cue', 'chalk', 'rail', 'balls', 'view', 'viewPitch', 'viewDist', 'viewAfter'];
 /* the steps from each version to the next, applied in turn to the stored object. sv 1 (no sv) to
@@ -14122,7 +14252,7 @@ function keepExtra(o) {
 function loadSettings() {
   /* snooker's table: compact (10 ft) on a phone, where the full table's balls get small; full on a bigger screen */
   const phone = Math.min(innerWidth, innerHeight) < 700;
-  const s = { guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'off', camV: 2, names: ['', ''], last: null,
+  const s = { dress: 'game', guide: 'full', cpu: false, level: 'medium', sound: !muted, haptics: true, table: '7', pockets: 'regulation', autoAim: true, cloth: 'green', bumperTable: 'octagon', caromRace: 10, caromCush: 3, camera: 'off', camV: 2, names: ['', ''], last: null,
     snookerTable: phone ? 'compact' : 'full', snookerFrames: 1,
     sv: SETTINGS_V, rules8: DEFAULT_RULESET[8], rules9: DEFAULT_RULESET[9], rules10: DEFAULT_RULESET[10], race141: phone ? 50 : 100, stalemate: false, calls: Object.assign(makeCall(), CALL_UI),
     hand: 'right', bar: 'mid', replays: true, reduceMotion: false, vol: 100, volFx: 100, marks: false, text: 100, hcAim: false, keyShoot: false,
@@ -14163,6 +14293,9 @@ function loadSettings() {
     if (typeof o.cloth === 'string' && Object.hasOwn(CLOTHS, o.cloth)) s.cloth = o.cloth;
     /* the look (4l): any cue, chalk, rail or ball set the page knows (look() wears it once unlocked) */
     for (const k of ['cue', 'chalk', 'rail', 'balls']) if (typeof o[k] === 'string' && Object.hasOwn(LOOKS[k], o[k])) s[k] = o[k];
+    /* Table Dressing: a save from before it that chose any look keeps it (My Look); nobody's choice is overridden */
+    if (['game', 'mine'].includes(o.dress)) s.dress = o.dress;
+    else if (['cloth', 'cue', 'chalk', 'rail', 'balls'].some(k => o[k] !== undefined && o[k] !== LOOK_DEFAULT[k])) s.dress = 'mine';
     if (CAROM_RACES.includes(o.caromRace)) s.caromRace = o.caromRace;
     if ([1, 3].includes(o.caromCush)) s.caromCush = o.caromCush;
     if (['octagon', 'rect'].includes(o.bumperTable)) s.bumperTable = o.bumperTable;
@@ -14186,6 +14319,8 @@ function setSetting(k, v) {
     /* a game in progress follows the new call rules, unless an event locked its own */
     if (game.rules && !game.rules.locked && POCKET_KINDS.includes(game.kind)) { game.rules = Object.assign({}, game.rules, { call: makeCall(settings.calls) }); resetCall(); }
   } else settings[k] = v;
+  /* picking a look means wearing it */
+  if (['cloth', 'cue', 'chalk', 'rail', 'balls'].includes(k)) settings.dress = 'mine';
   settings.sv = SETTINGS_V;
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(Object.assign({}, settingsExtra, settings))); } catch (e) { }
   if (k === 'sound') { muted = !v; audioOn(); }
@@ -14196,8 +14331,8 @@ function setSetting(k, v) {
   if ((k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') && state === 'menu' && !paused) previewGame(game.kind);
   syncMenu();
   /* the cloth, the rails and the balls are painted into the table image: repaint it */
-  if (k === 'cloth' || k === 'rail' || k === 'balls') layout();
-  if (k === 'cloth' || k === 'rail' || k === 'balls' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
+  if (k === 'cloth' || k === 'rail' || k === 'balls' || k === 'dress') layout();
+  if (k === 'cloth' || k === 'rail' || k === 'balls' || k === 'dress' || k === 'table' || k === 'pockets' || k === 'bumperTable' || k === 'snookerTable') paintArt();
   applyPrefs(k);
 }
 /* what the sv 3 settings do outside the game's own code: the root's data attributes (the controls'
@@ -14222,6 +14357,7 @@ const SEGS = [
   ['table', [[tb7, '7'], [tb9, '9']]],
   ['pockets', [[pkReg, 'regulation'], [pkGen, 'generous']]],
   ['autoAim', [[aaOn, true], [aaOff, false]]],
+  ['dress', [[drGame, 'game'], [drMine, 'mine']]],
   ['cloth', [[clGreen, 'green'], [clRed, 'red'], [clBlue, 'blue']]],
   ['bumperTable', [[btOct, 'octagon'], [btRect, 'rect']]],
   ['caromRace', [[cr5, 5], [cr10, 10], [cr15, 15]]],
@@ -14272,6 +14408,7 @@ const LOOK_ROWS = [['cue', 'Cue'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['ball
 {
   const cloth = SEGS.find(x => x[0] === 'cloth')[1];
   for (const key of Object.keys(CLOTHS)) {
+    if (CLOTHS[key].dress) continue;
     let b = (cloth.find(o => o[1] === key) || [])[0];
     if (!b) {
       const i = document.createElement('i');
@@ -14287,6 +14424,7 @@ const LOOK_ROWS = [['cue', 'Cue'], ['chalk', 'Chalk'], ['rail', 'Rails'], ['ball
     row.className = 'prow'; lab.className = 'plab'; lab.id = 'lk' + slot + 'Lab'; lab.textContent = label;
     seg.className = 'seg pop'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-labelledby', lab.id);
     for (const key of Object.keys(LOOKS[slot])) {
+      if (LOOKS[slot][key].dress) continue;
       const b = document.createElement('button');
       b.id = 'lk-' + slot + '-' + key; b.textContent = LOOKS[slot][key].name; b.setAttribute('aria-pressed', 'false');
       seg.appendChild(b); opts.push([b, key]); LOOK_BTNS.push([b, slot, key]);
@@ -14434,7 +14572,7 @@ function syncMenu() {
   syncSetupRules();
   levelSeg.hidden = !settings.cpu;
   nameRow.hidden = settings.cpu;
-  document.documentElement.dataset.cloth = look().cloth;
+  document.documentElement.dataset.cloth = settings.dress === 'mine' ? look().cloth : 'green';
   menu.toggleAttribute('data-paused', !!paused);
   resumeBtn.hidden = !paused;
   concedeBtn.hidden = !(paused && game.kind === 'snooker' && !game.mode && !tutOn() && game.winner === null);
@@ -14824,7 +14962,8 @@ function paintScrim(x, W, H, mode, band = 0) {
   x.setTransform(1, 0, 0, 1, 0, 0);
   x.fillStyle = g; x.fillRect(0, 0, W, H);
 }
-function paintRack(cv, kind, mode = 'fit', low = 0) {
+function paintRack(cv, kind, mode = 'fit', low = 0) { lookIn(kind, () => paintRackIn(cv, kind, mode, low)); }
+function paintRackIn(cv, kind, mode, low) {
   const w = cv.clientWidth, h = cv.clientHeight, d = pixelRatio();
   if (!w || !h) return;
   const key = [kind, mode, low, w, h, d, lookSig(), settings.table, settings.pockets, settings.bumperTable, settings.snookerTable].join();
@@ -15027,17 +15166,17 @@ function heroCamera(d, W, H, box, tall) {
    and the game's put back before it yields, so nothing else ever sees the hero's table) */
 /* made once per table and look: hero.tex the one in use, hero.texs every one made (heroWarm makes the
    five tables' on the home; a game keeps only the one in use, heroTexKeep) */
-const heroTexKey = args => [args.join(), lookSig()].join('|');
+const heroTexKey = (args, kind) => [args.join(), lookSigOf(kind)].join('|');
 const heroTexOf = key => hero.tex && hero.tex.key === key ? hero.tex : hero.texs[key] || null;
 const heroTexDims = g => { const ext = g.rail + 0.02, K = Math.min(720, 2400 / (g.TL + 2 * ext)); return { ext, K, w: Math.ceil((g.TL + 2 * ext) * K), h: Math.ceil((g.TW + 2 * ext) * K) }; };
 function heroTexKeep(all) {
   const keep = {};
   if (hero.tex) keep[hero.tex.key] = hero.tex;
-  if (all) for (const k of HERO_WARM_KINDS) { const key = heroTexKey(heroArgs(k)); if (hero.texs[key]) keep[key] = hero.texs[key]; }
+  if (all) for (const k of HERO_WARM_KINDS) { const key = heroTexKey(heroArgs(k), k); if (hero.texs[key]) keep[key] = hero.texs[key]; }
   hero.texs = keep;
 }
 function* heroTextureJob(d) {
-  const key = heroTexKey(d.args), have = heroTexOf(key);
+  const key = heroTexKey(d.args, d.kind), have = heroTexOf(key);
   if (have) { hero.tex = have; return have; }
   const g = d.geo, { ext, K, w, h } = heroTexDims(g);
   const vig = w === table.width && h === table.height;   /* drawTableImage's own rule */
@@ -15125,7 +15264,7 @@ function* heroStillJob(d, W, H, C0 = null, vignette = true, room = null) {
   x.fillStyle = '#0b0b0c'; x.fillRect(0, 0, W, H);
   const mid = heroProj(C, g.TL / 2, g.TW / 2, 0);
   let gr = x.createRadialGradient(mid[0], mid[1], 0, mid[0], mid[1], Math.max(W, H) * 0.75);
-  gr.addColorStop(0, 'rgba(255,236,205,0.10)'); gr.addColorStop(1, 'rgba(255,236,205,0)');
+  { const R = ROOMS[roomId()], hall = roomId() === 'hall'; gr.addColorStop(0, hall ? 'rgba(255,236,205,0.10)' : `rgba(${R.glow},${R.glowA * 1.45})`); gr.addColorStop(1, hall ? 'rgba(255,236,205,0)' : `rgba(${R.glow},0)`); }
   x.fillStyle = gr; x.fillRect(0, 0, W, H);
   if (room) room(x, C, g, W, H);   /* the opening's far room (6o) */
   /* the bed (and everything at z 0) */
@@ -15299,11 +15438,16 @@ function heroCue(x, C, g, d, t, Z, z, h = null) {
   else if (t < 0.74 * T0) gap = 0.23;
   else if (t < T0) { const u = (t - 0.74 * T0) / (0.26 * T0); gap = 0.23 * (1 - u * u); }
   else { const u = (t - T0) / 420; if (u >= 1) return; gap = -0.05 * Math.min(1, u * 3) - 0.1 * Math.max(0, u - 0.33); alpha = 1 - ease(0.25, 1, u); }
-  const [cue, tip] = cueLook(), len = 1.45, el = 0.1, R = g.R;
+  const keepFor = lookFor;
+  lookFor = d.kind;
+  const [cue, tip] = cueLook(), GC = cueGeo(), pool = GC === CUE_GEO.pool, len = pool ? 1.45 : GC.len, el = 0.1, R = g.R;
+  lookFor = keepFor;
   /* along the cue from the tip (s = 0) to the butt (s = len): position and radius */
   const at = s => { const k = gap + R + s * Math.cos(el); return [b.x - dx * k, b.y - dy * k, R + s * Math.sin(el)]; };
-  const rad = s => 0.0064 + (0.0145 - 0.0064) * (s / len) ** 1.3;
-  const parts = [[0, 0.006, tip], [0.006, 0.02, '#f2efe6'], [0.02, 0.98, [cue.shaft[0], cue.shaft[1]]], [0.98, 1.0, cue.metal], [1.0, 1.06, cue.joint], [1.06, 1.2, cue.fore], [1.2, 1.36, cue.wrap], [1.36, 1.44, cue.sleeve], [1.44, len, cue.cap]];
+  const rad = s => pool ? 0.0064 + (0.0145 - 0.0064) * (s / len) ** 1.3 : GC.r0 + GC.dr * (s / len) ** 1.3;
+  const shEnd = GC.joint || (GC.sleeve ? GC.sleeve[0] : 0.74);
+  const parts = pool ? [[0, 0.006, tip], [0.006, 0.02, '#f2efe6'], [0.02, 0.98, [cue.shaft[0], cue.shaft[1]]], [0.98, 1.0, cue.metal], [1.0, 1.06, cue.joint], [1.06, 1.2, cue.fore], [1.2, 1.36, cue.wrap], [1.36, 1.44, cue.sleeve], [1.44, len, cue.cap]]
+    : [[GC.ferrule, shEnd, [cue.shaft[0], cue.shaft[1]]], ...cueParts(cue, tip, GC)];
   x.globalAlpha = alpha;
   for (const [s0, s1, col] of parts) {
     /* cut at the eye: nothing nearer than 8 cm */
@@ -15363,7 +15507,7 @@ function heroSize() {
    built yet (the art for this table and look, the still parts, the roll) is built in a task of
    its own after the sheet is up, the canvas fading in once it has its first frame. Opened by a
    card's morph (6m), it is built in steps while the card flies instead (heroBuildJob). */
-const heroArtKey = (d, W, H) => [d.key, lookSig(), W, H, Math.round(heroTxtH(W))].join('|');
+const heroArtKey = (d, W, H) => [d.key, lookSigOf(d.kind), W, H, Math.round(heroTxtH(W))].join('|');
 function heroShow(kind, replay) {
   /* a card is still morphing in, or the hero is being built under it (6m): that lands it */
   if (!setupSheet.classList.contains('show') || !setupHeroArt.clientWidth || mo.hold || hero.build) return;
@@ -15381,12 +15525,13 @@ function heroShow(kind, replay) {
       hero.job = null;
       if (setupHeroArt.width !== W || setupHeroArt.height !== H) { setupHeroArt.width = W; setupHeroArt.height = H; }
       if (!hero.art || hero.art.key !== artKey) {
-        useCloth();
-        const A = heroStill(d, W, H);
-        /* paint them now, not in the first frame that draws them */
-        for (const c of [A.bg, A.fg, A.vg]) c.getContext('2d').getImageData(0, 0, 1, 1);
-        heroSprites(d, A);
-        A.key = artKey; hero.art = A;
+        lookIn(d.kind, () => {
+          const A = heroStill(d, W, H);
+          /* paint them now, not in the first frame that draws them */
+          for (const c of [A.bg, A.fg, A.vg]) c.getContext('2d').getImageData(0, 0, 1, 1);
+          heroSprites(d, A);
+          A.key = artKey; hero.art = A;
+        });
       }
       if (!hero.run) hero.run = heroRunStart(d);
       heroRunOn(Infinity);
@@ -15422,7 +15567,8 @@ function* heroBuildJob(kind) {
 }
 /* run a job's steps for up to ms, flushing what each drew; true once it is done */
 function heroStep(job, ms) {
-  const t0 = performance.now();
+  const t0 = performance.now(), keepFor = lookFor;
+  lookFor = job.kind;
   useCloth();
   try {
     let x = null, n = 0;
@@ -15434,7 +15580,7 @@ function heroStep(job, ms) {
       if (r.value && r.value.getImageData) { if (x && x !== r.value) x.getImageData(0, 0, 1, 1); x = r.value; if (++n % HERO_FLUSH_EVERY === 0) x.getImageData(0, 0, 1, 1); }
       if (performance.now() - t0 >= ms) { if (x) x.getImageData(0, 0, 1, 1); return false; }
     }
-  } finally { job.work = (job.work || 0) + performance.now() - t0; job.steps = (job.steps || 0) + 1; }
+  } finally { lookFor = keepFor; useCloth(); job.work = (job.work || 0) + performance.now() - t0; job.steps = (job.steps || 0) + 1; }
 }
 /* draw: the still (reduced motion), the shot from the start, on from where it was, or its end */
 function heroGo() {
@@ -15776,7 +15922,7 @@ function v3Col(s) {
   return c;
 }
 /* ---- the table: art, planes and faces, once per table and look ---- */
-const v3Key = () => [TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, BALL_R, lookSig(), V3.soft].join('|');
+const v3Key = () => [TABLE, POOL_TABLE, BUMPER_SHAPE, SNOOKER_SIZE, POCKETS_STYLE, BALL_R, lookSig(), roomId(), V3.soft].join('|');
 function v3Inside(x, y) {
   if (BED_LINES) return BED_LINES.every(([nx, ny, c]) => nx * x + ny * y - c >= 0);
   return x >= 0 && x <= TL && y >= 0 && y <= TW;
@@ -15891,17 +16037,22 @@ function v3Geo() {
 }
 /* the cue: a lathe of the look's parts from the tip (x 0) to the butt, radius cueR, 14 sides */
 function v3Cue() {
-  const [CU, tip] = cueLook(), key = JSON.stringify([CU, tip]);
+  const [CU, tip] = cueLook(), G = cueGeo(), key = JSON.stringify([CU, tip, G.id]);
   if (V3.cueBuf && V3.cueKey === key) return V3.cueBuf;
-  const gl = V3.gl, parts = cueParts(CU, tip), cuts = new Set([0, CUE_LEN]), out = [], S = 14;
-  for (let x = 0.03; x < 0.74; x += 0.06) cuts.add(x);
+  const gl = V3.gl, parts = cueParts(CU, tip, G), LEN = G.len, SH0 = G === CUE_GEO.pool ? 0.027 : G.ferrule, SH1 = G.joint || (G.sleeve ? G.sleeve[0] : 0.74), cuts = new Set([0, LEN]), out = [], S = 24;
+  for (let x = 0.03; x < SH1; x += 0.06) cuts.add(x);
   for (const [a, b] of parts) { cuts.add(a); cuts.add(b); }
-  const xs = [...cuts].filter(x => x >= 0 && x <= CUE_LEN).sort((a, b) => a - b), s0 = v3Col(CU.shaft[0]), s1 = v3Col(CU.shaft[1]);
-  const colAt = x => { let c = null; for (const [a, b, k] of parts) if (x >= a && x < b) c = v3Col(k); if (c) return c; const u = clamp((x - 0.027) / 0.713, 0, 1); return s0.map((v, i) => v + (s1[i] - v) * u); };
+  /* the inlaid points: four, round the cue, widening toward the butt, so they read from any side */
+  const pts = CU.pts && G.pts ? v3Col(CU.pts) : null;
+  if (pts) for (let i = 0; i <= 8; i++) cuts.add(G.pts[0] + (G.pts[1] - G.pts[0]) * i / 8);
+  const xs = [...cuts].filter(x => x >= 0 && x <= LEN).sort((a, b) => a - b), s0 = v3Col(CU.shaft[0]), s1 = v3Col(CU.shaft[1]);
+  const colAt = x => { let c = null; for (const [a, b, k] of parts) if (x >= a && x < b) c = v3Col(k); if (c) return c; const u = clamp((x - SH0) / (SH1 - SH0), 0, 1); return s0.map((v, i) => v + (s1[i] - v) * u); };
   for (let i = 0; i + 1 < xs.length; i++) {
-    const x0 = xs[i], x1 = xs[i + 1], c = colAt((x0 + x1) / 2), r0 = cueR(x0), r1 = cueR(x1);
+    const x0 = xs[i], x1 = xs[i + 1], cx = colAt((x0 + x1) / 2), r0 = cueR(x0, G), r1 = cueR(x1, G), xm = (x0 + x1) / 2;
+    const ptW = pts && xm >= G.pts[0] && xm < G.pts[1] ? (xm - G.pts[0]) / (G.pts[1] - G.pts[0]) * Math.PI / 4.4 : 0;
     for (let j = 0; j < S; j++) {
-      const a0 = j / S * 2 * Math.PI, a1 = (j + 1) / S * 2 * Math.PI, v = (x, r, a) => out.push(x, r * Math.cos(a), r * Math.sin(a), 0, Math.cos(a), Math.sin(a), c[0], c[1], c[2], 1);
+      const a0 = j / S * 2 * Math.PI, a1 = (j + 1) / S * 2 * Math.PI, am = (a0 + a1) / 2, off = Math.abs(((am + Math.PI / 4) % (Math.PI / 2)) - Math.PI / 4), c = ptW && off < ptW ? pts : cx;
+      const v = (x, r, a) => out.push(x, r * Math.cos(a), r * Math.sin(a), 0, Math.cos(a), Math.sin(a), c[0], c[1], c[2], 1);
       v(x0, r0, a0); v(x1, r1, a0); v(x1, r1, a1); v(x0, r0, a0); v(x1, r1, a1); v(x0, r0, a1);
     }
   }
@@ -15959,14 +16110,17 @@ function v3RoundRect(g, x, y, w, h, r) {
   g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
 }
 /* the floor: boards along the table, V3_ROOM_R each way from the middle; sharp near, blurred far, lit by the lamp */
-function v3PaintFloor(S) {
-  const K = S / (2 * V3_ROOM_R), A = v3Canvas(S, S), g = A.getContext('2d'), rnd = v3Rng(11), pw = 0.12 * K;
-  g.fillStyle = '#2a1c14'; g.fillRect(0, 0, S, S);
-  for (let y = 0; y < S; y += pw) {
+function v3PaintFloor(S, id = 'hall') {
+  const K = S / (2 * V3_ROOM_R), A = v3Canvas(S, S), g = A.getContext('2d'), rnd = v3Rng(11), RF = ROOMS[id], F = RF.floor, pw = (F ? F.plank || 0.12 : 0.12) * K;
+  g.fillStyle = F ? F.base : '#2a1c14'; g.fillRect(0, 0, S, S);
+  /* carpet: a flat speck; or boards in the room's own colour */
+  if (F && F.carpet) for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd() < 0.5 ? '255,255,255' : '0,0,0'},${0.02 + rnd() * 0.05})`; g.fillRect(rnd() * S, rnd() * S, 1.6, 1.6); }
+  else for (let y = 0; y < S; y += pw) {
     let x = -rnd() * 2 * K;
     while (x < S) {
       const L = (1.1 + rnd() * 1.6) * K, l = 0.8 + rnd() * 0.3, w = rnd();
-      g.fillStyle = `rgb(${Math.round(78 * l + w * 8)},${Math.round(52 * l + w * 4)},${Math.round(36 * l)})`;
+      const fc = F ? F.board : [78, 52, 36];
+      g.fillStyle = `rgb(${Math.round(fc[0] * l + w * 8)},${Math.round(fc[1] * l + w * 4)},${Math.round(fc[2] * l)})`;
       g.fillRect(x, y, L, pw);
       g.globalAlpha = 0.22; g.strokeStyle = '#1c120b'; g.lineWidth = 0.7;
       for (let k = 0; k < 3; k++) {
@@ -15995,7 +16149,8 @@ function v3PaintFloor(S) {
   return A;
 }
 /* the walls: a band W x H round the room, angle 0 (left) the table's +x, top V3_ROOM_TOP, bottom the floor */
-function v3PaintWall(W, H) {
+function v3PaintWall(W, H, id = 'hall') {
+  if (id !== 'hall') return v3PaintDressedWall(W, H, id);
   const pad = Math.round(W / 12), cv = v3Canvas(W + 2 * pad, H), g = cv.getContext('2d'), rnd = v3Rng(23);
   const Y = z => (V3_ROOM_TOP - z) / (V3_ROOM_TOP + V3_FLOOR) * H, X = deg => pad + deg / 360 * W, mPer = W / (2 * Math.PI * V3_ROOM_R);
   const rep = f => { for (const o of [-W, 0, W]) { g.save(); g.translate(o, 0); f(); g.restore(); } };
@@ -16053,6 +16208,59 @@ function v3PaintWall(W, H) {
   for (let i = 0; i < 40; i++) {
     const d = rnd() * 360, z = 0.9 + rnd() * 1.8, r = (0.08 + rnd() * 0.16) * mPer * 2.4;
     for (const k of [-W, 0, W]) v3Bokeh(o, X(d) + k, Y(z), r, '255,206,150', 0.04 + rnd() * 0.07);
+  }
+  o.globalCompositeOperation = 'source-over';
+  out = v3Blur(out, 1);
+  const fin = v3Canvas(W, H);
+  fin.getContext('2d').drawImage(out, pad, 0, W, H, 0, 0, W, H);
+  return fin;
+}
+/* the other rooms' walls, by the same pipeline (all judgment, no real hall copied). A view only. */
+function v3PaintDressedWall(W, H, id) {
+  const pad = Math.round(W / 12), cv = v3Canvas(W + 2 * pad, H), g = cv.getContext('2d'), rnd = v3Rng(41), R = ROOMS[id];
+  const Y = z => (V3_ROOM_TOP - z) / (V3_ROOM_TOP + V3_FLOOR) * H, X = deg => pad + deg / 360 * W, mPer = W / (2 * Math.PI * V3_ROOM_R);
+  const rep = f => { for (const o of [-W, 0, W]) { g.save(); g.translate(o, 0); f(); g.restore(); } };
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  R.wall.forEach(([z, c]) => bg.addColorStop(clamp(Y(z) / H, 0, 1), c));
+  g.fillStyle = bg; g.fillRect(0, 0, cv.width, H);
+  if (R.seats) {
+    /* banked seating: rows of dim heads, a dark gap where the room has none (`gap`, degrees either side of angle 0) */
+    const [z0, z1, gap, cols] = R.seats;
+    for (let z = z0; z < z1; z += 0.34) for (let d = 0; d < 360; d += 1.15) {
+      if (d < gap || d > 360 - gap) continue;
+      const c = cols[Math.floor(rnd() * cols.length)], a = (0.25 + rnd() * 0.5) * (1 - 0.55 * (z - z0) / (z1 - z0));
+      rep(() => { g.fillStyle = `rgba(${c},${a})`; g.fillRect(X(d + (rnd() - 0.5) * 0.6), Y(z) - 1, 1.6, 2); });
+    }
+    g.fillStyle = 'rgba(0,0,0,0.75)'; rep(() => g.fillRect(0, Y(z0 - 0.04), cv.width, Y(-0.76) - Y(z0 - 0.04)));
+  }
+  if (R.backdrop) {
+    /* a plain lit backdrop behind the stage, washed from below */
+    const [d0, d1, top, col] = R.backdrop;
+    rep(() => { const gr = g.createLinearGradient(0, Y(top), 0, Y(-0.2)); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.35, `rgba(${col},0.55)`); gr.addColorStop(1, `rgba(${col},0.9)`); g.fillStyle = gr; g.fillRect(X(d0), Y(top), X(d1) - X(d0), Y(-0.2) - Y(top)); });
+  }
+  if (R.strips) {
+    /* rows of strip lights along a pale hall's ceiling */
+    for (let d = 0; d < 360; d += 18) rep(() => { g.fillStyle = 'rgba(255,250,235,0.85)'; g.fillRect(X(d), Y(3.05), 12, 3); g.fillStyle = 'rgba(255,245,225,0.5)'; g.fillRect(X(d + 9), Y(2.6), 10, 2); });
+    for (let d = 0; d < 360; d += 12) rep(() => { g.fillStyle = 'rgba(0,0,0,0.14)'; g.fillRect(X(d), Y(2.2), 1.5, Y(-0.7) - Y(2.2)); });
+  }
+  if (R.pine) {
+    /* knotty pine: boards with a dark seam and the odd knot, up to a low ceiling */
+    for (let d = 0, i = 0; d < 360; d += 1.6, i++) {
+      const l = 0.82 + rnd() * 0.32, c = [Math.round(146 * l), Math.round(96 * l), Math.round(52 * l)];
+      rep(() => { g.fillStyle = `rgb(${c.join(',')})`; g.fillRect(X(d), Y(2.4), mPer * 0.26, Y(-0.76) - Y(2.4)); g.fillStyle = 'rgba(30,16,8,0.7)'; g.fillRect(X(d), Y(2.4), 1, Y(-0.76) - Y(2.4)); });
+      if (i % 2 === 0) { const kz = 0.1 + rnd() * 2.1, ox = rnd() * 2; rep(() => { g.fillStyle = 'rgba(46,24,10,0.75)'; g.beginPath(); g.arc(X(d) + ox, Y(kz), 1.2, 0, 7); g.fill(); }); }
+    }
+    g.fillStyle = 'rgba(0,0,0,0.62)'; rep(() => g.fillRect(0, 0, cv.width, Y(2.4)));
+    const dim = g.createLinearGradient(0, Y(2.4), 0, H); dim.addColorStop(0, 'rgba(10,6,3,0.72)'); dim.addColorStop(0.5, 'rgba(10,6,3,0.42)'); dim.addColorStop(1, 'rgba(10,6,3,0.82)');
+    g.fillStyle = dim; g.fillRect(0, Y(2.4), cv.width, H - Y(2.4));
+  }
+  let out = v3Blur(cv, R.blur || 2);
+  const o = out.getContext('2d');
+  o.globalCompositeOperation = 'lighter';
+  if (R.rig) for (let i = 0; i < R.rig; i++) {
+    /* the rig: cool lights far overhead */
+    const d = rnd() * 360, z = 3.4 + rnd() * 1.4;
+    for (const k of [-W, 0, W]) v3Bokeh(o, X(d) + k, Y(z), (0.1 + rnd() * 0.12) * mPer * 2.4, R.rigCol, 0.18 + rnd() * 0.16);
   }
   o.globalCompositeOperation = 'source-over';
   out = v3Blur(out, 1);
@@ -16124,13 +16332,16 @@ function v3Tex(gl, cv, premul, repeatS, flat) {
 }
 /* the room's textures, painted once a context (timed: V3.roomMs) */
 function v3RoomTex() {
-  if (V3.room) return V3.room;
-  const gl = V3.gl, t0 = performance.now(), soft = V3.soft, wall = v3PaintWall(1024, 224), small = v3Canvas(512, 112);
+  const id = roomId(), had = V3.room;
+  if (had && had.id === id) return had;
+  const gl = V3.gl, t0 = performance.now(), soft = V3.soft, wall = v3PaintWall(1024, 224, id), small = v3Canvas(512, 112);
   /* the wall is all blur: kept small (11 cm a texel at the wall, always magnified on screen) */
   small.getContext('2d').drawImage(wall, 0, 0, 512, 112);
+  /* another game's room: the wall and floor painted again, the neighbours' atlas and the shadow kept */
+  if (had) { gl.deleteTexture(had.wall); gl.deleteTexture(had.floor); }
   V3.room = {
-    floorCv: v3PaintFloor(soft ? 768 : 1024), floor: gl.createTexture(), floorKey: '', wall: v3Tex(gl, small, false, true, true),
-    shadowCv: v3PaintShadow(), ...v3CardAtlas(gl),
+    ...(had || { shadowCv: v3PaintShadow(), ...v3CardAtlas(gl) }),
+    id, floorCv: v3PaintFloor(soft ? 768 : 1024, id), floor: gl.createTexture(), floorKey: '', wall: v3Tex(gl, small, false, true, true),
   };
   V3.roomMs = performance.now() - t0;
   return V3.room;
@@ -16218,7 +16429,8 @@ function v3RoomGeo(outline, body) {
   let hx = 0, hy = 0;
   for (const q of outline) { hx = Math.max(hx, Math.abs(q[0] - cx)); hy = Math.max(hy, Math.abs(q[1] - cy)); }
   const ox = Math.max(4.4, hx + 1.25 + 1.6), oy = Math.max(3.3, hy + 0.7 + 1.5), near = [];
-  for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) near.push([cx + i * ox, cy + j * oy]);
+  /* a hall has neighbours; a stage and a rec room have one table */
+  if (ROOMS[roomId()].near) for (const [i, j] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) near.push([cx + i * ox, cy + j * oy]);
   return { room: new Float32Array(room), nFloor, nWall, floor, lamp: new Float32Array(lamp), lampZ: zb, lampBox: [cx - lw, cy - ld, zb, cx + lw, cy + ld, V3_ROOM_TOP], near, foot: [hx, hy] };
 }
 /* the neighbours' cards in one atlas (each with a clear gutter): the top (its body is dark on the dark floor and
@@ -16972,7 +17184,7 @@ function v3Scene(C, S, full) {
     }
     gl.uniform1f(pr.u.num, o.n > 0 && o.n < 16 ? o.n : 0);
     gl.uniform1f(pr.u.mark, v3MarkIdx(o.n));
-    gl.uniform1f(pr.u.rim, (o.n === 8 || o.n === 62) && CL.rim ? 1 : 0);
+    gl.uniform1f(pr.u.rim, ((o.n === 8 || o.n === 62) && CL.rim) || lowBall(o.n) ? 1 : 0);
     gl.uniform1f(pr.u.alpha, o.a);
     gl.uniform1f(pr.u.dark, o.dark || 0);
     if (o.drop) { const k = o.drop.k; gl.uniform4fv(pr.u.hole, [...toV([POCKETS[k][0], POCKETS[k][1], 0]), POCKET_R[k]]); }
@@ -17569,7 +17781,7 @@ function aimBall() {
   return h.kind === 'ball' && h.ball && h.ball.n > 0 ? h.ball.n : null;
 }
 /* a pool ball's colour in the player's ball set (useBalls, 4: what the table paints), and the set's ivory */
-const setBall = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return { col: rgb(n >= 1 && n <= 15 && B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n)), iv: B.ivory }; };
+const setBall = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return { col: rgb(n >= 1 && n <= 15 && setCol(B, n) || colorOf(n)), iv: B.ivory }; };
 /* the ball to play as a true little ball (6b2): its colour, a stripe's caps, its number on the ivory circle (the mark when marks are on) */
 function nextBallEl(n) {
   const d = document.createElement('span'), { col, iv } = setBall(n), m = settings.marks && markOf(n), i = document.createElement('i');
@@ -18019,7 +18231,7 @@ const pw = { order: [], by: {}, at: {}, els: new Map(), plan: null, planKey: '',
 /* the windows are shown at all (the game and the mode), and right now (no replay, no zoom) */
 const potGame = () => state !== 'menu' && POT_KINDS.includes(game.kind) && !tutOn() && !(solo && solo.kind === 'lesson') && (!game.mode || game.mode === 'practice');
 /* a ball's colour in the ball set, as nextBallEl paints it */
-const potRGB = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return B.col && B.col[n > 8 ? n - 8 : n] || colorOf(n); };
+const potRGB = n => { const B = BALLSETS[look().balls] || BALLSETS.classic; return setCol(B, n) || colorOf(n); };
 const potLum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
 const potRatio = (a, b) => { const x = potLum(a), y = potLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
 /* the slots, top-down through the fitted view: per side (0 the screen's left, 1 its right) bottom to top, each
@@ -18095,7 +18307,7 @@ function potCovered(x, y, r) {
   if (V3.live) {
     if (potCue) {
       const [tip, ax] = potCue, pts = [];
-      for (let i = 0; i <= 8; i++) { const s = CUE_LEN * i / 8, p = v3Proj(tip[0] + ax[0] * s, tip[1] + ax[1] * s, -(tip[2] + ax[2] * s)); if (p) pts.push(p); }
+      for (let i = 0; i <= 8; i++) { const s = cueGeo().len * i / 8, p = v3Proj(tip[0] + ax[0] * s, tip[1] + ax[1] * s, -(tip[2] + ax[2] * s)); if (p) pts.push(p); }
       for (let i = 1; i < pts.length; i++) if (near(pts[i - 1], pts[i], r + 4 + 0.03 * V3.cam.F / Math.max(0.2, pts[i][2]))) return true;
     }
     for (const b of (tab && state === 'rolling' ? tab : game).balls) {
@@ -18108,7 +18320,7 @@ function potCovered(x, y, r) {
   }
   if (!potCue) return false;
   const [tx, ty, bx, by] = potCue, a = screenIn(view, tx, ty), b = screenIn(view, bx, by);
-  return near(a, b, r + 3 + (cueR(CUE_LEN) + 0.012) * view.k);
+  return near(a, b, r + 3 + (cueR(cueGeo().len) + 0.012) * view.k);
 }
 /* a ball's window: the recess and the ball in it (rebuilt when the ball set or the marks change) */
 function potEl(n) {
@@ -19371,6 +19583,8 @@ function cvBannerPaint(cv, kind, args) {
   if (!cv.isConnected || !cv.clientWidth) return;
   const dp = Math.min(HERO_DPR, pixelRatio()), W = Math.round(cv.clientWidth * dp), H = Math.round(cv.clientHeight * dp), keepLook = lookCareer;
   lookCareer = () => Career.loaded ? careerLookOf() : null;
+  const keepFor = lookFor;
+  lookFor = kind;
   try {
     useCloth();
     const key = [kind, args.join(), lookSig(), W, H].join('|');
@@ -19388,7 +19602,7 @@ function cvBannerPaint(cv, kind, args) {
     cv.getContext('2d').drawImage(cvBan.img, 0, 0);
     cv.classList.add('on');
   } catch (e) { console.error('career banner: ' + e); }
-  finally { lookCareer = keepLook; useCloth(); }
+  finally { lookCareer = keepLook; lookFor = keepFor; useCloth(); }
 }
 
 /* the hub */
@@ -20456,7 +20670,7 @@ function morphOpen(card, sheet, open) {
     pics.push({ el: still, w: hr.width, h: hr.height }, { el: grad, w: hr.width, h: hr.height });
     /* the hero, built while the card flies (heroBuildJob, a few ms a frame): its first frame fades
        in over the card's art, so the landing is that frame and the shot starts from it */
-    job = hero.build = { it: heroBuildJob(setupKind), t0: performance.now(), est: plan.est, cap: plan.cap, flight };
+    job = hero.build = { kind: setupKind, it: heroBuildJob(setupKind), t0: performance.now(), est: plan.est, cap: plan.cap, flight };
     const step = () => {
       if (hero.build !== job) return;
       if (!setupSheet.classList.contains('show')) { hero.build = null; return; }
@@ -20603,16 +20817,16 @@ function heroUnder(pic) {
    It looks again every second on the home (a new look or table, or a game let them go: heroTexKeep);
    a step waits out MENU_QUIET_MS after a touch. Only with motion on (no morph, no need: the suites
    without motion never see it). */
-const HERO_WARM_KINDS = ['8', 'snooker', 'carom', 'bumper', 'heyball'];
+const HERO_WARM_KINDS = ['8', 'snooker', 'carom', 'bumper', 'heyball', '9', '10', 'straight', 'rotation'];   /* the pool games differ by their dressing; My Look shares one */
 function heroWarm() {
   clearTimeout(mo.warmT); mo.warmT = 0;
   if (!motionOn() || mo.warmJob) return;
   const later = () => { mo.warmT = setTimeout(heroWarm, 1000); };
   if (state !== 'menu' || !menu.classList.contains('show') || document.hidden || intro.state !== 'off' || mo.busy || hero.build) { later(); return; }
-  const kind = HERO_WARM_KINDS.find(k => !heroTexOf(heroTexKey(heroArgs(k))));
+  const kind = HERO_WARM_KINDS.find(k => !heroTexOf(heroTexKey(heroArgs(k), k)));
   if (!kind) { if (mo.warmRound) { mo.warm = performance.now() - mo.warmT0; mo.warmRound = false; } later(); return; }
   if (!mo.warmRound) { mo.warmRound = true; mo.warmT0 = performance.now(); }
-  const job = mo.warmJob = { it: heroTextureJob(heroPrep(kind)) }, keep = hero.tex;
+  const job = mo.warmJob = { kind, it: heroTextureJob(heroPrep(kind)) }, keep = hero.tex;
   const step = () => {
     if (mo.warmJob !== job) return;
     /* a card tapped meanwhile: its own build takes it from there */
@@ -20640,7 +20854,7 @@ function heroPlan(kind) {
   const k = mo.warmWork ? clamp(mo.warmWork / HERO_WARM_REF, 1, 4) : 1.5, cap = HERO_STEP_CAP * k;
   const d = hero.data, args = heroArgs(kind).join(), same = d && d.kind === kind && d.args.join() === args;
   const [W, H] = heroSize(), ready = same && hero.art && hero.art.key === heroArtKey(d, W, H);
-  const tex = !!heroTexOf(heroTexKey(heroArgs(kind)));
+  const tex = !!heroTexOf(heroTexKey(heroArgs(kind), kind));
   const base = mo.buildWork || (mo.warmWork || HERO_WARM_REF * k) * HERO_WORK_PER_WARM;
   /* a table not yet painted: the warm-up's work (the pool table's) times its art's size over the pool's */
   const px = g => { const t = heroTexDims(g); return t.w * t.h; }, more = tex || ready ? 1 : px((same ? d : heroPrep(kind)).geo) / px(heroPrep(HERO_WARM_KINDS[0]).geo);
@@ -21233,7 +21447,7 @@ function* introBuild() {
   intro.lift = X; intro.Hc = Hc;
   intro.arts = [];
   for (let i = 0; i < 2; i++) {
-    const A = heroStill(d, W, i ? H : Hc, cams[i], false, i === 0 ? introRoom : null);
+    const A = lookIn(kind, () => heroStill(d, W, i ? H : Hc, cams[i], false, i === 0 ? introRoom : null));
     A.bg.getContext('2d').getImageData(0, 0, 1, 1);
     const fg = A.fg;
     [A.fg, A.fgAt] = introCrop(fg);

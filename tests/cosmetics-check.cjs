@@ -117,6 +117,110 @@ const ev = (t, f, a) => t.page.evaluate(f, a);
     await t.browser.close();
   }
 
+  /* ---- 1b. each game dressed as itself (T6.2): Table Dressing, By Game ---- */
+  {
+    const KINDS = ['8', '9', '10', 'straight', 'rotation', 'heyball', 'snooker', 'carom', 'bumper'];
+    const t = await open('', { viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+    await ev(t, HELPERS);
+    const d = await ev(t, KINDS => {
+      const looks = {}, geo = {};
+      for (const k of KINDS) { lookFor = k; looks[k] = Object.assign({}, GAME_LOOK[k], { sig: lookSig() }); const G = cueGeo(); geo[k] = { id: G.id, len: G.len, tip: 2000 * G.r0, joint: G.joint, wrap: !!G.wrap }; lookFor = null; }
+      return { looks, geo, dress: settings.dress, rooms: Object.keys(ROOMS),
+        known: KINDS.every(k => CLOTHS[GAME_LOOK[k].cloth] && RAILS[GAME_LOOK[k].rail] && CUES[GAME_LOOK[k].cue] && BALLSETS[GAME_LOOK[k].balls] && ROOMS[GAME_LOOK[k].room]),
+        tv: [BALLSETS.tv.col[4], BALLSETS.tv.col[7]], pb: BALLSETS.pinkblue.name };
+    }, KINDS);
+    const uniq = f => new Set(KINDS.map(k => f(d.looks[k]))).size;
+    check('By Game is the default on a new save, and every game names a real cloth, rail, cue, ball set and room', d.dress === 'game' && d.known, JSON.stringify(d.dress));
+    check('each game wears its own cloth and its own rail: nine of each', uniq(l => l.cloth) === 9 && uniq(l => l.rail) === 9, JSON.stringify(d.looks));
+    check('each game\'s whole dressing differs from every other (cloth, rail, balls, cue, room)', uniq(l => [l.cloth, l.rail, l.balls, l.cue, l.room].join()) === 9);
+    check('8-ball By Game is the old defaults exactly', d.looks[8].cloth === 'green' && d.looks[8].rail === 'walnut' && d.looks[8].balls === 'classic' && d.looks[8].cue === 'house' && d.looks[8].chalk === 'blue');
+    check('rooms: every room used, a hall for the old games, a stage where a stage belongs', new Set(KINDS.map(k => d.looks[k].room)).size === d.rooms.length && d.looks.snooker.room === 'crucible' && d.looks.heyball.room === 'joy' && d.looks[9].room === 'arena' && d.looks.bumper.room === 'rec' && d.looks.carom.room === 'carom', JSON.stringify(d.rooms));
+    const G = d.geo;
+    check('cue geometry per discipline: pool\'s five share the old cue; snooker, carom, Chinese 8-ball and bumper pool each have their own',
+      ['8', '9', '10', 'straight', 'rotation'].every(k => G[k].id === 'pool' && G[k].len === 1.47) && new Set([G[8].id, G.snooker.id, G.carom.id, G.heyball.id, G.bumper.id]).size === 5, JSON.stringify(G));
+    check('cue geometry, per the research: snooker slim (under 10 mm at the tip), 3/4 jointed, no wrap; carom shorter than pool, no wrap; bumper the shortest, one piece',
+      G.snooker.tip < 10 && G.snooker.joint === 1.067 && !G.snooker.wrap && G.carom.len < 1.47 && !G.carom.wrap && G.bumper.len < G.carom.len && G.bumper.joint === null && G[8].wrap, JSON.stringify(G));
+    check('BALLSETS.tv: no purple 4 and no maroon 7 (a pink, and a tan)', d.tv[0][0] > 200 && d.tv[0][1] < 130 && d.tv[1][1] > 80 && d.tv[1][0] < 200, JSON.stringify(d.tv));
+    check('the pink and blue set says what it is, and is nobody\'s brand', /^Pink and Blue$/.test(d.pb), d.pb);
+
+    /* what each game's table shows: cloth, 3:1 for every overlay, no error */
+    const res = [];
+    for (const kind of KINDS) {
+      res.push(await ev(t, kind => {
+        hideOverlays(); felt.start(kind); layout(); draw(performance.now());
+        const balls = game.balls.filter(b => b.on), clear = (x, y) => balls.every(b => Math.hypot(b.x - x, b.y - y) > BALL_R * 3) && BUMPERS.every(p => Math.hypot(p[0] - x, p[1] - y) > BUMPER_R * 3) && POCKETS.every(p => Math.hypot(p[0] - x, p[1] - y) > 0.12);
+        let best = [0, 0, 0], bl = 0;
+        for (let i = 3; i < 10; i++) for (let j = 2; j < 6; j++) {
+          const x = TL * i / 12, y = TW * j / 7;
+          if (!clear(x, y)) continue;
+          const [sx, sy] = toScreen(x, y), c = Array.from(tableImg.getContext('2d').getImageData(Math.round(sx * dpr), Math.round(sy * dpr), 1, 1).data), l = __lum(c);
+          if (l > bl) { bl = l; best = c; }
+        }
+        const over = (f, a) => f.map((v, i) => v * a + best[i] * (1 - a)), hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+        const cr = c => { const a = __lum(c); return +((Math.max(a, bl) + 0.05) / (Math.min(a, bl) + 0.05)).toFixed(2); };
+        const wood = Array.from(tableImg.getContext('2d').getImageData(...toScreen(TL * 0.3, -RAIL * 0.55).map(v => Math.round(v * dpr)), 1, 1).data);
+        return { kind, cloth: look().cloth, cl: CL === CLOTHS[GAME_LOOK[kind].cloth], bed: best, wood, white: cr(over([255, 255, 255], CL.ovMin)), illegal: cr(hex(ILLEGAL)), halo: cr(over([255, 236, 190], 0.95)), call: cr(hex(CL.call)), loupe: cr(over([255, 255, 255], 0.85)) };
+      }, kind));
+    }
+    check('each game wears its own cloth on the table', res.every(r => r.cl), JSON.stringify(res.map(r => [r.kind, r.cloth, r.cl])));
+    check('the table\'s picture differs game to game: each bed its own colour', new Set(res.map(r => r.bed.join())).size === 9, JSON.stringify(res.map(r => r.bed)));
+    check('contrast: on each game\'s own cloth every overlay keeps 3:1 on the brightest lit bed (white at the floor alpha, illegal, halo, called ball, loupe rim)',
+      res.every(c => ['white', 'illegal', 'halo', 'call', 'loupe'].every(k => c[k] >= 3)), JSON.stringify(res.map(({ kind, white, illegal, halo, call, loupe }) => ({ kind, white, illegal, halo, call, loupe }))));
+
+    /* the card and the setup's hero wear the game's look; the game's own look comes back after */
+    const hero9 = await ev(t, async () => {
+      hideOverlays(); felt.start('8'); felt.quitToHome();
+      showSetup('9');
+      for (let i = 0; i < 100 && !(hero.art && setupHeroArt.width > 1 && hero.state !== 'idle'); i++) await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 200));
+      const c = setupHeroArt.getContext('2d'), W = setupHeroArt.width, H = setupHeroArt.height, D = c.getImageData(W * 0.3, H * 0.45, W * 0.4, H * 0.15).data;
+      let b = 0, g = 0; for (let i = 0; i < D.length; i += 4) { b += D[i + 2]; g += D[i + 1]; }
+      const out = { blue: b > g * 1.2, b, g, cl: CL === CLOTHS[look().cloth], sig9: lookSigOf('9'), sig8: lookSigOf('8') };
+      felt.quitToHome();
+      return out;
+    });
+    check('the setup\'s hero wears the game\'s dressing (9-ball\'s blue), and the cloth in use is what look() says', hero9.blue && hero9.cl && hero9.sig8 !== hero9.sig9, JSON.stringify(hero9));
+
+    /* the room's build: each room's wall and floor against the hall's, best of three */
+    const rooms = await ev(t, () => {
+      const best = id => { let m = 1e9; for (let i = 0; i < 3; i++) { const t0 = performance.now(), w = v3PaintWall(1024, 224, id), f = v3PaintFloor(1024, id); w.getContext('2d').getImageData(0, 0, 1, 1); f.getContext('2d').getImageData(0, 0, 1, 1); m = Math.min(m, performance.now() - t0); } return Math.round(m); };
+      return Object.fromEntries(Object.keys(ROOMS).map(id => [id, best(id)]));
+    });
+    check('3D rooms: no room takes longer to paint than the hall (the old room, its budget) by more than half', Object.keys(rooms).every(id => rooms[id] <= rooms.hall * 1.5 + 5), JSON.stringify(rooms));
+
+    /* physics byte-identical, By Game against My Look, in every game */
+    const phys = await ev(t, KINDS => KINDS.map(kind => {
+      hideOverlays(); setSetting('dress', 'game'); felt.start(kind);
+      const layout = JSON.parse(JSON.stringify(game.balls)), con = () => [BALL_R, MU_ROLL, CUE_RATIO, CUSH_MU, RAIL_E, TL, TW, JSON.stringify(POCKETS)].join();
+      const a = JSON.stringify(simulateShot(layout, { angle: 0.4, power: 0.8, spin: { x: 0.1, y: -0.2 }, ball: cueN() })), ca = con();
+      setSetting('dress', 'mine'); hideOverlays(); felt.start(kind);
+      const b = JSON.stringify(simulateShot(layout, { angle: 0.4, power: 0.8, spin: { x: 0.1, y: -0.2 }, ball: cueN() })), cb = con();
+      setSetting('dress', 'game');
+      return { kind, same: a === b && ca === cb && a.length > 200 };
+    }), KINDS);
+    check('physics: By Game and My Look give a byte-identical shot and the same constants in all nine games', phys.every(r => r.same), JSON.stringify(phys));
+
+    /* the setting, by real choice */
+    const pr = await ev(t, () => { felt.quitToHome(); showPrefs('gfx'); return { hasRow: !!document.getElementById('drGame'), game: drGame.getAttribute('aria-pressed'), tourney: !!document.getElementById('clTourney'), cueBtn: !!document.getElementById('lk-cue-ash'), railBtn: !!document.getElementById('lk-rail-lacquer'), own: [...lookOwn].length, shop: !Career.shop || true }; });
+    check('Settings > Graphics has Table Dressing, on By Game; the games\' own cloths, cues and rails are not items in Settings', pr.hasRow && pr.game === 'true' && !pr.tourney && !pr.cueBtn && !pr.railBtn, JSON.stringify(pr));
+    await t.page.waitForTimeout(250);
+    await t.page.click('#drMine');
+    const m1 = await ev(t, () => { hideOverlays(); felt.start('9'); const out = { s: settings.dress, L: look(), room: roomId(), geo: (lookFor = 'snooker', cueGeo().id) }; lookFor = null; return out; });
+    check('My Look: every game wears the settings\' look in the old hall; the cue keeps its discipline\'s shape', m1.s === 'mine' && m1.L.cloth === 'green' && m1.room === 'hall' && m1.geo === 'snooker', JSON.stringify(m1));
+    const m2 = await ev(t, () => { setSetting('dress', 'game'); setSetting('cloth', 'red'); const out = settings.dress; setSetting('cloth', 'green'); setSetting('dress', 'game'); return out; });
+    check('picking a cloth switches to My Look (a choice is worn at once)', m2 === 'mine', m2);
+    check('dressing: no console errors', t.errors.length === 0, t.errors.join(' | '));
+    await t.browser.close();
+  }
+
+  /* ---- 1c. an older save keeps its look (T6.2) ---- */
+  for (const [name, save, want] of [['a save with a red cloth', { sv: 3, cloth: 'red' }, 'mine'], ['a save with a bought cue', { sv: 3, cue: 'gold' }, 'mine'], ['a save on the defaults', { sv: 3, cloth: 'green', cue: 'house', rail: 'walnut', balls: 'classic', chalk: 'blue' }, 'game'], ['a save with no look at all', { sv: 3, guide: 'off' }, 'game'], ['a save that chose By Game', { sv: 3, cloth: 'red', dress: 'game' }, 'game']]) {
+    const t = await open('', { init: `try { localStorage.setItem('felt.settings', ${JSON.stringify(JSON.stringify(save))}); } catch (e) { }` });
+    const r = await ev(t, () => settings.dress);
+    check(`migration: ${name} loads as ${want === 'mine' ? 'My Look, so nobody\'s choice is overridden' : 'By Game'}`, r === want, r);
+    await t.browser.close();
+  }
+
   /* ---- 3. physics never depends on a look ---- */
   {
     const t = await open('', { init: UNLOCK });
